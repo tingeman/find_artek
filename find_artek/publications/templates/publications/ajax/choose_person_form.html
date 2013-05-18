@@ -1,0 +1,90 @@
+{% comment %}
+This is a template meant for inclusion in another page.
+It is rendered as response to an ajax request to check a list of authors for
+duplicate or similar entries in the database.
+
+This template produces a form where a choice can be made between similar person
+instances in the database.
+
+The contents of this template will be rendered inside a <div></div> tag and
+shown as a popup dialog.
+
+{% endcomment %}
+
+<script>
+
+	$(function() {
+		$( "#collapsible" ).accordion({
+			collapsible: true,
+			active: 0,
+			heightStyle: "content",
+		});
+	});
+
+	$.fn.serializeObject = function() {
+		var o = {};
+		var a = this.serializeArray();
+		$.each(a, function() {
+			if (o[this.name] !== undefined) {
+				if (!o[this.name].push) {
+					o[this.name] = [o[this.name]];
+				}
+				o[this.name].push(this.value || '');
+			} else {
+				o[this.name] = this.value || '';
+			}
+		});
+		return o;
+	};
+
+	$(function() {
+		$('#choose-person-form').submit(function( event ) {
+			event.preventDefault();
+			//console.log("Submitting person info to main page...");
+			//$('#result').text(JSON.stringify($('#choose-person-form').serializeObject()));
+
+			// Update the textarea
+			$( "#id_authors" ).updatePersons( $('#choose-person-form').serializeObject() );
+
+			// return execution to the original page...
+			var callbackFunction = $(this).parents("div.ui-dialog-content:first").data('callbackFunction')
+			if ( callbackFunction ) { callbackFunction(true) };
+			// close dialog
+			$(this).parents("div.ui-dialog-content:first").dialog("close");
+
+		});
+	});
+
+
+
+</script>
+
+<p class="validateTips">Please choose for each author in list:  [Try implementing a SOUNDEX relaxed matching!]</p>
+
+<form id="choose-person-form" action="">
+<div id='collapsible'>
+{% for p in data.persons %}
+<h3>{{p.name.strip}}</h3>
+<div>
+<input type="radio" name="{{p.name}}" value="{{p.name}} [id:0]" id="p{{forloop.parentloop.counter0}}_new"><label for="p{{forloop.parentloop.counter0}}_new">Create new person</label><br><br>
+{% if p.p_exact %}
+<em>Exact matches:</em><br/>
+{% for c in p.p_exact %}
+<input type="radio" name="{{p.name}}" value="{{c}} [id:{{c.id}}]" id="p{{forloop.parentloop.counter0}}_e{{forloop.counter0}}"><label for="p{{forloop.parentloop.counter0}}_e{{forloop.counter0}}">{{c}} [id:{{c.id}}]</label><br>
+{% endfor %}
+{% endif %}
+{% if p.p_relaxed %}
+<em>Relaxed matches:</em><br/>
+{% for c in p.p_relaxed %}
+<input type="radio" name="{{p.name}}" value="{{c}} [id:{{c.id}}]" id="{{forloop.parentloop.counter0}}_r{{forloop.counter0}}"><label for="p{{forloop.parentloop.counter0}}_r{{forloop.counter0}}">{{c}} [id:{{c.id}}]</label><br>
+{% endfor %}
+{% endif %}
+</div>
+{% endfor %}
+</div>
+<input type="submit" value="Accept choices" />
+</form>
+
+<h2>JSON</h2>
+<pre id="result">
+</pre>

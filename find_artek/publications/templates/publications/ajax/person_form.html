@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Publication list{% endblock %}
+{% block head %}
+	<link rel="stylesheet" href="{{STATIC_URL}}jquery/css/redmond/jquery-ui-1.9.2.custom.css" />
+	<link rel="stylesheet" href="{{STATIC_URL}}publications/css/person_form_ajax.css" />
+    <script src="{{STATIC_URL}}jquery/js/jquery-1.8.3.js"></script>
+    <script src="{{STATIC_URL}}jquery/js/jquery-ui-1.9.2.custom.js"></script>
+	<script>
+		$(function() {
+		
+			function updateTips( t ) {
+				tips
+					.text( t )
+					.addClass( "ui-state-highlight" );
+				setTimeout(function() {
+					tips.removeClass( "ui-state-highlight", 1500 );
+				}, 500 );
+			}
+		
+			function checkLength( o, n, min, max ) {
+				if ( o.val().length > max || o.val().length < min ) {
+					o.addClass( "ui-state-error" );
+					updateTips( "Length of " + n + " must be between " +
+						min + " and " + max + "." );
+					return false;
+				} else {
+					return true;
+				}
+			}
+		
+			function checkRegexp( o, regexp, n ) {
+				if ( !( regexp.test( o.val() ) ) ) {
+					o.addClass( "ui-state-error" );
+					updateTips( n );
+					return false;
+				} else {
+					return true;
+				}
+			}
+		
+			$( "#person-form-dialog" ).dialog({
+				autoOpen: false,
+				height: 400,
+				width: 350,
+				modal: true,
+				buttons: {
+					"Create Person": function() {
+						$.ajax({ // create an AJAX call...
+							data: $( "#person-form" ).serialize(), // get the form data
+							type: $( "#person-form" ).attr('method'), // GET or POST
+							url: $( "#person-form" ).attr('action'), // the file to call
+							dataType: 'json',
+							success: function(response) { // on success..
+								if('error' in response) {
+									alert('Load was performed.' + response.error);
+								} else {
+									$('#person-form-response').html(response.success); // update the DIV
+									$( "#person-form-dialog" ).dialog( "close" );
+								};
+							},
+							error: function(jqXHR, textStatus, errorThrown) { // on error...
+								$('#person-form-response').html(textStatus); // update the DIV
+								
+							}
+						});
+					},
+					Cancel: function() {
+						$( this ).dialog( "close" );
+					}
+				},
+				close: function() {
+					allFields.val( "" ).removeClass( "ui-state-error" );
+				}
+			});
+			
+			$( "#create-person" )
+				.button()
+				.click(function() {
+					$( "#person-form-dialog" ).dialog( "open" );
+            });
+			
+			$(function() {
+				$( "#collapsible" ).accordion({
+					collapsible: true,
+					active: false,
+					heightStyle: "content",
+				});
+			});
+		});
+		
+		
+	</script>
+{% endblock %}
+{% block body %}
+
+<div class='site_container'>
+<h2>Registrer ny person</h2>
+
+
+<button id="create-person">Create new Person</button>
+
+
+<div id="person-form-dialog" title="Create new Person">
+    <p class="validateTips">Please fill in information about person.</p>
+ 
+    <form action="/pubs/person/ajax/add/" method="post" id="person-form">{% csrf_token %}
+		{# Include the visible fields #}
+		{% for field in form.normal_fields %}
+
+				<p>{{ field.label_tag }} {{ field }}<span class="help-block">{{ field.help_text }}</span></p>
+
+		{% endfor %}
+		<div id='collapsible'>
+		<h3>Additional information</h3>
+		<div>
+		{% for field in form.collapsible_fields %}
+				<p>{{ field.label_tag }} {{ field }}<span class="help-block">{{ field.help_text }}</span></p>                             
+		{%endfor%}
+		</div>
+		</div>
+
+    </form>
+</div>
+<div id="person-form-response"></div>
+
+</div>
+
+{% endblock %}

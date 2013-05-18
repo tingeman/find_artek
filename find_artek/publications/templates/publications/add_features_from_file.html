@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Administrative menu{% endblock %}
+{% block head %}
+{% endblock %}
+
+
+{% block headline %}Add features from file upload{% endblock %}
+
+
+{% block body %}
+
+<p>You may upload an Excel file with feature information to be added to the database.
+The file may contain information about several features, and information about which
+publication the feature should be related to (presently only one publication-relation
+possible per feature)</p>
+<p>A template for the Excel file is available here: <a href="{{STATIC_URL}}publications/docs/find-artek_feature_registration.xlsx">Feature Excel file template</a>.</p>
+<br>
+<form action="/pubs/add/features_from_file/" method="POST" enctype="multipart/form-data">{% csrf_token %}
+<table>
+{{ form.as_table }}
+
+<tr><th></th><td><br><button type="submit">Upload</button></td>
+
+</table>
+</form>
+
+{% endblock %}

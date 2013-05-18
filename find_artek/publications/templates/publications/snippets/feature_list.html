@@ -1,0 +1,17 @@
+<table>
+    <tr class="header" style="background-color:  #B0C4DE;border: 1px solid  #B0C4DE;padding: 5px"><td>id</td><td>Name</td><td>Type</td><td>Date</td><td>Description</td>{% if user.is_authenticated %}<td style="width: 64px; text-align: left">Tools</td>{% endif %}</tr>
+    {% for feature in feat_list %}
+        <tr id='1' style="border: 1px solid  #B0C4DE;padding: 5px">
+        {% include "publications/snippets/feature_td.html" %}
+
+        {% if user.is_authenticated %}
+            <td style="text-align: center">
+            <a id='2' href="/pubs/edit/feature/{{ feature.id }}/" target="info"><img src="{{STATIC_URL}}icons/Hamburg/16x16/edit.png" /></a>
+            {% if pub.comment %}<img src="{{STATIC_URL}}icons/Hamburg/16x16/comment.png" title="{{ pub.comment }}"/>
+            {% else %}<div style="width: 16px; height: 16px; display:inline-block;"></div>{% endif %}
+            </td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</table>
+

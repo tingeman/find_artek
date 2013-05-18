@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Administrative menu{% endblock %}
+{% block head %}
+{% endblock %}
+
+
+{% block headline %}Administrative menu{% endblock %}
+
+
+{% block body %}
+
+
+<p><a href="/pubs/add/report/"><button  type="button">Add report</button></a></p>
+<p><a href="/pubs/add/person/"><button  type="button">Add person</button></a></p>
+<p><a href="/pubs/add/feature/"><button  type="button">Add feature</button></a></p>
+<p><a href="/pubs/add/pubs_from_file"><button  type="button">Add reports from Excel-file</button></a></p>
+<p><a href="/pubs/add/features_from_file"><button  type="button">Add features from Excel-file</button></a></p>
+<br><br>
+<p><a href="/db/backup/"><button  type="button">Backup database</button></a></p>
+<p>This will create a backup of the database (not the pdf/media files) on the server.
+The backup can only be restored manually after stopping the Apache-server. This
+restore-process requires administrative rights to the server - please contact
+<a href="mailto:tin@byg.dtu.dk">tin@byg.dtu.dk</a> if a restore is necessary.</p>
+</ul>
+
+
+{% endblock %}

@@ -1,0 +1,17 @@
+<tr><td>Name</td><td>
+    {% if link_name %}<a href="/pubs/person/{{ person.id }}/" target="_blank">{% endif %}
+    {{ person }}{% if show_id %} [id:{{person.id}}]{% endif %}
+    {% if link_name %}</a>{% endif %}
+</td></tr>
+<tr><td>Position</td><td>{{ person.position }}</td></tr>
+<tr><td>E-mail</td><td>{{ person.email }}</td></tr>
+<tr><td>ID</td><td>{{ person.id_number }}</td></tr>
+<tr><td>Publications</td>
+<td>
+{% for pub in person.publication_authors.all %}<a href="/pubs/detail/{{ pub.id }}/" target="_blank" title="{{ pub.title }}">
+{% if pub.type.type == "STUDENTREPORT" %}{{ pub.number }}
+{% elif pub.type.type == "PHDTHESIS" %}{{ pub.number }}
+{% elif pub.type.type == "MSCTHESIS" %}{{ pub.number }}
+{% else %}{{ pub.key }}
+{% endif %}
+</a>{% if forloop.revcounter0 == 1 %} &amp; {% elif not forloop.last %} ; {% endif %}{% endfor %}</td></tr>

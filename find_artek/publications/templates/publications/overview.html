@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block head %}
+{{ map.media }}
+{% include "publications/snippets/jQuery_include.html" %}
+<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}publications/css/publist.css" />
+{% endblock %}
+{% block body %}
+
+<div class='site_container'>
+<h2>Overview</h2>
+</br>
+
+<table>
+<tr><td>
+{{ map }}
+(Press left mouse button on a feature to see details)
+
+<script type="text/javascript">
+    $(function() {
+
+        $.fn.get_map = function() {
+            /*
+            FOR A DIFFERENT APPROACH LOOK INTO:
+            http://stackoverflow.com/questions/9153914/geodjango-olwidget-adding-a-control-to-a-map
+            */
+            for (var name in window) {
+                if (name.substring(0, 11) == "olwidget_id") {
+                    //alert("Found variable: " + name);
+                    return window[name];
+                };
+            };
+            return false;
+        };
+
+
+        $.fn.update_report_list = function() {
+            var mapextent = {wkt: "",
+                             srid: ""}
+            /*
+            FOR A DIFFERENT APPROACH LOOK INTO:
+            http://stackoverflow.com/questions/9153914/geodjango-olwidget-adding-a-control-to-a-map
+
+            for (var name in window) {
+                if (name.substring(0, 11) == "olwidget_id") {
+                    //alert("Found variable: " + name);
+                    var mymap = window[name];
+                    var mypolygon = mymap.getExtent().transform(mymap.projection, mymap.displayProjection).toGeometry()
+                    //alert("Requesting:\nExtend: " + mypolygon.toString() + "\nProjection: " + mymap.displayProjection);
+                    var mapextent = {wkt: mypolygon.toString(), srid: mymap.displayProjection.toString()};
+                    //var extentJSON = $.param(mapextent, false)
+                    //alert(extentJSON);
+                }
+            }
+            */
+
+            var mymap = $.fn.get_map();
+            var mypolygon = mymap.getExtent().transform(mymap.projection, mymap.displayProjection).toGeometry()
+            var mapextent = {wkt: mypolygon.toString(), srid: mymap.displayProjection.toString()};
+
+            // submit for serverside checking of names/id-tags
+            $.ajax({ // create an AJAX call...
+                data: $.param(mapextent, false), // serialize the data, the "true" indicates shallow serialization.
+                type: "GET", // GET or POST
+                url: "/pubs/ajax/list/reports/", // the server url to call
+                dataType: 'json', // the data type we expect back from the server
+                success: function(response) { // on success..
+                    if ( 'error' in response ) {
+                        alert('The server returned the following error message: ' + response.error);
+                    } else if ( 'html' in response && response.html ) {
+                        $( '#report-list' ).html( response.html ); // update the DIV
+                        console.log('Now returning...')
+                    } else {
+                        alert('Unrekognized response from server');
+                    };
+                },
+                error: function(jqXHR, textStatus, errorThrown) { // on error...
+                    alert(textStatus); // update the DIV
+                }
+            });
+        };
+
+        $( "#update-report-list" )
+            .button()
+            .click(function(event) {
+                event.preventDefault(); // avoid the button submitting the form!
+                // Get all text from text-field
+                // and convert to array of names
+                $.fn.update_report_list()
+            });
+
+        var mymap = $.fn.get_map()
+        mymap.events.register('moveend', mymap, function(evt) {
+            $.fn.update_report_list()
+        });
+    });
+
+/*
+function update_report_list()
+{
+var all_variables = ""
+for (var name in this)
+    if (name.substring(0, 11) == "olwidget_id") {
+        alert("Found variable: " + name);
+        var mymap = this[name];
+        var mypolygon = mymap.getExtent().transform(mymap.projection, mymap.displayProjection).toGeometry()
+        alert("Extend: " + mypolygon.toString() + "\nProjection: " + mymap.displayProjection);
+    }
+}
+*/
+</script>
+
+</td>
+<td>
+    {% include "publications/snippets/feature_type_legend.html" %}
+</td></tr>
+</table>
+
+
+{% comment %}
+<div style="display: float">
+    {{ map }}
+
+<script type="text/javascript">
+    $(function() {
+        $( "#update-report-list" )
+            .button()
+            .click(function(event) {
+                event.preventDefault(); // avoid the button submitting the form!
+                // Get all text from text-field
+                // and convert to array of names
+
+                var mapextent = {wkt: "",
+                                 srid: ""}
+                /*
+                FOR A DIFFERENT APPROACH LOOK INTO:
+                http://stackoverflow.com/questions/9153914/geodjango-olwidget-adding-a-control-to-a-map
+                */
+                for (var name in window) {
+                    if (name.substring(0, 11) == "olwidget_id") {
+                        //alert("Found variable: " + name);
+                        var mymap = window[name];
+                        var mypolygon = mymap.getExtent().transform(mymap.projection, mymap.displayProjection).toGeometry()
+                        //alert("Requesting:\nExtend: " + mypolygon.toString() + "\nProjection: " + mymap.displayProjection);
+                        var mapextent = {wkt: mypolygon.toString(), srid: mymap.displayProjection.toString()};
+                        //var extentJSON = $.param(mapextent, false)
+                        //alert(extentJSON);
+                    }
+                }
+
+                // submit for serverside checking of names/id-tags
+                $.ajax({ // create an AJAX call...
+                    data: $.param(mapextent, false), // serialize the data, the "true" indicates shallow serialization.
+                    type: "GET", // GET or POST
+                    url: "/pubs/ajax/list/reports/", // the server url to call
+                    dataType: 'json', // the data type we expect back from the server
+                    success: function(response) { // on success..
+                        if ( 'error' in response ) {
+                            alert('The server returned the following error message: ' + response.error);
+                        } else if ( 'html' in response && response.html ) {
+                            $( '#report-list' ).html( response.html ); // update the DIV
+                            console.log('Now returning...')
+                        } else {
+                            alert('Unrekognized response from server');
+                        };
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) { // on error...
+                        alert(textStatus); // update the DIV
+                    }
+                });
+
+
+            });
+    });
+
+/*
+function update_report_list()
+{
+var all_variables = ""
+for (var name in this)
+    if (name.substring(0, 11) == "olwidget_id") {
+        alert("Found variable: " + name);
+        var mymap = this[name];
+        var mypolygon = mymap.getExtent().transform(mymap.projection, mymap.displayProjection).toGeometry()
+        alert("Extend: " + mypolygon.toString() + "\nProjection: " + mymap.displayProjection);
+    }
+}
+*/
+</script>
+
+
+(Press left mouse button on a feature to see details)
+</div>
+<div style="display:float">
+<br/><br/>
+{% include "publications/snippets/feature_type_legend.html" %}
+</div>
+{% endcomment %}
+
+<br>
+<br>
+<table>
+<tr><td style="width:100px">
+<button id="update-report-list">update list</button>
+</td><td>
+"Update list" will generate a list of reports that have geographic features
+registered within the current view of the map on this page. Presently the list
+is not filtered according to the chosen feature types. This will be changed
+in a future update.
+</td></tr>
+</table>
+<br><br>
+<div id="report-list"></div>
+
+<br><br>
+</div>
+
+{% endblock %}

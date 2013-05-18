@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}publications/css/style.css" />
+    <title>{% block title %}{% endblock %}</title>
+    {% block head %}{% endblock %}
+</head>
+<body>
+<div id="top-line">
+<div id='top-menu'>
+<a class="topnav" href="/pubs/frontpage/">Forside</a>|
+<a class="topnav" href="/pubs/overview/">Kort</a>|
+<a class="topnav" href="/pubs/publist/">Alle rapporter</a>|
+<a class="topnav" href="/pubs/list/persons/">Alle personer</a>|
+<a class="topnav" href="/pubs/keywords/list/">Alle keywords</a>|
+{% if user.is_authenticated %}
+<a class="topnav" href="/pubs/add/">Tilføj</a>
+{% endif %}
+<!--
+<a class="topnav" href="/pubs/searchpage/">Søg</a>
+-->
+{% if user.is_authenticated %}
+	<span class="topnav-right">User: {{ user.username }}</span>
+    <span class="topnav-right">|</span>
+	<a class="topnav-right" href="/accounts/logout/">Logout</a>
+{% else %}
+    <a class="topnav-right" href="/accounts/login/">Login</a>
+{% endif %}
+
+
+</div>
+
+</div>
+
+<div class='site_container'>
+
+<h2>{% block headline %}{% endblock %}</h2>
+{% include "publications/snippets/message_list.html" %}
+<br>
+<br>
+
+{% block body %}
+{% endblock %}
+
+</div>
+</body>
+</html>
