@@ -204,8 +204,12 @@ class FileObject(BaseModel):
 
     def filesize(self):
         unit = 'bytes'
-        fsize = self.file.size
-
+        
+        try:
+            fsize = self.file.size
+        except:
+            return " inaccessible! "
+            
         if fsize > 1024 * 1024 * 1024:
             fsize = fsize / 1024 / 1024 / 1024
             unit = 'Gb'
@@ -233,8 +237,12 @@ class ImageObject(BaseModel):
 
     def filesize(self):
         unit = 'bytes'
-        fsize = self.image.size
-
+        
+        try:
+            fsize = self.image.size
+        except:
+            return " inaccessible! "
+            
         if fsize > 1024 * 1024 * 1024:
             fsize = fsize / 1024 / 1024 / 1024
             unit = 'Gb'
