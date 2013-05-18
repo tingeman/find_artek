@@ -10,7 +10,7 @@ SITE_ROOT = "D:/find_artek_www/"
 DEBUG = True
 
 if not os.path.exists(SITE_ROOT):
-    SITE_ROOT = "C:/THIN/www/apps/find_artek_vb/"
+    SITE_ROOT = "C:/THIN/www/django_sites/find_artek_vb/"
     DEBUG = True
 
     if not os.path.exists(SITE_ROOT):
