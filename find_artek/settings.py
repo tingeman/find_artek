@@ -206,7 +206,10 @@ AUTHENTICATION_BACKENDS = (
 
 
 # According to: https://groups.google.com/forum/?fromgroups=#!topic/olwidget/wmVGC3TiK8w
-OL_API = 'http://openlayers.org/dev/OpenLayers.js'
+#OL_API = 'http://openlayers.org/dev/OpenLayers.js'
+# 2013-05-22: The above line was causing a problem with the edit maps in add-feature
+# form and admin feature page. We will have to live with the pop-up on google-earth map,
+# or implement a direct google earth map, outside olwidget.
 
 GOOGLE_API_KEY = 'AIzaSyBIagLz1ayoRbJZef1Er9h8WkWJF26hr44'
 #OLWIDGET_STATIC_URL = 'C:/THIN/www/apps/find_artek/find_artek/static/olwidget'

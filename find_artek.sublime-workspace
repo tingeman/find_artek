@@ -52,67 +52,43 @@
 	"buffers":
 	[
 		{
-			"file": "find_artek/publications/views.py",
+			"file": "find_artek/publications/forms.py",
 			"settings":
 			{
-				"buffer_size": 38835,
+				"buffer_size": 7987,
 				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "find_artek/publications/templates/publications/detail.html",
+			"file": "find_artek/publications/templates/publications/add_feature.html",
 			"settings":
 			{
-				"buffer_size": 4476,
+				"buffer_size": 1892,
 				"line_ending": "CR"
 			}
 		},
 		{
-			"file": "find_artek/publications/templates/base.html",
+			"file": "find_artek/settings.py",
 			"settings":
 			{
-				"buffer_size": 1266,
-				"line_ending": "Unix"
+				"buffer_size": 10978,
+				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "find_artek/publications/templates/publications/keyword_list.html",
+			"file": "find_artek/publications/templates/publications/overview.html",
 			"settings":
 			{
-				"buffer_size": 1185,
-				"line_ending": "CR"
+				"buffer_size": 8144,
+				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "find_artek/urls.py",
+			"file": "find_artek/publications/views.py",
 			"settings":
 			{
-				"buffer_size": 4381,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "find_artek/publications/models.py",
-			"settings":
-			{
-				"buffer_size": 27816,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "find_artek/publications/templates/publications/add_report.html",
-			"settings":
-			{
-				"buffer_size": 11501,
-				"line_ending": "CR"
-			}
-		},
-		{
-			"file": "find_artek/publications/templates/publications/upload_report_files.html",
-			"settings":
-			{
-				"buffer_size": 2606,
-				"line_ending": "CR"
+				"buffer_size": 55079,
+				"line_ending": "Windows"
 			}
 		}
 	],
@@ -168,6 +144,15 @@
 	},
 	"file_history":
 	[
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek.sublime-project",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/views.py",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/templates/publications/detail.html",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/templates/base.html",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/templates/publications/keyword_list.html",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/urls.py",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/models.py",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/templates/publications/add_report.html",
+		"/C/THIN/www/django_sites/find_artek_vb/find_artek/publications/templates/publications/upload_report_files.html",
 		"/C/THIN/www/apps/find_artek/find_artek/urls.py",
 		"/C/THIN/www/apps/find_artek/find_artek/publications/models.py",
 		"/C/THIN/www/apps/find_artek/find_artek/publications/templates/publications/delete_person_form.html",
@@ -310,18 +295,18 @@
 			[
 				{
 					"buffer": 0,
-					"file": "find_artek/publications/views.py",
+					"file": "find_artek/publications/forms.py",
 					"settings":
 					{
-						"buffer_size": 38835,
+						"buffer_size": 7987,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								8091,
-								8111
+								7291,
+								7291
 							]
 						],
 						"settings":
@@ -332,7 +317,7 @@
 								"README",
 								"FIXME"
 							],
-							"buffer_scroll_name": "193ffe74",
+							"buffer_scroll_name": "6b57f237",
 							"csslint_options":
 							{
 								"adjoining-classes": "warning",
@@ -403,8 +388,9 @@
 							{
 							},
 							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "none",
 							"sublimelinter_notes": false,
 							"sublimelinter_objj_check_ascii": false,
 							"sublimelinter_popup_errors_on_save": false,
@@ -415,30 +401,30 @@
 								"Ruby on Rails": "ruby"
 							},
 							"sublimelinter_wrap_find": true,
-							"syntax": "Packages/Python/Python.tmLanguage",
+							"syntax": "Packages/Djaneiro/Syntaxes/Python Django.tmLanguage",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 3310.0,
+						"translation.y": 2385.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "find_artek/publications/templates/publications/detail.html",
+					"file": "find_artek/publications/templates/publications/add_feature.html",
 					"settings":
 					{
-						"buffer_size": 4476,
+						"buffer_size": 1892,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2300,
-								2277
+								823,
+								823
 							]
 						],
 						"settings":
@@ -449,7 +435,7 @@
 								"README",
 								"FIXME"
 							],
-							"buffer_scroll_name": "dde8240f",
+							"buffer_scroll_name": "e9e797a6",
 							"csslint_options":
 							{
 								"adjoining-classes": "warning",
@@ -520,8 +506,9 @@
 							{
 							},
 							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "none",
 							"sublimelinter_notes": false,
 							"sublimelinter_objj_check_ascii": false,
 							"sublimelinter_popup_errors_on_save": false,
@@ -537,25 +524,25 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 990.0,
+						"translation.y": 90.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 2,
-					"file": "find_artek/publications/templates/base.html",
+					"file": "find_artek/settings.py",
 					"settings":
 					{
-						"buffer_size": 1266,
+						"buffer_size": 10978,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1,
-								1
+								6722,
+								6722
 							]
 						],
 						"settings":
@@ -566,7 +553,7 @@
 								"README",
 								"FIXME"
 							],
-							"buffer_scroll_name": "c3c09ac0",
+							"buffer_scroll_name": "59f6e138",
 							"csslint_options":
 							{
 								"adjoining-classes": "warning",
@@ -637,8 +624,9 @@
 							{
 							},
 							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "none",
 							"sublimelinter_notes": false,
 							"sublimelinter_objj_check_ascii": false,
 							"sublimelinter_popup_errors_on_save": false,
@@ -649,28 +637,30 @@
 								"Ruby on Rails": "ruby"
 							},
 							"sublimelinter_wrap_find": true,
-							"syntax": "Packages/Djaneiro/Syntaxes/HTML (Django).tmLanguage"
+							"syntax": "Packages/Djaneiro/Syntaxes/Python Django.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 2610.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 3,
-					"file": "find_artek/publications/templates/publications/keyword_list.html",
+					"file": "find_artek/publications/templates/publications/overview.html",
 					"settings":
 					{
-						"buffer_size": 1185,
+						"buffer_size": 8144,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								811,
-								811
+								293,
+								293
 							]
 						],
 						"settings":
@@ -681,7 +671,7 @@
 								"README",
 								"FIXME"
 							],
-							"buffer_scroll_name": "2ff7ea52",
+							"buffer_scroll_name": "e9374093",
 							"csslint_options":
 							{
 								"adjoining-classes": "warning",
@@ -752,8 +742,9 @@
 							{
 							},
 							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "none",
 							"sublimelinter_notes": false,
 							"sublimelinter_objj_check_ascii": false,
 							"sublimelinter_popup_errors_on_save": false,
@@ -776,18 +767,18 @@
 				},
 				{
 					"buffer": 4,
-					"file": "find_artek/urls.py",
+					"file": "find_artek/publications/views.py",
 					"settings":
 					{
-						"buffer_size": 4381,
+						"buffer_size": 55079,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1449,
-								1449
+								5602,
+								5602
 							]
 						],
 						"settings":
@@ -798,7 +789,7 @@
 								"README",
 								"FIXME"
 							],
-							"buffer_scroll_name": "36d6a859",
+							"buffer_scroll_name": "322d282f",
 							"csslint_options":
 							{
 								"adjoining-classes": "warning",
@@ -869,8 +860,9 @@
 							{
 							},
 							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "none",
 							"sublimelinter_notes": false,
 							"sublimelinter_objj_check_ascii": false,
 							"sublimelinter_popup_errors_on_save": false,
@@ -886,354 +878,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 72.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "find_artek/publications/models.py",
-					"settings":
-					{
-						"buffer_size": 27816,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								17524,
-								17524
-							]
-						],
-						"settings":
-						{
-							"annotations":
-							[
-								"TODO",
-								"README",
-								"FIXME"
-							],
-							"buffer_scroll_name": "b810e425",
-							"csslint_options":
-							{
-								"adjoining-classes": "warning",
-								"box-model": true,
-								"box-sizing": "warning",
-								"compatible-vendor-prefixes": "warning",
-								"display-property-grouping": true,
-								"duplicate-background-images": "warning",
-								"duplicate-properties": true,
-								"empty-rules": true,
-								"errors": true,
-								"fallback-colors": "warning",
-								"floats": "warning",
-								"font-faces": "warning",
-								"font-sizes": "warning",
-								"gradients": "warning",
-								"ids": "warning",
-								"import": "warning",
-								"important": "warning",
-								"known-properties": true,
-								"outline-none": "warning",
-								"overqualified-elements": "warning",
-								"qualified-headings": "warning",
-								"regex-selectors": "warning",
-								"rules-count": "warning",
-								"shorthand": "warning",
-								"star-property-hack": "warning",
-								"text-indent": "warning",
-								"underscore-property-hack": "warning",
-								"unique-headings": "warning",
-								"universal-selector": "warning",
-								"vendor-prefix": true,
-								"zero-units": "warning"
-							},
-							"gjslint_ignore":
-							[
-								110.0
-							],
-							"gjslint_options":
-							[
-							],
-							"javascript_linter": "jshint",
-							"jshint_options":
-							{
-								"browser": true,
-								"evil": true,
-								"regexdash": true,
-								"sub": true,
-								"trailing": true,
-								"wsh": true
-							},
-							"pep8": true,
-							"pep8_ignore":
-							[
-								"E501"
-							],
-							"perl_linter": "perlcritic",
-							"pyflakes_ignore":
-							[
-							],
-							"pyflakes_ignore_import_*": true,
-							"sublimelinter": true,
-							"sublimelinter_delay": 2.0,
-							"sublimelinter_disable":
-							[
-							],
-							"sublimelinter_executable_map":
-							{
-							},
-							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
-							"sublimelinter_notes": false,
-							"sublimelinter_objj_check_ascii": false,
-							"sublimelinter_popup_errors_on_save": false,
-							"sublimelinter_syntax_map":
-							{
-								"C++": "c",
-								"Python Django": "python",
-								"Ruby on Rails": "ruby"
-							},
-							"sublimelinter_wrap_find": true,
-							"syntax": "Packages/Djaneiro/Syntaxes/Python Django.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 5607.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "find_artek/publications/templates/publications/add_report.html",
-					"settings":
-					{
-						"buffer_size": 11501,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								10857,
-								10857
-							]
-						],
-						"settings":
-						{
-							"annotations":
-							[
-								"TODO",
-								"README",
-								"FIXME"
-							],
-							"buffer_scroll_name": "7df4bc4f",
-							"csslint_options":
-							{
-								"adjoining-classes": "warning",
-								"box-model": true,
-								"box-sizing": "warning",
-								"compatible-vendor-prefixes": "warning",
-								"display-property-grouping": true,
-								"duplicate-background-images": "warning",
-								"duplicate-properties": true,
-								"empty-rules": true,
-								"errors": true,
-								"fallback-colors": "warning",
-								"floats": "warning",
-								"font-faces": "warning",
-								"font-sizes": "warning",
-								"gradients": "warning",
-								"ids": "warning",
-								"import": "warning",
-								"important": "warning",
-								"known-properties": true,
-								"outline-none": "warning",
-								"overqualified-elements": "warning",
-								"qualified-headings": "warning",
-								"regex-selectors": "warning",
-								"rules-count": "warning",
-								"shorthand": "warning",
-								"star-property-hack": "warning",
-								"text-indent": "warning",
-								"underscore-property-hack": "warning",
-								"unique-headings": "warning",
-								"universal-selector": "warning",
-								"vendor-prefix": true,
-								"zero-units": "warning"
-							},
-							"gjslint_ignore":
-							[
-								110.0
-							],
-							"gjslint_options":
-							[
-							],
-							"javascript_linter": "jshint",
-							"jshint_options":
-							{
-								"browser": true,
-								"evil": true,
-								"regexdash": true,
-								"sub": true,
-								"trailing": true,
-								"wsh": true
-							},
-							"pep8": true,
-							"pep8_ignore":
-							[
-								"E501"
-							],
-							"perl_linter": "perlcritic",
-							"pyflakes_ignore":
-							[
-							],
-							"pyflakes_ignore_import_*": true,
-							"sublimelinter": true,
-							"sublimelinter_delay": 2.0,
-							"sublimelinter_disable":
-							[
-							],
-							"sublimelinter_executable_map":
-							{
-							},
-							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
-							"sublimelinter_notes": false,
-							"sublimelinter_objj_check_ascii": false,
-							"sublimelinter_popup_errors_on_save": false,
-							"sublimelinter_syntax_map":
-							{
-								"C++": "c",
-								"Python Django": "python",
-								"Ruby on Rails": "ruby"
-							},
-							"sublimelinter_wrap_find": true,
-							"syntax": "Packages/Djaneiro/Syntaxes/HTML (Django).tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 3825.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "find_artek/publications/templates/publications/upload_report_files.html",
-					"settings":
-					{
-						"buffer_size": 2606,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1702,
-								1702
-							]
-						],
-						"settings":
-						{
-							"annotations":
-							[
-								"TODO",
-								"README",
-								"FIXME"
-							],
-							"buffer_scroll_name": "4e156846",
-							"csslint_options":
-							{
-								"adjoining-classes": "warning",
-								"box-model": true,
-								"box-sizing": "warning",
-								"compatible-vendor-prefixes": "warning",
-								"display-property-grouping": true,
-								"duplicate-background-images": "warning",
-								"duplicate-properties": true,
-								"empty-rules": true,
-								"errors": true,
-								"fallback-colors": "warning",
-								"floats": "warning",
-								"font-faces": "warning",
-								"font-sizes": "warning",
-								"gradients": "warning",
-								"ids": "warning",
-								"import": "warning",
-								"important": "warning",
-								"known-properties": true,
-								"outline-none": "warning",
-								"overqualified-elements": "warning",
-								"qualified-headings": "warning",
-								"regex-selectors": "warning",
-								"rules-count": "warning",
-								"shorthand": "warning",
-								"star-property-hack": "warning",
-								"text-indent": "warning",
-								"underscore-property-hack": "warning",
-								"unique-headings": "warning",
-								"universal-selector": "warning",
-								"vendor-prefix": true,
-								"zero-units": "warning"
-							},
-							"gjslint_ignore":
-							[
-								110.0
-							],
-							"gjslint_options":
-							[
-							],
-							"javascript_linter": "jshint",
-							"jshint_options":
-							{
-								"browser": true,
-								"evil": true,
-								"regexdash": true,
-								"sub": true,
-								"trailing": true,
-								"wsh": true
-							},
-							"pep8": true,
-							"pep8_ignore":
-							[
-								"E501"
-							],
-							"perl_linter": "perlcritic",
-							"pyflakes_ignore":
-							[
-							],
-							"pyflakes_ignore_import_*": true,
-							"sublimelinter": true,
-							"sublimelinter_delay": 2.0,
-							"sublimelinter_disable":
-							[
-							],
-							"sublimelinter_executable_map":
-							{
-							},
-							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": false,
-							"sublimelinter_mark_style": "outline",
-							"sublimelinter_notes": false,
-							"sublimelinter_objj_check_ascii": false,
-							"sublimelinter_popup_errors_on_save": false,
-							"sublimelinter_syntax_map":
-							{
-								"C++": "c",
-								"Python Django": "python",
-								"Ruby on Rails": "ruby"
-							},
-							"sublimelinter_wrap_find": true,
-							"syntax": "Packages/Djaneiro/Syntaxes/HTML (Django).tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 360.0,
+						"translation.y": 2115.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

@@ -168,18 +168,24 @@ def overview(request):
         if f.polys:
             info_append(info, f.polys, f, feature_popup_html(f), gtype='poly')
 
-    options = {'layers': ['google.satellite', 'osm.mapnik'],
+    options = {'layers': ['osm.mapnik', 'google.satellite'],
                'zoom_to_data_extent': False,
                'default_lon': clon,
                'default_lat': clat,
                'default_zoom': zl,
                'map_options': {
-                   'controls': ["LayerSwitcher", "NavToolbar", "Zoom",
-                                "Attribution", "MousePosition",
-                                "ScaleLine"],
+                   'controls': [
+                                "LayerSwitcher",
+                                "NavToolbar",
+                                "PanZoom",
+                                "Attribution",
+#                                "MousePosition",
+                                "ScaleLine"
+                                ],
                    'projection': "EPSG:900913",
                    'display_projection': "EPSG:4326",
-                   'max_extent': [-20037508.34, -20037508.34, 20037508.34, 20037508.34]},
+                   'max_extent': [-20037508.34, -20037508.34, 20037508.34, 20037508.34]
+                },
                'popups_outside': True,
                }
 

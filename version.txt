@@ -1,0 +1,5 @@
+20130522  Problem identified: A change in the development version of OpenLayers.js causes the editmap of olwidget to fail (add feature page).
+The workaround is to go back to stable release. This fixes editmap, but google-sattelite now has nagging popup at each mouse-click! No work-around for this - so fix must be considered temporary.
+
+20130518  BRANCH: bug/add-feature-map/main
+20130518  BRANCH: develop

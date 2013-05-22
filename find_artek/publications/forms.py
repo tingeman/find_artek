@@ -176,14 +176,19 @@ class AddFeatureForm(MapModelForm):
         model = Feature
         exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',)
         maps = (
-#            (('points', 'lines', 'polys'),
-            (('points',),
+            (('points', 'lines', 'polys'),
+#            (('points',),
                 {'layers': ['osm.mapnik', 'google.satellite'],
                  'default_lat': 65.56755, 'default_lon': -45.043945,
                  'map_options': {
-                     'controls': ["LayerSwitcher", "Attribution", "MousePosition"],
-#                     'controls': ["LayerSwitcher", "NavToolbar", "PanZoom",
-#                                  "Attribution", "MousePosition"],
+#                     'controls': ["LayerSwitcher", "Attribution", "MousePosition", "PanZoom"],
+                     'controls': [
+                                    "LayerSwitcher",
+                                    "NavToolbar",
+                                    "PanZoom",
+                                    "Attribution",
+                                    "MousePosition"
+                                 ],
                  },
                 },
              ), )
