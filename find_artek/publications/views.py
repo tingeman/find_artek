@@ -98,9 +98,9 @@ def overview(request):
                 'html': html,
                 'style': {
                     'fill_color': feature_colors[f.type],
-                    'fill_opacity': 0.7,
+                    'fill_opacity': 1,
                     'stroke_color': 'black',
-                    'point_radius': 3,
+                    'point_radius': 4,
                     'stroke_width': 1,
                 },
             }))
@@ -256,9 +256,9 @@ def detail(request, pub_id):
             'html': html,
             'style': {
                 'fill_color': feature_colors[f.type],
-                'fill_opacity': 0.7,
+                'fill_opacity': 1,
                 'stroke_color': 'black',
-                'point_radius': 3,
+                'point_radius': 4,
                 'stroke_width': 1,
             },
         }))
@@ -282,12 +282,15 @@ def detail(request, pub_id):
         if f.polys:
             info_append(info, f.polys, f, feature_popup_html(f))
 
-    options = {'layers': ['google.satellite', 'osm.mapnik'],
+    options = {'layers': ['osm.mapnik','google.satellite'],
                 'map_options': {
-                    'controls': ["LayerSwitcher", "Navigation", "PanZoom",
-                                 "Attribution", "MousePosition"], },
+                    'controls': [
+                                 "LayerSwitcher",
+                                 "NavToolbar",
+                                 "PanZoom",
+                                 "Attribution"], },
                 'popups_outside': True,
-                'map_div_style': {'width': '400px', 'height': '250px'},
+                'map_div_style': {'width': '600px', 'height': '360px'},
     }
 
     map_ = InfoMap(info, options)
