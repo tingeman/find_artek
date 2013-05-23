@@ -68,10 +68,32 @@ class PublicationAdmin(admin.ModelAdmin):
 # Customize the map
 class FeatureAdmin(GeoModelAdmin):
     list_display = ('name','modified_date',)
-    options = {
-        'layers': ['google.satellite'],
-        'default_lat': 44,
-        'default_lon': -72,
+#    options = {
+#        'layers': ['google.satellite'],
+#        'default_lat': 44,
+#        'default_lon': -72,
+#    }
+
+    # default zoom:
+    zl = 4
+    clon = -52.5
+    clat = 67
+
+    options = {'layers': ['osm.mapnik','google.satellite'],
+        'map_options': {
+            'controls': [
+                         "LayerSwitcher",
+                         "NavToolbar",
+                         "PanZoom",
+                         "Attribution"], },
+#        'popups_outside': True,
+#        'map_div_style': {'width': '600px', 'height': '360px'},
+        'zoom_to_data_extent': True,
+        'default_lon': clon,
+        'default_lat': clat,
+        'default_zoom': zl,
+#        'default_lat': 44,
+#        'default_lon': -72,
     }
 
 
