@@ -1,3 +1,5 @@
+20130522  v1.1.1 All maps changed to default to Open Street maps. Front page image for road project changed.
+
 20130522  Make sure development server is not running when committing files! It will place a lock on those files, which will be committed along with the file!
 
 20130522  Problem identified: A change in the development version of OpenLayers.js causes the editmap of olwidget to fail (add feature page).
