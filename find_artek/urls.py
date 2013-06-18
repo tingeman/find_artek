@@ -4,7 +4,15 @@ from django.conf.urls import patterns, include, url
 from django.contrib.gis import admin
 import settings
 
+from find_artek.publications import signals   # In order to hook into the authentications
+
 admin.autodiscover()
+
+
+import logging
+logger = logging.getLogger(__name__)
+logger.debug('TEST: in urls.py')
+
 
 """
 Prefferred url design is e.g. pubs/report/XXX/edit/
