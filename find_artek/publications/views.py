@@ -727,6 +727,43 @@ def check_person_ajax(request):
             except Exception, e:
                 print str(e)
 
+        elif ('supervisors[]' in request.GET):
+            pdb.set_trace()
+            for p in request.GET.getlist('supervisors[]'):
+                pid = get_tag(p, 'id')
+                if pid:
+                    # check that person with id exists in database
+                    # should not be included in choice-list
+                    # or should be included with an nice OK icon
+                    pass
+                elif pid == 0:
+                    # handle case where [id:0]
+                    # should not be included in choice-list
+                    # or included with some other indication (also OK icon?)
+                    pass
+                else:
+                    # No id-tag, thus make choice-
+                    dbp_list = get_person(p, exact=False)
+                    print dbp_list
+                    #pdb.set_trace()
+                    if dbp_list[1] == 'exact':
+                        context['persons'].append({'name': p, 'p_exact': dbp_list[0], 'p_relaxed': []})
+                    elif dbp_list[1] == 'relaxed':
+                        context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': dbp_list[0]})
+
+            try:
+                if context['persons']:
+                    json_response['html'] = render_to_string(
+                        'publications/ajax/choose_person_form.html',
+                        {'data': context},
+                        context_instance=RequestContext(request))
+                else:
+                    json_response['html'] = ''
+                    json_response['message'] = 'ok'
+            except Exception, e:
+                print str(e)
+
+
         return HttpResponse(simplejson.dumps(json_response))
     else:
         json_response['error'] = 'No authors specified!'
