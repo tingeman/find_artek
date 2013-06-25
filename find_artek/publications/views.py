@@ -604,7 +604,7 @@ def add_edit_report(request, pub_id=None):
 
     # Form was not yet posted...
     for k in form.fields.keys():
-        if k not in ['type', 'number', 'title', 'authors', 'abstract',
+        if k not in ['type', 'number', 'title', 'authors', 'supervisors', 'abstract',
                         'year', 'topic', 'keywords', 'pdffile',
                         'comment']:   # This should handle the proper Report type, get list from PubType table.
             del form.fields[k]

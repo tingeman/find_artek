@@ -31,3 +31,5 @@ _ReSharper*/
 *.sqlite
 [Mm]igrations/
 
+find_artek.sublime-workspace
+*.sublime-workspace

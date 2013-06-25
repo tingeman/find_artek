@@ -21,6 +21,10 @@ class AddReportForm(ModelForm):
                                 help_text='Full name of all authors, separated by semicolon (;) or &-sign.',
                                 widget=forms.widgets.Textarea(attrs={'rows': 1, 'cols': 50}))
 
+    supervisors = forms.CharField(max_length=1000, required=False,
+                                help_text='Full name of all supervisors, separated by semicolon (;) or &-sign.',
+                                widget=forms.widgets.Textarea(attrs={'rows': 1, 'cols': 50}))
+
     topic = myfields.TagField(required=False,
                                 #help_text='Type topics separated by comma or enter',
                                 widget=mywidgets.TagInput(
@@ -72,6 +76,17 @@ class AddReportForm(ModelForm):
             else:
                 a_list = []
             self.fields['authors'].initial = '\n'.join(a_list)
+
+            # Populate supervisor list
+            s_set = p.supervisorship_set.all().order_by('supervisor_id')
+            if s_set:
+                s_list = [s.person.__unicode__() +
+                            ' [id:{0}]'.format(s.person.id) \
+                            for s in a_set]
+            else:
+                s_list = []
+            self.fields['supervisors'].initial = '\n'.join(s_list)
+
 
             # populate keywords field
             self.fields['keywords'].initial = [k.keyword for k in p.keywords.all()]
