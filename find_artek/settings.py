@@ -8,10 +8,12 @@ from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirector
 
 SITE_ROOT = "D:/find_artek_www/"
 DEBUG = True
+ONLINE = True
 
 if not os.path.exists(SITE_ROOT):
     SITE_ROOT = "C:/THIN/www/django_sites/find_artek_vb/"
     DEBUG = True
+    ONLINE = False
 
     if not os.path.exists(SITE_ROOT):
         raise ValueError('SITE_ROOT incorrectly defined, path does not exist.')
@@ -191,15 +193,22 @@ AUTH_LDAP_CACHE_GROUPS = True
 AUTH_LDAP_GROUP_CACHE_TIMEOUT = 3600
 
 
+
+
 # 'is_active': True,
 # 'is_staff': False,
 # 'is_superuser': False,
 
 
-AUTHENTICATION_BACKENDS = (
-    'django_auth_ldap.backend.LDAPBackend',
-    'django.contrib.auth.backends.ModelBackend',
-)
+if ONLINE:
+    AUTHENTICATION_BACKENDS = (
+        'django_auth_ldap.backend.LDAPBackend',
+        'django.contrib.auth.backends.ModelBackend',
+    )
+else:
+    AUTHENTICATION_BACKENDS = (
+        'django.contrib.auth.backends.ModelBackend',
+    )
 
 
 
