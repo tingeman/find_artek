@@ -44,13 +44,30 @@ shown as a popup dialog.
 			//$('#result').text(JSON.stringify($('#choose-person-form').serializeObject()));
 
 			// Update the textarea
-			$( "#id_authors" ).updatePersons( $('#choose-person-form').serializeObject() );
+
+			var form_content = $('#choose-person-form').serializeObject()
+			if ( Object.keys(form_content).length === 0 ) {
+				console.log ( 'Please choose from the list, or cancel the dialog!')
+				return }   // Return without action, if nothing selected
+
+			$( "#id_{{data.name_field}}" ).updatePersons( form_content );
+
+
+			console.log( 'now printing the choose-person-form content:')
+			console.log( $('#choose-person-form').serializeObject() )
+
+			// update the response variable
+			var response = $( '#data_container' ).data('response');
+			response.{{data.name_field}}.message = 'ok'
+			response.{{data.name_field}}.html = ''
+
+			// close dialog
+			$(this).parents("div.ui-dialog-content:first").dialog("close");
 
 			// return execution to the original page...
 			var callbackFunction = $(this).parents("div.ui-dialog-content:first").data('callbackFunction')
-			if ( callbackFunction ) { callbackFunction(true) };
-			// close dialog
-			$(this).parents("div.ui-dialog-content:first").dialog("close");
+			var submit_on_ok = $(this).parents("div.ui-dialog-content:first").data('submit_on_ok')
+			if ( callbackFunction ) { callbackFunction( submit_on_ok ) };
 
 		});
 	});
@@ -59,7 +76,7 @@ shown as a popup dialog.
 
 </script>
 
-<p class="validateTips">Please choose for each author in list:  [Try implementing a SOUNDEX relaxed matching!]</p>
+<p class="validateTips">Please choose for each name in list:</p>
 
 <form id="choose-person-form" action="">
 <div id='collapsible'>
@@ -84,7 +101,3 @@ shown as a popup dialog.
 </div>
 <input type="submit" value="Accept choices" />
 </form>
-
-<h2>JSON</h2>
-<pre id="result">
-</pre>
