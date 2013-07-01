@@ -604,7 +604,7 @@ def add_edit_report(request, pub_id=None):
 
     # Form was not yet posted...
     for k in form.fields.keys():
-        if k not in ['type', 'number', 'title', 'authors', 'abstract',
+        if k not in ['type', 'number', 'title', 'authors', 'supervisors', 'abstract',
                         'year', 'topic', 'keywords', 'pdffile',
                         'comment']:   # This should handle the proper Report type, get list from PubType table.
             del form.fields[k]
@@ -675,11 +675,77 @@ def person_ajax_search(request):
         return HttpResponse('Nope')
 
 
+
+
 def check_person_ajax(request):
     """This function is called from the add/edit report view in order to check
     the author list and provide a list of possible matches to choose from
     in case similar names exist in the database.
+
+    html code will be returned for each of the fields "authors", "supervisors" and
+    "editors" present in the ajax call, and html code will be returned for a
+    dialog box for each of them, if necessary.
     """
+
+    def process_field(request, name_field):
+        """Code to check all names/id tags from specific field, e.g. "authors",
+        "supervisors" or "editors", and provide back the html code needed to
+        choose the right one or create new.
+
+        This code will be called for each field present in the ajax call, and
+        provide html code for a dialog box for each of them.
+
+        """
+
+        json_response = {}
+        context = {'name_field': name_field,
+                   'persons': []}
+
+        for p in request.GET.getlist(name_field+'[]'):
+            pid = get_tag(p, 'id')  # get the value of "[id:147]" tags, get_tag will return 147.
+            if pid:
+                # check that person with id exists in database
+                # should not be included in choice-list
+                # or should be included with an nice OK icon
+                #print "Person with id {0} found in database.".format(pid)
+                pass
+            elif pid == 0:
+                # handle case where [id:0]
+                # should not be included in choice-list
+                # or included with some other indication (also OK icon?)
+                #print "Person should be created."
+                pass
+            else:
+                # No id-tag, thus make choice
+                # First get possible matches from database
+                #print "No id found in name. Getting list of relaxed matches"
+                dbp_list = get_person(p, exact=False)
+                #pdb.set_trace()
+                if dbp_list[1] == 'exact':
+                    # Include exact match only
+                    context['persons'].append({'name': p, 'p_exact': dbp_list[0], 'p_relaxed': []})
+                elif dbp_list[1] == 'relaxed':
+                    # Include list of relaxed matches.
+                    context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': dbp_list[0]})
+
+        try:
+            if 'persons' in context and len(context['persons']) > 0:
+                # If choices are to be made, render appropriate form.
+                json_response['html'] = render_to_string(
+                    'publications/ajax/choose_person_form.html',
+                    {'data': context},
+                    context_instance=RequestContext(request))
+            else:
+                # Otherwise return that all is ok.
+                json_response['html'] = ''
+                json_response['message'] = 'ok'
+        except Exception, e:
+            print str(e)
+            json_response['error'] = str(e)
+
+        print json_response
+        return json_response
+
 
     if not request.is_ajax():
         # Make sure to only respond to ajax-requests!
@@ -690,47 +756,30 @@ def check_person_ajax(request):
     json_response = dict()
 
     if request.GET:
-        print request.GET
+        #print request.GET
         context = {'persons': []}
         if ('authors[]' in request.GET):
-            for p in request.GET.getlist('authors[]'):
-                pid = get_tag(p, 'id')
-                if pid:
-                    # check that person with id exists in database
-                    # should not be included in choice-list
-                    # or should be included with an nice OK icon
-                    pass
-                elif pid == 0:
-                    # handle case where [id:0]
-                    # should not be included in choice-list
-                    # or included with some other indication (also OK icon?)
-                    pass
-                else:
-                    # No id-tag, thus make choice-
-                    dbp_list = get_person(p, exact=False)
-                    print dbp_list
-                    #pdb.set_trace()
-                    if dbp_list[1] == 'exact':
-                        context['persons'].append({'name': p, 'p_exact': dbp_list[0], 'p_relaxed': []})
-                    elif dbp_list[1] == 'relaxed':
-                        context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': dbp_list[0]})
+            #print "processing authors"
+            json_response['authors'] = process_field(request, 'authors')
+        if ('supervisors[]' in request.GET):
+            #print "processing supervisors"
+            json_response['supervisors'] = process_field(request, 'supervisors')
+        if ('editors[]' in request.GET):
+            #print "processing editors"
+            json_response['editors'] = process_field(request, 'editors')
 
-            try:
-                if context['persons']:
-                    json_response['html'] = render_to_string(
-                        'publications/ajax/choose_person_form.html',
-                        {'data': context},
-                        context_instance=RequestContext(request))
-                else:
-                    json_response['html'] = ''
-                    json_response['message'] = 'ok'
-            except Exception, e:
-                print str(e)
-
-        return HttpResponse(simplejson.dumps(json_response))
+        resp = simplejson.dumps(json_response)
+        #print resp
+        #print 'Json to be sent:  {0}'.format(resp)
+        return HttpResponse(resp)
     else:
+        # If POST request, or no persons included in request, return an error.
         json_response['error'] = 'No authors specified!'
-        return HttpResponse(simplejson.dumps(json_response))
+        resp = simplejson.dumps(json_response)
+        #print resp
+        #print 'Json to be sent:  {0}'.format(resp)
+        return HttpResponse(resp)
+
 
 
 def ajax_list_reports(request):
