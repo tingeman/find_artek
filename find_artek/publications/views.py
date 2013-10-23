@@ -721,8 +721,12 @@ def person_ajax_search(request):
 
         json_entries = []
         for e in found_entries:
-            json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}'.format(e.id, e.position),
-                                 'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
+            if e.position == CaseInsensitively('student'):
+                json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}'.format(e.id, e.id_number),
+                                     'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
+            else:
+                json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}, {2}'.format(e.id, e.position, e.id_number),
+                                     'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
 
 #        my_array = [{'label': 'This is a Test', 'value': 'The test value inserted'},
 #                    {'label': 'Second option', 'value': request.GET['term']+'_123'}]
