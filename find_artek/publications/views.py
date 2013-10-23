@@ -461,6 +461,64 @@ def add_edit_report(request, pub_id=None):
                         #  msg.append([messages.WARNING,
                         #             "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n)])
 
+            
+            if ('supervisors' in request.POST) and request.POST['supervisors'].strip():
+                # remove any existing author-relationships
+                s_set = r.supervisorship_set.all()
+                if s_set:
+                    for s in s_set:
+                        s.delete()
+
+                # Parse author list!
+                name_list = parse_name_list(request.POST['supervisors'])
+
+                for id, n in enumerate(name_list):
+                    n = n.strip()
+                    pid = get_tag(n, 'id')
+
+                    if pid == '0':
+                        # tag [id:0]
+                        # create new person
+                        # ...
+                        n = remove_tags(n)
+                        if n:
+                            p = Person(name=n)
+                            p.created_by = current_user
+                            p.modified_by = current_user
+                            p.save()
+                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
+
+                            tmp = Supervisorship(person=p,
+                                         publication=r,
+                                         supervisor_id=id)
+                            tmp.save()
+                    elif pid:
+                        # tag [id:XX] where xx is supposed to be integer.
+                        # get specified person and add to supervisorship
+                        try:
+                            p = Person.objects.get(id=pid)
+                        except ObjectDoesNotExist:
+                            if n:
+                                # This is only an error, if n is not empty
+                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
+                            continue
+                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
+                        #name_list[id] = 'DB: '+p.__unicode__()
+                        tmp = Supervisorship(person=p,
+                                         publication=r,
+                                         supervisor_id=id)
+                        tmp.save()
+                    else:
+                        # No tag...
+
+                        # Check if person exists   (exact or loose match)
+                        # otherwise create person
+                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n))
+
+                        #  msg.append([messages.WARNING,
+                        #             "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n)])
+                        
+                        
             if ('keywords' in request.POST) and request.POST['keywords']:
                 # Get list of keywords already attached
                 # Iterate through posted keywords
