@@ -461,7 +461,7 @@ def add_edit_report(request, pub_id=None):
                         #  msg.append([messages.WARNING,
                         #             "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n)])
 
-            
+
             if ('supervisors' in request.POST) and request.POST['supervisors'].strip():
                 # remove any existing author-relationships
                 s_set = r.supervisorship_set.all()
@@ -517,8 +517,8 @@ def add_edit_report(request, pub_id=None):
 
                         #  msg.append([messages.WARNING,
                         #             "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n)])
-                        
-                        
+
+
             if ('keywords' in request.POST) and request.POST['keywords']:
                 # Get list of keywords already attached
                 # Iterate through posted keywords
@@ -725,7 +725,15 @@ def person_ajax_search(request):
                 json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}'.format(e.id, e.id_number),
                                      'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
             else:
-                json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}, {2}'.format(e.id, e.position, e.id_number),
+                label = e.__unicode__() + ' [id:{0}]'.format(e.id)
+                if e.position:
+                    label += ', {0}'.format(e.position)
+                if e.department:
+                    label += ', {0}'.format(e.department)
+                if e.id_number:
+                    label += ', {0}'.format(e.id_number)
+
+                json_entries.append({'label': label,
                                      'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
 
 #        my_array = [{'label': 'This is a Test', 'value': 'The test value inserted'},
