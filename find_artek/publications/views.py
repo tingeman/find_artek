@@ -583,10 +583,11 @@ def add_edit_report(request, pub_id=None):
 
             if 'pdffile-clear' in request.POST and request.POST['pdffile-clear']:
                 f = r.file
-                r.file = None
+                fname = f.file.name
                 f.file.delete(save=True)
                 f.delete()
-                msg.append([messages.INFO, "File deleted: {0}".format(f.file.name)])
+                r.file = None
+                messages.info(request, "File deleted: {0}".format(fname))
 
             if 'pdffile' in request.FILES and request.FILES['pdffile']:
                 if r.file:
@@ -1521,4 +1522,73 @@ def person_delete(request, person_id):
 
     return render_to_response('publications/delete_person_form.html', {'person': p},
             context_instance=RequestContext(request))
+
+
+
+@login_required(login_url='/accounts/login/')
+def delete_publication_file(request, pub_id):
+    """Delete the publication file (pdf-file) from the specified publication.
+    Will ask for confirmation before deleting.
+
+    """
+
+    p = get_object_or_404(Publication, pk=pub_id)
+
+    if not p.is_deletable_by(request.user):
+        error = "You do not have permissions to delete files from this publication!"
+        return render_to_response('publications/access_denied.html',
+                                  {'pub': pub_id, 'error': error},
+                                  context_instance=RequestContext(request))
+
+    if request.POST:
+        if 'cancel' in request.POST:
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+        elif 'delete' in request.POST:
+            func_delete_publication_file(request, p.file)
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+
+    # If form not posted, or invalid post request:
+    return render_to_response('publications/delete_publication_file_form.html', {'pub': p},
+                              context_instance=RequestContext(request))
+
+
+@login_required(login_url='/accounts/login/')
+def delete_publication_appendix(request, pub_id, apx_id):
+    """Delete an appendix file from the specified publication.
+    Will ask for confirmation before deleting.
+
+    """
+
+    p = get_object_or_404(Publication, pk=pub_id)
+
+    if not p.is_deletable_by(request.user):
+        error = "You do not have permissions to delete files from this publication!"
+        return render_to_response('publications/access_denied.html',
+                                  {'pub': pub_id, 'error': error},
+                                  context_instance=RequestContext(request))
+
+    apx = p.appendices.get(id=apx_id)
+
+    if request.POST:
+        if 'cancel' in request.POST:
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+        elif 'delete' in request.POST:
+            func_delete_publication_file(request, apx)
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+
+    # If form not posted, or invalid post request:
+    return render_to_response('publications/delete_publication_appendix_form.html', {'pub': p, 'apx': apx},
+                              context_instance=RequestContext(request))
+
+
+def func_delete_publication_file(request, f):
+    """Delete the appendix from the database, including dletion of the file
+    from the file system.
+
+    """
+    fname = f.file.name
+    f.file.delete(save=True)
+    f.file = None
+    f.delete()
+    messages.info(request, "File deleted: {0}".format(fname))
 
