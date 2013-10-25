@@ -11,6 +11,7 @@ import pdb
 import datetime
 import dateutil.parser
 import chardet
+import string
 
 from pybtex.database import Person as pybtexPerson
 
@@ -20,11 +21,39 @@ from django.shortcuts import get_object_or_404
 from django.contrib import messages
 
 #from find_artek.publications.models import Publication, Person, Feature, PubType, Authorship
-from find_artek.publications import models, person_utils
+from find_artek.publications import models, person_utils, utils
 
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class CaseInsensitively(object):
+    """Wrap CaseInsensitively around an object to make comparisons
+    case-insensitive.
+
+    example:
+    if CaseInsensitively('Hello world') in ['hello world', 'Hej Verden']:
+        print "The if clause evaluates True!"
+
+    """
+    def __init__(self, s):
+        self.__s = s.lower()
+
+    def __hash__(self):
+        return hash(self.__s)
+
+    def __eq__(self, other):
+        # ensure proper comparison between instances of this class
+        try:
+            other = other.__s
+        except (TypeError, AttributeError):
+            try:
+                other = other.lower()
+            except:
+                pass
+        return self.__s == other
+
 
 
 
@@ -54,7 +83,6 @@ def xlsx_pubs(filepath, user=None):
 
         # iterate over report entries
         for row in range(1, s.nrows):
-
             print " "
             print "processing report {0}".format(s.cell_value(row, number_col))
 
@@ -67,28 +95,33 @@ def xlsx_pubs(filepath, user=None):
                     except:
                         kwargs[col_names[col]] = s.cell_value(row, col)
 
-            # extract the m2m and foreignkey entries
+            # extract the foreignkey entries
+            fk_dict = dict()
+            for k in kwargs.keys():
+                if k in ['type', 'journal']:
+                    fk_dict[k] = kwargs.pop(k)
+
+            # extract the m2m entries
             m2m_dict = dict()
             for k in kwargs.keys():
                 if k in ['author', 'editor', 'supervisor', 'keywords',
-                         'topic', 'URLs', 'type', 'journal']:
+                         'topic', 'URLs']:
                     m2m_dict[k] = kwargs.pop(k)
 
-            # temporary until authentication is implemented
+            # handle user information
             kwargs['created_by'] = current_user
             kwargs['modified_by'] = current_user
 
-            # Handle the publication type
-            kwargs['type'] = models.PubType.objects.get(type=m2m_dict.pop('type', 'STUDENTREPORT'))
+
+            ### HANDLE FOREIGNKEY RELATIONSHIPS ###
 
             # Handle the publication type
-            kwargs['topics'] = models.Topic.objects.get(topic=m2m_dict.pop('topic', None))
-            if kwargs['topics'] is None:
-                kwargs.pop('topics')
+            kwargs['type'] = models.PubType.objects.get(type=fk_dict.pop('type', 'STUDENTREPORT'))
 
             # handle journal if present
-            if 'journal' in m2m_dict and m2m_dict['journal']:
-                kwargs['journal'] = models.Journal.objects.get(type=m2m_dict.pop('journal'))
+            if 'journal' in fk_dict and fk_dict['journal']:
+                kwargs['journal'] = models.Journal.objects.get(type=fk_dict.pop('journal'))
+
 
             # If year is not given, and this is a report,
             # compose the year from the report number
@@ -101,16 +134,24 @@ def xlsx_pubs(filepath, user=None):
                 else:
                     kwargs['year'] = '20'+kwargs['number'][0:2]
 
+
             # Create or update publication
             instance, created = models.Publication.objects.get_or_create(
                                     number=s.cell_value(row, number_col),
                                     defaults=kwargs)
             if created:
                 print "Publication registered!"
+
+                ### HANDLE M2M RELATIONSHIPS
+
                 # Handle authors, editors, supervisors etc. here!
                 for f in ['author', 'supervisor', 'editor']:
                     names = m2m_dict.pop(f, None)
                     add_persons_to_publication(names, instance, f, current_user)
+
+                # Handle the topics
+                topics = m2m_dict.pop('topic', None)
+                add_topics_to_publication(topics, instance, current_user)
 
             else:
                 print "Publication [id:{0}] exist in database!".format(instance.id)
@@ -135,6 +176,10 @@ def xlsx_pubs(filepath, user=None):
                             # Add persons if no persons are registered already
                             add_persons_to_publication(names, instance, f, current_user)
 
+                    # Handle the topics
+                    topics = m2m_dict.pop('topic', None)
+                    add_topics_to_publication(topics, instance, current_user)
+
                 instance.save()
 
 
@@ -143,8 +188,8 @@ def add_persons_to_publication(names, pub, field, user):
     if not names or not names.strip():
         return
 
-    if pub.author.all():
-        # Skip if authors are already registered.
+    if getattr(pub, field).all():
+        # Skip if field is already populated.
         return
 
     #define pubplication-person through-table
@@ -161,7 +206,7 @@ def add_persons_to_publication(names, pub, field, user):
         if not (hasattr(pers, 'first') and hasattr(pers, 'last')):
             raise ValueError("Missing parts of name, cannot create database entry")
 
-        print "   Processing person {0}: {1}".format(id, pers)
+        print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(pers)))
 
         exact_match = False
         multiple_match = False
@@ -184,16 +229,49 @@ def add_persons_to_publication(names, pub, field, user):
         p = person_utils.create_person_from_pybtex(person=pers, user=user)
 
         if p:
-            # add the author to the author-relationship
+            # add the person to the author/supervisor/editor-relationship
 
             tmp = through_tbl(person=p[0],
                               publication=pub,
-                              author_id=id,
                               exact_match=exact_match,
                               multiple_match=multiple_match,
-                              relaxed_match=relaxed_match)
+                              relaxed_match=relaxed_match,
+                              **{field+'_id': id})
             tmp.save()
 
+
+def add_topics_to_publication(topics, pub, user):
+    # Get list of topics already attached
+    # Iterate through posted topics
+    # Is topic in existing list: continue
+    # Is topic in database? add to m2m relationship
+    # Topics cannot be added if they do not exist... drop it
+    # remove any remaining model bound topics that were not in post
+
+    mtop = [t.topic for t in pub.topics.all()]  # list of model bound topic
+
+    topics = [word.strip(string.punctuation) for word in topics.split()]
+
+    for t in topics:
+        if CaseInsensitively(t) in mtop:
+            mtop.remove(CaseInsensitively(t))
+            continue
+
+        mt = models.Topic.objects.filter(topic__iexact=t)
+        if not mt:
+            mt = models.Topic(topic=t)
+            mt.save()
+            mt = [mt]
+
+        # add only the first topic returned
+        pub.topics.add(mt[0])
+
+    # Now remove any remaining topic
+    if mtop:
+        for t in mtop:
+            pub.topics.remove(r.topics.get(topic=t))
+
+    pub.save()
 
 
 def xlsx_features(filepath, user=None):
