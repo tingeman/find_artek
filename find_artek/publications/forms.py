@@ -82,7 +82,7 @@ class AddReportForm(ModelForm):
             if s_set:
                 s_list = [s.person.__unicode__() +
                             ' [id:{0}]'.format(s.person.id) \
-                            for s in a_set]
+                            for s in s_set]
             else:
                 s_list = []
             self.fields['supervisors'].initial = '\n'.join(s_list)

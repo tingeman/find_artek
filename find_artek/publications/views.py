@@ -461,6 +461,64 @@ def add_edit_report(request, pub_id=None):
                         #  msg.append([messages.WARNING,
                         #             "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n)])
 
+
+            if ('supervisors' in request.POST) and request.POST['supervisors'].strip():
+                # remove any existing author-relationships
+                s_set = r.supervisorship_set.all()
+                if s_set:
+                    for s in s_set:
+                        s.delete()
+
+                # Parse author list!
+                name_list = parse_name_list(request.POST['supervisors'])
+
+                for id, n in enumerate(name_list):
+                    n = n.strip()
+                    pid = get_tag(n, 'id')
+
+                    if pid == '0':
+                        # tag [id:0]
+                        # create new person
+                        # ...
+                        n = remove_tags(n)
+                        if n:
+                            p = Person(name=n)
+                            p.created_by = current_user
+                            p.modified_by = current_user
+                            p.save()
+                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
+
+                            tmp = Supervisorship(person=p,
+                                         publication=r,
+                                         supervisor_id=id)
+                            tmp.save()
+                    elif pid:
+                        # tag [id:XX] where xx is supposed to be integer.
+                        # get specified person and add to supervisorship
+                        try:
+                            p = Person.objects.get(id=pid)
+                        except ObjectDoesNotExist:
+                            if n:
+                                # This is only an error, if n is not empty
+                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
+                            continue
+                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
+                        #name_list[id] = 'DB: '+p.__unicode__()
+                        tmp = Supervisorship(person=p,
+                                         publication=r,
+                                         supervisor_id=id)
+                        tmp.save()
+                    else:
+                        # No tag...
+
+                        # Check if person exists   (exact or loose match)
+                        # otherwise create person
+                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n))
+
+                        #  msg.append([messages.WARNING,
+                        #             "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n)])
+
+
             if ('keywords' in request.POST) and request.POST['keywords']:
                 # Get list of keywords already attached
                 # Iterate through posted keywords
@@ -525,10 +583,11 @@ def add_edit_report(request, pub_id=None):
 
             if 'pdffile-clear' in request.POST and request.POST['pdffile-clear']:
                 f = r.file
-                r.file = None
+                fname = f.file.name
                 f.file.delete(save=True)
                 f.delete()
-                msg.append([messages.INFO, "File deleted: {0}".format(f.file.name)])
+                r.file = None
+                messages.info(request, "File deleted: {0}".format(fname))
 
             if 'pdffile' in request.FILES and request.FILES['pdffile']:
                 if r.file:
@@ -663,8 +722,20 @@ def person_ajax_search(request):
 
         json_entries = []
         for e in found_entries:
-            json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}'.format(e.id, e.position),
-                                 'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
+            if e.position == CaseInsensitively('student'):
+                json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}'.format(e.id, e.id_number),
+                                     'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
+            else:
+                label = e.__unicode__() + ' [id:{0}]'.format(e.id)
+                if e.position:
+                    label += ', {0}'.format(e.position)
+                if e.department:
+                    label += ', {0}'.format(e.department)
+                if e.id_number:
+                    label += ', {0}'.format(e.id_number)
+
+                json_entries.append({'label': label,
+                                     'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
 
 #        my_array = [{'label': 'This is a Test', 'value': 'The test value inserted'},
 #                    {'label': 'Second option', 'value': request.GET['term']+'_123'}]
@@ -1451,4 +1522,73 @@ def person_delete(request, person_id):
 
     return render_to_response('publications/delete_person_form.html', {'person': p},
             context_instance=RequestContext(request))
+
+
+
+@login_required(login_url='/accounts/login/')
+def delete_publication_file(request, pub_id):
+    """Delete the publication file (pdf-file) from the specified publication.
+    Will ask for confirmation before deleting.
+
+    """
+
+    p = get_object_or_404(Publication, pk=pub_id)
+
+    if not p.is_deletable_by(request.user):
+        error = "You do not have permissions to delete files from this publication!"
+        return render_to_response('publications/access_denied.html',
+                                  {'pub': pub_id, 'error': error},
+                                  context_instance=RequestContext(request))
+
+    if request.POST:
+        if 'cancel' in request.POST:
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+        elif 'delete' in request.POST:
+            func_delete_publication_file(request, p.file)
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+
+    # If form not posted, or invalid post request:
+    return render_to_response('publications/delete_publication_file_form.html', {'pub': p},
+                              context_instance=RequestContext(request))
+
+
+@login_required(login_url='/accounts/login/')
+def delete_publication_appendix(request, pub_id, apx_id):
+    """Delete an appendix file from the specified publication.
+    Will ask for confirmation before deleting.
+
+    """
+
+    p = get_object_or_404(Publication, pk=pub_id)
+
+    if not p.is_deletable_by(request.user):
+        error = "You do not have permissions to delete files from this publication!"
+        return render_to_response('publications/access_denied.html',
+                                  {'pub': pub_id, 'error': error},
+                                  context_instance=RequestContext(request))
+
+    apx = p.appendices.get(id=apx_id)
+
+    if request.POST:
+        if 'cancel' in request.POST:
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+        elif 'delete' in request.POST:
+            func_delete_publication_file(request, apx)
+            return redirect('/pubs/report/{0}/'.format(pub_id))
+
+    # If form not posted, or invalid post request:
+    return render_to_response('publications/delete_publication_appendix_form.html', {'pub': p, 'apx': apx},
+                              context_instance=RequestContext(request))
+
+
+def func_delete_publication_file(request, f):
+    """Delete the appendix from the database, including dletion of the file
+    from the file system.
+
+    """
+    fname = f.file.name
+    f.file.delete(save=True)
+    f.file = None
+    f.delete()
+    messages.info(request, "File deleted: {0}".format(fname))
 
