@@ -314,7 +314,7 @@ def feature_detail(request, feature_id):
 
 
 def frontpage(request):
-    return render_to_response('publications/frontpage_2.html', {'None': None},
+    return render_to_response('publications/frontpage_3.html', {'None': None},
             context_instance=RequestContext(request))
     #return render_to_response('publications/frontpage.html', {'None': None},
     #        context_instance=RequestContext(request))
