@@ -12,6 +12,7 @@ import datetime
 import dateutil.parser
 import chardet
 import string
+import simplejson as json
 
 from pybtex.database import Person as pybtexPerson
 
@@ -309,7 +310,8 @@ def xlsx_features(filepath, user=None):
             xlsxmessages.append((messages.ERROR, msg))
             return (False, xlsxmessages)
 
-    feature_list = []  # will hold list of unique feature numbers from Feature# column
+    #feature_list = []  # will hold list of unique feature numbers from Feature# column
+    feature_dict = {}
 
     # iterate over report entries
     for row in range(1, s.nrows):
@@ -327,12 +329,14 @@ def xlsx_features(filepath, user=None):
             pass
 
         # If this is a new feature number, get all properties
-        if fnum and fnum not in feature_list:
+        #if fnum and fnum not in feature_list:
+        if fnum and fnum not in feature_dict:
             #print " "
             #print "Processing feature {0}".format(fnum)
 
             # Add the feature number to the list
-            feature_list.append(fnum)
+            #feature_list.append(fnum)
+            feature_dict[fnum] = {}
 
             # create dictionary of field:value pairs
             kwargs = dict()
@@ -377,6 +381,8 @@ def xlsx_features(filepath, user=None):
 
             # Create feature
             f = models.Feature(**kwargs)
+            f.save()
+
             fmsg = [messages.INFO, "Feature ({1}) '{0}' created".format(f.name, fnum)]
 
             if s.cell_value(row, col_names.index('Geometry_type')) == 'point':
@@ -390,13 +396,60 @@ def xlsx_features(filepath, user=None):
 
             elif s.cell_value(row, col_names.index('Geometry_type')) == 'line':
                 # This is a line, we must expect more segments to be added
-                msg = "Line geometry not implemented. No coordinates added for feature ({1}) '{0}'".format(f.name, fnum)
-                xlsxmessages.append((messages.WARNING, msg))
+
+                # Encode to GeoJSON and store temporarily, e.g. make feature_list
+                # a dictionary, where the key is the feature number/name, and
+                # the value holds the GeoJSON for lines and polygons
+
+                # THen if an existing feature_number/name is encountered
+                # add the coordinate info to the GeoJSON, taking care of
+                # coordinate transform (or assuming same SRID??)
+
+                # When all features are processed add the valid GeoJSON to
+                # the respective features.
+                # This requires that we keep track of the feature ID of the
+                # created features also.
+
+                # Also handle possible errors during parsing... so that all
+                # lines/polygons are not lost if errors occur.
+
+                # Could save GeoJSON already after two points. And then replace
+                # everytime a new coordinate is added.
+
+                x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
+                        s.cell_value(row, col_names.index('UTMY/LAT')))
+
+                mls_json = { "type": "MultiLineString",
+                             "coordinates": [
+                                 [ [x, y]]
+                              ]
+                           }
+
+                srid = int(s.cell_value(row, col_names.index('SRID')))
+
+                feature_dict[fnum]['id'] = f.id
+                feature_dict[fnum]['srid'] = srid
+                feature_dict[fnum]['GeoJSON'] = mls_json
+
+                print json.dumps(mls_json)
 
             elif s.cell_value(row, col_names.index('Geometry_type')) == 'polygon':
                 # This is a polygon, we must expect more segments to be added
-                msg = "Line geometry not implemented. No coordinates added for feature ({1}) '{0}'".format(f.name, fnum)
-                xlsxmessages.append((messages.WARNING, msg))
+
+                x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
+                        s.cell_value(row, col_names.index('UTMY/LAT')))
+
+                poly_json = { "type": "MultiPolygon",
+                             "coordinates": [ [[[x, y], [x, y]]] ]
+                           }
+
+                srid = int(s.cell_value(row, col_names.index('SRID')))
+
+                feature_dict[fnum]['id'] = f.id
+                feature_dict[fnum]['srid'] = srid
+                feature_dict[fnum]['GeoJSON'] = poly_json
+
+
 
             """Here we should handle multiple rows with the same feature#.
             if point, a new point should be added to multipoint geometry
@@ -429,4 +482,77 @@ def xlsx_features(filepath, user=None):
             f.save()
             xlsxmessages.append(fmsg)
 
-    return (len(feature_list), xlsxmessages)
+        elif fnum:
+            """The feature number is not empty, and already exists in the
+            dictionary, which means it must be an additional point to a line
+            or polygon (multi-points are not intended implemented).
+
+            """
+            if feature_dict[fnum]['GeoJSON']['type'] == 'MultiLineString':
+                """The first time the feature number was encountered, it was
+                registered as a line. We consider it a line, no matter what is
+                registered for additional points, but may raise a warning, if
+                the registered feature types do not match.
+
+                """
+
+                srid = int(s.cell_value(row, col_names.index('SRID')))
+
+                if srid != feature_dict[fnum]['srid']:
+                    msg = "SRID mismatch for feature {1} '{0}', row {2}. Point was not added to geometry!".format(f.name, fnum, row)
+                    xlsxmessages.append((messages.WARNING, msg))
+                else:
+                    x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
+                            s.cell_value(row, col_names.index('UTMY/LAT')))
+
+                    feature_dict[fnum]['GeoJSON']['coordinates'][0].append([x,y])
+
+                    if s.cell_value(row, col_names.index('Geometry_type')) != 'line':
+                        msg = "Geometry type mismatch for feature {1} '{0}', row {2}. Point was added to geometry anyway".format(f.name, fnum, row)
+                        xlsxmessages.append((messages.WARNING, msg))
+
+                    print json.dumps(feature_dict[fnum]['GeoJSON'])
+
+                    geom = GEOSGeometry(json.dumps(feature_dict[fnum]['GeoJSON']),
+                                        srid=feature_dict[fnum]['srid'])
+                    f.lines = geom
+                    f.save()
+
+
+            elif feature_dict[fnum]['GeoJSON']['type'] == 'MultiPolygon':
+                """The first time the feature number was encountered, it was
+                registered as a polygon. We consider it a polygon, no matter
+                what is registered for additional points, but may raise a
+                warning, if the registered feature types do not match.
+
+                """
+
+                srid = int(s.cell_value(row, col_names.index('SRID')))
+
+                if srid != feature_dict[fnum]['srid']:
+                    msg = "SRID mismatch for feature {1} '{0}', row {2}. Point was not added to geometry!".format(f.name, fnum, row)
+                    xlsxmessages.append((messages.WARNING, msg))
+                else:
+                    x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
+                            s.cell_value(row, col_names.index('UTMY/LAT')))
+
+                    feature_dict[fnum]['GeoJSON']['coordinates'][0][0].insert(-1, [x,y])
+
+                    if s.cell_value(row, col_names.index('Geometry_type')) != 'line':
+                        msg = "Geometry type mismatch for feature {1} '{0}', row {2}. Point was added to geometry anyway".format(f.name, fnum, row)
+                        xlsxmessages.append((messages.WARNING, msg))
+
+                    print json.dumps(feature_dict[fnum]['GeoJSON'])
+
+                    if len(feature_dict[fnum]['GeoJSON']['coordinates'][0][0]) >= 4:
+                        # We must have at least four points to a polygon (=triangle).
+                        geom = GEOSGeometry(json.dumps(feature_dict[fnum]['GeoJSON']),
+                                            srid=feature_dict[fnum]['srid'])
+                        f.polys = geom
+                        f.save()
+
+                pass   #### UPDATE HERE ####
+            else:
+                pass   #### UPDATE HERE ####
+
+    return (len(feature_dict), xlsxmessages)

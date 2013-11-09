@@ -29,7 +29,8 @@ from olwidget.widgets import EditableLayer, InfoLayer, InfoMap
 
 from find_artek.search import get_query
 from find_artek.publications.models import Publication, Person, Feature,        \
-                                            PubType, Keyword, Topic, FileObject,\
+                                            PubType, Keyword, Topic,            \
+                                            FileObject, ImageObject,            \
                                             Authorship, Editorship, Supervisorship
 from find_artek.publications.person_utils import get_person
 from find_artek.publications.forms import AddReportForm, AddPersonForm,         \
@@ -168,6 +169,8 @@ def overview(request):
         if f.polys:
             info_append(info, f.polys, f, feature_popup_html(f), gtype='poly')
 
+    print "test:"+info
+
     options = {'layers': ['osm.mapnik', 'google.satellite'],
                'zoom_to_data_extent': False,
                'default_lon': clon,
@@ -250,18 +253,38 @@ def detail(request, pub_id):
         ('RESOURCE',          'brown'),
         ('OTHER',             'white')))
 
-    def info_append(info, g, f, html):
-        colors = CyclicList(["red","blue"])
-        info.append((g, {
-            'html': html,
-            'style': {
-                'fill_color': feature_colors[f.type],
-                'fill_opacity': 1,
-                'stroke_color': 'black',
-                'point_radius': 4,
-                'stroke_width': 1,
-            },
-        }))
+    def info_append(info, g, f, html, gtype='point'):
+        if gtype == 'point':
+            info.append((g, {
+                'html': html,
+                'style': {
+                    'fill_color': feature_colors[f.type],
+                    'fill_opacity': 1,
+                    'stroke_color': 'black',
+                    'point_radius': 4,
+                    'stroke_width': 1,
+                },
+            }))
+        elif gtype == 'line':
+            info.append((g, {
+                'html': html,
+                'style': {
+                    'fill_color': feature_colors[f.type],
+                    'stroke_color': feature_colors[f.type],
+                    'stroke_width': 2,
+                },
+            }))
+        elif gtype == 'poly':
+            info.append((g, {
+                'html': html,
+                'style': {
+                    'fill_color': feature_colors[f.type],
+                    'fill_opacity': 0.3,
+                    'stroke_color': 'black',
+                    'stroke_width': 1,
+                },
+            }))
+
 
     def feature_popup_html(f):
         t = loader.get_template('publications/feature_popup.html')
@@ -276,11 +299,11 @@ def detail(request, pub_id):
     info = []
     for i, f in enumerate(features):
         if f.points:
-            info_append(info, f.points, f, feature_popup_html(f))
+            info_append(info, f.points, f, feature_popup_html(f), gtype='point')
         if f.lines:
-            info_append(info, f.lines, f, feature_popup_html(f))
+            info_append(info, f.lines, f, feature_popup_html(f), gtype='line')
         if f.polys:
-            info_append(info, f.polys, f, feature_popup_html(f))
+            info_append(info, f.polys, f, feature_popup_html(f), gtype='poly')
 
     options = {'layers': ['osm.mapnik','google.satellite'],
                 'map_options': {
@@ -705,6 +728,193 @@ def upload_report_files(request, batch_tag, pub_id=None):
 
     return render_to_response('publications/upload_report_files.html',
         {'pub': p, 'batch_tag': batch_tag}, context_instance=RequestContext(request))
+
+
+
+@login_required(login_url='/accounts/login/')
+def upload_feature_files(request, feat_id=None, batch_tag=None):
+    if feat_id:
+        f = get_object_or_404(Feature, pk=feat_id)
+    else:
+        f = None
+
+    current_user = request.user
+
+    # Some set up operations
+    if f and request.POST:
+        if 'batch_tag' in request.POST:
+            # batch_tag is used to identify uploads through the
+            # multiuploader plugin. If it is present, check for any
+            # uploaded files and add them to the files field of the feature.
+
+            if f.date and f.date.year:
+                # Upload files to /reports/[year]/features/[year]_[feat_id]/
+                upload_dir = ['reports', '{0}'.format(f.date.year), 'features',
+                          '{0}_{1}'.format(f.date.year, f.id)]
+            else:
+                # Upload files to /reports/[year]/features/[year]_[feat_id]/
+                upload_dir = ['reports', 'features', '{0}'.format(f.id)]
+
+            upload_dir = os.path.join(*upload_dir).replace(' ', '_')
+
+            batch_tag = request.POST['batch_tag']
+
+            ffiles = MultiuploaderImage.objects.filter(batch_tag=batch_tag)
+            for ff in ffiles:
+                fo = FileObject()
+                fo.modified_by = current_user
+                fo.created_by = current_user
+                fo.description = "Uploaded feature file"
+
+                # Bypass normal 'upload_to' path generation by setting it directly
+                fo.upload_to = upload_dir
+
+                # Save to database to generate primary_key before adding file
+                fo.save()
+
+                fo.file.save(ff.image.name, ff.image.file, save=True)
+
+                # Add the file to the m2m field on the publication
+                f.files.add(fo)
+                f.save()
+
+                ff.image.delete(save=True)
+                ff.delete()
+
+            return redirect('/pubs/feature/{0}/'.format(f.id))
+
+
+    # Form was not yet posted...
+
+    # generate unique tag for identifying uploaded files.
+    # It is maybe useles to test uniquenss in this way, since the tags will
+    # only exist in the database once files have been uploaded.
+    # Since the tag includes time-stamp, the rare event where time-stamp and
+    # random character tags have already been given to some other form-view,
+    # it would not be caught, since the files have not yet been uploaded.
+
+    # A better way would be to store generated tags in a separate table, and
+    # query that table to see if newly generated tag already exist.
+    # Tags MultiuploaderImages should be removed automatically after say 5 days.
+
+    while 1:
+        batch_tag = generate_batch_tag()
+        if not MultiuploaderImage.objects.filter(batch_tag=batch_tag):
+            break
+
+
+    return render_to_response('publications/upload_feature_files.html',
+        {'feature': f, 'batch_tag': batch_tag}, context_instance=RequestContext(request))
+
+
+@login_required(login_url='/accounts/login/')
+def upload_feature_images(request, feat_id=None, batch_tag=None):
+    if feat_id:
+        f = get_object_or_404(Feature, pk=feat_id)
+    else:
+        f = None
+
+    current_user = request.user
+
+    # Some set up operations
+    if f and request.POST:
+        if 'batch_tag' in request.POST:
+            # batch_tag is used to identify uploads through the
+            # multiuploader plugin. If it is present, check for any
+            # uploaded files and add them to the files field of the feature.
+
+            if f.date and f.date.year:
+                # Upload files to /reports/[year]/features/[year]_[feat_id]/
+                upload_dir = ['reports', '{0}'.format(f.date.year), 'features',
+                          '{0}_{1}'.format(f.date.year, f.id)]
+            else:
+                # Upload files to /reports/[year]/features/[year]_[feat_id]/
+                upload_dir = ['reports', 'features', '{0}'.format(f.id)]
+
+            upload_dir = os.path.join(*upload_dir).replace(' ', '_')
+
+            batch_tag = request.POST['batch_tag']
+
+            ffiles = MultiuploaderImage.objects.filter(batch_tag=batch_tag)
+            for ff in ffiles:
+                fo = ImageObject()
+                fo.modified_by = current_user
+                fo.created_by = current_user
+                fo.caption = "Uploaded feature image"
+
+                # Bypass normal 'upload_to' path generation by setting it directly
+                fo.upload_to = upload_dir
+
+                # Save to database to generate primary_key before adding file
+                fo.save()
+
+                fo.image.save(ff.image.name, ff.image.file, save=True)
+
+                # Add the file to the m2m field on the publication
+                f.images.add(fo)
+                f.save()
+
+                ff.image.delete(save=True)
+                ff.delete()
+
+            return redirect('/pubs/feature/{0}/'.format(f.id))
+
+
+    # Form was not yet posted...
+
+    # generate unique tag for identifying uploaded files.
+    # It is maybe useles to test uniquenss in this way, since the tags will
+    # only exist in the database once files have been uploaded.
+    # Since the tag includes time-stamp, the rare event where time-stamp and
+    # random character tags have already been given to some other form-view,
+    # it would not be caught, since the files have not yet been uploaded.
+
+    # A better way would be to store generated tags in a separate table, and
+    # query that table to see if newly generated tag already exist.
+    # Tags MultiuploaderImages should be removed automatically after say 5 days.
+
+    while 1:
+        batch_tag = generate_batch_tag()
+        if not MultiuploaderImage.objects.filter(batch_tag=batch_tag):
+            break
+
+
+    return render_to_response('publications/upload_feature_images.html',
+        {'feature': f, 'batch_tag': batch_tag}, context_instance=RequestContext(request))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def person_ajax(request):
