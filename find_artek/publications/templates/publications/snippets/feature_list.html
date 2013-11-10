@@ -1,4 +1,4 @@
-<table>
+<table class="entity-list">
     <tr class="header" style="background-color:  #B0C4DE;border: 1px solid  #B0C4DE;padding: 5px"><td>id</td><td>Name</td><td>Type</td><td>Date</td><td>Description</td>{% if user.is_authenticated %}<td style="width: 64px; text-align: left">Tools</td>{% endif %}</tr>
     {% for feature in feat_list %}
         <tr id='1' style="border: 1px solid  #B0C4DE;padding: 5px">

@@ -1,3 +1,20 @@
+20131110
+Added "Preview not available" image in case no pdf-file thumbnail is found for
+a report. Some minor changes to layout: positioning of the thumbnail in the report detail view, and highlight of rows in tables confined to class "entity-list" which is applied only to lists of reports, persons, features etc.
+
+20131109  
+Created a management script to create thumbnails of the first page of the pdf files.
+The script is run by invoking the command: python manage.py create_pub_thumbs.
+Report detail template updated to show the thumbnail of the report title page.
+
+Added two new features: 
+1) Possibility to upload line features and polygon features through the feature xlsx file which previously only supported points. 
+2) Possibility to upload multiple files and images to features.
+
+
+Have not been keeping this file updated!
+
+
 20130522  v1.1.1 All maps changed to default to Open Street maps. Front page image for road project changed.
 
 20130522  Make sure development server is not running when committing files! It will place a lock on those files, which will be committed along with the file!

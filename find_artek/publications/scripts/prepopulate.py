@@ -175,6 +175,17 @@ pubtype_dict = {
         req_fields  = 'author, title, school, year',
         opt_fields  = 'type, address, month, note, key',
         ),
+    'BACHELORTHESIS': dict(
+        description = 'A Bachelor thesis.',
+        req_fields  = 'author, title, school, year',
+        opt_fields  = 'type, address, month, note, key',
+        ),
+    'DIPLOMPROJEKT': dict(
+        description = 'A thesis written at the end of the Bachelor of Engineering programme at DTU.',
+        req_fields  = 'author, title, school, year',
+        opt_fields  = 'type, address, month, note, key',
+        ),
+        
 }
 
 

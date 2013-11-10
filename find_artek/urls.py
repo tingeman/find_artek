@@ -21,6 +21,26 @@ Prefferred url design is e.g. pubs/report/XXX/edit/
 
 Should design new like this
 Rework old urls into this design, will require change of templates and views.
+
+Furthermore should implement naming of urls, to allow reverse url matchin in
+templates.
+
+f.ex.:
+url(r'^$', 'find_artek.views.index', name='index'),
+
+in a template we could insert this link by:
+
+{% url 'index' %}
+
+
+and:
+
+url(r'^pubs/detail/(?P<pub_id>\d+)/$', 'find_artek.publications.views.detail', name='pubs-detail')
+
+would for the publication with id 121 become:
+
+{% url 'pubs-detail' 121 %}
+
 """
 
 
@@ -67,6 +87,8 @@ urlpatterns = patterns('',
     url(r'^pubs/person/ajax/search/$', 'find_artek.publications.views.person_ajax_search'),
     url(r'^pubs/person/ajax/add/$', 'find_artek.publications.views.add_person_ajax'),
     url(r'^pubs/person/ajax/check/$', 'find_artek.publications.views.check_person_ajax'),
+    url(r'^pubs/feature/(?P<feat_id>\d*)/upload_files/$', 'find_artek.publications.views.upload_feature_files', name='pubs-upload_feature_files'),
+    url(r'^pubs/feature/(?P<feat_id>\d*)/upload_images/$', 'find_artek.publications.views.upload_feature_images', name='pubs-upload_feature_images'),
     url(r'^pubs/ajax/search/keyword/$', 'find_artek.publications.views.ajax_keyword_search'),
     url(r'^pubs/ajax/search/topic/$', 'find_artek.publications.views.ajax_topic_search'),
     url(r'^pubs/ajax/list/reports/$', 'find_artek.publications.views.ajax_list_reports'),
