@@ -1,4 +1,7 @@
 20131110
+NBNB Check if Feature upload xlsx template has been updated to allow lines etc. NBNB
+
+Changed Administration page to have nice linked images instead of boring buttons.
 Added "Preview not available" image in case no pdf-file thumbnail is found for
 a report. Some minor changes to layout: positioning of the thumbnail in the report detail view, and highlight of rows in tables confined to class "entity-list" which is applied only to lists of reports, persons, features etc.
 
