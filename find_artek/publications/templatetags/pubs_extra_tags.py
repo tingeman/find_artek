@@ -24,26 +24,11 @@ def thumb_file(value):
     tdn = os.path.join(dn,'thumbs')
     furl = os.path.join(tdn,fn+'_thumb.jpg')
 
-    print furl
+    fpath = os.path.join(settings.MEDIA_ROOT, furl)
+    furl = os.path.join(settings.MEDIA_URL, furl)
 
-    if not os.path.exists(os.path.join(settings.MEDIA_URL, furl)):
+    if not default_storage.exists(fpath):
         furl = os.path.join(settings.STATIC_URL,'publications',
                         'images','preview_not_available.png')
 
     return furl
-
-
-#@register.filter
-#def preview_exists(filepath):
-#    """Usage:
-#    <img src="{{ STATIC_URL|add:'images/'|add:book.imageurl|preview_exists }}" alt="{{book.title}} Cover Photo">
-#
-#    """
-#
-#    if default_storage.exists(filepath):
-#        return filepath
-#    else:
-#        dn = os.path.dirname(filepath)
-#        new_filepath = os.path.join(settings.STATIC_URL,'publications',
-#                        'images','preview_not_available.png')
-#        return new_filepath
