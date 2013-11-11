@@ -1202,7 +1202,7 @@ def multi_uploader_image_view(request, pub_id):
 
 
 def add_menu(request):
-    return render_to_response('publications/add_menu.html', {'None': None},
+    return render_to_response('publications/add_menu_2.html', {'None': None},
                               context_instance=RequestContext(request))
 
 
