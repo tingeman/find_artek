@@ -169,8 +169,6 @@ def overview(request):
         if f.polys:
             info_append(info, f.polys, f, feature_popup_html(f), gtype='poly')
 
-    print "test:"+info
-
     options = {'layers': ['osm.mapnik', 'google.satellite'],
                'zoom_to_data_extent': False,
                'default_lon': clon,
