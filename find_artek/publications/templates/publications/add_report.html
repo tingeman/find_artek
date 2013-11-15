@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Publication list{% endblock %}
+{% block title %}
+{% if pub %}
+Edit report
+{% else %}
+New report
+{% endif %}
+{% endblock %}
 {% block head %}
     <!--
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
@@ -407,22 +413,24 @@
 
 {% endblock %}
 
-
-{% block headline %}Registrer ny rapport{% endblock %}
-
+{% block headline %}
+{% if pub %}
+Edit report
+{% else %}
+Register new report
+{% endif %}
+{% endblock %}
 
 {% block body %}
 
+{% if pub %}
+<table class="report-block" style="background-color: #F0F0F0; max-width: 600px; display:block; padding: 5px; border-style: solid; border-width: 1px 1px 1px 1px; border-color: grey;">
+    <tr>{% include "publications/snippets/report_td.html" %}</tr>
+</table>
+{% endif %}
 
-<p>'Process persons' button will do a check against the database for all persons
-specified in the Author field. A dialog will appear to allow choosing the correct
-person or create new person. When creating a new person, only the name will be
-stored. Use the "edit person" functionality to register more person info after
-the report is created.</p>
-
-<p>The submit button will also first check authors against database and creation rules,
-and then if the check succeeds, submit the form to the database.</p>
-
+<br>
+<br>
 
 <form  enctype="multipart/form-data" method="post" id="add-report-form">{% csrf_token %}
 <div id="data_container"></div>
@@ -430,18 +438,34 @@ and then if the check succeeds, submit the form to the database.</p>
 {{ form.as_table }}
 <tr><th>Appendices</th>
 <td>
+Appendices can be uploaded from the publication view, after the publication
+record has been created/updated.
+{% comment %}
 {% if pub %}
 <a id="open-files-dialog" href="/pubs/edit/report/{{ pub.id }}/upload/{{ appendix_batch_tag }}/" target="_popup">add appendix files or other files</a>
 {% else %}
 <a id="open-files-dialog" href="/pubs/add/report/upload/{{ appendix_batch_tag }}/" target="_popup">add appendix files or other files</a>
 {% endif %}
 <input type="hidden" name="appendix_batch_tag" value="{{ appendix_batch_tag }}">
+{% endcomment %}
 </td></tr>
 <tr><th></th><td><br><button type="button" id="process-persons">Process Persons</button> <button type="button" id="process-submit">submit</button>
 <div id="authors_loading" style="display: block; vertical-align: bottom"><img src="/static/publications/images/ui-anim_basic_16x16.gif"</div></td>
 
 </table>
 </form>
+
+<p>'Process persons' button will do a check against the database for all persons
+specified in the Author field. A dialog will appear to allow choosing the correct
+person or create new person. When creating a new person, only the name will be
+stored. Use the "edit person" functionality to register more person info after
+the report is created.</p>
+
+<p>'submit' button will also first check authors against database and creation rules,
+and then if the check succeeds, submit the form to the database.</p>
+
+<br>
+<br>
 
 <div id="dialog" title="Test dialog">No information</div>
 

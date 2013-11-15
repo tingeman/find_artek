@@ -1,3 +1,13 @@
+20131115
+REMOVED: possibility to upload appendixes from add/edit report form.
+ADDED: upload appendices from report detail view, when authenticated and having permission.
+Changed upload_feature_files/images views, to only allow upload by users that
+have edit permissions to the current feature.
+Changed add_edit_report template to only allow editing report number for
+superusers. Also changed so that the page shows "Edit" or "Add" depending on
+what we are doing.
+FIXED: small bug that broke the map overview pages.
+
 20131110
 NBNB Check if Feature upload xlsx template has been updated to allow lines etc. NBNB
 
@@ -5,13 +15,13 @@ Changed Administration page to have nice linked images instead of boring buttons
 Added "Preview not available" image in case no pdf-file thumbnail is found for
 a report. Some minor changes to layout: positioning of the thumbnail in the report detail view, and highlight of rows in tables confined to class "entity-list" which is applied only to lists of reports, persons, features etc.
 
-20131109  
+20131109
 Created a management script to create thumbnails of the first page of the pdf files.
 The script is run by invoking the command: python manage.py create_pub_thumbs.
 Report detail template updated to show the thumbnail of the report title page.
 
-Added two new features: 
-1) Possibility to upload line features and polygon features through the feature xlsx file which previously only supported points. 
+Added two new features:
+1) Possibility to upload line features and polygon features through the feature xlsx file which previously only supported points.
 2) Possibility to upload multiple files and images to features.
 
 

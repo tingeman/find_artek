@@ -647,6 +647,9 @@ def add_edit_report(request, pub_id=None):
                 r.save()
 
             if 'appendix_batch_tag' in request.POST:
+
+                # THIS FUNCTIONALITY REMOVED FROM THE TEMPLATE!!!
+
                 # batch_tag is used to identify uploads through the
                 # multiuploader plugin. If it is present, check for any
                 # uploaded files and add them to appendix-field.
@@ -684,9 +687,17 @@ def add_edit_report(request, pub_id=None):
 
     # Form was not yet posted...
     for k in form.fields.keys():
-        if k not in ['type', 'number', 'title', 'authors', 'supervisors', 'abstract',
-                        'year', 'topic', 'keywords', 'pdffile',
-                        'comment']:   # This should handle the proper Report type, get list from PubType table.
+        if not p or request.user.is_superuser:
+            # Show these fields if we are registering a new report
+            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
+                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+                            'comment']   # This should handle the proper Report type, get list from PubType table.
+        else:
+            # Show these fields if we are editing a report
+            show_fields =  ['type', 'title', 'authors', 'supervisors',
+                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+                            'comment']   # This should handle the proper Report type, get list from PubType table.
+        if k not in show_fields:
             del form.fields[k]
             pass
         elif isinstance(form.fields[k].widget, forms.TextInput):
@@ -718,25 +729,111 @@ def add_edit_report(request, pub_id=None):
             context_instance=RequestContext(request))
 
 
-def upload_report_files(request, batch_tag, pub_id=None):
-    if pub_id:
-        p = get_object_or_404(Publication, pk=pub_id)
-    else:
-        p = None
+
+#def upload_report_files(request, batch_tag, pub_id=None):
+#    if pub_id:
+#        p = get_object_or_404(Publication, pk=pub_id)
+#    else:
+#        p = None
+#
+#    return render_to_response('publications/upload_report_files.html',
+#        {'pub': p, 'batch_tag': batch_tag}, context_instance=RequestContext(request))
+
+
+@login_required(login_url='/accounts/login/')
+def upload_report_files(request, pub_id=None, batch_tag=None):
+
+    # Should fail, if we don't get a valid feature number
+    p = get_object_or_404(Publication, pk=pub_id)
+
+    current_user = request.user
+
+    if not p.is_editable_by(request.user):
+        error = "You do not have permissions to edit this publication!"
+        return render_to_response('publications/access_denied.html',
+                                  {'publication': p, 'error': error},
+                                  context_instance=RequestContext(request))
+
+    # Some set up operations
+    if p and request.POST:
+        if 'appendix_batch_tag' in request.POST:
+            # batch_tag is used to identify uploads through the
+            # multiuploader plugin. If it is present, check for any
+            # uploaded files and add them to appendix-field.
+
+            # Upload files to /reports/[year]/xxxx.pdf
+            upload_dir = ['reports', '{0}'.format(p.year), '{0}'.format(p.number)]
+            upload_dir = os.path.join(*upload_dir).replace(' ', '_')
+
+            appendix_batch_tag = request.POST['appendix_batch_tag']
+            afiles = MultiuploaderImage.objects.filter(batch_tag=appendix_batch_tag)
+            for af in afiles:
+                f = FileObject()
+                f.modified_by = current_user
+                f.created_by = current_user
+                f.description = "Uploaded appendix file"
+
+                # Bypass normal 'upload_to' path generation by setting it directly
+                f.upload_to = upload_dir
+
+                # Save to database to generate primary_key before adding file
+                f.save()
+
+                f.file.save(af.image.name, af.image.file, save=True)
+
+                # Add the file to the m2m field on the publication
+                p.appendices.add(f)
+                p.save()
+
+                af.image.delete(save=True)
+                af.delete()
+
+            return redirect('/pubs/report/{0}/'.format(p.id))
+
+
+    # Form was not yet posted...
+
+    # generate unique tag for identifying uploaded files.
+    # It is maybe useles to test uniquenss in this way, since the tags will
+    # only exist in the database once files have been uploaded.
+    # Since the tag includes time-stamp, the rare event where time-stamp and
+    # random character tags have already been given to some other form-view,
+    # it would not be caught, since the files have not yet been uploaded.
+
+    # A better way would be to store generated tags in a separate table, and
+    # query that table to see if newly generated tag already exist.
+    # Tags MultiuploaderImages should be removed automatically after say 5 days.
+
+    while 1:
+        batch_tag = generate_batch_tag()
+        if not MultiuploaderImage.objects.filter(batch_tag=batch_tag):
+            break
+
 
     return render_to_response('publications/upload_report_files.html',
         {'pub': p, 'batch_tag': batch_tag}, context_instance=RequestContext(request))
 
 
 
+
+
+
+
+
+
 @login_required(login_url='/accounts/login/')
 def upload_feature_files(request, feat_id=None, batch_tag=None):
-    if feat_id:
-        f = get_object_or_404(Feature, pk=feat_id)
-    else:
-        f = None
+
+    # Should fail, if we don't get a valid feature number
+    f = get_object_or_404(Feature, pk=feat_id)
 
     current_user = request.user
+
+    if not f.is_editable_by(request.user):
+        error = "You do not have permissions to edit this feature!"
+        return render_to_response('publications/access_denied.html',
+                                  {'feature': f, 'error': error},
+                                  context_instance=RequestContext(request))
 
     # Some set up operations
     if f and request.POST:
@@ -807,10 +904,17 @@ def upload_feature_files(request, feat_id=None, batch_tag=None):
 
 @login_required(login_url='/accounts/login/')
 def upload_feature_images(request, feat_id=None, batch_tag=None):
-    if feat_id:
-        f = get_object_or_404(Feature, pk=feat_id)
-    else:
-        f = None
+
+    # Should fail, if we don't get a valid feature number
+    f = get_object_or_404(Feature, pk=feat_id)
+
+    current_user = request.user
+
+    if not f.is_editable_by(request.user):
+        error = "You do not have permissions to edit this feature!"
+        return render_to_response('publications/access_denied.html',
+                                  {'feature': f, 'error': error},
+                                  context_instance=RequestContext(request))
 
     current_user = request.user
 
@@ -1520,8 +1624,16 @@ def person_merge(request, person_id=None):
     from which model instance.
 
     """
+
+    if not request.user.is_superuser:
+        error = "You do not have permissions to merge person records! Please contact a superuser or database administrator."
+        return render_to_response('publications/access_denied.html',
+                                  {'pub': p, 'error': error},
+                                  context_instance=RequestContext(request))
+
     #return HttpResponse('Testing submit')
     p = get_object_or_404(Person, pk=person_id)
+
     if request.POST:
         if 'clear_flags' in request.POST:
                 authorships = Authorship.objects.filter(person_id=person_id)
