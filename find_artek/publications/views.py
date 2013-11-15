@@ -684,9 +684,17 @@ def add_edit_report(request, pub_id=None):
 
     # Form was not yet posted...
     for k in form.fields.keys():
-        if k not in ['type', 'number', 'title', 'authors', 'supervisors', 'abstract',
-                        'year', 'topic', 'keywords', 'pdffile',
-                        'comment']:   # This should handle the proper Report type, get list from PubType table.
+        if not p or request.user.is_superuser:
+            # Show these fields if we are registering a new report
+            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
+                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+                            'comment']   # This should handle the proper Report type, get list from PubType table.
+        else:
+            # Show these fields if we are editing a report
+            show_fields =  ['type', 'title', 'authors', 'supervisors',
+                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+                            'comment']   # This should handle the proper Report type, get list from PubType table.
+        if k not in show_fields:
             del form.fields[k]
             pass
         elif isinstance(form.fields[k].widget, forms.TextInput):
@@ -1520,8 +1528,16 @@ def person_merge(request, person_id=None):
     from which model instance.
 
     """
+
+    if not request.user.is_superuser:
+        error = "You do not have permissions to merge person records! Please contact a superuser or database administrator."
+        return render_to_response('publications/access_denied.html',
+                                  {'pub': p, 'error': error},
+                                  context_instance=RequestContext(request))
+
     #return HttpResponse('Testing submit')
     p = get_object_or_404(Person, pk=person_id)
+
     if request.POST:
         if 'clear_flags' in request.POST:
                 authorships = Authorship.objects.filter(person_id=person_id)

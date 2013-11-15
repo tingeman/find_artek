@@ -407,22 +407,24 @@
 
 {% endblock %}
 
-
-{% block headline %}Registrer ny rapport{% endblock %}
-
+{% block headline %}
+{% if pub %}
+Edit report
+{% else %}
+Register new report
+{% endif %}
+{% endblock %}
 
 {% block body %}
 
+{% if pub %}
+<table class="report-block" style="background-color: #F0F0F0; max-width: 600px; display:block; padding: 5px; border-style: solid; border-width: 1px 1px 1px 1px; border-color: grey;">
+    <tr>{% include "publications/snippets/report_td.html" %}</tr>
+</table>
+{% endif %}
 
-<p>'Process persons' button will do a check against the database for all persons
-specified in the Author field. A dialog will appear to allow choosing the correct
-person or create new person. When creating a new person, only the name will be
-stored. Use the "edit person" functionality to register more person info after
-the report is created.</p>
-
-<p>The submit button will also first check authors against database and creation rules,
-and then if the check succeeds, submit the form to the database.</p>
-
+<br>
+<br>
 
 <form  enctype="multipart/form-data" method="post" id="add-report-form">{% csrf_token %}
 <div id="data_container"></div>
@@ -442,6 +444,18 @@ and then if the check succeeds, submit the form to the database.</p>
 
 </table>
 </form>
+
+<p>'Process persons' button will do a check against the database for all persons
+specified in the Author field. A dialog will appear to allow choosing the correct
+person or create new person. When creating a new person, only the name will be
+stored. Use the "edit person" functionality to register more person info after
+the report is created.</p>
+
+<p>'submit' button will also first check authors against database and creation rules,
+and then if the check succeeds, submit the form to the database.</p>
+
+<br>
+<br>
 
 <div id="dialog" title="Test dialog">No information</div>
 
