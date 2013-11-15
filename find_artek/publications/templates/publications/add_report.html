@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Publication list{% endblock %}
+{% block title %}
+{% if pub %}
+Edit report
+{% else %}
+New report
+{% endif %}
+{% endblock %}
 {% block head %}
     <!--
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
@@ -432,12 +438,16 @@ Register new report
 {{ form.as_table }}
 <tr><th>Appendices</th>
 <td>
+Appendices can be uploaded from the publication view, after the publication
+record has been created/updated.
+{% comment %}
 {% if pub %}
 <a id="open-files-dialog" href="/pubs/edit/report/{{ pub.id }}/upload/{{ appendix_batch_tag }}/" target="_popup">add appendix files or other files</a>
 {% else %}
 <a id="open-files-dialog" href="/pubs/add/report/upload/{{ appendix_batch_tag }}/" target="_popup">add appendix files or other files</a>
 {% endif %}
 <input type="hidden" name="appendix_batch_tag" value="{{ appendix_batch_tag }}">
+{% endcomment %}
 </td></tr>
 <tr><th></th><td><br><button type="button" id="process-persons">Process Persons</button> <button type="button" id="process-submit">submit</button>
 <div id="authors_loading" style="display: block; vertical-align: bottom"><img src="/static/publications/images/ui-anim_basic_16x16.gif"</div></td>

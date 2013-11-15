@@ -1,4 +1,8 @@
 20131115
+REMOVED: possibility to upload appendixes from add/edit report form.
+ADDED: upload appendices from report detail view, when authenticated and having permission.
+Changed upload_feature_files/images views, to only allow upload by users that
+have edit permissions to the current feature.
 Changed add_edit_report template to only allow editing report number for
 superusers. Also changed so that the page shows "Edit" or "Add" depending on
 what we are doing.
