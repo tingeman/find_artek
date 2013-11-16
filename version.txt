@@ -1,7 +1,9 @@
 20131115
+ADDED: Explaining text on the add feature report on how to handle registration of
+feature with/without measured gps coordinates.
 REMOVED: possibility to upload appendixes from add/edit report form.
 ADDED: upload appendices from report detail view, when authenticated and having permission.
-Changed upload_feature_files/images views, to only allow upload by users that
+CHANGED: upload_feature_files/images views, to only allow upload by users that
 have edit permissions to the current feature.
 Changed add_edit_report template to only allow editing report number for
 superusers. Also changed so that the page shows "Edit" or "Add" depending on
