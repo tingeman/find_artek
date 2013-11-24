@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-11-24 02:36+0100\n"
+"POT-Creation-Date: 2013-11-24 10:45+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -154,4 +154,27 @@ msgstr "Søg"
 msgid ""
 "The search will show reports that include all the search terms in title and/"
 "or abstract"
-msgstr "Søgningen vil vise rapporter hvor alle søge-ord indgår i titlen og eller abstract"
+msgstr ""
+"Søgningen vil vise rapporter hvor alle søge-ord indgår i titlen og eller "
+"abstract"
+
+#: .\templates\publications\publist.html.py:2
+msgid "Publication list"
+msgstr "Publikationsliste"
+
+#: .\templates\publications\publist.html.py:8
+msgid "List of reports"
+msgstr "Rapportliste"
+
+#. Translators: Label for display of the terms used in a search
+#: .\templates\publications\publist.html.py:14
+msgid "Search string"
+msgstr "Søgning"
+
+#: .\templates\publications\publist.html.py:15
+msgid "Number of reports"
+msgstr "Antal rapporter"
+
+#: .\templates\publications\publist.html.py:20
+msgid "No reports available"
+msgstr "Ingen rapporter tilgængelige"
