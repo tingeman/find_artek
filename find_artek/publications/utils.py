@@ -1,4 +1,4 @@
-# -*- coding: utf_8 -*-
+# -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
 # my_string = b"This is a bytestring"

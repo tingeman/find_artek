@@ -49,7 +49,7 @@ def read_bibtex(filename=None, text=None):
     elif text is not None:
         bib_data = parser.parse_stream(text)
     else:
-        raise ValueError('No data passed to bibtex reader)
+        raise ValueError('No data passed to bibtex reader')
     
     for k,e in bib_data.items():
         # 1) Check if publication is already in database

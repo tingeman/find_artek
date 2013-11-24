@@ -1,3 +1,9 @@
+20131123
+BRANCH: FEATURE/localization/main
+CHANGED: Localized top-bar and frontpage
+NB: Server must have gettext utility installed to enable translations
+
+
 20131115
 ADDED: Explaining text on the add feature report on how to handle registration of
 feature with/without measured gps coordinates.
