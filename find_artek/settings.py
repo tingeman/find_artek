@@ -51,6 +51,16 @@ TIME_ZONE = 'Europe/Copenhagen'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 
+LANGUAGES = (
+    ('en', 'English'),
+    ('da', 'Danish'),
+)
+
+LOCALE_PATHS = (
+    '/conf/locale',
+    '/publications/conf/local'
+)
+
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
@@ -121,6 +131,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.locale.LocaleMiddleware'
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -288,6 +299,14 @@ LOGGING = {
         'default': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/default.log',
+            'maxBytes': 1024*1024*5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+       'find_artek_handler': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': 'logs/find_artek.log',
             'maxBytes': 1024*1024*5,  # 5 MB
             'backupCount': 5,
@@ -311,11 +330,15 @@ LOGGING = {
         },
     },
     'loggers': {
-
         '': {
             'handlers': ['default'],
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'propagate': True
+        },
+        'django.db': {
+            'handlers': ['default'],
+            'level': 'ERROR',
+            'propagate': False
         },
         'django.request': {
             'handlers': ['request_handler'],
@@ -324,6 +347,11 @@ LOGGING = {
         },
         'django_auth_ldap': {
             'handlers': ['ldap_handler'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'find_artek': {
+            'handlers': ['find_artek_handler'],
             'level': 'DEBUG',
             'propagate': False
         },
