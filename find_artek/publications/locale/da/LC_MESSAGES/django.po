@@ -1,0 +1,338 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-11-26 21:53+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#: .\templates\base.html.py:14
+msgid "Frontpage"
+msgstr "Forside"
+
+#: .\templates\base.html.py:15
+msgid "Map"
+msgstr "Kort"
+
+#: .\templates\base.html.py:16 .\templates\publications\frontpage_3.html.py:90
+msgid "All reports"
+msgstr "Alle rapporter"
+
+#: .\templates\base.html.py:17
+msgid "All persons"
+msgstr "Alle personer"
+
+#: .\templates\base.html.py:18
+msgid "All keywords"
+msgstr "Alle keywords"
+
+#: .\templates\base.html.py:20
+msgid "Administration"
+msgstr "Administration"
+
+#: .\templates\base.html.py:27
+msgid "User"
+msgstr "Bruger"
+
+#: .\templates\base.html.py:50
+msgid "Language"
+msgstr "Sprog"
+
+#: .\templates\publications\detail.html.py:2
+#: .\templates\publications\detail.html.py:40
+msgid "Publication detail"
+msgstr "Publikationsinformation"
+
+#: .\templates\publications\detail.html.py:50
+msgid "THIS REPORT ENTRY NEEDS VERIFICATION!"
+msgstr "DENNE RAPPORT SKAL MANGLER AT BLIVE VERIFICERET"
+
+#: .\templates\publications\detail.html.py:61
+#: .\templates\publications\snippets\report_list.html.py:5
+msgid "Title"
+msgstr "Titel"
+
+#: .\templates\publications\detail.html.py:64
+msgid "Authors"
+msgstr "Forfattere"
+
+#: .\templates\publications\detail.html.py:67
+msgid "Year"
+msgstr "År"
+
+#: .\templates\publications\detail.html.py:68
+msgid "Report no."
+msgstr "Rapport nr."
+
+#: .\templates\publications\detail.html.py:69
+msgid "Topics"
+msgstr "Emner"
+
+#: .\templates\publications\detail.html.py:74
+msgid "No topics registered"
+msgstr "Ingen emner registreret"
+
+#: .\templates\publications\detail.html.py:78
+msgid "Keywords"
+msgstr "Keywords"
+
+#: .\templates\publications\detail.html.py:83
+msgid "No keywords registered"
+msgstr "Ingen keywords registreret"
+
+#: .\templates\publications\detail.html.py:88
+msgid "download pdf"
+msgstr "download pdf"
+
+#: .\templates\publications\detail.html.py:90
+msgid "download report as pdf"
+msgstr "download rapport som pdf"
+
+#: .\templates\publications\detail.html.py:99
+msgid "ARTEKFTP file-location"
+msgstr "ARTEKFTP fil-placering"
+
+#: .\templates\publications\detail.html.py:111
+msgid "Supervisors"
+msgstr "Vejledere"
+
+#: .\templates\publications\detail.html.py:117
+msgid "Abstract"
+msgstr "Abstract"
+
+#: .\templates\publications\detail.html.py:120
+msgid "No abstract registered"
+msgstr "Intet abstract registreret"
+
+#: .\templates\publications\detail.html.py:125
+msgid "Comment"
+msgstr "Kommentar"
+
+#: .\templates\publications\detail.html.py:134
+msgid "Options"
+msgstr "Valg"
+
+#: .\templates\publications\detail.html.py:162
+#: .\templates\publications\detail.html.py:182
+msgid "Appendices"
+msgstr "Appendix"
+
+#: .\templates\publications\detail.html.py:177
+#: .\templates\publications\detail.html.py:184
+msgid "Upload appendices"
+msgstr "Upload appendix"
+
+#: .\templates\publications\detail.html.py:188
+msgid "Registered features"
+msgstr "Registrerede features"
+
+#: .\templates\publications\detail.html.py:204
+msgid "delete all"
+msgstr "slet alle"
+
+#: .\templates\publications\detail.html.py:207
+msgid "No features registered"
+msgstr "Ingen features registreret"
+
+#: .\templates\publications\frontpage_3.html.py:17
+msgid ""
+"Access ARTEKs student reports. Please choose below: topic based access, "
+"geographical access, or search in title/abstract."
+msgstr ""
+"Tilgang til ARTEKs studenter-rapporter. Vælg nedenfor: emne-baseret tilgang, "
+"geografisk tilgang, eller søgning i titel/abstract."
+
+#: .\templates\publications\frontpage_3.html.py:27
+msgid "Infrastructure"
+msgstr "Infrastruktur"
+
+#: .\templates\publications\frontpage_3.html.py:27
+msgid "roads, harbours, airports"
+msgstr "veje, havne, lufthavne"
+
+#: .\templates\publications\frontpage_3.html.py:36
+msgid "Buildings"
+msgstr "Byggeri"
+
+#: .\templates\publications\frontpage_3.html.py:36
+msgid "isolation, indoor climate, materials"
+msgstr "isolering, indeklima, materialer"
+
+#: .\templates\publications\frontpage_3.html.py:46
+msgid "Environment"
+msgstr "Miljø & Natur"
+
+#: .\templates\publications\frontpage_3.html.py:46
+msgid "water quality, nature, pollution, waste"
+msgstr "vandkvalitet, natur, forurening, affald"
+
+#: .\templates\publications\frontpage_3.html.py:55
+msgid "Energy"
+msgstr "Energi"
+
+#: .\templates\publications\frontpage_3.html.py:55
+msgid "windmills, hydropower, solar power"
+msgstr "vindmøller, vandkraft, solceller"
+
+#: .\templates\publications\frontpage_3.html.py:65
+msgid "Geotechnics"
+msgstr "Geoteknik"
+
+#: .\templates\publications\frontpage_3.html.py:65
+msgid "engineering geology, geophysics, foundations, permafrost"
+msgstr "ingeniørgeologi, geofysik, fundering, permafrost"
+
+#: .\templates\publications\frontpage_3.html.py:74
+msgid "Raw materials"
+msgstr "Råstoffer"
+
+#: .\templates\publications\frontpage_3.html.py:74
+msgid "ressource geology, mapping, mining, oil"
+msgstr "ressource geologi, kortlægning, minedrift, olie"
+
+#: .\templates\publications\frontpage_3.html.py:83
+msgid "Society"
+msgstr "Samfund"
+
+#: .\templates\publications\frontpage_3.html.py:83
+msgid "societal issues, planning, education"
+msgstr "samfunds forhold, planlægning, uddannelse"
+
+#: .\templates\publications\frontpage_3.html.py:90
+msgid "the complete list"
+msgstr "den komplette liste"
+
+#: .\templates\publications\frontpage_3.html.py:98
+msgid "Sisimiut"
+msgstr "Sisimiut"
+
+#: .\templates\publications\frontpage_3.html.py:98
+msgid "Reports from Sisimiut"
+msgstr "Rapporter fra Sisimiut"
+
+#: .\templates\publications\frontpage_3.html.py:104
+msgid "The road project"
+msgstr "Vejprojektet"
+
+#: .\templates\publications\frontpage_3.html.py:104
+msgid "Sisimiut-Kangerlussuaq"
+msgstr "Sisimiut-Kangerlussuaq"
+
+#: .\templates\publications\frontpage_3.html.py:110
+msgid "All Greenland"
+msgstr "Hele Grønland"
+
+#: .\templates\publications\frontpage_3.html.py:110
+msgid "geographical access"
+msgstr "geografisk tilgang"
+
+#: .\templates\publications\frontpage_3.html.py:116
+msgid "Search in reports"
+msgstr "Søg i rapporter"
+
+#. Translators: Label of a button that triggers search
+#: .\templates\publications\frontpage_3.html.py:119
+msgid "Search"
+msgstr "Søg"
+
+#: .\templates\publications\frontpage_3.html.py:122
+msgid ""
+"The search will show reports that include all the search terms in title and/"
+"or abstract"
+msgstr ""
+"Søgningen vil vise rapporter hvor alle søge-ord indgår i titlen og eller "
+"abstract"
+
+#: .\templates\publications\person_list.html.py:2
+#: .\templates\publications\person_list.html.py:8
+msgid "Person list"
+msgstr "Person liste"
+
+#: .\templates\publications\person_list.html.py:14
+msgid "Search terms"
+msgstr "Søgning"
+
+#: .\templates\publications\person_list.html.py:15
+msgid "Number of persons"
+msgstr "Antal personer"
+
+#: .\templates\publications\person_list.html.py:20
+msgid "No persons registered"
+msgstr "Ingen personer registreret"
+
+#: .\templates\publications\publist.html.py:2
+msgid "Publication list"
+msgstr "Publikationsliste"
+
+#: .\templates\publications\publist.html.py:8
+msgid "List of reports"
+msgstr "Rapportliste"
+
+#. Translators: Label for display of the terms used in a search
+#: .\templates\publications\publist.html.py:14
+msgid "Search string"
+msgstr "Søgning"
+
+#: .\templates\publications\publist.html.py:15
+msgid "Number of reports"
+msgstr "Antal rapporter"
+
+#: .\templates\publications\publist.html.py:20
+msgid "No reports available"
+msgstr "Ingen rapporter tilgængelige"
+
+#: .\templates\publications\snippets\feature_list.html.py:4
+#: .\templates\publications\snippets\person_list.html.py:5
+msgid "id"
+msgstr "id"
+
+#: .\templates\publications\snippets\feature_list.html.py:5
+#: .\templates\publications\snippets\person_list.html.py:4
+msgid "Name"
+msgstr "Navn"
+
+#: .\templates\publications\snippets\feature_list.html.py:6
+#: .\templates\publications\snippets\report_list.html.py:7
+msgid "Type"
+msgstr "Type"
+
+#: .\templates\publications\snippets\feature_list.html.py:7
+msgid "Date"
+msgstr "Dato"
+
+#: .\templates\publications\snippets\feature_list.html.py:8
+msgid "Description"
+msgstr "Beskrivelse"
+
+#: .\templates\publications\snippets\feature_list.html.py:9
+#: .\templates\publications\snippets\person_list.html.py:7
+#: .\templates\publications\snippets\report_list.html.py:9
+msgid "Tools"
+msgstr "Værktøjer"
+
+#: .\templates\publications\snippets\person_list.html.py:6
+msgid "Position"
+msgstr "Stilling"
+
+#: .\templates\publications\snippets\report_list.html.py:6
+msgid "pdf"
+msgstr "pdf"
+
+#: .\templates\publications\snippets\report_list.html.py:8
+msgid "Features"
+msgstr "Features"
+
+#: .\templates\publications\snippets\report_list.html.py:23
+msgid "Entry needs verification!"
+msgstr "Skal verificeres!"

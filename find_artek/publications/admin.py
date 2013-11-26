@@ -1,4 +1,4 @@
-# -*- coding: utf_8 -*-
+# -*- coding: utf-8 -*-
 
 from find_artek.publications.models import Publication, Person, PubType
 from find_artek.publications.models import Authorship, Editorship, Supervisorship

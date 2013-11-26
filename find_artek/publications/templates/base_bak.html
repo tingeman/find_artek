@@ -1,5 +1,3 @@
-{% load i18n %}
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -11,20 +9,20 @@
 <body>
 <div id="top-line">
 <div id='top-menu'>
-<a class="topnav" href="/pubs/frontpage/">{% trans "Frontpage" %}</a>|
-<a class="topnav" href="/pubs/overview/">{% trans "Map" %}</a>|
-<a class="topnav" href="/pubs/publist/">{% trans "All reports" %}</a>|
-<a class="topnav" href="/pubs/list/persons/">{% trans "All persons" %}</a>|
-<a class="topnav" href="/pubs/keywords/list/">{% trans "All keywords" %}</a>|
+<a class="topnav" href="/pubs/frontpage/">Forside</a>|
+<a class="topnav" href="/pubs/overview/">Kort</a>|
+<a class="topnav" href="/pubs/publist/">Alle rapporter</a>|
+<a class="topnav" href="/pubs/list/persons/">Alle personer</a>|
+<a class="topnav" href="/pubs/keywords/list/">Alle keywords HEJ HEJ</a>|
 {% if user.is_authenticated %}
-<a class="topnav" href="/pubs/add/">{% trans "Administration" %}</a>
+<a class="topnav" href="/pubs/add/">Tilføj</a>
 {% endif %}
 <!--
 <a class="topnav" href="/pubs/searchpage/">Søg</a>
 -->
 
 {% if user.is_authenticated %}
-	<span class="topnav-right">{% trans "User" %}: {{ user.username }}</span>
+	<span class="topnav-right">User: {{ user.username }}</span>
     <span class="topnav-right">|</span>
 	<a class="topnav-right" href="/accounts/logout/">Logout</a>
     <span class="topnav-right">|</span>
@@ -47,7 +45,7 @@
 <a href="#" onclick="document.setLangDanish.submit();return false;">DK</a>
 </form>
 </span>
-<span class="topnav-right">{% trans "Language" %}:</span>
+<span class="topnav-right">Language:</span>
 <!-- <a href="/pubs/publist/">KA</a>
 <a href="/pubs/list/persons/">DK</a>
 <a href="/pubs/keywords/list/">EN</a> -->
@@ -68,9 +66,5 @@
 {% endblock %}
 
 </div>
-</br>
-</br>
-</br>
-</br>
 </body>
 </html>

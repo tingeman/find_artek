@@ -1,5 +1,13 @@
+{% load i18n %}
 <table class="entity-list">
-    <tr class="header" style="background-color:  #B0C4DE;border: 1px solid  #B0C4DE;padding: 5px"><td>#</td><td>Titel</td><td>pdf</td><td>Type</td><td style="text-align: center">Features</td>{% if user.is_authenticated %}<td style="width: 64px; text-align: left">Tools</td>{% endif %}</tr>
+    <tr class="header" style="background-color:  #B0C4DE;border: 1px solid  #B0C4DE;padding: 5px">
+        <td>#</td>
+        <td>{% trans "Title" %}</td>
+        <td>{% trans "pdf" %}</td>
+        <td>{% trans "Type" %}</td>
+        <td style="text-align: center">{% trans "Features" %}</td>
+        {% if user.is_authenticated %}<td style="width: 64px; text-align: left">{% trans "Tools" %}</td>{% endif %}
+    </tr>
     {% for pub in pub_list %}
         <tr id='1' style="border: 1px solid  #B0C4DE;padding: 5px">
             <!-- <td style="width:5em;">{{ pub.number }}</td>
@@ -12,7 +20,7 @@
         {% if user.is_authenticated %}
             <td style="text-align: center">
             <a id='2' href="/pubs/edit/report/{{ pub.id }}/" target="_blank"><img src="{{STATIC_URL}}icons/Hamburg/16x16/edit.png" /></a>
-            {% if not pub.verified %}<img src="{{STATIC_URL}}icons/Hamburg/16x16/lightbulb.png" title="Entry needs verification!"/>
+            {% if not pub.verified %}<img src="{{STATIC_URL}}icons/Hamburg/16x16/lightbulb.png" title="{% trans "Entry needs verification!" %}"/>
             {% else %}<div style="width: 16px; height: 16px; display:inline-block;"></div>{% endif %}
             {% if pub.comment %}<img src="{{STATIC_URL}}icons/Hamburg/16x16/comment.png" title="{{ pub.comment }}"/>
             {% else %}<div style="width: 16px; height: 16px; display:inline-block;"></div>{% endif %}

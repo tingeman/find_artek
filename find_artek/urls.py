@@ -101,6 +101,7 @@ urlpatterns = patterns('',
     url(r'^pubs/test/images/upload/$', 'find_artek.publications.views.multi_uploader_image_view'),
     url(r'^db/backup/$', 'find_artek.views.db_backup'),
     url(r'', include('multiuploader.urls')),
+    url(r'^i18n/', include('django.conf.urls.i18n')),
 
 )
 
