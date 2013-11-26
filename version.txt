@@ -1,8 +1,14 @@
+20131126
+CHANGED: Localized publication detail view, publication list view, person list
+view
+
+20131124
+CHANGED: Localized Publication list view
+
 20131123
 BRANCH: FEATURE/localization/main
 CHANGED: Localized top-bar and frontpage
 NB: Server must have gettext utility installed to enable translations
-
 
 20131115
 ADDED: Explaining text on the add feature report on how to handle registration of
