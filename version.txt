@@ -1,6 +1,8 @@
 20131126
 CHANGED: Localized publication detail view, publication list view, person list
 view
+ADDED: View to choose how to add feature, by Excel file upload or by digitizing
+from map, or by online form (coordinate entry).
 
 20131124
 CHANGED: Localized Publication list view

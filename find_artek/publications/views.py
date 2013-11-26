@@ -1350,7 +1350,7 @@ def add_pubs_from_file(request):
 
 
 @login_required(login_url='/accounts/login/')
-def add_features_from_file(request):
+def add_features_from_file(request, pub_id=None):
 
     if not request.user.has_perm("{0}.add_feature".format(Feature._meta.app_label)):
         error = "You do not have permissions to add new feature!"
@@ -1424,6 +1424,52 @@ def verify_report(request, pub_id):
     p.save()
     messages.success(request, "Report ({0}) '{1}' was verified.".format(p.id, p.number))
     return redirect('/pubs/detail/{0}'.format(pub_id))
+
+
+@login_required(login_url='/accounts/login/')
+def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
+    return HttpResponse("Not implemented yet!")
+
+
+
+@login_required(login_url='/accounts/login/')
+def add_feature_choice(request, pub_id=None, feat_id=None):
+
+    f = None
+    p = None
+    new_feature = True
+
+    # Get feature if id passed
+    if feat_id:
+        # This is an existing, feature, edit it!
+        f = get_object_or_404(Feature, pk=feat_id)
+        new_feature = False
+
+        if not f.is_editable_by(request.user):
+            error = "You do not have permissions to edit this feature!"
+            return render_to_response('publications/access_denied.html',
+                                      {'feature': f, 'error': error},
+                                      context_instance=RequestContext(request))
+
+    else:
+        # This is a new feature...
+
+        # check permission to add feature
+        if not request.user.has_perm("{0}.add_feature".format(Feature._meta.app_label)):
+            error = "You do not have permissions to add new feature!"
+            return render_to_response('publications/access_denied.html',
+                                      {'feature': f, 'error': error},
+                                      context_instance=RequestContext(request))
+
+        # Get publication if id passed
+        if pub_id:
+            p = get_object_or_404(Publication, pk=pub_id)
+        else:
+            p = None
+
+    return render_to_response('publications/add_feature_choice.html',
+                              {'pub': p, "feat": f},
+                              context_instance=RequestContext(request))
 
 
 @login_required(login_url='/accounts/login/')
