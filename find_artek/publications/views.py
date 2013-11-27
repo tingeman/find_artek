@@ -1522,9 +1522,9 @@ def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
                 f.save()
 
             if new_feature:
-                messages.info(request, "Feature added [id:{0}]".format(f.id))
+                messages.success(request, "Feature added [id:{0}]".format(f.id))
             else:
-                messages.info(request, "Feature updated [id:{0}]".format(f.id))
+                messages.success(request, "Feature updated [id:{0}]".format(f.id))
 
             return redirect('/pubs/report/{0}/'.format(p.id))
 
@@ -1660,9 +1660,9 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
             f.save()
 
             if new_feature:
-                messages.info(request, "Feature added [id:{0}]".format(f.id))
+                messages.success(request, "Feature added [id:{0}]".format(f.id))
             else:
-                messages.info(request, "Feature updated [id:{0}]".format(f.id))
+                messages.success(request, "Feature updated [id:{0}]".format(f.id))
 
             return redirect('/pubs/report/{0}/'.format(p.id))
 
