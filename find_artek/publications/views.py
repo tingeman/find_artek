@@ -1459,6 +1459,12 @@ def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
         # This is an existing, feature, edit it!
         f = get_object_or_404(Feature, pk=feat_id)
         pub_list = f.publications.all()
+
+        # If we have only one publication associated, make sure this publication
+        # is represented in variable "p", otherwise leave "p" empty.
+        if len(pub_list) == 1:
+            p = pub_list[0]
+
         new_feature = False
 
         if not f.is_editable_by(request.user):
@@ -1526,7 +1532,10 @@ def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
             else:
                 messages.success(request, "Feature updated [id:{0}]".format(f.id))
 
-            return redirect('/pubs/report/{0}/'.format(p.id))
+            if p:
+                return redirect('/pubs/report/{0}/'.format(p.id))
+            else:
+                return redirect('/pubs/feature/{0}/'.format(f.id))
 
     else:  # this is a get request
         form = AddFeatureCoordsForm(instance=f)
@@ -1609,7 +1618,14 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
     if feat_id:
         # This is an existing, feature, edit it!
         f = get_object_or_404(Feature, pk=feat_id)
+
         pub_list = f.publications.all()
+
+        # If we have only one publication associated, make sure this publication
+        # is represented in variable "p", otherwise leave "p" empty.
+        if len(pub_list) == 1:
+            p = pub_list[0]
+
         new_feature = False
 
         if not f.is_editable_by(request.user):
@@ -1664,7 +1680,10 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
             else:
                 messages.success(request, "Feature updated [id:{0}]".format(f.id))
 
-            return redirect('/pubs/report/{0}/'.format(p.id))
+            if p:
+                return redirect('/pubs/report/{0}/'.format(p.id))
+            else:
+                return redirect('/pubs/feature/{0}/'.format(f.id))
 
     else:  # this is a get request
         form = AddFeatureMapForm(instance=f)

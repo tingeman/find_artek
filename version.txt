@@ -2,6 +2,9 @@
 BUGFIX: add feature view now saves created_by and modified_by based on request.USER
 ADDED: Form and view for online registering of point features based on coordinate input.
 CHANGED: message after registering a feature changed to SUCCESS
+CHANGED: Redirection after registering/editing feature now depends on whether
+there is one or more report associations. One report = go to report details.
+Otherwise go to feature details.
 
 20131126
 CHANGED: Localized publication detail view, publication list view, person list
