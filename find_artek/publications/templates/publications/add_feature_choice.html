@@ -77,8 +77,8 @@ horizontal-align:       center;
     <h3>{% trans "Coordinates available..." %}</h3>
     <p>{% trans "If you have coordinates for the feature(s) you want to add, choose one the choices below to register the feature." %}</p>
     <ul>
-        <li>{% trans "If you are registering only one or very few features, you may use the interactive online form." %}</li>
-        <li>{% trans "If you are registering several features, it may be more convenient to use the option to fill and upload an Excel sheet containing the information aboot the features. Press the button to acces the upload page and a link to download the Excel file template to fill." %}</li>
+        <li>{% trans "If you are registering only one or very few POINT features, you may use the interactive online form. (This form does not allow registration of LINE or POLYGON features!)" %}</li>
+        <li>{% trans "If you are registering several features (or lines/polygons), it may be more convenient to use the option to fill and upload an Excel sheet containing the information about the features. Press the button to acces the upload page and a link to download the Excel file template to fill." %}</li>
     </ul>
     <br>
     <a href="/pubs/report/{{ pub.id }}/add/feature/online_form/" class="button">{% trans "Online form" %}</a>

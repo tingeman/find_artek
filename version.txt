@@ -1,3 +1,7 @@
+20131127
+BUGFIX: add feature view now saves created_by and modified_by based on request.USER
+ADDED: Form and view for online registering of point features based on coordinate input.
+
 20131126
 CHANGED: Localized publication detail view, publication list view, person list
 view

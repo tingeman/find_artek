@@ -186,7 +186,7 @@ class AddPersonForm(ModelForm):
                and field.name not in self.Meta.normal_fields]
 
 
-class AddFeatureForm(MapModelForm):
+class AddFeatureMapForm(MapModelForm):
     class Meta:
         model = Feature
         exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',)
@@ -211,3 +211,34 @@ class AddFeatureForm(MapModelForm):
     # def __init__(self, *args, **kwargs):
     #     # Call the parents initialization method
     #     super(AddFeatureForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
+
+
+
+SRS_CHOICES = (
+    ('32622',   'UTM zone 22N, WGS84'        ),   # Most of West Greenland covered
+    ( '4326',   'Longitude/Latitude, WGS84'  ),   # Global system, geographical coordinates
+    ( '3182',   'UTM zone 22N, GR96'         ),   # Most of West Greenland covered
+    ('32618',   'UTM zone 18N, WGS84'        ),   #
+    ('32619',   'UTM zone 19N, WGS84'        ),   # Thule / Qaanaaq area
+    ('32620',   'UTM zone 20N, WGS84'        ),   #
+    ('32621',   'UTM zone 21N, WGS84'        ),   # Upernavik area
+    ('32623',   'UTM zone 23N, WGS84'        ),   # South Greenland (Narsarssuaq, Nanortalik, etc.)
+)
+
+
+class AddFeatureCoordsForm(ModelForm):
+    easting = forms.DecimalField()
+    northing = forms.DecimalField()
+    spatial_reference_system = forms.ChoiceField(choices=SRS_CHOICES)
+
+    class Meta:
+        model = Feature
+        exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',
+            'points', 'lines', 'polys')
+
+    # def __init__(self, *args, **kwargs):
+    #     # Call the parents initialization method
+    #     super(AddFeatureForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
+
+
+
