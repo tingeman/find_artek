@@ -1,4 +1,6 @@
 20131128
+CHANGED: Added warning message to check location of features after succesful
+egistration of feature based on file upload or online form with coordinate entry.
 CHANGED: login and logout now redirects to referring page
 BUGFIX: report number disappeared when students edited reports. Solution: move
 handling of which fields to render to the META class of the form class, and

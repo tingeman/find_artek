@@ -1391,6 +1391,8 @@ def add_features_from_file(request, pub_id=None):
                         if nfeat:
                             messages.success(request,
                                     "{0} features added from file {1}!".format(nfeat, os.path.basename(filepath)))
+                            messages.warning(request,
+                                    "Please check the locations of added features!")
                         else:
                             messages.error(request,
                                     "No features added from file {1}!".format(nfeat, os.path.basename(filepath)))
@@ -1544,6 +1546,8 @@ def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
                 messages.success(request, "Feature added [id:{0}]".format(f.id))
             else:
                 messages.success(request, "Feature updated [id:{0}]".format(f.id))
+
+            messages.warning(request, "Please check the geographical location of the added feature!")
 
             if p:
                 return redirect('/pubs/report/{0}/'.format(p.id))
