@@ -5,6 +5,7 @@
 import os
 import ldap
 from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirectoryGroupType
+from django.conf import global_settings
 
 SITE_ROOT = "D:/find_artek_www/"
 DEBUG = True
@@ -50,6 +51,16 @@ TIME_ZONE = 'Europe/Copenhagen'
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
+
+LANGUAGES = (
+    ('en', 'English'),
+    ('da', 'Danish'),
+)
+
+LOCALE_PATHS = (
+    '/conf/locale',
+    '/publications/conf/local'
+)
 
 SITE_ID = 1
 
@@ -115,12 +126,25 @@ TEMPLATE_LOADERS = (
     # 'django.template.loaders.eggs.Loader',
 )
 
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+    # 'django.template.loaders.eggs.Loader',
+)
+
+
+TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
+    "django.core.context_processors.request",
+)
+
+
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.locale.LocaleMiddleware'
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -229,7 +253,7 @@ GOOGLE_API_KEY = 'AIzaSyBIagLz1ayoRbJZef1Er9h8WkWJF26hr44'
 APPEND_SLASH = True
 
 # Redirect to the following view after successful authentication
-LOGIN_REDIRECT_URL = "/pubs/frontpage"
+#LOGIN_REDIRECT_URL = "/pubs/frontpage"
 
 # Parameters for multifileuploader
 MULTI_FILE_DELETE_URL = '/multi_delete'
@@ -288,6 +312,14 @@ LOGGING = {
         'default': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/default.log',
+            'maxBytes': 1024*1024*5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+       'find_artek_handler': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': 'logs/find_artek.log',
             'maxBytes': 1024*1024*5,  # 5 MB
             'backupCount': 5,
@@ -311,11 +343,15 @@ LOGGING = {
         },
     },
     'loggers': {
-
         '': {
             'handlers': ['default'],
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'propagate': True
+        },
+        'django.db': {
+            'handlers': ['default'],
+            'level': 'ERROR',
+            'propagate': False
         },
         'django.request': {
             'handlers': ['request_handler'],
@@ -324,6 +360,11 @@ LOGGING = {
         },
         'django_auth_ldap': {
             'handlers': ['ldap_handler'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'find_artek': {
+            'handlers': ['find_artek_handler'],
             'level': 'DEBUG',
             'propagate': False
         },

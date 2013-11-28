@@ -1,3 +1,35 @@
+20131128
+CHANGED: Localized add feature with coordinates view.
+CHANGED: Added warning message to check location of features after succesful
+egistration of feature based on file upload or online form with coordinate entry.
+CHANGED: login and logout now redirects to referring page
+BUGFIX: report number disappeared when students edited reports. Solution: move
+handling of which fields to render to the META class of the form class, and
+create separate form class for each set of fields to render. So now there is an
+AddReportForm (for superusers only). and a UserAddReportForm (for normal users only).
+
+20131127
+BUGFIX: add feature view now saves created_by and modified_by based on request.USER
+ADDED: Form and view for online registering of point features based on coordinate input.
+CHANGED: message after registering a feature changed to SUCCESS
+CHANGED: Redirection after registering/editing feature now depends on whether
+there is one or more report associations. One report = go to report details.
+Otherwise go to feature details.
+
+20131126
+CHANGED: Localized publication detail view, publication list view, person list
+view
+ADDED: View to choose how to add feature, by Excel file upload or by digitizing
+from map, or by online form (coordinate entry).
+
+20131124
+CHANGED: Localized Publication list view
+
+20131123
+BRANCH: FEATURE/localization/main
+CHANGED: Localized top-bar and frontpage
+NB: Server must have gettext utility installed to enable translations
+
 20131115
 ADDED: Explaining text on the add feature report on how to handle registration of
 feature with/without measured gps coordinates.

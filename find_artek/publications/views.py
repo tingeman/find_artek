@@ -33,9 +33,12 @@ from find_artek.publications.models import Publication, Person, Feature,        
                                             FileObject, ImageObject,            \
                                             Authorship, Editorship, Supervisorship
 from find_artek.publications.person_utils import get_person
-from find_artek.publications.forms import AddReportForm, AddPersonForm,         \
+from find_artek.publications.forms import AddReportForm,                        \
+                                            UserAddReportForm,                  \
+                                            AddPersonForm,         \
                                             AddPublicationsFromFileForm,        \
-                                            AddFeatureForm,                     \
+                                            AddFeatureMapForm,                  \
+                                            AddFeatureCoordsForm,               \
                                             AddFeaturesFromFileForm
 from find_artek.publications.utils import CyclicList, get_tag, remove_tags
 from find_artek.publications.person_utils import parse_name_list
@@ -382,10 +385,12 @@ def generate_batch_tag(size=8):
 def add_edit_report(request, pub_id=None):
 
     msg = []
+    new_entity = True
 
     if pub_id:
         p = get_object_or_404(Publication, pk=pub_id)
         initial = None
+        new_entity = False
         if not p.is_editable_by(request.user):
             error = "You do not have permissions to edit this publication!"
             return render_to_response('publications/access_denied.html',
@@ -401,7 +406,10 @@ def add_edit_report(request, pub_id=None):
                                       context_instance=RequestContext(request))
 
     #pdb.set_trace()
-    form = AddReportForm(data=request.POST or initial, instance=p)
+    if request.user.is_superuser:
+        form = AddReportForm(data=request.POST or initial, instance=p)
+    else:
+        form = UserAddReportForm(data=request.POST or initial, instance=p)
 
     # Temporary thing, while testing...
     #current_user = User.objects.get(username='thin')
@@ -413,6 +421,7 @@ def add_edit_report(request, pub_id=None):
         if form.is_valid():
             # some other operations and model save if any
             # redirect to results page
+
             r = form.save(commit=False)
 
             if not p:
@@ -686,27 +695,32 @@ def add_edit_report(request, pub_id=None):
             raise ValueError('Problem!')
 
     # Form was not yet posted...
-    for k in form.fields.keys():
-        if not p or request.user.is_superuser:
-            # Show these fields if we are registering a new report
-            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
-                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
-                            'comment']   # This should handle the proper Report type, get list from PubType table.
-        else:
-            # Show these fields if we are editing a report
-            show_fields =  ['type', 'title', 'authors', 'supervisors',
-                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
-                            'comment']   # This should handle the proper Report type, get list from PubType table.
-        if k not in show_fields:
-            del form.fields[k]
-            pass
-        elif isinstance(form.fields[k].widget, forms.TextInput):
-            #print "TextInput: {0}".format(k)
-            #form.fields[k].widget.attrs['size'] = 90
-            pass
-        else:
-            #print "Field: {0}".format(k)
-            pass
+#    for k in form.fields.keys():
+#        if not p or request.user.is_superuser:
+#            # Show these fields if we are registering a new report
+#            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
+#                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+#                            'comment']   # This should handle the proper Report type, get list from PubType table.
+#        else:
+#            # Show these fields if we are editing a report
+#            show_fields =  ['type', 'title', 'authors', 'supervisors',
+#                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+#                            'comment']   # This should handle the proper Report type, get list from PubType table.
+#        if k not in show_fields:
+#            try:
+#                form.exclude.append(k)
+#            except:
+#                form.exclude = []
+#                form.exclude.append(k)
+#            #del form.fields[k]
+#            #pass
+#        elif isinstance(form.fields[k].widget, forms.TextInput):
+#            #print "TextInput: {0}".format(k)
+#            #form.fields[k].widget.attrs['size'] = 90
+#            pass
+#        else:
+#            #print "Field: {0}".format(k)
+#            pass
 
     # generate unique tag for identifying uploaded appendix-files.
     # It is maybe useles to test uniquenss in this way, since the tags will
@@ -1350,7 +1364,7 @@ def add_pubs_from_file(request):
 
 
 @login_required(login_url='/accounts/login/')
-def add_features_from_file(request):
+def add_features_from_file(request, pub_id=None):
 
     if not request.user.has_perm("{0}.add_feature".format(Feature._meta.app_label)):
         error = "You do not have permissions to add new feature!"
@@ -1377,6 +1391,8 @@ def add_features_from_file(request):
                         if nfeat:
                             messages.success(request,
                                     "{0} features added from file {1}!".format(nfeat, os.path.basename(filepath)))
+                            messages.warning(request,
+                                    "Please check the locations of added features!")
                         else:
                             messages.error(request,
                                     "No features added from file {1}!".format(nfeat, os.path.basename(filepath)))
@@ -1427,6 +1443,168 @@ def verify_report(request, pub_id):
 
 
 @login_required(login_url='/accounts/login/')
+def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
+    """View to add or edit a feature using coordinate input
+
+    View can be requested in the following ways:
+    1) To create a new feature, not bound to a publication
+    2) To create a new feature, bound to one specific publication
+    3) To edit an existing feature, not bound to a publication
+    4) To edit an existing feature, bound to one or more publications
+
+    For these cases:
+    1) pub_id = None,   feat_id = None
+    2) pub_id = X,      feat_id = None
+    3) pub_id = None,   feat_id = Y
+    4) pub_id = None,   feat_id = Y
+
+    Thus:
+    feat_id = None   -->    This is a new feature, create
+    feat_id = Y      -->    This is an existing feature, edit
+
+    """
+
+    pub_list = []
+    f = None
+    p = None
+    new_feature = True
+
+    # Get feature if id passed
+    if feat_id:
+        # This is an existing, feature, edit it!
+        f = get_object_or_404(Feature, pk=feat_id)
+        pub_list = f.publications.all()
+
+        # If we have only one publication associated, make sure this publication
+        # is represented in variable "p", otherwise leave "p" empty.
+        if len(pub_list) == 1:
+            p = pub_list[0]
+
+        new_feature = False
+
+        if not f.is_editable_by(request.user):
+            error = "You do not have permissions to edit this feature!"
+            return render_to_response('publications/access_denied.html',
+                                      {'feature': f, 'error': error},
+                                      context_instance=RequestContext(request))
+
+    else:
+        # This is a new feature...
+
+        # check permission to add feature
+        if not request.user.has_perm("{0}.add_feature".format(Feature._meta.app_label)):
+            error = "You do not have permissions to add new feature!"
+            return render_to_response('publications/access_denied.html',
+                                      {'feature': f, 'error': error},
+                                      context_instance=RequestContext(request))
+
+        # Get publication if id passed
+        if pub_id:
+            p = get_object_or_404(Publication, pk=pub_id)
+        else:
+            p = None
+
+    # Some set up operations
+    if request.POST:
+        # The form was posted, bind to posted data
+        form = AddFeatureCoordsForm(data=request.POST, instance=f)
+        if form.is_valid():
+            # all form fields validated, process the form
+            f = form.save(commit=False)
+
+            if new_feature:
+                f.created_by = request.user
+            f.modified_by = request.user
+            f.save()
+
+            if 'publication-pk' in request.POST and request.POST['publication-pk']:
+                # Here we assign again to p...
+                # That is not a problem, since if the form was posted, the
+                # pub_id was not passed through the url. (see the template form action)
+                p = get_object_or_404(Publication, pk=request.POST['publication-pk'])
+                if not p in f.publications.all():
+                    # Add the publication to the feature m2m relationship
+                    f.publications.add(p)
+            else:
+                print "Feature added/updated but not linked to a report"
+            f.save()
+
+            if ('easting' in request.POST and request.POST['easting']) and      \
+                ('northing' in request.POST and request.POST['northing']) and   \
+                ('spatial_reference_system' in request.POST and                 \
+                    request.POST['spatial_reference_system']):
+
+                # All information is here, create the point
+                x, y = (request.POST['easting'], request.POST['northing'])
+                fWKT = "MULTIPOINT({0} {1})".format(x, y)
+                srid = int(request.POST['spatial_reference_system'])
+                geom = GEOSGeometry(fWKT, srid=srid)
+                f.points = geom
+                f.save()
+
+            if new_feature:
+                messages.success(request, "Feature added [id:{0}]".format(f.id))
+            else:
+                messages.success(request, "Feature updated [id:{0}]".format(f.id))
+
+            messages.warning(request, "Please check the geographical location of the added feature!")
+
+            if p:
+                return redirect('/pubs/report/{0}/'.format(p.id))
+            else:
+                return redirect('/pubs/feature/{0}/'.format(f.id))
+
+    else:  # this is a get request
+        form = AddFeatureCoordsForm(instance=f)
+
+    return render_to_response('publications/add_feature_wcoords.html',
+                              {'form': form, 'pub': p, 'pub_list': pub_list,
+                              'new_feature': new_feature},
+                              context_instance=RequestContext(request))
+
+
+
+@login_required(login_url='/accounts/login/')
+def add_feature_choice(request, pub_id=None, feat_id=None):
+
+    f = None
+    p = None
+    new_feature = True
+
+    # Get feature if id passed
+    if feat_id:
+        # This is an existing, feature, edit it!
+        f = get_object_or_404(Feature, pk=feat_id)
+        new_feature = False
+
+        if not f.is_editable_by(request.user):
+            error = "You do not have permissions to edit this feature!"
+            return render_to_response('publications/access_denied.html',
+                                      {'feature': f, 'error': error},
+                                      context_instance=RequestContext(request))
+
+    else:
+        # This is a new feature...
+
+        # check permission to add feature
+        if not request.user.has_perm("{0}.add_feature".format(Feature._meta.app_label)):
+            error = "You do not have permissions to add new feature!"
+            return render_to_response('publications/access_denied.html',
+                                      {'feature': f, 'error': error},
+                                      context_instance=RequestContext(request))
+
+        # Get publication if id passed
+        if pub_id:
+            p = get_object_or_404(Publication, pk=pub_id)
+        else:
+            p = None
+
+    return render_to_response('publications/add_feature_choice.html',
+                              {'pub': p, "feat": f},
+                              context_instance=RequestContext(request))
+
+
+@login_required(login_url='/accounts/login/')
 def add_edit_feature(request, pub_id=None, feat_id=None):
     """View to add or edit a feature.
 
@@ -1457,7 +1635,14 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
     if feat_id:
         # This is an existing, feature, edit it!
         f = get_object_or_404(Feature, pk=feat_id)
+
         pub_list = f.publications.all()
+
+        # If we have only one publication associated, make sure this publication
+        # is represented in variable "p", otherwise leave "p" empty.
+        if len(pub_list) == 1:
+            p = pub_list[0]
+
         new_feature = False
 
         if not f.is_editable_by(request.user):
@@ -1485,14 +1670,14 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
     # Some set up operations
     if request.POST:
         # The form was posted, bind to posted data
-        form = AddFeatureForm(data=request.POST, instance=f)
+        form = AddFeatureMapForm(data=request.POST, instance=f)
         if form.is_valid():
             # all form fields validated, process the form
             f = form.save(commit=False)
-            # Temporary thing, while testing...
-            current_user = User.objects.get(username='thin')
-            f.created_by = current_user
-            f.modified_by = current_user
+
+            if new_feature:
+                f.created_by = request.user
+            f.modified_by = request.user
             f.save()
 
             if 'publication-pk' in request.POST and request.POST['publication-pk']:
@@ -1508,12 +1693,17 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
             f.save()
 
             if new_feature:
-                return HttpResponse("Feature added [id:{0}]".format(f.id))
+                messages.success(request, "Feature added [id:{0}]".format(f.id))
             else:
-                return HttpResponse("Feature updated [id:{0}]".format(f.id))
+                messages.success(request, "Feature updated [id:{0}]".format(f.id))
+
+            if p:
+                return redirect('/pubs/report/{0}/'.format(p.id))
+            else:
+                return redirect('/pubs/feature/{0}/'.format(f.id))
 
     else:  # this is a get request
-        form = AddFeatureForm(instance=f)
+        form = AddFeatureMapForm(instance=f)
 
     return render_to_response('publications/add_feature.html',
                               {'form': form, 'pub': p, 'pub_list': pub_list},
@@ -1605,7 +1795,11 @@ def add_edit_person(request, person_id=None, name=None):
 
 def logout(request):
     auth.logout(request)
-    return redirect('/pubs/frontpage/')
+    #pdb.set_trace()
+    try:
+        return redirect(request.GET['next'])
+    except:
+        return redirect('/pubs/frontpage/')
 
 
 @login_required(login_url='/accounts/login/')

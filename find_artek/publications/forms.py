@@ -50,16 +50,22 @@ class AddReportForm(ModelForm):
 
     class Meta:
         model = Publication
+        # Only show the following fields
+        fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
+                  'authors', 'supervisors', 'topic', 'keywords', 'pdffile']
         # Exclude the following native fields of the Publication model, because
         # we are handling them separately by new fields in the form.
-        exclude = ['quality', 'keywords', 'topic', 'file']
+        # exclude = ['quality', 'keywords', 'topic', 'file']
 
     def __init__(self, *args, **kwargs):
         # Call the parents initialization method
         super(AddReportForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
 
         # Set the size of the number input field
-        self.fields['number'].widget.attrs['size'] = 5
+        try:
+            self.fields['number'].widget.attrs['size'] = 5
+        except:
+            pass
 
         if 'instance' in kwargs and kwargs['instance']:
             # A model instance was passed, we are editing an existing model...
@@ -98,6 +104,17 @@ class AddReportForm(ModelForm):
             if p.file:
                 self.fields['pdffile'].initial = p.file.file
 
+
+class UserAddReportForm(AddReportForm):
+    """A Form handling the adding or editing of reports when accessed by
+    a normal user (not superuser)
+
+    """
+    class Meta:
+        model = Publication
+        # Only show the following fields
+        fields = ['type', 'title', 'year', 'abstract', 'comment',
+                  'authors', 'supervisors', 'topic', 'keywords', 'pdffile']
 
 class AddPublicationsFromFileForm(forms.Form):
     """Form to handle import of publication information from a file.
@@ -186,7 +203,7 @@ class AddPersonForm(ModelForm):
                and field.name not in self.Meta.normal_fields]
 
 
-class AddFeatureForm(MapModelForm):
+class AddFeatureMapForm(MapModelForm):
     class Meta:
         model = Feature
         exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',)
@@ -211,3 +228,34 @@ class AddFeatureForm(MapModelForm):
     # def __init__(self, *args, **kwargs):
     #     # Call the parents initialization method
     #     super(AddFeatureForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
+
+
+
+SRS_CHOICES = (
+    ('32622',   'UTM zone 22N, WGS84'        ),   # Most of West Greenland covered
+    ( '4326',   'Longitude/Latitude, WGS84'  ),   # Global system, geographical coordinates
+    ( '3182',   'UTM zone 22N, GR96'         ),   # Most of West Greenland covered
+    ('32618',   'UTM zone 18N, WGS84'        ),   #
+    ('32619',   'UTM zone 19N, WGS84'        ),   # Thule / Qaanaaq area
+    ('32620',   'UTM zone 20N, WGS84'        ),   #
+    ('32621',   'UTM zone 21N, WGS84'        ),   # Upernavik area
+    ('32623',   'UTM zone 23N, WGS84'        ),   # South Greenland (Narsarssuaq, Nanortalik, etc.)
+)
+
+
+class AddFeatureCoordsForm(ModelForm):
+    easting = forms.DecimalField()
+    northing = forms.DecimalField()
+    spatial_reference_system = forms.ChoiceField(choices=SRS_CHOICES)
+
+    class Meta:
+        model = Feature
+        exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',
+            'points', 'lines', 'polys')
+
+    # def __init__(self, *args, **kwargs):
+    #     # Call the parents initialization method
+    #     super(AddFeatureForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
+
+
+

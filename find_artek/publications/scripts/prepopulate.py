@@ -1,4 +1,4 @@
-# -*- coding: utf_8 -*-
+# -*- coding: utf-8 -*-
 
 # This code can be run with an empty database (with all tables and fields
 # defined of course) to populate the database with initial data.
