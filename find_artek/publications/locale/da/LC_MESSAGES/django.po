@@ -181,7 +181,7 @@ msgstr "Publikationsinformation"
 
 #: .\templates\publications\detail.html.py:50
 msgid "THIS REPORT ENTRY NEEDS VERIFICATION!"
-msgstr "DENNE RAPPORT SKAL MANGLER AT BLIVE VERIFICERET"
+msgstr "DENNE RAPPORT MANGLER AT BLIVE VERIFICERET"
 
 #: .\templates\publications\detail.html.py:61
 #: .\templates\publications\snippets\report_list.html.py:5
