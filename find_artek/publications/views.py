@@ -33,7 +33,9 @@ from find_artek.publications.models import Publication, Person, Feature,        
                                             FileObject, ImageObject,            \
                                             Authorship, Editorship, Supervisorship
 from find_artek.publications.person_utils import get_person
-from find_artek.publications.forms import AddReportForm, AddPersonForm,         \
+from find_artek.publications.forms import AddReportForm,                        \
+                                            UserAddReportForm,                  \
+                                            AddPersonForm,         \
                                             AddPublicationsFromFileForm,        \
                                             AddFeatureMapForm,                  \
                                             AddFeatureCoordsForm,               \
@@ -383,10 +385,12 @@ def generate_batch_tag(size=8):
 def add_edit_report(request, pub_id=None):
 
     msg = []
+    new_entity = True
 
     if pub_id:
         p = get_object_or_404(Publication, pk=pub_id)
         initial = None
+        new_entity = False
         if not p.is_editable_by(request.user):
             error = "You do not have permissions to edit this publication!"
             return render_to_response('publications/access_denied.html',
@@ -402,7 +406,10 @@ def add_edit_report(request, pub_id=None):
                                       context_instance=RequestContext(request))
 
     #pdb.set_trace()
-    form = AddReportForm(data=request.POST or initial, instance=p)
+    if request.user.is_superuser:
+        form = AddReportForm(data=request.POST or initial, instance=p)
+    else:
+        form = UserAddReportForm(data=request.POST or initial, instance=p)
 
     # Temporary thing, while testing...
     #current_user = User.objects.get(username='thin')
@@ -414,6 +421,7 @@ def add_edit_report(request, pub_id=None):
         if form.is_valid():
             # some other operations and model save if any
             # redirect to results page
+
             r = form.save(commit=False)
 
             if not p:
@@ -687,27 +695,32 @@ def add_edit_report(request, pub_id=None):
             raise ValueError('Problem!')
 
     # Form was not yet posted...
-    for k in form.fields.keys():
-        if not p or request.user.is_superuser:
-            # Show these fields if we are registering a new report
-            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
-                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
-                            'comment']   # This should handle the proper Report type, get list from PubType table.
-        else:
-            # Show these fields if we are editing a report
-            show_fields =  ['type', 'title', 'authors', 'supervisors',
-                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
-                            'comment']   # This should handle the proper Report type, get list from PubType table.
-        if k not in show_fields:
-            del form.fields[k]
-            pass
-        elif isinstance(form.fields[k].widget, forms.TextInput):
-            #print "TextInput: {0}".format(k)
-            #form.fields[k].widget.attrs['size'] = 90
-            pass
-        else:
-            #print "Field: {0}".format(k)
-            pass
+#    for k in form.fields.keys():
+#        if not p or request.user.is_superuser:
+#            # Show these fields if we are registering a new report
+#            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
+#                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+#                            'comment']   # This should handle the proper Report type, get list from PubType table.
+#        else:
+#            # Show these fields if we are editing a report
+#            show_fields =  ['type', 'title', 'authors', 'supervisors',
+#                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
+#                            'comment']   # This should handle the proper Report type, get list from PubType table.
+#        if k not in show_fields:
+#            try:
+#                form.exclude.append(k)
+#            except:
+#                form.exclude = []
+#                form.exclude.append(k)
+#            #del form.fields[k]
+#            #pass
+#        elif isinstance(form.fields[k].widget, forms.TextInput):
+#            #print "TextInput: {0}".format(k)
+#            #form.fields[k].widget.attrs['size'] = 90
+#            pass
+#        else:
+#            #print "Field: {0}".format(k)
+#            pass
 
     # generate unique tag for identifying uploaded appendix-files.
     # It is maybe useles to test uniquenss in this way, since the tags will

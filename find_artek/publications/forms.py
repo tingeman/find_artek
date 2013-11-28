@@ -50,16 +50,22 @@ class AddReportForm(ModelForm):
 
     class Meta:
         model = Publication
+        # Only show the following fields
+        fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
+                  'authors', 'supervisors', 'topic', 'keywords', 'pdffile']
         # Exclude the following native fields of the Publication model, because
         # we are handling them separately by new fields in the form.
-        exclude = ['quality', 'keywords', 'topic', 'file']
+        # exclude = ['quality', 'keywords', 'topic', 'file']
 
     def __init__(self, *args, **kwargs):
         # Call the parents initialization method
         super(AddReportForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
 
         # Set the size of the number input field
-        self.fields['number'].widget.attrs['size'] = 5
+        try:
+            self.fields['number'].widget.attrs['size'] = 5
+        except:
+            pass
 
         if 'instance' in kwargs and kwargs['instance']:
             # A model instance was passed, we are editing an existing model...
@@ -98,6 +104,17 @@ class AddReportForm(ModelForm):
             if p.file:
                 self.fields['pdffile'].initial = p.file.file
 
+
+class UserAddReportForm(AddReportForm):
+    """A Form handling the adding or editing of reports when accessed by
+    a normal user (not superuser)
+
+    """
+    class Meta:
+        model = Publication
+        # Only show the following fields
+        fields = ['type', 'title', 'year', 'abstract', 'comment',
+                  'authors', 'supervisors', 'topic', 'keywords', 'pdffile']
 
 class AddPublicationsFromFileForm(forms.Form):
     """Form to handle import of publication information from a file.
