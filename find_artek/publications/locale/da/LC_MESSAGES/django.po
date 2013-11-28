@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-11-26 21:53+0100\n"
+"POT-Creation-Date: 2013-11-28 10:53+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -48,6 +48,131 @@ msgstr "Bruger"
 #: .\templates\base.html.py:50
 msgid "Language"
 msgstr "Sprog"
+
+#: .\templates\publications\add_feature.html.py:2
+#: .\templates\publications\add_feature.html.py:26
+#: .\templates\publications\add_feature_choice.html.py:2
+#: .\templates\publications\add_feature_choice.html.py:70
+#: .\templates\publications\add_feature_wcoords.html.py:2
+#: .\templates\publications\add_feature_wcoords.html.py:34
+msgid "Add feature"
+msgstr "Tilføj feature"
+
+#: .\templates\publications\add_feature.html.py:28
+msgid "Edit feature"
+msgstr "Rediger feature"
+
+#: .\templates\publications\add_feature.html.py:45
+#: .\templates\publications\add_feature_wcoords.html.py:43
+msgid "This feature will not be associated with a report!"
+msgstr "Denne feature knyttes ikke til en rapport!"
+
+#: .\templates\publications\add_feature.html.py:46
+#: .\templates\publications\add_feature_wcoords.html.py:44
+msgid ""
+"To register a feature associated with a specific report, please use the link "
+"from the report details page!"
+msgstr ""
+"For at registrere en feature tilknyttet en bestemt rapport kan du benytte "
+"linket fra siden der viser rapportens detaljer!"
+
+#: .\templates\publications\add_feature.html.py:50
+#: .\templates\publications\add_feature_wcoords.html.py:48
+msgid "This feature will be added to the following report:"
+msgstr "Denne feature vil blive knyttet til denne rapport:"
+
+#: .\templates\publications\add_feature.html.py:70
+#: .\templates\publications\add_feature_wcoords.html.py:77
+msgid "Register feature"
+msgstr "Registrer feature"
+
+#: .\templates\publications\add_feature_choice.html.py:77
+msgid "Coordinates available..."
+msgstr "Jeg har koordinaterne..."
+
+#: .\templates\publications\add_feature_choice.html.py:78
+msgid ""
+"If you have coordinates for the feature(s) you want to add, choose one the "
+"choices below to register the feature."
+msgstr ""
+"Hvis du har koordinaterne for den/de feature(s) du vil tilføje, kan du vælge "
+"en af nedenstående muligheder."
+
+#: .\templates\publications\add_feature_choice.html.py:80
+msgid ""
+"If you are registering only one or very few POINT features, you may use the "
+"interactive online form. (This form does not allow registration of LINE or "
+"POLYGON features!)"
+msgstr ""
+"Hvis du skal registrere en eller få PUNKT features, kan du benytte den "
+"interaktive online form. (Denne form tillader ikke registrering af LINIE "
+"eller POLYGON features!)"
+
+#: .\templates\publications\add_feature_choice.html.py:81
+msgid ""
+"If you are registering several features (or lines/polygons), it may be more "
+"convenient to use the option to fill and upload an Excel sheet containing "
+"the information about the features. Press the button to acces the upload "
+"page and a link to download the Excel file template to fill."
+msgstr ""
+"Hvis du skal registrere mange features (eller linjer/polygoner), bør du "
+"benytte muligheden for at udfylde og uploade et Excel ark me informationer "
+"og koordinater på alle de features der skal registreres. Tryk på knappen "
+"nedenfor for at komme til upload-siden, hvorfra der også er et link til "
+"Excel-arket der skal udfyldes."
+
+#: .\templates\publications\add_feature_choice.html.py:84
+#: .\templates\publications\add_feature_choice.html.py:89
+msgid "Online form"
+msgstr "Online form"
+
+#: .\templates\publications\add_feature_choice.html.py:85
+#: .\templates\publications\add_feature_choice.html.py:90
+msgid "Registration by Excel sheet"
+msgstr "Registrering ved upload af Excel ark"
+
+#: .\templates\publications\add_feature_choice.html.py:95
+msgid "Digitize from map..."
+msgstr "Digitaliser på kort..."
+
+#: .\templates\publications\add_feature_choice.html.py:96
+msgid ""
+"If you don't have coordinates for the feature(s) you want to register, you "
+"can choose this option to register a feature position by clicking an "
+"interactive map."
+msgstr ""
+"Hvis du ikke har koordinater for den/de feature(s) der skal registreres, kan "
+"du vælge denne mulighed for at registrere en feature position ved hjælp af "
+"et interaktivt kort."
+
+#: .\templates\publications\add_feature_choice.html.py:100
+#: .\templates\publications\add_feature_choice.html.py:103
+msgid "Digitize from map"
+msgstr "Digitaliser på kort"
+
+#: .\templates\publications\add_feature_wcoords.html.py:39
+msgid ""
+"This form is intended for registration of point features for which "
+"coordinates are available. If you are registering features consisting of "
+"lines or polygons (e.g. geophysical profiles), please use the option to "
+"upload an Excel file with feature coordinates and information."
+msgstr ""
+"Denne form er beregnet på registrering af punkt-features for hvilke "
+"koordinaterne kendes. Hvis du skal registrere features som består af linjer "
+"eller polygoner (f.eks. geofysiske profiler), brug da mulighedenfor at "
+"uploade en Excel-fil med informationer om og koordinater for disse."
+
+#: .\templates\publications\add_feature_wcoords.html.py:75
+msgid "UTM coordinates are to be specified in meters."
+msgstr "UTM koordinater skal specificeres i meter."
+
+#: .\templates\publications\add_feature_wcoords.html.py:76
+msgid ""
+"Longitude/latitude coordinates are to be specified in degrees decimal (dd."
+"dddddd), *not* in degrees, minutes, seconds!"
+msgstr ""
+"Længde- og breddegrader skal specificeres i decimalgrader (dd.dddddd), "
+"*ikke* med grader, minutter, sekunder!"
 
 #: .\templates\publications\detail.html.py:2
 #: .\templates\publications\detail.html.py:40
