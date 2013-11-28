@@ -5,6 +5,7 @@
 import os
 import ldap
 from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirectoryGroupType
+from django.conf import global_settings
 
 SITE_ROOT = "D:/find_artek_www/"
 DEBUG = True
@@ -125,6 +126,18 @@ TEMPLATE_LOADERS = (
     # 'django.template.loaders.eggs.Loader',
 )
 
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+    # 'django.template.loaders.eggs.Loader',
+)
+
+
+TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
+    "django.core.context_processors.request",
+)
+
+
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -240,7 +253,7 @@ GOOGLE_API_KEY = 'AIzaSyBIagLz1ayoRbJZef1Er9h8WkWJF26hr44'
 APPEND_SLASH = True
 
 # Redirect to the following view after successful authentication
-LOGIN_REDIRECT_URL = "/pubs/frontpage"
+#LOGIN_REDIRECT_URL = "/pubs/frontpage"
 
 # Parameters for multifileuploader
 MULTI_FILE_DELETE_URL = '/multi_delete'

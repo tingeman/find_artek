@@ -26,10 +26,10 @@
 {% if user.is_authenticated %}
 	<span class="topnav-right">{% trans "User" %}: {{ user.username }}</span>
     <span class="topnav-right">|</span>
-	<a class="topnav-right" href="/accounts/logout/">Logout</a>
+	<a class="topnav-right" href="/accounts/logout/?next={{request.path}}">Logout</a>
     <span class="topnav-right">|</span>
 {% else %}
-    <a class="topnav-right" href="/accounts/login/">Login</a>
+    <a class="topnav-right" href="/accounts/login/?next={{request.path}}">Login</a>
     <span class="topnav-right">|</span>
 {% endif %}
 

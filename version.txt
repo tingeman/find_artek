@@ -1,4 +1,5 @@
 20131128
+CHANGED: login and logout now redirects to referring page
 BUGFIX: report number disappeared when students edited reports. Solution: move
 handling of which fields to render to the META class of the form class, and
 create separate form class for each set of fields to render. So now there is an

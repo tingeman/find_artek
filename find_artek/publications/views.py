@@ -1791,7 +1791,11 @@ def add_edit_person(request, person_id=None, name=None):
 
 def logout(request):
     auth.logout(request)
-    return redirect('/pubs/frontpage/')
+    #pdb.set_trace()
+    try:
+        return redirect(request.GET['next'])
+    except:
+        return redirect('/pubs/frontpage/')
 
 
 @login_required(login_url='/accounts/login/')
