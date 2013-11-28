@@ -1,5 +1,5 @@
 20131128
-CHANGED: Localized add feature with coordinates view.
+FIXED: Translation error in report details view
 CHANGED: Added warning message to check location of features after succesful
 egistration of feature based on file upload or online form with coordinate entry.
 CHANGED: login and logout now redirects to referring page
