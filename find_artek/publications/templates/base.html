@@ -33,6 +33,7 @@
     <span class="topnav-right">|</span>
 {% endif %}
 
+{% if not hide_language_choices %}
 <span class="topnav-right">
 <form name="setLangEnglish" action="/i18n/setlang/" method="POST">{% csrf_token %}
 <input name="next" type="hidden" value="" />
@@ -52,6 +53,7 @@
 <a href="/pubs/list/persons/">DK</a>
 <a href="/pubs/keywords/list/">EN</a> -->
 </span>
+{% endif %}
 
 </div>
 

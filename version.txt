@@ -1,3 +1,8 @@
+20131201
+ADDED: A validation page for uploaded features, with possibility to confirm or
+delete the uploaded features. The views work both with upload from/to a specific
+report, and as general upload with publication id's specified in the file.
+
 20131128
 FIXED: Translation error in report details view
 CHANGED: Added warning message to check location of features after succesful

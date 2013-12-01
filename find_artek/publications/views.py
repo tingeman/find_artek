@@ -57,6 +57,80 @@ from multiuploader.models import MultiuploaderImage
 
 
 
+
+
+def get_olwidget_params(features):
+    """Function takes a list of Feature entities, and returns:
+
+    info:     a list of two-tuples, containing the feature and the formatting
+
+    The info list is then passed to ol_widget to produce a map of features.
+
+    """
+    feature_colors = dict((
+        ('PHOTO',             'red'),
+        ('SAMPLE',            'green'),
+        ('BOREHOLE',          'yellow'),
+        ('GEOPHYSICAL DATA',  'blue'),
+        ('FIELD MEASUREMENT', 'Purple'),
+        ('LAB MEASUREMENT',   'pink'),
+        ('RESOURCE',          'brown'),
+        ('OTHER',             'white')))
+
+    def info_append(info, g, f, html, gtype='point'):
+        if gtype == 'point':
+            info.append((g, {
+                'html': html,
+                'style': {
+                    'fill_color': feature_colors[f.type],
+                    'fill_opacity': 1,
+                    'stroke_color': 'black',
+                    'point_radius': 4,
+                    'stroke_width': 1,
+                },
+            }))
+        elif gtype == 'line':
+            info.append((g, {
+                'html': html,
+                'style': {
+                    'fill_color': feature_colors[f.type],
+                    'stroke_color': feature_colors[f.type],
+                    'stroke_width': 2,
+                },
+            }))
+        elif gtype == 'poly':
+            info.append((g, {
+                'html': html,
+                'style': {
+                    'fill_color': feature_colors[f.type],
+                    'fill_opacity': 0.3,
+                    'stroke_color': 'black',
+                    'stroke_width': 1,
+                },
+            }))
+
+
+    def feature_popup_html(f):
+        t = loader.get_template('publications/feature_popup.html')
+        c = Context({
+            'feature': f,
+        })
+        return t.render(c)
+
+    info = []
+    for i, f in enumerate(features):
+        if f.points:
+            info_append(info, f.points, f, feature_popup_html(f), gtype='point')
+        if f.lines:
+            info_append(info, f.lines, f, feature_popup_html(f), gtype='line')
+        if f.polys:
+            info_append(info, f.polys, f, feature_popup_html(f), gtype='poly')
+
+    return info, feature_colors
+
+
+
+
 class CaseInsensitively(object):
     """Wrap CaseInsensitively around an object to make comparisons
     case-insensitive.
@@ -1137,10 +1211,10 @@ def check_person_ajax(request):
                 json_response['html'] = ''
                 json_response['message'] = 'ok'
         except Exception, e:
-            print str(e)
+            #print str(e)
             json_response['error'] = str(e)
 
-        print json_response
+        #print json_response
         return json_response
 
 
@@ -1366,16 +1440,31 @@ def add_pubs_from_file(request):
 @login_required(login_url='/accounts/login/')
 def add_features_from_file(request, pub_id=None):
 
-    if not request.user.has_perm("{0}.add_feature".format(Feature._meta.app_label)):
-        error = "You do not have permissions to add new feature!"
-        return render_to_response('publications/access_denied.html',
-                                  {'feature': None, 'error': error},
-                                  context_instance=RequestContext(request))
+    if pub_id:
+        pub_id = int(pub_id)  # Converted to integer for the purpose of comparison later.
+        p = get_object_or_404(Publication, pk=pub_id)
+        initial = None
+        new_entity = False
+        if not p.is_editable_by(request.user):
+            error = "You do not have permissions to edit this publication!"
+            return render_to_response('publications/access_denied.html',
+                                      {'pub': p, 'error': error},
+                                      context_instance=RequestContext(request))
+        next_on_validate = "/pubs/report/{0}/".format(pub_id)
+        next_on_cancel = "/pubs/report/{0}/add/features/from_file/".format(pub_id)
+    else:
+        p = None
+        next_on_validate = "/pubs/frontpage/"
+        next_on_cancel = "/pubs/add/features_from_file/".format(pub_id)
+
+    fdict = {}
+    msg = None
+    features_added = []
+
 
     if request.method == 'POST':
         form = AddFeaturesFromFileForm(request.POST, request.FILES)
         if form.is_valid():
-
             if ('type' in request.POST):
                 fpath = os.path.join('tmp', request.FILES['file'].name)
                 filepath = default_storage.save(fpath, ContentFile(request.FILES['file'].read()))
@@ -1385,19 +1474,8 @@ def add_features_from_file(request, pub_id=None):
                         response = 'Bibtex upload not implemented yet!'
                         pass
                     elif request.POST['type'] == 'xlsx':
-                        nfeat, msg = import_from_file.xlsx_features(filepath, user=request.user)
-                        for t, m in msg:
-                            messages.add_message(request, t, m)
-                        if nfeat:
-                            messages.success(request,
-                                    "{0} features added from file {1}!".format(nfeat, os.path.basename(filepath)))
-                            messages.warning(request,
-                                    "Please check the locations of added features!")
-                        else:
-                            messages.error(request,
-                                    "No features added from file {1}!".format(nfeat, os.path.basename(filepath)))
-                        return redirect('/pubs/add/')
-                        #response = 'success, {0} features added.'.format(nfeat)
+                        fdict, file_messages = import_from_file.xlsx_features(filepath)
+
                     elif request.POST['type'] == 'csv':
                         #import_bibtex(request.FILES['file'])
                         response = 'csv upload not implemented yet!'
@@ -1407,13 +1485,157 @@ def add_features_from_file(request, pub_id=None):
                 finally:
                     default_storage.delete(filepath)
 
-                return HttpResponse(response)
+
+            #messages.info(request, 'Parsed the file ok')
+
+            # Process general file level messages.
+            for level, msg in file_messages:
+                messages.add_message(request, level, msg)
+
+            for fnum, feat in iter(sorted(fdict.iteritems())):
+
+                for level, msg in feat['messages']:
+                    messages.add_message(request, level, msg)
+
+                #messages.info(request, 'Parsing errors written!')
+
+                if not feat['skip']:
+
+                    if not pub_id and not feat['pub_id']:
+                        msg = "No Publication ID specified for feature# {0} "+ \
+                              "({1}). This feature is skipped!"
+                        msg = msg.format(fnum, feat['data']['name'])
+                        messages.error(request, msg)
+                        continue
+
+                    if feat['pub_id'] and pub_id and feat['pub_id'] != pub_id:
+                        msg = "Publication ID mismatch. The uploaded file specifies that feature# {0} "+ \
+                        "({1}) should be attached to publication {2}, while you are trying to attach it to "+ \
+                        "publication {3}. This feature is skipped!"
+                        msg = msg.format(fnum, feat['data']['name'],
+                                         feat['pub_id'], pub_id )
+                        messages.error(request, msg)
+                        continue
+
+                    try:
+                        geom = GEOSGeometry(simplejson.dumps(feat['GeoJSON']),
+                                            srid=fdict[fnum]['srid'])
+                    except:
+                        msg = "The coordinate(s) and srid(s) of feature# {0} "+ \
+                              "({1}) do not evaluate to a valid geographical "+ \
+                              "entity. This feature is skipped!"
+                        msg = msg.format(fnum, feat['data']['name'])
+                        messages.error(request, msg)
+                        continue
+
+                    # Create feature
+                    feat['data']['created_by'] = request.user
+                    feat['data']['modified_by'] = request.user
+                    f = Feature(**feat['data'])
+
+                    if feat['GeoJSON']['type'] in ['Point', 'MultiPoint']:
+                        f.points = geom
+                    elif feat['GeoJSON']['type'] in ['LineString', 'MultiLineString']:
+                        f.lines = geom
+                    elif feat['GeoJSON']['type'] in ['Polygon', 'MultiPolygon']:
+                        f.polys = geom
+                    else:
+                        messages.error(request,
+                            "Feature# {0} ({1}): Feature type '{2}' unknown. This feature is skipped!".format(f.name, fnum, feat['GeoJSON']['type']))
+                        continue
+
+                    f.save()
+                    features_added.append(f.id)
+                    msg = "Feature# {0} ({1}) created".format(fnum, f.name)
+
+                    p = get_object_or_404(Publication, pk=pub_id or feat['pub_id'])
+                    # If pub_id evaluates False (is None),  use feat information instead
+
+                    if not p in f.publications.all():
+                        # Add the publication to the feature m2m relationship
+                        f.publications.add(p)
+                        msg += ", and added to publication {0}".format(p.id)
+
+                    messages.info(request, msg)
+                    f.save()
+
+
+            if features_added:
+                messages.success(request,
+                        "{0} features added from file {1}!".format(len(features_added), os.path.basename(filepath)))
+                messages.warning(request,
+                        "Please check the locations of added features!")
+            else:
+                messages.error(request,
+                        "No features added from file {0}!".format(os.path.basename(filepath)))
+                return redirect(next_on_cancel)
+
+
+            # Prepare map to show on validation page
+
+            # Show all available feature types in the map
+            show_ftypes = Feature.feature_type_list()
+
+            features = Feature.objects.filter(id__in=features_added)
+            info, feature_colors = get_olwidget_params(features)
+
+            options = {'layers': ['osm.mapnik','google.satellite'],
+                        'map_options': {
+                            'controls': [
+                                         "LayerSwitcher",
+                                         "NavToolbar",
+                                         "PanZoom",
+                                         "Attribution"], },
+                        'popups_outside': True,
+                        'map_div_style': {'width': '600px', 'height': '360px'},
+            }
+
+
+
+            map_ = InfoMap(info, options)
+            return render_to_response("publications/validate_features_from_file.html",
+                                      {"map": map_, "colors": feature_colors,
+                                      "feature_type_select": False,      # type select is not implemented in this template
+                                      "show_ftypes": show_ftypes,
+                                      "features": features,
+                                      'hide_language_choices': True,
+                                      'next_on_validate': next_on_validate,
+                                      'next_on_cancel': next_on_cancel},
+                                      context_instance=RequestContext(request))
 
     else:
         form = AddFeaturesFromFileForm()
+
     return render_to_response('publications/add_features_from_file.html',
-                              {'form': form},
+                              {'form': form, 'pub_id': pub_id, 'pub': p},
                               context_instance=RequestContext(request))
+
+
+@login_required(login_url='/accounts/login/')
+def validate_features_from_file(request):
+
+    if request.method == 'POST':
+        if 'features-pk' in request.POST:
+            features = request.POST['features-pk'].strip(',').split(',')
+            features = Feature.objects.filter(id__in=features)
+            #print features
+        else:
+            features = []
+
+        if 'cancel' in request.POST:
+            for f in features:
+                msg = "Feature id {0} ({1}) deleted!".format(f.id, f.name)
+                f.delete()
+                messages.info(request, msg)
+            return redirect(request.POST['next_on_cancel'])
+
+        else:
+            msg = "{0} features validated.".format(len(features))
+            messages.success(request, msg)
+            return redirect(request.POST['next_on_validate'])
+
+
+
 
 
 def test_keyword_tag(request):
@@ -1526,7 +1748,7 @@ def add_edit_feature_wcoords(request, pub_id=None, feat_id=None):
                     # Add the publication to the feature m2m relationship
                     f.publications.add(p)
             else:
-                print "Feature added/updated but not linked to a report"
+                messages.warning(request, "Feature added/updated but not linked to a report")
             f.save()
 
             if ('easting' in request.POST and request.POST['easting']) and      \
@@ -1689,7 +1911,7 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
                     # Add the publication to the feature m2m relationship
                     f.publications.add(p)
             else:
-                print "Feature added/updated but not linked to a report"
+                messages.warning(request, "Feature added/updated but not linked to a report")
             f.save()
 
             if new_feature:
@@ -1847,7 +2069,7 @@ def person_merge(request, person_id=None):
         if 'select_merge' in request.POST and request.POST['select_merge']:
             for pid in request.POST.getlist('select_merge'):
                 pid = int(pid)
-                print "Will merge {0} into {1}".format(pid, person_id)
+                #print "Will merge {0} into {1}".format(pid, person_id)
 
                 """
                 Here we should do the following:
