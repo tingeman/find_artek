@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-11-28 10:53+0100\n"
+"POT-Creation-Date: 2013-12-02 09:24+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -45,7 +45,7 @@ msgstr "Administration"
 msgid "User"
 msgstr "Bruger"
 
-#: .\templates\base.html.py:50
+#: .\templates\base.html.py:51
 msgid "Language"
 msgstr "Sprog"
 
@@ -173,6 +173,70 @@ msgid ""
 msgstr ""
 "Længde- og breddegrader skal specificeres i decimalgrader (dd.dddddd), "
 "*ikke* med grader, minutter, sekunder!"
+
+#: .\templates\publications\add_features_from_file.html.py:13
+msgid "Features will be added to the following report"
+msgstr "Features vil blive knyttet til følgende rapport"
+
+#: .\templates\publications\add_features_from_file.html.py:17
+msgid ""
+"You may upload an Excel file with feature information to be added to the "
+"database.\n"
+"The file may contain information about several features."
+msgstr ""
+"Du kan uploade en Excel fil med feature information som skal tilføjes "
+"databasen.\n"
+"Filen kan indeholde information om flere features."
+
+#: .\templates\publications\add_features_from_file.html.py:20
+msgid ""
+"You may upload an Excel file with feature information to be added to the "
+"database.\n"
+"The file may contain information about several features, and information "
+"about which\n"
+"publication the feature should be related to."
+msgstr ""
+"Du kan uploade en Excel fil med feature information som skal tilføjes "
+"databasen.\n"
+"Filen kan indeholde information om flere features, samt information om, "
+"hvilke rapporter disse features skal knyttes til."
+
+#: .\templates\publications\add_features_from_file.html.py:25
+msgid "A template for the Excel file is available here"
+msgstr "En skabelon for Excel filen kan findes her"
+
+#: .\templates\publications\add_features_from_file.html.py:25
+msgid "Feature Excel file template"
+msgstr "Skabelon til Feature Excel fil"
+
+#: .\templates\publications\add_features_from_file.html.py:35
+msgid "Upload"
+msgstr "Upload"
+
+#: .\templates\publications\delete_publication_features_form.html.py:2
+#: .\templates\publications\delete_publication_features_form.html.py:10
+msgid "Delete features"
+msgstr "Slet features"
+
+#: .\templates\publications\delete_publication_features_form.html.py:16
+msgid "You are about to delete all features from the following publication"
+msgstr "Du er ved at slette alle features fra den følgende publikation"
+
+#: .\templates\publications\delete_publication_features_form.html.py:21
+msgid "See a list of features to be deleted, at the bottom of the page"
+msgstr "En liste over features der vil blive slettet findes i bunden af siden"
+
+#: .\templates\publications\delete_publication_features_form.html.py:23
+msgid "It will not be possible to undo the action later!"
+msgstr "Det vil ikke være muligt at fortryde denne handling senere!"
+
+#: .\templates\publications\delete_publication_features_form.html.py:28
+msgid "Delete"
+msgstr "Slet"
+
+#: .\templates\publications\delete_publication_features_form.html.py:29
+msgid "Cancel"
+msgstr "Cancel"
 
 #: .\templates\publications\detail.html.py:2
 #: .\templates\publications\detail.html.py:40
@@ -416,6 +480,32 @@ msgstr "Antal rapporter"
 #: .\templates\publications\publist.html.py:20
 msgid "No reports available"
 msgstr "Ingen rapporter tilgængelige"
+
+#: .\templates\publications\validate_features_from_file.html.py:2
+#: .\templates\publications\validate_features_from_file.html.py:11
+#: .\templates\publications\validate_features_from_file.html.py:117
+msgid "Validate imported features"
+msgstr "Validér importerede features"
+
+#: .\templates\publications\validate_features_from_file.html.py:17
+msgid "Press left mouse button on a feature to see details"
+msgstr "Se detaljer om en feature ved at venstre-klikke på den"
+
+#: .\templates\publications\validate_features_from_file.html.py:110
+msgid ""
+"Please check the location of all imported features and press the validate "
+"button to keep the features in the database, or the cancel button to remove "
+"the features and try uploading again (after manually correcting errors in "
+"the file)."
+msgstr ""
+"Tjek venligst positionen for alle importerede features og tryk på "
+"validér-knappen for at beholde disse features i databasen, eller "
+"cancel-knappen for at fjerne disse features og uploade filen igen "
+"(efter manuelt at have rettet eventuelle fejl)."
+
+#: .\templates\publications\validate_features_from_file.html.py:118
+msgid "Delete imported features"
+msgstr "Slet importerede features"
 
 #: .\templates\publications\snippets\feature_list.html.py:4
 #: .\templates\publications\snippets\person_list.html.py:5

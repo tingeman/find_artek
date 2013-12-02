@@ -275,11 +275,23 @@ def add_topics_to_publication(topics, pub, user):
     pub.save()
 
 
-def xlsx_features(filepath, user=None):
+def xlsx_features(filepath):
+    """Function to read an Excel workbook and return feature information from a
+    sheet named "Features" as a json object. The ´json object has the following
+    structure:
 
-    xlsxmessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
+    fdict is a dictionary
+        pub_id     Integer id value corresponding to the publication primary key
+        data:      dictionary of field values for Feature instance
+        GEOjson:   dictionary óf fields which is translatable to a GEOSGeometry
+        srid:      The EPSG spatial reference id. see http://spatialreference.org/
+        skip:      Flag to skip the feature if an error has occurrde
+        messages:  List of error and warning messages for the feature
+                    format: [ [messages.ERROR, "ErrorMessage"], ... ]
 
-    current_user = user  # User.objects.get(username='thin')
+    """
+
+    filemessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
 
     wb = xlrd.open_workbook(os.path.join(settings.MEDIA_ROOT, filepath))
 
@@ -287,8 +299,8 @@ def xlsx_features(filepath, user=None):
 
     if not s:
         logger.error("Excel file does not hold a sheet by the name 'Features'. Import aborted.")
-        xlsxmessages.append((messages.ERROR, "Excel file does not hold a sheet by the name 'Features'. Import aborted."))
-        return (False, xlsxmessages)
+        filemessages.append((messages.ERROR, "Excel file does not hold a sheet by the name 'Features'. Import aborted."))
+        return ([], filemessages)
 
     # Expected column names in the xlsx file.
     col_names = ['Publication_ID', 'Feature#', 'Feature_type', 'Name', 'Geometry_type',
@@ -303,23 +315,26 @@ def xlsx_features(filepath, user=None):
         else:
             sheet_col_names.append(s.cell_value(0, col))
 
+    # Check that all expected columns are actually in the sheet
+    # Abort if at least one column is not present.
     for cn in col_names:
         if cn not in sheet_col_names:
             msg = "Excel feature col_name problem: " + cn + " missing in file. Import aborted."
             logger.error(msg)
-            xlsxmessages.append((messages.ERROR, msg))
-            return (False, xlsxmessages)
+            filemessages.append((messages.ERROR, msg))
+            return ([], filemessages)
 
-    #feature_list = []  # will hold list of unique feature numbers from Feature# column
-    feature_dict = {}
+    fdict = {} # Dictionary to hold feature information
 
-    # iterate over report entries
+    # iterate over rows in sheet (Feature entries)
     for row in range(1, s.nrows):
 
         # Get the feature number
         fnum = s.cell_value(row, col_names.index('Feature#'))
         if not fnum:
             # if no feature number is given, skip the line
+            msg = "The 'Feature#' field of row {0} is blank! The row is ignored.".format(row+1)
+            filemessages.append((messages.WARNING, msg))
             continue
 
         try:
@@ -329,70 +344,111 @@ def xlsx_features(filepath, user=None):
             pass
 
         # If this is a new feature number, get all properties
-        #if fnum and fnum not in feature_list:
-        if fnum and fnum not in feature_dict:
-            #print " "
-            #print "Processing feature {0}".format(fnum)
+        if fnum and fnum not in fdict:
 
-            # Add the feature number to the list
-            #feature_list.append(fnum)
-            feature_dict[fnum] = {}
+            # Add the feature number to the dictionary
+            fdict[fnum] = {
+                'pub_id': None,
+                'data': {},
+                'GeoJSON': {},
+                'srid': {},
+                'skip': False,
+                'messages': []}
 
-            # create dictionary of field:value pairs
-            kwargs = dict()
 
-            kwargs['comment'] = s.cell_value(row, col_names.index('Comment'))
-            kwargs['name'] = s.cell_value(row, col_names.index('Name'))
-            kwargs['type'] = s.cell_value(row, col_names.index('Feature_type'))
-            kwargs['date'] = s.cell_value(row, col_names.index('Date'))
-            orig_date = kwargs['date']
+            # Find related publication:
+            pub_id = s.cell_value(row, col_names.index('Publication_ID'))
+            if pub_id:
+                try:
+                    fdict[fnum]['pub_id'] = int(pub_id)
+                except:
+                    fdict[fnum]['skip'] = True
+                    msg = "Row {0} (feature# {1}) does not have a valid Publication_ID. This feature is skipped!".format(row+1, fnum)
+                    fdict[fnum]['messages'].append((messages.ERROR, msg))
+
+            fdict[fnum]['data']['comment'] = s.cell_value(row, col_names.index('Comment'))
+            fdict[fnum]['data']['name'] = s.cell_value(row, col_names.index('Name'))
+            fdict[fnum]['data']['type'] = s.cell_value(row, col_names.index('Feature_type'))
+            fdict[fnum]['data']['date'] = s.cell_value(row, col_names.index('Date'))
+            orig_date = fdict[fnum]['data']['date']
             date_ctype = s.cell_type(row, col_names.index('Date'))   # get the cell type e.g. XL_CELL_TEXT, XL_CELL_NUMBER, XL_CELL_DATE
-            if kwargs['date']:
+            if fdict[fnum]['data']['date']:
                 if date_ctype == 3:
                     # This is a date type cell, use xlrd's date conversion
-                    kwargs['date'] = xlrd.xldate_as_tuple(kwargs['date'], wb.datemode)
-                    kwargs['date'] = datetime.datetime(*kwargs['date']).date()
+                    fdict[fnum]['data']['date'] = xlrd.xldate_as_tuple(fdict[fnum]['data']['date'], wb.datemode)
+                    fdict[fnum]['data']['date'] = datetime.datetime(*fdict[fnum]['data']['date']).date()
                 else:
                     # This is a number or text type
                     try:
                         # Try parsing the expected date format
-                        kwargs['date'] = datetime.datetime.strptime(kwargs['date'], '%Y-%m-%d').date()
+                        fdict[fnum]['data']['date'] = datetime.datetime.strptime(fdict[fnum]['data']['date'], '%Y-%m-%d').date()
                     except:
                         # if error, try using dateutils parser
-                        kwargs['date'] = dateutil.parser.parse(kwargs['date'],
+                        fdict[fnum]['data']['date'] = dateutil.parser.parse(fdict[fnum]['data']['date'],
                                                                dayfirst=True,
                                                                yearfirst=True,
                                                                default=datetime.date(1900, 1, 1),
                                                                fuzzy=True)
                         # Add warning to messages
-                        msg = "Feature ({1}) '{0}': Unexpected date format, parsed date may be wrong ('{2}' == '{3}' ??)".format(kwargs['name'], fnum, orig_date, kwargs['date'])
-                        xlsxmessages.append((messages.WARNING, msg))
+                        msg = "Feature ({1}) '{0}': Unexpected date format, parsed date may be wrong ('{2}' == '{3}' ??)".format(fdict[fnum]['data']['name'], fnum, orig_date, fdict[fnum]['data']['date'])
+                        fdict[fnum]['messages'].append((messages.WARNING, msg))
 
                         # Add warning to feature comment.
-                        if not kwargs['comment']:
-                            kwargs['comment'] += '\r\n'
-                        kwargs['comment'] += '[Date of feature may be wrong!]'
+                        if not fdict[fnum]['data']['comment']:
+                            fdict[fnum]['data']['comment'] += '\r\n'
+                        fdict[fnum]['data']['comment'] += '[Date of feature may be wrong!]'
 
-            kwargs['direction'] = s.cell_value(row, col_names.index('Direction'))
-            kwargs['description'] = s.cell_value(row, col_names.index('Description'))
-            kwargs['pos_quality'] = s.cell_value(row, col_names.index('Pos_quality'))
-            kwargs['created_by'] = current_user
-            kwargs['modified_by'] = current_user
+            fdict[fnum]['data']['direction'] = s.cell_value(row, col_names.index('Direction'))
+            fdict[fnum]['data']['description'] = s.cell_value(row, col_names.index('Description'))
+            fdict[fnum]['data']['pos_quality'] = s.cell_value(row, col_names.index('Pos_quality'))
+#            fdict[fnum]['data']['created_by'] = current_user
+#            fdict[fnum]['data']['modified_by'] = current_user
 
-            # Create feature
-            f = models.Feature(**kwargs)
-            f.save()
+#            # Create feature
+#            f = models.Feature(**kwargs)
+#            f.save()
+#            fmsg = [messages.INFO, "Feature ({1}) '{0}' created".format(f.name, fnum)]
 
-            fmsg = [messages.INFO, "Feature ({1}) '{0}' created".format(f.name, fnum)]
+            # Parse the spatial reference id
+
+            # Get the srid and remove EPSG: or epsg: if it is present.
+            srid = s.cell_value(row, col_names.index('SRID'))
+            if s.cell_type(row, col_names.index('SRID')) == 1:
+                # If this is text input, try removing "epsg:""
+                srid = srid[len('epsg:'):] if srid.startswith('epsg:') else srid
+            try:
+                fdict[fnum]['srid'] = int(srid)
+            except:
+                fdict[fnum]['skip'] = True
+                msg = "The 'SRID' field of row {0} (feature# {1}) is blank or not an integer. This feature is skipped!".format(row+1, fnum)
+                fdict[fnum]['messages'].append((messages.ERROR, msg))
+                continue
 
             if s.cell_value(row, col_names.index('Geometry_type')) == 'point':
                 # This is a point we can finish the handling here
                 x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
                         s.cell_value(row, col_names.index('UTMY/LAT')))
-                fWKT = "MULTIPOINT({0} {1})".format(x, y)
-                srid = int(s.cell_value(row, col_names.index('SRID')))
-                geom = GEOSGeometry(fWKT, srid=srid)
-                f.points = geom
+
+                fdict[fnum]['GeoJSON']['type'] = "MultiPoint"
+                fdict[fnum]['GeoJSON']['coordinates'] =  [ [x, y] ]
+
+#                try:
+#                    geom = GEOSGeometry(fWKT, srid=fdict[fnum]['srid'])
+#                except:
+#                    fdict[fnum]['skip'] = True
+#                    msg = "The coordinate and srid fiels of row {0} (feature# {1}) do not evaluate to a valid geographical point This feature is skipped!".format(row, fnum)
+#                    fdict[fnum]['messages'].append((messages.ERROR, msg))
+#                    continue
+
+#                f.points = geom
+
+
+            #######
+            #######   UPDATE HAS REACHED THIS POINT   ######
+            #######
+
+
+
 
             elif s.cell_value(row, col_names.index('Geometry_type')) == 'line':
                 # This is a line, we must expect more segments to be added
@@ -419,19 +475,9 @@ def xlsx_features(filepath, user=None):
                 x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
                         s.cell_value(row, col_names.index('UTMY/LAT')))
 
-                mls_json = { "type": "MultiLineString",
-                             "coordinates": [
-                                 [ [x, y]]
-                              ]
-                           }
+                fdict[fnum]['GeoJSON']['type'] = "MultiLineString"
+                fdict[fnum]['GeoJSON']['coordinates'] =  [ [[x, y]] ]
 
-                srid = int(s.cell_value(row, col_names.index('SRID')))
-
-                feature_dict[fnum]['id'] = f.id
-                feature_dict[fnum]['srid'] = srid
-                feature_dict[fnum]['GeoJSON'] = mls_json
-
-                print json.dumps(mls_json)
 
             elif s.cell_value(row, col_names.index('Geometry_type')) == 'polygon':
                 # This is a polygon, we must expect more segments to be added
@@ -439,16 +485,8 @@ def xlsx_features(filepath, user=None):
                 x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
                         s.cell_value(row, col_names.index('UTMY/LAT')))
 
-                poly_json = { "type": "MultiPolygon",
-                             "coordinates": [ [[[x, y], [x, y]]] ]
-                           }
-
-                srid = int(s.cell_value(row, col_names.index('SRID')))
-
-                feature_dict[fnum]['id'] = f.id
-                feature_dict[fnum]['srid'] = srid
-                feature_dict[fnum]['GeoJSON'] = poly_json
-
+                fdict[fnum]['GeoJSON']['type'] = "MultiPolygon"
+                fdict[fnum]['GeoJSON']['coordinates'] =  [ [[[x, y], [x, y]]] ]
 
 
             """Here we should handle multiple rows with the same feature#.
@@ -457,30 +495,8 @@ def xlsx_features(filepath, user=None):
             if polygon, a new point should be added to the polygon geometry
             """
 
-            f.save()
+#            f.save()
 
-            # Find related publication:
-            pub_id = s.cell_value(row, col_names.index('Publication_ID'))
-            if pub_id:
-                pub_id = int(pub_id)
-                try:
-                    p = models.Publication.objects.get(pk=pub_id)
-                except:
-                    p = None
-                    fmsg[0] = messages.WARNING
-                    fmsg[1] += ", could not add to publication {0} - it does not exist!".format(pub_id)
-
-                #get_object_or_404(models.Publication, pk=pub_id)
-            else:
-                p = None
-
-            # add it to m2m relationship
-            if p and not p in f.publications.all():
-                f.publications.add(p)
-                fmsg[1] += " and added to publication {0}".format(p.number)
-
-            f.save()
-            xlsxmessages.append(fmsg)
 
         elif fnum:
             """The feature number is not empty, and already exists in the
@@ -488,71 +504,93 @@ def xlsx_features(filepath, user=None):
             or polygon (multi-points are not intended implemented).
 
             """
-            if feature_dict[fnum]['GeoJSON']['type'] == 'MultiLineString':
-                """The first time the feature number was encountered, it was
-                registered as a line. We consider it a line, no matter what is
-                registered for additional points, but may raise a warning, if
-                the registered feature types do not match.
 
-                """
+            # If skip-flag is set, continue to next feature without processing
+            if fdict[fnum]['skip']:
+                continue
 
-                srid = int(s.cell_value(row, col_names.index('SRID')))
+            # Parse the spatial reference id
 
-                if srid != feature_dict[fnum]['srid']:
-                    msg = "SRID mismatch for feature {1} '{0}', row {2}. Point was not added to geometry!".format(f.name, fnum, row)
-                    xlsxmessages.append((messages.WARNING, msg))
-                else:
-                    x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
-                            s.cell_value(row, col_names.index('UTMY/LAT')))
+            # Get the srid and remove EPSG: or epsg: if it is present.
+            srid = s.cell_value(row, col_names.index('SRID'))
+            if s.cell_type(row, col_names.index('SRID')) == 1:
+                # If this is text input, try removing "epsg:""
+                srid = srid[len('epsg:'):] if srid.startswith('epsg:') else srid
+            try:
+                srid = int(srid)
+            except:
+                fdict[fnum]['skip'] = True
+                msg = "The 'SRID' field of row {0} (feature# {1}) is blank or not an integer. This feature is skipped!".format(row+1, fnum)
+                fdict[fnum]['messages'].append((messages.ERROR, msg))
+                continue
 
-                    feature_dict[fnum]['GeoJSON']['coordinates'][0].append([x,y])
-
-                    if s.cell_value(row, col_names.index('Geometry_type')) != 'line':
-                        msg = "Geometry type mismatch for feature {1} '{0}', row {2}. Point was added to geometry anyway".format(f.name, fnum, row)
-                        xlsxmessages.append((messages.WARNING, msg))
-
-                    print json.dumps(feature_dict[fnum]['GeoJSON'])
-
-                    geom = GEOSGeometry(json.dumps(feature_dict[fnum]['GeoJSON']),
-                                        srid=feature_dict[fnum]['srid'])
-                    f.lines = geom
-                    f.save()
-
-
-            elif feature_dict[fnum]['GeoJSON']['type'] == 'MultiPolygon':
-                """The first time the feature number was encountered, it was
-                registered as a polygon. We consider it a polygon, no matter
-                what is registered for additional points, but may raise a
-                warning, if the registered feature types do not match.
-
-                """
-
-                srid = int(s.cell_value(row, col_names.index('SRID')))
-
-                if srid != feature_dict[fnum]['srid']:
-                    msg = "SRID mismatch for feature {1} '{0}', row {2}. Point was not added to geometry!".format(f.name, fnum, row)
-                    xlsxmessages.append((messages.WARNING, msg))
-                else:
-                    x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
-                            s.cell_value(row, col_names.index('UTMY/LAT')))
-
-                    feature_dict[fnum]['GeoJSON']['coordinates'][0][0].insert(-1, [x,y])
-
-                    if s.cell_value(row, col_names.index('Geometry_type')) != 'line':
-                        msg = "Geometry type mismatch for feature {1} '{0}', row {2}. Point was added to geometry anyway".format(f.name, fnum, row)
-                        xlsxmessages.append((messages.WARNING, msg))
-
-                    print json.dumps(feature_dict[fnum]['GeoJSON'])
-
-                    if len(feature_dict[fnum]['GeoJSON']['coordinates'][0][0]) >= 4:
-                        # We must have at least four points to a polygon (=triangle).
-                        geom = GEOSGeometry(json.dumps(feature_dict[fnum]['GeoJSON']),
-                                            srid=feature_dict[fnum]['srid'])
-                        f.polys = geom
-                        f.save()
-
-                pass   #### UPDATE HERE ####
+            if srid != fdict[fnum]['srid']:
+                msg = "SRID mismatch for feature# {1} ({0}), row {2}. "+ \
+                      "Point was not added to geometry!"
+                msg = msg.format(fdict[fnum]['data']['name'], fnum, row+1)
+                fdict[fnum]['messages'].append((messages.WARNING, msg))
             else:
-                pass   #### UPDATE HERE ####
+                if fdict[fnum]['GeoJSON']['type'] == 'MultiLineString':
+                    """The first time the feature number was encountered, it was
+                    registered as a line. We consider it a line, no matter what is
+                    registered for additional points, but may raise a warning, if
+                    the registered feature types do not match.
 
-    return (len(feature_dict), xlsxmessages)
+                    """
+
+                    x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
+                            s.cell_value(row, col_names.index('UTMY/LAT')))
+
+                    fdict[fnum]['GeoJSON']['coordinates'][0].append([x,y])
+
+                    gtype = s.cell_value(row, col_names.index('Geometry_type'))
+                    ctype = s.cell_type(row, col_names.index('Geometry_type'))
+                    if ctype not in [0, 1] or (ctype == 1 and gtype.lower() not in ['line', 'multiline', 'linestring', 'multilinestring']):
+                        msg = "Geometry type mismatch for feature# {1} ({0}), "+ \
+                              "row {2}. Coordinates were added to geometry "+          \
+                              "anyway"
+                        msg = msg.format(fdict[fnum]['data']['name'], fnum, row+1)
+                        fdict[fnum]['messages'].append((messages.WARNING, msg))
+
+#                    geom = GEOSGeometry(json.dumps(fdict[fnum]['data']['GeoJSON']),
+#                                        srid=fdict[fnum]['data']['srid'])
+#                    f.lines = geom
+#                    f.save()
+
+
+                elif fdict[fnum]['GeoJSON']['type'] == 'MultiPolygon':
+                    """The first time the feature number was encountered, it was
+                    registered as a polygon. We consider it a polygon, no matter
+                    what is registered for additional points, but may raise a
+                    warning, if the registered feature types do not match.
+
+                    """
+
+                    x, y = (s.cell_value(row, col_names.index('UTMX/LON')),
+                            s.cell_value(row, col_names.index('UTMY/LAT')))
+
+                    fdict[fnum]['GeoJSON']['coordinates'][0][0].insert(-1, [x,y])
+
+                    gtype = s.cell_value(row, col_names.index('Geometry_type'))
+                    ctype = s.cell_type(row, col_names.index('Geometry_type'))
+                    if ctype not in [0, 1] or (ctype == 1 and gtype.lower() not in ['polygon', 'multipolygon']):
+                        msg = "Geometry type mismatch for feature {1} ({0}), "+ \
+                              "row {2}. Coordinates were added to geometry "+          \
+                              "anyway"
+                        msg = msg.format(fdict[fnum]['data']['name'], fnum, row+1)
+                        fdict[fnum]['messages'].append((messages.WARNING, msg))
+
+#                    print json.dumps(fdict[fnum]['data']['GeoJSON'])
+
+#                    if len(fdict[fnum]['data']['GeoJSON']['coordinates'][0][0]) >= 4:
+#                        # We must have at least four points to a polygon (=triangle).
+#                        geom = GEOSGeometry(json.dumps(fdict[fnum]['data']['GeoJSON']),
+#                                            srid=fdict[fnum]['data']['srid'])
+#                        f.polys = geom
+#                        f.save()
+
+                    pass   #### UPDATE HERE ####
+                else:
+                    pass   #### UPDATE HERE ####
+
+    return (fdict, filemessages)
