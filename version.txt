@@ -1,3 +1,6 @@
+20131202
+CHANGED: Localized the validate features from file view.
+
 20131201
 ADDED: A validation page for uploaded features, with possibility to confirm or
 delete the uploaded features. The views work both with upload from/to a specific

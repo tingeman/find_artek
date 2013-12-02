@@ -107,9 +107,7 @@
 <br>
 <table>
 <tr><td>
-Please check the location of all imported features and press the validate button
-to keep the features in the database, or the cancel button to remove the
-features and try uploading again (after manually correcting errors in the file).
+{% blocktrans %}Please check the location of all imported features and press the validate button to keep the features in the database, or the cancel button to remove the features and try uploading again (after manually correcting errors in the file).{% endblocktrans %}
 </td></tr>
 <tr><td>
 <form  action="/pubs/validate/features_from_file/" enctype="multipart/form-data" method="post" id="validate-features-from-file-form">{% csrf_token %}
