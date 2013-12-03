@@ -1,4 +1,5 @@
 20131203
+CHANGED: Removed light-bulbs from upload report files.
 CHANGED: Layout of details page. Including olwidget-popups.
 
 20131202
