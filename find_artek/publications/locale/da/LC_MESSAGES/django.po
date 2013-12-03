@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-03 09:55+0100\n"
+"POT-Creation-Date: 2013-12-03 12:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,7 +82,7 @@ msgid "This feature will be added to the following report:"
 msgstr "Denne feature vil blive knyttet til denne rapport:"
 
 #: .\templates\publications\add_feature.html.py:70
-#: .\templates\publications\add_feature_wcoords.html.py:77
+#: .\templates\publications\add_feature_wcoords.html.py:83
 msgid "Register feature"
 msgstr "Registrer feature"
 
@@ -173,6 +173,15 @@ msgid ""
 msgstr ""
 "Længde- og breddegrader skal specificeres i decimalgrader (dd.dddddd), "
 "*ikke* med grader, minutter, sekunder!"
+
+#: .\templates\publications\add_feature_wcoords.html.py:78
+#: .\templates\publications\add_features_from_file.html.py:40
+msgid ""
+"To read about coordinate systems and spatial reference systems, visit the "
+"links below."
+msgstr ""
+"Du kan finde flere oplysninger om koordinat og referencesystemer ved "
+"hjælp af de nedenstående links."
 
 #: .\templates\publications\add_features_from_file.html.py:13
 msgid "Features will be added to the following report"
@@ -279,7 +288,6 @@ msgstr "Ingen keywords registreret"
 #: .\templates\publications\detail.html.py:139
 msgid "pdf-file"
 msgstr "pdf-fil"
-
 
 #: .\templates\publications\detail.html.py:141
 msgid "download report as pdf"

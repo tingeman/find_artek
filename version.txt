@@ -1,4 +1,6 @@
 20131203
+ADDED: Links to information about reference systems to the relevant register
+and upload feature views.
 CHANGED: Removed link to old ftp-site from upload report files.
 CHANGED: Removed light-bulbs from upload report files.
 CHANGED: Layout of details page. Including olwidget-popups.
