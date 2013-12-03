@@ -1,3 +1,6 @@
+20131203
+CHANGED: Layout of details page. Including olwidget-popups.
+
 20131202
 CHANGED: Localized the validate features from file view.
 

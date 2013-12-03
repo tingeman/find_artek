@@ -388,6 +388,7 @@ def detail(request, pub_id):
                                  "PanZoom",
                                  "Attribution"], },
                 'popups_outside': True,
+                'popup_direction': 'auto',
                 'map_div_style': {'width': '600px', 'height': '360px'},
     }
 

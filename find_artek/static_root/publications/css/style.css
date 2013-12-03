@@ -137,6 +137,11 @@ div.site_container img{
     border: 0px;
 }
 
+div.headline {
+    margin: 10px 40px 0px;
+}
+
+
 .button {
     padding: 5px 10px;
     display: inline;

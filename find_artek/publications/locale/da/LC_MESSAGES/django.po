@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-02 09:24+0100\n"
+"POT-Creation-Date: 2013-12-03 09:55+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -239,98 +239,108 @@ msgid "Cancel"
 msgstr "Cancel"
 
 #: .\templates\publications\detail.html.py:2
-#: .\templates\publications\detail.html.py:40
+#: .\templates\publications\detail.html.py:90
 msgid "Publication detail"
 msgstr "Publikationsinformation"
 
-#: .\templates\publications\detail.html.py:50
-msgid "THIS REPORT ENTRY NEEDS VERIFICATION!"
-msgstr "DENNE RAPPORT MANGLER AT BLIVE VERIFICERET"
-
-#: .\templates\publications\detail.html.py:61
+#: .\templates\publications\detail.html.py:111
 #: .\templates\publications\snippets\report_list.html.py:5
 msgid "Title"
 msgstr "Titel"
 
-#: .\templates\publications\detail.html.py:64
+#: .\templates\publications\detail.html.py:112
 msgid "Authors"
 msgstr "Forfattere"
 
-#: .\templates\publications\detail.html.py:67
+#: .\templates\publications\detail.html.py:118
 msgid "Year"
 msgstr "År"
 
-#: .\templates\publications\detail.html.py:68
+#: .\templates\publications\detail.html.py:119
 msgid "Report no."
 msgstr "Rapport nr."
 
-#: .\templates\publications\detail.html.py:69
+#: .\templates\publications\detail.html.py:120
 msgid "Topics"
 msgstr "Emner"
 
-#: .\templates\publications\detail.html.py:74
+#: .\templates\publications\detail.html.py:125
 msgid "No topics registered"
 msgstr "Ingen emner registreret"
 
-#: .\templates\publications\detail.html.py:78
+#: .\templates\publications\detail.html.py:129
 msgid "Keywords"
 msgstr "Keywords"
 
-#: .\templates\publications\detail.html.py:83
+#: .\templates\publications\detail.html.py:134
 msgid "No keywords registered"
 msgstr "Ingen keywords registreret"
 
-#: .\templates\publications\detail.html.py:88
-msgid "download pdf"
-msgstr "download pdf"
+#: .\templates\publications\detail.html.py:139
+msgid "pdf-file"
+msgstr "pdf-fil"
 
-#: .\templates\publications\detail.html.py:90
+
+#: .\templates\publications\detail.html.py:141
 msgid "download report as pdf"
 msgstr "download rapport som pdf"
 
-#: .\templates\publications\detail.html.py:99
-msgid "ARTEKFTP file-location"
-msgstr "ARTEKFTP fil-placering"
-
-#: .\templates\publications\detail.html.py:111
+#: .\templates\publications\detail.html.py:149
 msgid "Supervisors"
 msgstr "Vejledere"
 
-#: .\templates\publications\detail.html.py:117
+#: .\templates\publications\detail.html.py:156
 msgid "Abstract"
 msgstr "Abstract"
 
-#: .\templates\publications\detail.html.py:120
+#: .\templates\publications\detail.html.py:167
 msgid "No abstract registered"
 msgstr "Intet abstract registreret"
 
-#: .\templates\publications\detail.html.py:125
+#: .\templates\publications\detail.html.py:174
 msgid "Comment"
 msgstr "Kommentar"
 
-#: .\templates\publications\detail.html.py:134
+#: .\templates\publications\detail.html.py:183
 msgid "Options"
 msgstr "Valg"
 
-#: .\templates\publications\detail.html.py:162
-#: .\templates\publications\detail.html.py:182
+#: .\templates\publications\detail.html.py:200
+msgid "THIS REPORT ENTRY NEEDS VERIFICATION!"
+msgstr "DENNE RAPPORT MANGLER AT BLIVE VERIFICERET"
+
+#: .\templates\publications\detail.html.py:207
+msgid "ARTEKFTP file-location"
+msgstr "ARTEKFTP fil-placering"
+
+#: .\templates\publications\detail.html.py:239
+#: .\templates\publications\detail.html.py:257
 msgid "Appendices"
 msgstr "Appendix"
 
-#: .\templates\publications\detail.html.py:177
-#: .\templates\publications\detail.html.py:184
+#: .\templates\publications\detail.html.py:253
+#: .\templates\publications\detail.html.py:260
 msgid "Upload appendices"
 msgstr "Upload appendix"
 
-#: .\templates\publications\detail.html.py:188
+#: .\templates\publications\detail.html.py:258
+msgid "No appendices registered"
+msgstr "Ingen appendix registreret"
+
+#: .\templates\publications\detail.html.py:273
 msgid "Registered features"
 msgstr "Registrerede features"
 
-#: .\templates\publications\detail.html.py:204
+#: .\templates\publications\detail.html.py:291
 msgid "delete all"
 msgstr "slet alle"
 
-#: .\templates\publications\detail.html.py:207
+#: .\templates\publications\detail.html.py:292
+#: .\templates\publications\detail.html.py:297
+msgid "add feature"
+msgstr "Tilføj feature"
+
+#: .\templates\publications\detail.html.py:295
 msgid "No features registered"
 msgstr "Ingen features registreret"
 
@@ -498,10 +508,10 @@ msgid ""
 "the features and try uploading again (after manually correcting errors in "
 "the file)."
 msgstr ""
-"Tjek venligst positionen for alle importerede features og tryk på "
-"validér-knappen for at beholde disse features i databasen, eller "
-"cancel-knappen for at fjerne disse features og uploade filen igen "
-"(efter manuelt at have rettet eventuelle fejl)."
+"Tjek venligst positionen for alle importerede features og tryk på validér-"
+"knappen for at beholde disse features i databasen, eller cancel-knappen for "
+"at fjerne disse features og uploade filen igen (efter manuelt at have rettet "
+"eventuelle fejl)."
 
 #: .\templates\publications\validate_features_from_file.html.py:118
 msgid "Delete imported features"
@@ -551,3 +561,6 @@ msgstr "Features"
 #: .\templates\publications\snippets\report_list.html.py:23
 msgid "Entry needs verification!"
 msgstr "Skal verificeres!"
+
+#~ msgid "download pdf"
+#~ msgstr "download pdf"
