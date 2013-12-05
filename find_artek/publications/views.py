@@ -431,10 +431,11 @@ def feature_detail(request, feature_id):
     }
 
     g = (f.points or f.lines or f.polys)
-    options.update(zoom_to_data_extent=False,
-                   default_zoom=12,
-                   default_lon=g.centroid.coords[0],
-                   default_lat=g.centroid.coords[1])
+    if g:
+        options.update(zoom_to_data_extent=False,
+                       default_zoom=12,
+                       default_lon=g.centroid.coords[0],
+                       default_lat=g.centroid.coords[1])
 
 #    if f.points and not f.polys and not f.lines:
 #

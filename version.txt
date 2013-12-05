@@ -1,4 +1,5 @@
 20131205
+HOTFIX: added check for empty geometry to avoid crash
 CHANGED: feature_detail view was updated to show map of feature, and very
 simple image gallery with automatic thumbnail generation through sorl_thumbnail.
 
