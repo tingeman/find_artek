@@ -1,3 +1,7 @@
+20131205
+CHANGED: feature_detail view was updated to show map of feature, and very
+simple image gallery with automatic thumbnail generation through sorl_thumbnail.
+
 20131203
 ADDED: Links to information about reference systems to the relevant register
 and upload feature views.

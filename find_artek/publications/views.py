@@ -408,8 +408,49 @@ def person_detail(request, person_id):
 
 def feature_detail(request, feature_id):
     f = get_object_or_404(Feature, pk=feature_id)
-    return render_to_response('publications/feature_detail.html', {'feature': f},
-            context_instance=RequestContext(request))
+
+    info, feature_colors = get_olwidget_params([f])
+
+    options = {'layers': ['google.satellite', 'osm.mapnik'],
+                'map_options': {
+                    'controls': [
+                                 "LayerSwitcher",
+                                 "PanZoom",
+                                 "Navigation"
+                                 #"NavToolbar",
+                                 #"Zoom"
+                                 ]
+                                 #"ZoomIn",
+                                 #"ZoomOut"]
+                                 },
+                'popups_outside': True,
+                #'map_div_style': {'width': '800px', 'height': '400px'},
+                'map_div_style': {'width': '400px', 'height': '280px'},
+                'default_zoom': 4,
+                'zoom_to_data_extent': True,
+    }
+
+    g = (f.points or f.lines or f.polys)
+    options.update(zoom_to_data_extent=False,
+                   default_zoom=12,
+                   default_lon=g.centroid.coords[0],
+                   default_lat=g.centroid.coords[1])
+
+#    if f.points and not f.polys and not f.lines:
+#
+#        options.update(zoom_to_data_extent=False,
+#                       default_zoom=8,
+#                       default_lon=f.points.coords[0][0],
+#                       default_lat=f.points.coords[0][1])
+
+
+    map_ = InfoMap(info, options)
+    return render_to_response('publications/feature_detail.html',
+                              {'feature': f,
+                              'geometry': g,
+                              "map": map_, "colors": feature_colors,
+                              'hide_language_choices': True},
+                              context_instance=RequestContext(request))
 
 
 def frontpage(request):
