@@ -114,8 +114,6 @@ class TagInput(Widget):
 
         """
 
-        pdb.set_trace()
-
         tags = []
         if name in data:
             tags = data.getlist(name)
