@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-03 12:14+0100\n"
+"POT-Creation-Date: 2013-12-08 09:47+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -180,8 +180,8 @@ msgid ""
 "To read about coordinate systems and spatial reference systems, visit the "
 "links below."
 msgstr ""
-"Du kan finde flere oplysninger om koordinat og referencesystemer ved "
-"hjælp af de nedenstående links."
+"Du kan finde flere oplysninger om koordinat og referencesystemer ved hjælp "
+"af de nedenstående links."
 
 #: .\templates\publications\add_features_from_file.html.py:13
 msgid "Features will be added to the following report"
@@ -351,6 +351,11 @@ msgstr "Tilføj feature"
 #: .\templates\publications\detail.html.py:295
 msgid "No features registered"
 msgstr "Ingen features registreret"
+
+#: .\templates\publications\feature_detail.html.py:6
+#: .\templates\publications\feature_detail.html.py:106
+msgid "Feature detail"
+msgstr "Feature information"
 
 #: .\templates\publications\frontpage_3.html.py:17
 msgid ""

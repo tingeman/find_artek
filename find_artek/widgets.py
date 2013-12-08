@@ -113,6 +113,9 @@ class TagInput(Widget):
         name  (str)   -- the name of the field associated with this widget
 
         """
+
+        pdb.set_trace()
+
         tags = []
         if name in data:
             tags = data.getlist(name)

@@ -1,3 +1,6 @@
+20131208
+FIXED: Keywords are now treated correctly when editing a report.
+
 20131205
 HOTFIX: added check for empty geometry to avoid crash
 CHANGED: feature_detail view was updated to show map of feature, and very
