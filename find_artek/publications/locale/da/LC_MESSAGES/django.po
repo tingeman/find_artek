@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-08 09:47+0100\n"
+"POT-Creation-Date: 2013-12-08 12:33+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -50,7 +50,7 @@ msgid "Language"
 msgstr "Sprog"
 
 #: .\templates\publications\add_feature.html.py:2
-#: .\templates\publications\add_feature.html.py:26
+#: .\templates\publications\add_feature.html.py:119
 #: .\templates\publications\add_feature_choice.html.py:2
 #: .\templates\publications\add_feature_choice.html.py:70
 #: .\templates\publications\add_feature_wcoords.html.py:2
@@ -58,16 +58,16 @@ msgstr "Sprog"
 msgid "Add feature"
 msgstr "Tilføj feature"
 
-#: .\templates\publications\add_feature.html.py:28
+#: .\templates\publications\add_feature.html.py:121
 msgid "Edit feature"
 msgstr "Rediger feature"
 
-#: .\templates\publications\add_feature.html.py:45
+#: .\templates\publications\add_feature.html.py:138
 #: .\templates\publications\add_feature_wcoords.html.py:43
 msgid "This feature will not be associated with a report!"
 msgstr "Denne feature knyttes ikke til en rapport!"
 
-#: .\templates\publications\add_feature.html.py:46
+#: .\templates\publications\add_feature.html.py:139
 #: .\templates\publications\add_feature_wcoords.html.py:44
 msgid ""
 "To register a feature associated with a specific report, please use the link "
@@ -76,15 +76,27 @@ msgstr ""
 "For at registrere en feature tilknyttet en bestemt rapport kan du benytte "
 "linket fra siden der viser rapportens detaljer!"
 
-#: .\templates\publications\add_feature.html.py:50
+#: .\templates\publications\add_feature.html.py:143
 #: .\templates\publications\add_feature_wcoords.html.py:48
 msgid "This feature will be added to the following report:"
 msgstr "Denne feature vil blive knyttet til denne rapport:"
 
-#: .\templates\publications\add_feature.html.py:70
+#: .\templates\publications\add_feature.html.py:164
 #: .\templates\publications\add_feature_wcoords.html.py:83
 msgid "Register feature"
 msgstr "Registrer feature"
+
+#: .\templates\publications\add_feature.html.py:170
+msgid ""
+"Click 'edit' to select which type of feature to add/edit (points, lines, "
+"polygons)."
+msgstr ""
+"Klik på 'edit' for at vælge hvilken type feature der skal tilføjes eller redigeres "
+"(punkt, linje, polygon)."
+
+#: .\templates\publications\add_feature.html.py:174
+msgid "Click '+' to select which type background map to display."
+msgstr "Klik på '+' for at væglge hvilken type kort der vises som baggrund."
 
 #: .\templates\publications\add_feature_choice.html.py:77
 msgid "Coordinates available..."
