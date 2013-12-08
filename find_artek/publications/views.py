@@ -522,7 +522,7 @@ def add_edit_report(request, pub_id=None):
                                       {'pub': p, 'error': error},
                                       context_instance=RequestContext(request))
 
-    #pdb.set_trace()
+
     if request.user.is_superuser:
         form = AddReportForm(data=request.POST or initial, instance=p)
     else:
@@ -676,14 +676,21 @@ def add_edit_report(request, pub_id=None):
                 mkw = [k.keyword for k in r.keywords.all()]  # list of model bound keywords
 
                 pkw = form.cleaned_data['keywords']  # posted keywords
+
                 for k in pkw:
+                    # Iterate over all posted keywords
                     if CaseInsensitively(k) in mkw:
+                        # If keyword is already in list of model bound keywords
+                        # remove it from the list (but not from model)
                         mkw.remove(CaseInsensitively(k))
                         continue
 
+                    # Get this keyword from the model, if present
                     mk = Keyword.objects.filter(keyword__iexact=k)
                     if not mk:
+                        # If it is not present, create the keyword...
                         mk = Keyword(keyword=k)
+                        # ... and save it to the keywords table
                         mk.save()
                         mk = [mk]
 
@@ -697,7 +704,7 @@ def add_edit_report(request, pub_id=None):
 
                 r.save()
 
-            if ('topic' in request.POST) and request.POST['topic']:
+            if ('topics' in request.POST) and request.POST['topics']:
                 # Get list of topics already attached
                 # Iterate through posted topics
                 # Is topic in existing list: continue
@@ -706,7 +713,7 @@ def add_edit_report(request, pub_id=None):
                 # remove any remaining model bound topics that were not in post
                 mtop = [t.topic for t in r.topics.all()]  # list of model bound topic
 
-                ptop = form.cleaned_data['topic']  # posted topic
+                ptop = form.cleaned_data['topics']  # posted topic
                 for t in ptop:
                     if CaseInsensitively(t) in mtop:
                         mtop.remove(CaseInsensitively(t))

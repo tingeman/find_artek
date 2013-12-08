@@ -25,7 +25,7 @@ class AddReportForm(ModelForm):
                                 help_text='Full name of all supervisors, separated by semicolon (;) or &-sign.',
                                 widget=forms.widgets.Textarea(attrs={'rows': 1, 'cols': 50}))
 
-    topic = myfields.TagField(required=False,
+    topics = myfields.TagField(required=False,
                                 #help_text='Type topics separated by comma or enter',
                                 widget=mywidgets.TagInput(
                                         TagInputAttrs={
@@ -52,7 +52,7 @@ class AddReportForm(ModelForm):
         model = Publication
         # Only show the following fields
         fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'topic', 'keywords', 'pdffile']
+                  'authors', 'supervisors', 'topics', 'keywords', 'pdffile']
         # Exclude the following native fields of the Publication model, because
         # we are handling them separately by new fields in the form.
         # exclude = ['quality', 'keywords', 'topic', 'file']
@@ -81,7 +81,8 @@ class AddReportForm(ModelForm):
                             for a in a_set]
             else:
                 a_list = []
-            self.fields['authors'].initial = '\n'.join(a_list)
+            #self.fields['authors'].initial = '\n'.join(a_list)
+            self.initial['authors'] = '\n'.join(a_list)
 
             # Populate supervisor list
             s_set = p.supervisorship_set.all().order_by('supervisor_id')
@@ -91,18 +92,24 @@ class AddReportForm(ModelForm):
                             for s in s_set]
             else:
                 s_list = []
-            self.fields['supervisors'].initial = '\n'.join(s_list)
+            #self.fields['supervisors'].initial = '\n'.join(s_list)
+            self.initial['supervisors'] = '\n'.join(s_list)
 
+
+            #pdb.set_trace()
 
             # populate keywords field
-            self.fields['keywords'].initial = [k.keyword for k in p.keywords.all()]
+            #self.fields['keywords'].initial = [k.keyword for k in p.keywords.all()]
+            self.initial['keywords'] = [k.keyword for k in p.keywords.all()]
 
             # populate topic field
-            self.fields['topic'].initial = [k.topic for k in p.topics.all()]
+            #self.fields['topic'].initial = [k.topic for k in p.topics.all()]
+            self.initial['topics'] = [k.topic for k in p.topics.all()]
 
             # populate pdffile field
             if p.file:
-                self.fields['pdffile'].initial = p.file.file
+                #self.fields['pdffile'].initial = p.file.file
+                self.initial['pdffile'] = p.file.file
 
 
 class UserAddReportForm(AddReportForm):
@@ -114,7 +121,7 @@ class UserAddReportForm(AddReportForm):
         model = Publication
         # Only show the following fields
         fields = ['type', 'title', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'topic', 'keywords', 'pdffile']
+                  'authors', 'supervisors', 'topics', 'keywords', 'pdffile']
 
 class AddPublicationsFromFileForm(forms.Form):
     """Form to handle import of publication information from a file.
