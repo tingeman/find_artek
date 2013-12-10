@@ -1943,6 +1943,9 @@ def add_edit_feature(request, pub_id=None, feat_id=None):
     if request.POST:
         # The form was posted, bind to posted data
         form = AddFeatureMapForm(data=request.POST, instance=f)
+
+        pdb.set_trace()
+
         if form.is_valid():
             # all form fields validated, process the form
             f = form.save(commit=False)

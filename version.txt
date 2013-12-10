@@ -1,3 +1,8 @@
+20131210
+FIXED: Problems with date input in model forms. Had to overload the widget for
+the date fields in model forms to ensure the format yyyy-mm-dd (%Y-%m-%d) is
+accepted on production server. It worked fine on development server.
+
 20131208
 ADDED: some comments added to the add_feature template.
 ADDED: Help boxes added to add feature map, to indicate how to use controls.
