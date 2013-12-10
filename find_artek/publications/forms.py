@@ -48,6 +48,11 @@ class AddReportForm(ModelForm):
                                 #help_text='Select file to upload',
                                 widget=AdminFileWidget)
 
+    date = forms.DateField(widget=forms.DateInput(format = '%Y-%m-%d'),
+                       input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
+                       required=False)
+
+
     class Meta:
         model = Publication
         # Only show the following fields
@@ -211,6 +216,10 @@ class AddPersonForm(ModelForm):
 
 
 class AddFeatureMapForm(MapModelForm):
+    date = forms.DateField(widget=forms.DateInput(format = '%Y-%m-%d'),
+                       input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
+                       required=False)
+
     class Meta:
         model = Feature
         exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',)
@@ -254,6 +263,10 @@ class AddFeatureCoordsForm(ModelForm):
     easting = forms.DecimalField()
     northing = forms.DecimalField()
     spatial_reference_system = forms.ChoiceField(choices=SRS_CHOICES)
+
+    date = forms.DateField(widget=forms.DateInput(format = '%Y-%m-%d'),
+                       input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
+                       required=False)
 
     class Meta:
         model = Feature
