@@ -1,3 +1,7 @@
+from __future__ import unicode_literals
+# my_string = b"This is a bytestring"
+# my_unicode = "This is an Unicode string"
+
 import random
 import string
 import datetime as dt

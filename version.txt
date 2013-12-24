@@ -1,3 +1,7 @@
+20131224
+CHANGED: All strings in views.py now considered unicode, by adding
+"from __future__ import unicode_literals". May induce other errors!
+
 20131210
 FIXED: Problems with date input in model forms. Had to overload the widget for
 the date fields in model forms to ensure the format yyyy-mm-dd (%Y-%m-%d) is
