@@ -1,4 +1,6 @@
 20140107
+CHANGED: Sorting in overview.py to also handle report number.
+ADDED: Sorting to reportlist in overview.py
 ADDED: Translation to overview.py.
 ADDED: Sorting to reportlist in overview.py
 CHANGED: Sorting of ad_groups in signals.py removed due to problem with handling

@@ -309,7 +309,9 @@ def search(request):
     else:
         raise ValueError('Search key not recognized!')
 
-    found_entries = found_entries.extra(select={'year_int': 'CAST(year AS INTEGER)'}).extra(order_by=['-year_int'])
+    found_entries = found_entries.extra(
+        select={'year_int': 'CAST(year AS INTEGER)'}).extra(
+        order_by=['-year_int', '-number'])
 
     if not request.user.is_authenticated():
         found_entries = found_entries.exclude(verified=False)
@@ -1369,7 +1371,7 @@ def ajax_list_reports(request):
             p_set = p_set.exclude(verified=False)
 
         p_set = p_set.extra(select={'year_int': 'CAST(year AS INTEGER)'})
-        p_set = p_set.extra(order_by=['-year_int'])
+        p_set = p_set.extra(order_by=['-year_int', '-number'])
 
         json_response['html'] = render_to_string(
                 'publications/snippets/report_list.html',
