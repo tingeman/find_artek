@@ -1,3 +1,7 @@
+from __future__ import unicode_literals
+# my_string = b"This is a bytestring"
+# my_unicode = "This is an Unicode string"
+
 from django.dispatch import receiver
 from django_auth_ldap.backend import populate_user
 from django.contrib.auth.models import Group

@@ -1,3 +1,13 @@
+20140107
+ADDED: publications are only viewable when verified. On overview maps, features
+are only shown if the publication is verified. In all cases publications are
+visible also when not verified, if user is authenticated.
+CHANGED: all strings in signals.py now considered unicode.
+
+20140106
+CHANGED: updating the xlsx template for feature registration (changes had not
+propagated to static_root/static)
+
 20131224
 CHANGED: All strings in views.py now considered unicode, by adding
 "from __future__ import unicode_literals". May induce other errors!
