@@ -1,4 +1,6 @@
 20140107
+ADDED: Translation to overview.py.
+ADDED: Sorting to reportlist in overview.py
 CHANGED: Sorting of ad_groups in signals.py removed due to problem with handling
 unicode characters.
 ADDED: publications are only viewable when verified. On overview maps, features

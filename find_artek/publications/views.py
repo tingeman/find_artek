@@ -1368,11 +1368,15 @@ def ajax_list_reports(request):
         if not request.user.is_authenticated():
             p_set = p_set.exclude(verified=False)
 
+        p_set = p_set.extra(select={'year_int': 'CAST(year AS INTEGER)'})
+        p_set = p_set.extra(order_by=['-year_int'])
 
         json_response['html'] = render_to_string(
                 'publications/snippets/report_list.html',
                 {'pub_list': p_set},
                 context_instance=RequestContext(request))
+
+
 
 #        if 'error' in json_response and json_response['error']:
 #            json_response['error'] += '\n'

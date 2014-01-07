@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-08 12:33+0100\n"
+"POT-Creation-Date: 2014-01-07 13:36+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,7 +21,8 @@ msgstr ""
 msgid "Frontpage"
 msgstr "Forside"
 
-#: .\templates\base.html.py:15
+#: .\templates\base.html.py:15 .\templates\publications\overview.html.py:2
+#: .\templates\publications\overview.html.py:11
 msgid "Map"
 msgstr "Kort"
 
@@ -50,7 +51,7 @@ msgid "Language"
 msgstr "Sprog"
 
 #: .\templates\publications\add_feature.html.py:2
-#: .\templates\publications\add_feature.html.py:119
+#: .\templates\publications\add_feature.html.py:141
 #: .\templates\publications\add_feature_choice.html.py:2
 #: .\templates\publications\add_feature_choice.html.py:70
 #: .\templates\publications\add_feature_wcoords.html.py:2
@@ -58,16 +59,16 @@ msgstr "Sprog"
 msgid "Add feature"
 msgstr "Tilføj feature"
 
-#: .\templates\publications\add_feature.html.py:121
+#: .\templates\publications\add_feature.html.py:143
 msgid "Edit feature"
 msgstr "Rediger feature"
 
-#: .\templates\publications\add_feature.html.py:138
+#: .\templates\publications\add_feature.html.py:160
 #: .\templates\publications\add_feature_wcoords.html.py:43
 msgid "This feature will not be associated with a report!"
 msgstr "Denne feature knyttes ikke til en rapport!"
 
-#: .\templates\publications\add_feature.html.py:139
+#: .\templates\publications\add_feature.html.py:161
 #: .\templates\publications\add_feature_wcoords.html.py:44
 msgid ""
 "To register a feature associated with a specific report, please use the link "
@@ -76,25 +77,25 @@ msgstr ""
 "For at registrere en feature tilknyttet en bestemt rapport kan du benytte "
 "linket fra siden der viser rapportens detaljer!"
 
-#: .\templates\publications\add_feature.html.py:143
+#: .\templates\publications\add_feature.html.py:165
 #: .\templates\publications\add_feature_wcoords.html.py:48
 msgid "This feature will be added to the following report:"
 msgstr "Denne feature vil blive knyttet til denne rapport:"
 
-#: .\templates\publications\add_feature.html.py:164
+#: .\templates\publications\add_feature.html.py:186
 #: .\templates\publications\add_feature_wcoords.html.py:83
 msgid "Register feature"
 msgstr "Registrer feature"
 
-#: .\templates\publications\add_feature.html.py:170
+#: .\templates\publications\add_feature.html.py:192
 msgid ""
 "Click 'edit' to select which type of feature to add/edit (points, lines, "
 "polygons)."
 msgstr ""
-"Klik på 'edit' for at vælge hvilken type feature der skal tilføjes eller redigeres "
-"(punkt, linje, polygon)."
+"Klik på 'edit' for at vælge hvilken type feature der skal tilføjes eller "
+"redigeres (punkt, linje, polygon)."
 
-#: .\templates\publications\add_feature.html.py:174
+#: .\templates\publications\add_feature.html.py:196
 msgid "Click '+' to select which type background map to display."
 msgstr "Klik på '+' for at væglge hvilken type kort der vises som baggrund."
 
@@ -477,6 +478,30 @@ msgid ""
 msgstr ""
 "Søgningen vil vise rapporter hvor alle søge-ord indgår i titlen og eller "
 "abstract"
+
+#: .\templates\publications\overview.html.py:17
+msgid "(Press left mouse button on a feature to see details)"
+msgstr "(Se detaljer om en feature ved at venstre-klikke på den)"
+
+#: .\templates\publications\overview.html.py:204
+msgid "update list"
+msgstr "opdatér liste"
+
+#: .\templates\publications\overview.html.py:206
+msgid ""
+"\"Update list\" will generate a list of reports that have geographic "
+"features\n"
+"registered within the current view of the map on this page. Presently the "
+"list\n"
+"is not filtered according to the chosen feature types. This will be changed\n"
+"in a future update."
+msgstr ""
+"\"opdatér liste\" vil generere en liste over rapporter som har geografiske "
+"features\n"
+"inden for det kort udsnit som vises. På nuværende tidspunkt filtreres listen "
+"ikke \n"
+"i forhold til de valgte feature typer. Dette vil blive fixet i en fremtidig\n"
+"opdatering."
 
 #: .\templates\publications\person_list.html.py:2
 #: .\templates\publications\person_list.html.py:8
