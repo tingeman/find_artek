@@ -1,3 +1,7 @@
+from __future__ import unicode_literals
+# my_string = b"This is a bytestring"
+# my_unicode = "This is an Unicode string"
+
 import random
 import string
 import datetime as dt
@@ -217,6 +221,12 @@ def overview(request):
     #print request.GET
     features = Feature.objects.all()
 
+    print "Hello"
+
+    if not request.user.is_authenticated():
+        print "excluded"
+        features = features.exclude(publications__verified=False)
+
     ftypes = Feature.feature_type_list()
     show_ftypes = copy.copy(ftypes)
     #print show_ftypes
@@ -265,6 +275,7 @@ def overview(request):
                    'max_extent': [-20037508.34, -20037508.34, 20037508.34, 20037508.34]
                 },
                'popups_outside': True,
+               #'cluster': True,
                }
 
     map_ = InfoMap(info, options)
@@ -279,10 +290,43 @@ def index(request):
     return HttpResponse("Hello, world. You're at the publication index.")
 
 
+def search(request):
+    query_string = ''
+    topic_string = ''
+    found_entries = None
+    if ('q' in request.GET) and request.GET['q'].strip():
+        query_string = request.GET['q']
+        entry_query = get_query(query_string, ['title', 'abstract', 'keywords__keyword'])
+        found_entries = Publication.objects.filter(entry_query)  # .order_by('number')
+    elif ('topic' in request.GET) and request.GET['topic'].strip():
+        query_string = request.GET['topic']
+        entry_query = get_query(query_string, ['topics__topic', ])
+        found_entries = Publication.objects.filter(entry_query)  # .order_by('number')
+    elif ('keyword' in request.GET) and request.GET['keyword'].strip():
+        query_string = request.GET['keyword']
+        entry_query = get_query(query_string, ['keywords__keyword', ])
+        found_entries = Publication.objects.filter(entry_query)  # .order_by('number')
+    else:
+        raise ValueError('Search key not recognized!')
+
+    found_entries = found_entries.extra(
+        select={'year_int': 'CAST(year AS INTEGER)'}).extra(
+        order_by=['-year_int', '-number'])
+
+    if not request.user.is_authenticated():
+        found_entries = found_entries.exclude(verified=False)
+
+    return render_to_response('publications/publist.html', {'pub_list': found_entries.distinct(), 'query': query_string, 'topic': topic_string},
+                              context_instance=RequestContext(request))
+
+
 def publist(request):
     pub_list = Publication.objects.all()  # .order_by('-year').order_by('number')
 
     pub_list = pub_list.extra(select={'year_int': 'CAST(year AS INTEGER)'}).extra(order_by=['-year_int', '-number'])
+
+    if not request.user.is_authenticated():
+        pub_list = pub_list.exclude(verified=False)
 
     return render_to_response('publications/publist.html', {'pub_list': pub_list},
         context_instance=RequestContext(request))
@@ -369,6 +413,13 @@ def detail(request, pub_id):
         return t.render(c)
 
     p = get_object_or_404(Publication, pk=pub_id)
+
+    if not p.verified and not request.user.is_authenticated():
+        error = "You do not have permissions to access this publication!"
+        return render_to_response('publications/access_denied.html',
+                                    {'pub': p, 'error': error},
+                                     context_instance=RequestContext(request))
+
     features = p.feature_set.all()
 
     info = []
@@ -459,31 +510,6 @@ def frontpage(request):
             context_instance=RequestContext(request))
     #return render_to_response('publications/frontpage.html', {'None': None},
     #        context_instance=RequestContext(request))
-
-
-def search(request):
-    query_string = ''
-    topic_string = ''
-    found_entries = None
-    if ('q' in request.GET) and request.GET['q'].strip():
-        query_string = request.GET['q']
-        entry_query = get_query(query_string, ['title', 'abstract', 'keywords__keyword'])
-        found_entries = Publication.objects.filter(entry_query)  # .order_by('number')
-    elif ('topic' in request.GET) and request.GET['topic'].strip():
-        query_string = request.GET['topic']
-        entry_query = get_query(query_string, ['topics__topic', ])
-        found_entries = Publication.objects.filter(entry_query)  # .order_by('number')
-    elif ('keyword' in request.GET) and request.GET['keyword'].strip():
-        query_string = request.GET['keyword']
-        entry_query = get_query(query_string, ['keywords__keyword', ])
-        found_entries = Publication.objects.filter(entry_query)  # .order_by('number')
-    else:
-        raise ValueError('Search key not recognized!')
-
-    found_entries = found_entries.extra(select={'year_int': 'CAST(year AS INTEGER)'}).extra(order_by=['-year_int'])
-
-    return render_to_response('publications/publist.html', {'pub_list': found_entries.distinct(), 'query': query_string, 'topic': topic_string},
-                              context_instance=RequestContext(request))
 
 
 def rand_generator(size=8, chars=string.ascii_uppercase + string.digits):
@@ -1313,8 +1339,6 @@ def ajax_list_reports(request):
         # Make sure to only respond to ajax-requests!
         return HttpResponse(status=400)
 
-    #pdb.set_trace()
-
     json_response = dict()
     #print request.GET
 
@@ -1343,10 +1367,18 @@ def ajax_list_reports(request):
         f_set = Feature.objects.filter(Q_points | Q_lines | Q_polys)
         p_set = Publication.objects.filter(feature__in=f_set).distinct()
 
+        if not request.user.is_authenticated():
+            p_set = p_set.exclude(verified=False)
+
+        p_set = p_set.extra(select={'year_int': 'CAST(year AS INTEGER)'})
+        p_set = p_set.extra(order_by=['-year_int', '-number'])
+
         json_response['html'] = render_to_string(
                 'publications/snippets/report_list.html',
                 {'pub_list': p_set},
                 context_instance=RequestContext(request))
+
+
 
 #        if 'error' in json_response and json_response['error']:
 #            json_response['error'] += '\n'

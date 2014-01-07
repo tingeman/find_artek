@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block title %}Overview{% endblock %}
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% trans "Map" %}{% endblock %}
 {% block head %}
 {{ map.media }}
 {% include "publications/snippets/jQuery_include.html" %}
@@ -8,13 +8,13 @@
 {% block body %}
 
 <div class='site_container'>
-<h2>Overview</h2>
+<h2>{%trans "Map" %}</h2>
 </br>
 
 <table>
 <tr><td>
 {{ map }}
-(Press left mouse button on a feature to see details)
+{%trans "(Press left mouse button on a feature to see details)" %}"
 
 <script type="text/javascript">
     $(function() {
@@ -201,12 +201,12 @@ for (var name in this)
 <br>
 <table>
 <tr><td style="width:100px">
-<button id="update-report-list">update list</button>
+<button id="update-report-list">{% trans "update list" %}</button>
 </td><td>
-"Update list" will generate a list of reports that have geographic features
+{% blocktrans %}"Update list" will generate a list of reports that have geographic features
 registered within the current view of the map on this page. Presently the list
 is not filtered according to the chosen feature types. This will be changed
-in a future update.
+in a future update.{% endblocktrans %}
 </td></tr>
 </table>
 <br><br>

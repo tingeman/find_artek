@@ -1,3 +1,23 @@
+20140107
+CHANGED: Sorting in overview.py to also handle report number.
+ADDED: Sorting to reportlist in overview.py
+ADDED: Translation to overview.py.
+ADDED: Sorting to reportlist in overview.py
+CHANGED: Sorting of ad_groups in signals.py removed due to problem with handling
+unicode characters.
+ADDED: publications are only viewable when verified. On overview maps, features
+are only shown if the publication is verified. In all cases publications are
+visible also when not verified, if user is authenticated.
+CHANGED: all strings in signals.py now considered unicode.
+
+20140106
+CHANGED: updating the xlsx template for feature registration (changes had not
+propagated to static_root/static)
+
+20131224
+CHANGED: All strings in views.py now considered unicode, by adding
+"from __future__ import unicode_literals". May induce other errors!
+
 20131210
 FIXED: Problems with date input in model forms. Had to overload the widget for
 the date fields in model forms to ensure the format yyyy-mm-dd (%Y-%m-%d) is
