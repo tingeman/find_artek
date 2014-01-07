@@ -55,7 +55,7 @@ def post_ldap_authentication(sender, **kwargs):
     if result:
         for r in result: all_groups_dn.add(r[0])
 
-    all_groups_dn = sorted(all_groups_dn)
+    # all_groups_dn = sorted(all_groups_dn)
 
 
     """  Handle ARTEK STAFF  """

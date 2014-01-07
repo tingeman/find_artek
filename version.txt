@@ -1,4 +1,6 @@
 20140107
+CHANGED: Sorting of ad_groups in signals.py removed due to problem with handling
+unicode characters.
 ADDED: publications are only viewable when verified. On overview maps, features
 are only shown if the publication is verified. In all cases publications are
 visible also when not verified, if user is authenticated.
