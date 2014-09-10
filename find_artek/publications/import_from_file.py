@@ -63,12 +63,19 @@ class CaseInsensitively(object):
 def xlsx_pubs(filepath, user=None):
     current_user = user  # User.objects.get(username='thin')
 
+    filemessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
+
     wb = xlrd.open_workbook(os.path.join(settings.MEDIA_ROOT, filepath), formatting_info=False)
 
+    sheet_counter = 0
     for s in wb.sheets():
+        current_sheet_name = wb.sheet_names()[s.number]
         # ignore empty sheets
         if s.ncols == 0 and s.nrows == 0:
+            filemessages.append((messages.WARNING, "Sheet '{0}' is empty, nothing imported.".format(current_sheet_name)))
             continue
+
+        sheet_counter += 1
 
         # Make list of column names
         col_names = []
@@ -80,11 +87,13 @@ def xlsx_pubs(filepath, user=None):
 
         # ignore sheets that don't provide a title column
         if not (col_names.index('title') or col_names.index('booktitle')):
+            filemessages.append((messages.WARNING, "Sheet '{0}' doesn't have a title column, nothing imported.".format('')))
             continue
 
         number_col = col_names.index('number')
 
         # iterate over report entries
+        report_counter = 0
         for row in range(1, s.nrows):
             print " "
             print "processing report {0}".format(s.cell_value(row, number_col))
@@ -142,6 +151,8 @@ def xlsx_pubs(filepath, user=None):
             instance, created = models.Publication.objects.get_or_create(
                                     number=s.cell_value(row, number_col),
                                     defaults=kwargs)
+
+            report_counter += 1
             if created:
                 print "Publication registered!"
 
@@ -167,23 +178,38 @@ def xlsx_pubs(filepath, user=None):
                         print "Attribute '{0}' set.".format(attr)
                         updated = True
 
-                if not updated:
-                    print "No attributes updated!"
                 instance.save()
 
                 if m2m_dict:
                     # handle authors, editors, supervisors etc. here!
                     for f in ['author', 'supervisor', 'editor']:
                         names = m2m_dict.pop(f, None)
-                        if not getattr(instance, f):
+                        if len(getattr(instance, f).all()) == 0 and names:
+                            pdb.set_trace()
                             # Add persons if no persons are registered already
                             add_persons_to_publication(names, instance, f, current_user)
+                            updated = True
 
+                    #pdb.set_trace()
                     # Handle the topics
                     topics = m2m_dict.pop('topic', None)
-                    add_topics_to_publication(topics, instance, current_user)
+                    if len(instance.topics.all()) == 0 and topics:
+                        add_topics_to_publication(topics, instance, current_user)
+                        updated = True
 
+                if not updated:
+                    filemessages.append((messages.WARNING, "Publication '{0}' exists in database, no attributes changed.".format(instance.title)))
+                    print "No attributes updated!"
+                else:
+                    filemessages.append((messages.WARNING, "Publication '{0}' exists in database, some attributes were updated.".format(instance.title)))
                 instance.save()
+
+        if report_counter != s.nrows-1:
+            filemessages.append((messages.INFO, "{0} of {1} publications registered/updated from sheet '{2}'.".format(report_counter, s.nrows-1, current_sheet_name)))
+        else:
+            filemessages.append((messages.SUCCESS, "{0} of {1} publications registered/updated from sheet '{2}'.".format(report_counter, s.nrows-1, current_sheet_name)))
+    return filemessages
+
 
 
 def add_persons_to_publication(names, pub, field, user):
