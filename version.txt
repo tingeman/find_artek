@@ -1,3 +1,13 @@
+20140910
+ADDED: Upload of report list in xls format now accepts studynumbers and initials
+    as well as names (in semicolon separated lists). If initials or studynumbers
+    are given, the database is first searched for exact matches. If it is not
+    found, the LDAP directory is searched for match, and the corresponding
+    person is created and selected attributes imported.
+ADDED: Person detail page now also lists supervised and edited publications in
+    spearate lists, sorted by year, number and title.
+FIXED: several minor bugs fixed.
+
 20140107
 CHANGED: Sorting in overview.py to also handle report number.
 ADDED: Sorting to reportlist in overview.py
