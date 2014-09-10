@@ -76,7 +76,8 @@ class PersonUtilsTest(TestCase):
                 'Ingeman-Nielsen, Thomas, Jensen, Pernille Erland & von And, Joakim',
                 'Ingeman-Nielsen, Thomas, Jensen, Pernille Erland og von And, Joakim',
                 'Ingeman-Nielsen, Thomas, Jensen, Pernille Erland and von And, Joakim',
-                #'s050001, s060102, s070203'
+                's050001; s060102; s070203', # What happens when passing study numbers?
+                'thin; peej; gunki' # What happens when passing initials
                 ]
 
         expected = [['Thomas Ingeman-Nielsen', 'Pernille Erland Jensen', 'Joakim von And'],
@@ -88,7 +89,8 @@ class PersonUtilsTest(TestCase):
                     ['Ingeman-Nielsen, Thomas', 'Jensen, Pernille Erland', 'von And, Joakim'],
                     ['Ingeman-Nielsen, Thomas', 'Jensen, Pernille Erland', 'von And, Joakim'],
                     ['Ingeman-Nielsen, Thomas', 'Jensen, Pernille Erland', 'von And, Joakim'],
-                    #['s050001', 's060102', 's070203']
+                    ['s050001', 's060102', 's070203'],
+                    ['thin', 'peej', 'gunki']
                     ]
 
         # test the parsing of these lists
