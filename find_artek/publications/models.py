@@ -402,6 +402,31 @@ class Person(BaseModel):
         # if neither, return False
         return False
 
+    def sorted_authorships(self):
+        """ Returns the list of publications this person has authored, sorted
+        by year, report number and title"""
+        pub_list = self.publication_authors.all()  # .order_by('-year').order_by('number')
+        pub_list = pub_list.extra(select={'year_int': 'CAST(year AS INTEGER)'})
+        pub_list = pub_list.extra(order_by=['-year_int', '-number', 'title'])
+        return pub_list
+
+    def sorted_supervisorships(self):
+        """ Returns the list of publications this person has supervised, sorted
+        by year, report number and title"""
+        pub_list = self.publication_supervisors.all()  # .order_by('-year').order_by('number')
+        pub_list = pub_list.extra(select={'year_int': 'CAST(year AS INTEGER)'})
+        pub_list = pub_list.extra(order_by=['-year_int', '-number', 'title'])
+        return pub_list
+
+    def sorted_editorships(self):
+        """ Returns the list of publications this person has edited, sorted
+        by year, report number and title"""
+        pub_list = self.publication_editors.all()  # .order_by('-year').order_by('number')
+        pub_list = pub_list.extra(select={'year_int': 'CAST(year AS INTEGER)'})
+        pub_list = pub_list.extra(order_by=['-year_int', '-number', 'title'])
+        return pub_list
+
+
 
 
 
