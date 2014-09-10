@@ -13,6 +13,7 @@ import dateutil.parser
 import chardet
 import string
 import simplejson as json
+import re
 
 from pybtex.database import Person as pybtexPerson
 
@@ -23,6 +24,7 @@ from django.contrib import messages
 
 #from find_artek.publications.models import Publication, Person, Feature, PubType, Authorship
 from find_artek.publications import models, person_utils, utils
+from find_artek.publications import ldap_person
 
 
 import logging
@@ -189,49 +191,87 @@ def add_persons_to_publication(names, pub, field, user):
     if not names or not names.strip():
         return
 
-    if getattr(pub, field).all():
-        # Skip if field is already populated.
-        return
+#    if getattr(pub, field).all():
+#        # Skip if field is already populated.
+#        return
 
     #define pubplication-person through-table
     through_tbl = getattr(models, field[0].upper() + field[1:] + 'ship')
 
     kwargs = dict()
 
-    # Parse author names to a list
-    kwargs[field] = [pybtexPerson(s) for s in
-                     person_utils.parse_name_list(names) if s]
+    # Parse author names to a list, use only non-empty items
+    kwargs[field] = [s for s in person_utils.parse_name_list(names) if s]
 
-    # Cycle through persons
-    for id, pers in enumerate(kwargs[field]):
-        if not (hasattr(pers, 'first') and hasattr(pers, 'last')):
-            raise ValueError("Missing parts of name, cannot create database entry")
-
-        print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(pers)))
-
+    for id, s in enumerate(kwargs[field]):
+        print "Processing person: {0}".format(s.encode('ascii', 'replace'))
         exact_match = False
         multiple_match = False
         relaxed_match = False
 
-        # Get existing persons using relaxed naming
-        p, match = person_utils.get_person(person=pers)
+        if re.search('[a-zA-Z]{1}[0-9]{6}', s):
+            # This is a study number...
 
-        if len(p) > 1:
-            # More than one exact return, flag multiple_match
-            multiple_match = True
-        if match == 'exact' and len(p) > 0:
-            # if exact match flag exact_match
-            exact_match = True
-        elif match == 'relaxed' and len(p) > 0:
-            # if relaxed match flag relaxed_match
-            relaxed_match = True
+            # See if it is in our own database
+            p, match = person_utils.get_person(id_number=s, exact=True)
+            if not p:
+                # Now see if it is in LDAP directory
+                result = ldap_person.find_ldap_person(name=s)
+                if result:
+                    p = ldap_person.get_or_create_person_from_ldap(person=result[0],
+                                                                   user=user)
+                    exact_match = True
+                    print "   LDAP match"
+                else:
+                    # ISSUE A WARNING!
+                    continue
+            else:
+                print "   DB match"
+        elif len(re.split('[^A-Za-z]',s)) == 1:
+            # this is an entry with only consecutive letters = initials
 
-        # Create new person, also if matched
-        p = person_utils.create_person_from_pybtex(person=pers, user=user)
+            # See if it is in our own database
+            p, match = person_utils.get_person(initials=s, exact=True)
+            if not p:
+                # Now see if it is in LDAP directory
+                result = ldap_person.find_ldap_person(initials=s)
+                if result:
+                    p = ldap_person.get_or_create_person_from_ldap(person=result[0],
+                                                                   user=user)
+                    exact_match = True
+                    print "   LDAP match"
+                else:
+                    # ISSUE A WARNING!
+                    continue
+            else:
+                print "   DB match"
+        else:
+            # otherwise... this is just a name...
+            person = pybtexPerson(s)
+
+            if not (hasattr(person, 'first') and hasattr(person, 'last')):
+                raise ValueError("Missing parts of name, cannot create database entry")
+
+            print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(person)))
+
+            # Get existing persons using relaxed naming
+            p, match = person_utils.get_person(person=person)
+
+            if len(p) > 1:
+                # More than one exact return, flag multiple_match
+                multiple_match = True
+            if match == 'exact' and len(p) > 0:
+                # if exact match flag exact_match
+                exact_match = True
+            elif match == 'relaxed' and len(p) > 0:
+                # if relaxed match flag relaxed_match
+                relaxed_match = True
+
+            # Create new person, also if matched
+            p = person_utils.create_person_from_pybtex(person=person, user=user)
 
         if p:
             # add the person to the author/supervisor/editor-relationship
-
             tmp = through_tbl(person=p[0],
                               publication=pub,
                               exact_match=exact_match,
@@ -239,6 +279,49 @@ def add_persons_to_publication(names, pub, field, user):
                               relaxed_match=relaxed_match,
                               **{field+'_id': id})
             tmp.save()
+
+
+
+#    kwargs[field] = [pybtexPerson(s) for s in
+#                     person_utils.parse_name_list(names) if s]
+
+    # # Cycle through persons
+    # for id, pers in enumerate(kwargs[field]):
+    #     if not (hasattr(pers, 'first') and hasattr(pers, 'last')):
+    #         raise ValueError("Missing parts of name, cannot create database entry")
+
+    #     print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(pers)))
+
+    #     exact_match = False
+    #     multiple_match = False
+    #     relaxed_match = False
+
+    #     # Get existing persons using relaxed naming
+    #     p, match = person_utils.get_person(person=pers)
+
+    #     if len(p) > 1:
+    #         # More than one exact return, flag multiple_match
+    #         multiple_match = True
+    #     if match == 'exact' and len(p) > 0:
+    #         # if exact match flag exact_match
+    #         exact_match = True
+    #     elif match == 'relaxed' and len(p) > 0:
+    #         # if relaxed match flag relaxed_match
+    #         relaxed_match = True
+
+    #     # Create new person, also if matched
+    #     p = person_utils.create_person_from_pybtex(person=pers, user=user)
+
+    #     if p:
+    #         # add the person to the author/supervisor/editor-relationship
+
+    #         tmp = through_tbl(person=p[0],
+    #                           publication=pub,
+    #                           exact_match=exact_match,
+    #                           multiple_match=multiple_match,
+    #                           relaxed_match=relaxed_match,
+    #                           **{field+'_id': id})
+    #         tmp.save()
 
 
 def add_topics_to_publication(topics, pub, user):
