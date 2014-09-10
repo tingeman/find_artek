@@ -740,6 +740,7 @@ def add_edit_report(request, pub_id=None):
                 mtop = [t.topic for t in r.topics.all()]  # list of model bound topic
 
                 ptop = form.cleaned_data['topics']  # posted topic
+
                 for t in ptop:
                     if CaseInsensitively(t) in mtop:
                         mtop.remove(CaseInsensitively(t))
@@ -760,6 +761,10 @@ def add_edit_report(request, pub_id=None):
                         r.topics.remove(r.topics.get(topic=t))
 
                 r.save()
+            else:
+                # No topics in post, means that we deleted them all!
+                for t in r.topics.all():
+                    r.topics.remove(t)
 
             if 'pdffile-clear' in request.POST and request.POST['pdffile-clear']:
                 f = r.file
@@ -1499,8 +1504,10 @@ def add_pubs_from_file(request):
                         response = 'Bibtex upload not implemented yet!'
                         pass
                     elif request.POST['type'] == 'xlsx':
-                        import_from_file.xlsx_pubs(filepath, user=request.user)
+                        filemessages = import_from_file.xlsx_pubs(filepath, user=request.user)
                         response = 'success'
+                        for level, msg in filemessages:
+                            messages.add_message(request, level, msg)
                     elif request.POST['type'] == 'csv':
                         #import_bibtex(request.FILES['file'])
                         response = 'csv upload not implemented yet!'
@@ -1510,7 +1517,10 @@ def add_pubs_from_file(request):
                 finally:
                     default_storage.delete(filepath)
 
-                return HttpResponse(response)
+                #return HttpResponse(response)
+                return render_to_response('publications/add_pubs_from_file.html',
+                              {'form': form},
+                              context_instance=RequestContext(request))
 
     else:
         form = AddPublicationsFromFileForm()
