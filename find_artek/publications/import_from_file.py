@@ -161,7 +161,9 @@ def xlsx_pubs(filepath, user=None):
                 # Handle authors, editors, supervisors etc. here!
                 for f in ['author', 'supervisor', 'editor']:
                     names = m2m_dict.pop(f, None)
-                    add_persons_to_publication(names, instance, f, current_user)
+                    personmessages = add_persons_to_publication(names, instance, f, current_user)
+                    for m in personmessages:
+                        filemessages.append(m)
 
                 # Handle the topics
                 topics = m2m_dict.pop('topic', None)
@@ -185,11 +187,11 @@ def xlsx_pubs(filepath, user=None):
                     for f in ['author', 'supervisor', 'editor']:
                         names = m2m_dict.pop(f, None)
                         if len(getattr(instance, f).all()) == 0 and names:
-                            pdb.set_trace()
                             # Add persons if no persons are registered already
-                            add_persons_to_publication(names, instance, f, current_user)
+                            personmessages = add_persons_to_publication(names, instance, f, current_user)
+                            for m in personmessages:
+                                filemessages.append(m)
                             updated = True
-
                     #pdb.set_trace()
                     # Handle the topics
                     topics = m2m_dict.pop('topic', None)
@@ -213,9 +215,11 @@ def xlsx_pubs(filepath, user=None):
 
 
 def add_persons_to_publication(names, pub, field, user):
+    personmessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
+
     # return if no names passed
     if not names or not names.strip():
-        return
+        return personmessages
 
 #    if getattr(pub, field).all():
 #        # Skip if field is already populated.
@@ -249,7 +253,11 @@ def add_persons_to_publication(names, pub, field, user):
                     exact_match = True
                     print "   LDAP match"
                 else:
-                    # ISSUE A WARNING!
+                    print "   WARNING: No match found. Not added!"
+                    msgstr = "{0} identified by '{1}' was not found in " \
+                             "database. Please add {0} manually!"
+                    msgstr = msgstr.format(field.title(), s)
+                    personmessages.append((messages.WARNING, msgstr))
                     continue
             else:
                 print "   DB match"
@@ -267,7 +275,11 @@ def add_persons_to_publication(names, pub, field, user):
                     exact_match = True
                     print "   LDAP match"
                 else:
-                    # ISSUE A WARNING!
+                    print "   WARNING: No match found. Not added!"
+                    msgstr = "{0} identified by '{1}' was not found in " \
+                             "database. Please add {2} manually!"
+                    msgstr = msgstr.format(field.title(), s, field.lower())
+                    personmessages.append((messages.WARNING, msgstr))
                     continue
             else:
                 print "   DB match"
@@ -275,8 +287,13 @@ def add_persons_to_publication(names, pub, field, user):
             # otherwise... this is just a name...
             person = pybtexPerson(s)
 
-            if not (hasattr(person, 'first') and hasattr(person, 'last')):
-                raise ValueError("Missing parts of name, cannot create database entry")
+            if not (person.first() and person.last()):
+                msgstr = "The {0} name '{1}' does not contain enough " \
+                         "information to add it to the database (must " \
+                         "contain at least given and sur names)."
+                msgstr = msgstr.format(field.lower(), s)
+                personmessages.append((messages.ERROR, msgstr))
+                continue
 
             print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(person)))
 
@@ -306,7 +323,7 @@ def add_persons_to_publication(names, pub, field, user):
                               **{field+'_id': id})
             tmp.save()
 
-
+    return personmessages
 
 #    kwargs[field] = [pybtexPerson(s) for s in
 #                     person_utils.parse_name_list(names) if s]

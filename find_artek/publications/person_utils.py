@@ -201,10 +201,10 @@ def create_person_from_pybtex(person=None, user=None):
     if not kwargs:
         raise ValueError('The pybtex person passed, contained no information')
 
-    if kwargs['first']:
+    if kwargs.get('first', None):
         initial = pybtex_utils.bibtex_first_letter(person.first()[0])
         kwargs['first_relaxed'] = dk_unidecode(initial.decode('latex')).lower()
-    if kwargs['last']:
+    if kwargs.get('last', None):
         kwargs['last_relaxed'] = dk_unidecode(u' '.join(person.last()).decode('latex')).lower()
 
     p = models.Person(**kwargs)
