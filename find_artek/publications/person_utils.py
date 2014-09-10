@@ -109,7 +109,7 @@ def get_relaxed_name_kwargs(string='', person=None):
     return kwargs
 
 
-def get_full_name_kwargs(string='', person=None, initials='', person_id=''):
+def get_full_name_kwargs(string='', person=None, initials='', id_number=''):
     """Creates a dictionary with the fields:
     'first', 'middle', 'last', 'prelast' and 'lineage'
     (and possibly 'initials' and 'person_id')
@@ -140,14 +140,14 @@ def get_full_name_kwargs(string='', person=None, initials='', person_id=''):
     if initials:
         kwargs['initials'] = initials
 
-    if person_id:
-        kwargs['person_id'] = person_id
+    if id_number:
+        kwargs['id_number'] = id_number
 
 
     return kwargs
 
 
-def get_person(string='', person=None, initials='', person_id='', exact=False, relaxed=False):
+def get_person(string='', person=None, initials='', person_id='', id_number='', exact=False, relaxed=False):
     """Match exact name as passed (ignore empty parts of name)
     If exact argument is True, only exact matches are returned
 
@@ -159,10 +159,10 @@ def get_person(string='', person=None, initials='', person_id='', exact=False, r
     exact=False and relaxed=False    Return only exact, if existing, otherwise relaxed.
 
     """
-    if not string and not person and not initials:
+    if not string and not person and not initials and not id_number:
         return ([], '')
 
-    kwargs = get_full_name_kwargs(string, person, initials)
+    kwargs = get_full_name_kwargs(string, person, initials, id_number)
     match = 'exact'
     p = models.Person.objects.filter(**kwargs)
 
