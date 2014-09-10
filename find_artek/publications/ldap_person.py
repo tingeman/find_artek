@@ -76,6 +76,16 @@ def get_or_create_person_from_ldap_search(first_name=None, last_name=None, email
     pass
 
 
+def result2unicode(pdict):
+    result = dict()
+    for k,v in pdict.items():
+        try:
+            result[k] = [unicode(s, 'UTF-8') for s in v]
+        except:
+            result[k] = v
+
+    return result
+
 
 def get_or_create_person_from_ldap(person=None, user=None):
     """Create Person object from pybtex instance
@@ -91,10 +101,11 @@ def get_or_create_person_from_ldap(person=None, user=None):
     if not user:
         raise ValueError('No user information passed!')
 
-    pdict = person[1]
+    pdict = result2unicode(person[1])
+
 
     # define name parts
-    name = '{0}, {1}'.format(pdict['sn'][0],pdict['givenName'][0])
+    name = u'{0}, {1}'.format(pdict['sn'][0],pdict['givenName'][0])
 
     # Get the different name parts
     kwargs = person_utils.get_full_name_kwargs(string=name)
