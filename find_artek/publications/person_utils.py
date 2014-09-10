@@ -25,26 +25,6 @@ def parse_name_list(names):
     # first1 last1, first2 last2 & first3 last3
     # and many more...
 
-#    def comma_parsing(names):
-#        # Count number of commas
-#        comma_count = names.count(',')
-#        # Check to see if names has space separators not connected to commas
-#        space_count = len(re.findall(re_space_sep, names))
-#
-#        if space_count and comma_count:
-#            # we have both, list type must be: first last, first last etc.
-#            name_list = names.split(',')
-#        elif comma_count:
-#            # all names and parts must be comma separated.
-#            # list type must be: last, first, last, first
-#            nl2 = names.split(',')
-#            name_list = [', '.join([a,b]) for a,b in zip(nl2[::2], nl2[1::2])]
-#        else:
-#            # we have no commas, this must be a single name
-#            name_list = [names]
-#
-#        return name_list
-
     def comma_parsing(names):
         # stupid way to strip off all whitespace and commas at ends of string
         names.strip().strip(',').strip()
@@ -129,9 +109,10 @@ def get_relaxed_name_kwargs(string='', person=None):
     return kwargs
 
 
-def get_full_name_kwargs(string='', person=None, initials=''):
+def get_full_name_kwargs(string='', person=None, initials='', id_number=''):
     """Creates a dictionary with the fields:
-    'first', 'middle', 'last', 'prelast' and 'lineage' (and possibly 'initials')
+    'first', 'middle', 'last', 'prelast' and 'lineage'
+    (and possibly 'initials' and 'person_id')
 
     Only non-empty fields will be included in the dictionary.
     The fields will be unicode strings.
@@ -159,10 +140,14 @@ def get_full_name_kwargs(string='', person=None, initials=''):
     if initials:
         kwargs['initials'] = initials
 
+    if id_number:
+        kwargs['id_number'] = id_number
+
+
     return kwargs
 
 
-def get_person(string='', person=None, initials='', exact=False, relaxed=False):
+def get_person(string='', person=None, initials='', person_id='', id_number='', exact=False, relaxed=False):
     """Match exact name as passed (ignore empty parts of name)
     If exact argument is True, only exact matches are returned
 
@@ -174,10 +159,10 @@ def get_person(string='', person=None, initials='', exact=False, relaxed=False):
     exact=False and relaxed=False    Return only exact, if existing, otherwise relaxed.
 
     """
-    if not string and not person and not initials:
+    if not string and not person and not initials and not id_number:
         return ([], '')
 
-    kwargs = get_full_name_kwargs(string, person, initials)
+    kwargs = get_full_name_kwargs(string, person, initials, id_number)
     match = 'exact'
     p = models.Person.objects.filter(**kwargs)
 
@@ -210,20 +195,7 @@ def create_person_from_pybtex(person=None, user=None):
     if not user:
         raise ValueError('No user information passed!')
 
-#    # Define possible name parts
-#    names = ['first','middle','last','prelast','lineage']
-#    kwargs = {}
-#
-#    # loop through name parts
-#    for n in names:
-#        part = getattr(person, n)()
-#
-#        # If the name part is not empty, include it in new database entry
-#        if part:
-#            # get the unicode representation
-#            part = u" ".join(part).decode('latex')
-#            kwargs[n] = part
-
+    # define name parts
     kwargs = get_full_name_kwargs(person=person)
 
     if not kwargs:
@@ -313,11 +285,11 @@ def fullname(person):
         return ', '.join(part for part in (full_name, jr) if part)
 
 
-def create_pybtex_person(**kwargs):
+def create_pybtex_person(*args, **kwargs):
     """Function is just a wrapper for the pybtexPerson class instantiation.
 
     """
-    return pybtexPerson(**kwargs)
+    return pybtexPerson(*args, **kwargs)
 
 
 
