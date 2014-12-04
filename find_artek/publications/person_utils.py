@@ -292,7 +292,186 @@ def create_pybtex_person(*args, **kwargs):
     return pybtexPerson(*args, **kwargs)
 
 
+    
+    
+    
+def add_persons_to_publication(names, pub, field, user):
+    """
+    """
+    personmessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
+    
+    # return if no names passed
+    if not names or not names.strip():
+        return personmessages
+    
+    #define pubplication-person through-table
+    through_tbl = getattr(models, field[0].upper() + field[1:] + 'ship')
+    
+    person_entity_list = [s for s in person_utils.parse_name_list(names) if s]
+    
+    for id, s in enumerate(person_entity_list):
+        print "Processing person: {0}".format(s.encode('ascii', 'replace'))
+        exact_match = False
+        multiple_match = False
+        relaxed_match = False
 
+        if re.search('[a-zA-Z]{1}[0-9]{6}', s):
+            # This is a study number...
+            p, match, msg = get_from_studynumber(s, user)
+            
+        elif len(re.split('[^A-Za-z]',s)) == 1:
+            # this is an entry with only consecutive letters = initials
+            p, match, msg = get_from_initials(s, user)
+        
+        elif re.search('\[.*\]', s):
+            # this entry has a tag!
+             p, match, msg = get_from_tag(s, user)
+             
+        else:
+            # otherwise... this is just a name...
+            p, match, msg = get_from_namestring(s, user)
+        
+        personmessages.extend(msg)
+        
+        if p:
+            if len(p) > 1:
+                # More than one exact return, flag multiple_match
+                multiple_match = True
+            if match == 'exact':
+                # if exact match flag exact_match
+                exact_match = True
+            elif match == 'relaxed':
+                # if relaxed match flag relaxed_match
+                relaxed_match = True
+
+            # add the person to the author/supervisor/editor-relationship
+            tmp = through_tbl(person=p[0],
+                              publication=pub,
+                              exact_match=exact_match,
+                              multiple_match=multiple_match,
+                              relaxed_match=relaxed_match,
+                              **{field+'_id': id})
+            tmp.save()
+
+    return personmessages    
+    
+    
+def get_from_studynumber(s, user):
+    """Get or create person from study number. Will use ldap lookup if possible."""
+
+    msgs = []
+    
+    # See if it is in our own database
+    p, match = person_utils.get_person(id_number=s, exact=True)
+    if not p:
+        # Now see if it is in LDAP directory
+        result = ldap_person.find_ldap_person(name=s)
+        if result:
+            p = ldap_person.get_or_create_person_from_ldap(person=result[0],
+                                                           user=user)
+            exact_match = True
+#            print "   LDAP match"
+        else:
+#            print "   WARNING: No match found. Not added!"
+            msgstr = "{0} identified by '{1}' was not found in " \
+                     "database. Please add {0} manually!"
+            msgstr = msgstr.format(field.title(), s)
+            msgs.append((messages.WARNING, msgstr))
+            continue
+    else:
+#        print "   DB match"
+        pass
+    
+    return p, match, msgs
+
+    
+def get_from_studynumber(s, user):
+    """Get or create person from initials. Will use ldap lookup if possible."""
+
+    msgs = []
+    
+    # See if it is in our own database
+    p, match = person_utils.get_person(initials=s, exact=True)
+    if not p:
+        # Now see if it is in LDAP directory
+        result = ldap_person.find_ldap_person(initials=s)
+        if result:
+            p = ldap_person.get_or_create_person_from_ldap(person=result[0],
+                                                           user=user)
+            exact_match = True
+#            print "   LDAP match"
+        else:
+#            print "   WARNING: No match found. Not added!"
+            msgstr = "{0} identified by '{1}' was not found in " \
+                     "database. Please add {2} manually!"
+            msgstr = msgstr.format(field.title(), s, field.lower())
+            msgs.append((messages.WARNING, msgstr))
+            continue
+    else:
+#        print "   DB match"    
+        pass
+    
+    return p, match, msgs    
+    
+
+def get_from_tag(s, user):
+    """Get or create person from tag value."""
+
+    msgs = []
+    s = s.strip()
+    pid = get_tag(s, 'id')
+
+    if pid == '0':
+        # tag [id:0]
+        # create new person
+        # ...
+        s = remove_tags(s)
+        if s:
+            p = Person(name=s)
+            p.created_by = user
+            p.modified_by = user
+            p.save()
+
+    elif pid:
+        # tag [id:XX] where xx is supposed to be integer.
+        # get specified person and add to authorship
+        try:
+            p = Person.objects.get(id=pid)
+        except ObjectDoesNotExist:
+            if s:
+                # This is only an error, if n is not empty
+                msgs.error(request, "Person with id:{0} does not exist in database".format(pid))
+            p = None
+
+    return p, 'exact', msgs    
+    
+    
+def get_from_namestring(s):
+    """Get or create person from initials. Will use ldap lookup if possible."""
+
+    msgs = []
+
+    person = pybtexPerson(s)
+
+    if not (person.first() and person.last()):
+        msgstr = "The {0} name '{1}' does not contain enough " \
+                 "information to add it to the database (must " \
+                 "contain at least given and sur names)."
+        msgstr = msgstr.format(field.lower(), s)
+        msgs.append((messages.ERROR, msgstr))
+        continue
+
+#    print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(person)))
+
+    # Get existing persons using relaxed naming
+    p, match = person_utils.get_person(person=person)
+
+    # Create new person, also if matched
+    p = person_utils.create_person_from_pybtex(person=person, user=user)    
+    
+    return p, match, msgs    
+    
+    
 
 # def dk_unidecode(string):
 #     """use unidecode, but first exchange æÆ, øØ and åÅ with ae, oe and aa
