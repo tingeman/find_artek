@@ -309,6 +309,7 @@ def add_persons_to_publication(names, pub, field, user):
                 # if relaxed match flag relaxed_match
                 relaxed_match = True
             elif match == 'ldap':
+                p[0].save()
                 msgstr = "Person '{0}' [id:{1}] imported from DTU directory.".format(p[0], p[0].id)
                 personmessages.append((messages.INFO, msgstr))
 
@@ -324,6 +325,7 @@ def add_persons_to_publication(names, pub, field, user):
                 personmessages.append((messages.INFO, msgstr))
 
             # add the person to the author/supervisor/editor-relationship
+            p[0].save()
             tmp = through_tbl(person=p[0],
                               publication=pub,
                               exact_match=exact_match,
