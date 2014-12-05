@@ -10,6 +10,7 @@ from unidecode import unidecode
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib import messages
 
 from pybtex.database import Person as pybtexPerson
 from pybtex.bibtex import utils as pybtex_utils     # functions for splitting strings in a tex aware fashion etc.
