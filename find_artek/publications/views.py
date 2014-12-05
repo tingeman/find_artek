@@ -36,7 +36,6 @@ from find_artek.publications.models import Publication, Person, Feature,        
                                             PubType, Keyword, Topic,            \
                                             FileObject, ImageObject,            \
                                             Authorship, Editorship, Supervisorship
-from find_artek.publications.person_utils import get_person
 from find_artek.publications.forms import AddReportForm,                        \
                                             UserAddReportForm,                  \
                                             AddPersonForm,         \
@@ -45,7 +44,9 @@ from find_artek.publications.forms import AddReportForm,                        
                                             AddFeatureCoordsForm,               \
                                             AddFeaturesFromFileForm
 from find_artek.publications.utils import CyclicList, get_tag, remove_tags
-from find_artek.publications.person_utils import parse_name_list
+from find_artek.publications.person_utils import parse_name_list,               \
+                                            get_person, get_person_from_string, \
+                                            add_persons_to_publication
 from find_artek.publications import import_from_file
 
 from multiuploader.models import MultiuploaderImage
@@ -584,55 +585,60 @@ def add_edit_report(request, pub_id=None):
                 if a_set:
                     for a in a_set:
                         a.delete()
-
-                # Parse author list!
-                name_list = parse_name_list(request.POST['authors'])
-
-                for id, n in enumerate(name_list):
-                    n = n.strip()
-                    pid = get_tag(n, 'id')
-
-                    if pid == '0':
-                        # tag [id:0]
-                        # create new person
-                        # ...
-                        n = remove_tags(n)
-                        if n:
-                            p = Person(name=n)
-                            p.created_by = current_user
-                            p.modified_by = current_user
-                            p.save()
-                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
-
-                            tmp = Authorship(person=p,
-                                         publication=r,
-                                         author_id=id)
-                            tmp.save()
-                    elif pid:
-                        # tag [id:XX] where xx is supposed to be integer.
-                        # get specified person and add to authorship
-                        try:
-                            p = Person.objects.get(id=pid)
-                        except ObjectDoesNotExist:
-                            if n:
-                                # This is only an error, if n is not empty
-                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
-                            continue
-                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
-                        #name_list[id] = 'DB: '+p.__unicode__()
-                        tmp = Authorship(person=p,
-                                         publication=r,
-                                         author_id=id)
-                        tmp.save()
-                    else:
-                        # No tag...
-
-                        # Check if person exists   (exact or loose match)
-                        # otherwise create person
-                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n))
-
-                        #  msg.append([messages.WARNING,
-                        #             "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n)])
+                
+                msgs = add_persons_to_publication(request.POST['authors'], r, 'author', current_user)
+                # Process general file level messages.
+                for level, msg in msgs:
+                    messages.add_message(request, level, msg)
+                    
+#                # Parse author list!
+#                name_list = parse_name_list(request.POST['authors'])
+#
+#                for id, n in enumerate(name_list):
+#                    n = n.strip()
+#                    pid = get_tag(n, 'id')
+#
+#                    if pid == '0':
+#                        # tag [id:0]
+#                        # create new person
+#                        # ...
+#                        n = remove_tags(n)
+#                        if n:
+#                            p = Person(name=n)
+#                            p.created_by = current_user
+#                            p.modified_by = current_user
+#                            p.save()
+#                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
+#
+#                            tmp = Authorship(person=p,
+#                                         publication=r,
+#                                         author_id=id)
+#                            tmp.save()
+#                    elif pid:
+#                        # tag [id:XX] where xx is supposed to be integer.
+#                        # get specified person and add to authorship
+#                        try:
+#                            p = Person.objects.get(id=pid)
+#                        except ObjectDoesNotExist:
+#                            if n:
+#                                # This is only an error, if n is not empty
+#                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
+#                            continue
+#                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
+#                        #name_list[id] = 'DB: '+p.__unicode__()
+#                        tmp = Authorship(person=p,
+#                                         publication=r,
+#                                         author_id=id)
+#                        tmp.save()
+#                    else:
+#                        # No tag...
+#
+#                        # Check if person exists   (exact or loose match)
+#                        # otherwise create person
+#                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n))
+#
+#                        #  msg.append([messages.WARNING,
+#                        #             "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n)])
 
 
             if ('supervisors' in request.POST) and request.POST['supervisors'].strip():
@@ -641,55 +647,59 @@ def add_edit_report(request, pub_id=None):
                 if s_set:
                     for s in s_set:
                         s.delete()
-
-                # Parse author list!
-                name_list = parse_name_list(request.POST['supervisors'])
-
-                for id, n in enumerate(name_list):
-                    n = n.strip()
-                    pid = get_tag(n, 'id')
-
-                    if pid == '0':
-                        # tag [id:0]
-                        # create new person
-                        # ...
-                        n = remove_tags(n)
-                        if n:
-                            p = Person(name=n)
-                            p.created_by = current_user
-                            p.modified_by = current_user
-                            p.save()
-                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
-
-                            tmp = Supervisorship(person=p,
-                                         publication=r,
-                                         supervisor_id=id)
-                            tmp.save()
-                    elif pid:
-                        # tag [id:XX] where xx is supposed to be integer.
-                        # get specified person and add to supervisorship
-                        try:
-                            p = Person.objects.get(id=pid)
-                        except ObjectDoesNotExist:
-                            if n:
-                                # This is only an error, if n is not empty
-                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
-                            continue
-                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
-                        #name_list[id] = 'DB: '+p.__unicode__()
-                        tmp = Supervisorship(person=p,
-                                         publication=r,
-                                         supervisor_id=id)
-                        tmp.save()
-                    else:
-                        # No tag...
-
-                        # Check if person exists   (exact or loose match)
-                        # otherwise create person
-                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n))
-
-                        #  msg.append([messages.WARNING,
-                        #             "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n)])
+                
+                msgs = add_persons_to_publication(request.POST['supervisors'], r, 'supervisor', current_user)
+                # Process general file level messages.
+                for level, msg in msgs:
+                    messages.add_message(request, level, msg)
+#                # Parse author list!
+#                name_list = parse_name_list(request.POST['supervisors'])
+#
+#                for id, n in enumerate(name_list):
+#                    n = n.strip()
+#                    pid = get_tag(n, 'id')
+#
+#                    if pid == '0':
+#                        # tag [id:0]
+#                        # create new person
+#                        # ...
+#                        n = remove_tags(n)
+#                        if n:
+#                            p = Person(name=n)
+#                            p.created_by = current_user
+#                            p.modified_by = current_user
+#                            p.save()
+#                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
+#
+#                            tmp = Supervisorship(person=p,
+#                                         publication=r,
+#                                         supervisor_id=id)
+#                            tmp.save()
+#                    elif pid:
+#                        # tag [id:XX] where xx is supposed to be integer.
+#                        # get specified person and add to supervisorship
+#                        try:
+#                            p = Person.objects.get(id=pid)
+#                        except ObjectDoesNotExist:
+#                            if n:
+#                                # This is only an error, if n is not empty
+#                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
+#                            continue
+#                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
+#                        #name_list[id] = 'DB: '+p.__unicode__()
+#                        tmp = Supervisorship(person=p,
+#                                         publication=r,
+#                                         supervisor_id=id)
+#                        tmp.save()
+#                    else:
+#                        # No tag...
+#
+#                        # Check if person exists   (exact or loose match)
+#                        # otherwise create person
+#                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n))
+#
+#                        #  msg.append([messages.WARNING,
+#                        #             "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n)])
 
 
             if ('keywords' in request.POST) and request.POST['keywords']:
@@ -1248,7 +1258,9 @@ def check_person_ajax(request):
         provide html code for a dialog box for each of them.
 
         """
-
+        
+        print "... in process fields ..."
+        
         json_response = {}
         context = {'name_field': name_field,
                    'persons': []}
@@ -1270,30 +1282,43 @@ def check_person_ajax(request):
             else:
                 # No id-tag, thus make choice
                 # First get possible matches from database
-                #print "No id found in name. Getting list of relaxed matches"
-                dbp_list = get_person(p, exact=False)
-                #pdb.set_trace()
-                if dbp_list[1] == 'exact':
-                    # Include exact match only
-                    context['persons'].append({'name': p, 'p_exact': dbp_list[0], 'p_relaxed': []})
-                elif dbp_list[1] == 'relaxed':
-                    # Include list of relaxed matches.
-                    context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': dbp_list[0]})
+                
+                print 'before get_person_from_string'
+                pdb.set_trace()
+                dbp_list = get_person_from_string(p, request.user, save=False)
+                print 'after get_person_from_string'
+                
+#                #print "No id found in name. Getting list of relaxed matches"
+#                dbp_list = get_person(p, exact=False)
 
-        try:
-            if 'persons' in context and len(context['persons']) > 0:
+                if dbp_list[1] == 'db_exact':
+                    # Include exact match only
+                    context['persons'].append({'name': p, 'p_exact': dbp_list[0], 'p_relaxed': [], 'p_ldap': []})
+                elif dbp_list[1] == 'db_relaxed':
+                    # Include list of relaxed matches.
+                    context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': dbp_list[0], 'p_ldap': []})
+                elif dbp_list[1] == 'ldap':
+                    # Include list of ldap matches.
+                    context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': [], 'p_ldap': dbp_list[0]})
+                elif dbp_list[1] is None:
+                    # Choose to create a new person... probably a suspect name!
+                    context['persons'].append({'name': p, 'p_exact': [], 'p_relaxed': [], 'p_ldap': []})
+
+        if 'persons' in context and len(context['persons']) > 0:
+            print "trying to jsonify..."
+            try:
                 # If choices are to be made, render appropriate form.
                 json_response['html'] = render_to_string(
                     'publications/ajax/choose_person_form.html',
                     {'data': context},
                     context_instance=RequestContext(request))
-            else:
-                # Otherwise return that all is ok.
-                json_response['html'] = ''
-                json_response['message'] = 'ok'
-        except Exception, e:
-            #print str(e)
-            json_response['error'] = str(e)
+            except Exception, e:
+                print str(e)
+                json_response['error'] = str(e)                    
+        else:
+            # Otherwise return that all is ok.
+            json_response['html'] = ''
+            json_response['message'] = 'ok'
 
         #print json_response
         return json_response
@@ -2222,10 +2247,10 @@ def person_merge(request, person_id=None):
     data = {}
     data['person'] = p
     data['choose_person_list'] = dbp_list[0]
-    if dbp_list[1] == 'exact':
+    if dbp_list[1] == 'db_exact':
         data['exact'] = True
-    elif dbp_list[1] == 'relaxed':
-        data['exact'] = True
+    elif dbp_list[1] == 'db_relaxed':
+        data['db_exact'] = True
 
     return render_to_response('publications/merge_person_form.html', data,
                               context_instance=RequestContext(request))
