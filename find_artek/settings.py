@@ -15,7 +15,7 @@ if not os.path.exists(SITE_ROOT):
     SITE_ROOT = "C:/THIN/www/django_sites/find_artek_vb/"
     DEBUG = True
     ONLINE = False
-
+    
     if not os.path.exists(SITE_ROOT):
         raise ValueError('SITE_ROOT incorrectly defined, path does not exist.')
 

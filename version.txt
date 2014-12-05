@@ -1,3 +1,15 @@
+20141205:  Version 1.3.15
+REFACTORED: Code for adding persons to publications moved to person_utils, and
+	ldap_person module is deprecated. Both ajax check of persons and server 
+	side form processing uses now same code (in person utils), and accept
+	study numbers and initials, as well as name strings.
+	If study numbers or initials are specified and not found in database, 
+	the LDAP directory will be searched, and person information imported
+	from there. This should be the preferred way of creating new persons,
+	because it will fill all relevant fields of the person entity.
+ADDED: Better handling of errors in add_edit_report form. Also added info
+	about correct date format.
+
 20140910
 ADDED: Upload of report list in xls format now accepts studynumbers and initials
     as well as names (in semicolon separated lists). If initials or studynumbers

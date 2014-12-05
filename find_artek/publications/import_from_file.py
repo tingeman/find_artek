@@ -22,9 +22,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 
-#from find_artek.publications.models import Publication, Person, Feature, PubType, Authorship
 from find_artek.publications import models, person_utils, utils
-from find_artek.publications import ldap_person
 
 
 import logging
@@ -246,9 +244,9 @@ def add_persons_to_publication(names, pub, field, user):
             p, match = person_utils.get_person(id_number=s, exact=True)
             if not p:
                 # Now see if it is in LDAP directory
-                result = ldap_person.find_ldap_person(name=s)
+                result = person_utils.find_ldap_person(name=s)
                 if result:
-                    p = ldap_person.get_or_create_person_from_ldap(person=result[0],
+                    p = person_utils.get_or_create_person_from_ldap(person=result[0],
                                                                    user=user)
                     exact_match = True
                     print "   LDAP match"
@@ -268,9 +266,9 @@ def add_persons_to_publication(names, pub, field, user):
             p, match = person_utils.get_person(initials=s, exact=True)
             if not p:
                 # Now see if it is in LDAP directory
-                result = ldap_person.find_ldap_person(initials=s)
+                result = person_utils.find_ldap_person(initials=s)
                 if result:
-                    p = ldap_person.get_or_create_person_from_ldap(person=result[0],
+                    p = person_utils.get_or_create_person_from_ldap(person=result[0],
                                                                    user=user)
                     exact_match = True
                     print "   LDAP match"
@@ -303,10 +301,10 @@ def add_persons_to_publication(names, pub, field, user):
             if len(p) > 1:
                 # More than one exact return, flag multiple_match
                 multiple_match = True
-            if match == 'exact' and len(p) > 0:
+            if match == 'db_exact' and len(p) > 0:
                 # if exact match flag exact_match
                 exact_match = True
-            elif match == 'relaxed' and len(p) > 0:
+            elif match == 'db_relaxed' and len(p) > 0:
                 # if relaxed match flag relaxed_match
                 relaxed_match = True
 
@@ -324,47 +322,6 @@ def add_persons_to_publication(names, pub, field, user):
             tmp.save()
 
     return personmessages
-
-#    kwargs[field] = [pybtexPerson(s) for s in
-#                     person_utils.parse_name_list(names) if s]
-
-    # # Cycle through persons
-    # for id, pers in enumerate(kwargs[field]):
-    #     if not (hasattr(pers, 'first') and hasattr(pers, 'last')):
-    #         raise ValueError("Missing parts of name, cannot create database entry")
-
-    #     print "   Processing person {0}: {1}".format(id, utils.unidecode(unicode(pers)))
-
-    #     exact_match = False
-    #     multiple_match = False
-    #     relaxed_match = False
-
-    #     # Get existing persons using relaxed naming
-    #     p, match = person_utils.get_person(person=pers)
-
-    #     if len(p) > 1:
-    #         # More than one exact return, flag multiple_match
-    #         multiple_match = True
-    #     if match == 'exact' and len(p) > 0:
-    #         # if exact match flag exact_match
-    #         exact_match = True
-    #     elif match == 'relaxed' and len(p) > 0:
-    #         # if relaxed match flag relaxed_match
-    #         relaxed_match = True
-
-    #     # Create new person, also if matched
-    #     p = person_utils.create_person_from_pybtex(person=pers, user=user)
-
-    #     if p:
-    #         # add the person to the author/supervisor/editor-relationship
-
-    #         tmp = through_tbl(person=p[0],
-    #                           publication=pub,
-    #                           exact_match=exact_match,
-    #                           multiple_match=multiple_match,
-    #                           relaxed_match=relaxed_match,
-    #                           **{field+'_id': id})
-    #         tmp.save()
 
 
 def add_topics_to_publication(topics, pub, user):

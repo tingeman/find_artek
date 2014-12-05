@@ -84,6 +84,11 @@ shown as a popup dialog.
 <h3>{{p.name.strip}}</h3>
 <div>
 <input type="radio" name="{{p.name}}" value="{{p.name}} [id:0]" id="p{{forloop.parentloop.counter0}}_new"><label for="p{{forloop.parentloop.counter0}}_new">Create new person</label><br><br>
+{% if p.p_ldap %}
+{% for c in p.p_ldap %}
+<input type="radio" name="{{p.name}}" value="{{p.name.strip}} [id:ldap]" id="p{{forloop.parentloop.counter0}}_l{{forloop.counter0}}"><label for="p{{forloop.parentloop.counter0}}_l{{forloop.counter0}}">{{c}} [DTU Base]</label><br>
+{% endfor %}
+{% endif %}
 {% if p.p_exact %}
 <em>Exact matches:</em><br/>
 {% for c in p.p_exact %}
