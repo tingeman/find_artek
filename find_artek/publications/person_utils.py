@@ -27,9 +27,9 @@ re_name_sep_words = re.compile(r'\s*[;&\n]+\s*|\s+and\s+|\s+AND\s+|\s+og\s+|\s+O
 re_space_sep = re.compile(r'(?<!,)\s(?!,)')  # used to find spaces that are not connected to commas
 
 
-# ----------------------------------------------------------------------------    
+# ----------------------------------------------------------------------------
 #  Name processing and conversion functions
-# ----------------------------------------------------------------------------    
+# ----------------------------------------------------------------------------
 
 def parse_name_list(names):
     # function to split a list of names, in individual persons,
@@ -159,7 +159,7 @@ def get_full_name_kwargs(string='', person=None, initials='', id_number=''):
 
     return kwargs
 
-    
+
 def fullname(person):
     """return name as string from pybtex person instance
     First Middle von Last, Jr
@@ -184,11 +184,11 @@ def create_pybtex_person(*args, **kwargs):
 
     """
     return pybtexPerson(*args, **kwargs)
-    
-    
-# ----------------------------------------------------------------------------    
+
+
+# ----------------------------------------------------------------------------
 #  Database interaction
-# ----------------------------------------------------------------------------    
+# ----------------------------------------------------------------------------
 
 
 def create_person_from_pybtex(person=None, user=None, save=True):
@@ -278,24 +278,24 @@ def add_persons_to_publication(names, pub, field, user):
     """
     """
     personmessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
-    
+
     # return if no names passed
     if not names or not names.strip():
         return personmessages
-    
+
     #define pubplication-person through-table
     through_tbl = getattr(models, field[0].upper() + field[1:] + 'ship')
-    
+
     person_entity_list = [s for s in parse_name_list(names) if s]
-    
+
     for id, s in enumerate(person_entity_list):
         multiple_match = False
         exact_match = False
         relaxed_match = False
-        
+
         print "Processing person: {0}".format(s.encode('ascii', 'replace'))
         p, match = get_person_from_string(s, user, save=False)
-                
+
         if p:
             print p
             if len(p) > 1:
@@ -308,9 +308,9 @@ def add_persons_to_publication(names, pub, field, user):
                 # if relaxed match flag relaxed_match
                 relaxed_match = True
             elif match == 'ldap':
-                msgstr = "Person '{0}' [id:{1}] imported from DTU directory.".format(p, p.id)
+                msgstr = "Person '{0}' [id:{1}] imported from DTU directory.".format(p[0], p[0].id)
                 personmessages.append((messages.INFO, msgstr))
-            
+
             if match in ['db_exact', 'db_relaxed']:
                 # Create new database person entity
                 p = get_person(string=s)
@@ -319,9 +319,9 @@ def add_persons_to_publication(names, pub, field, user):
                 p.modified_by = user
                 p.save()
                 p = [p]
-                msgstr = "Person '{0}' [id:{1}] created".format(p, p.id)
+                msgstr = "Person '{0}' [id:{1}] created".format(p[0], p[0].id)
                 personmessages.append((messages.INFO, msgstr))
-            
+
             # add the person to the author/supervisor/editor-relationship
             tmp = through_tbl(person=p[0],
                               publication=pub,
@@ -331,16 +331,16 @@ def add_persons_to_publication(names, pub, field, user):
                               **{field+'_id': id})
             tmp.save()
         else:
-            msgstr = "Person '{0}' could not be added automatically as {1}. You may add manually later.".format(p, field)
+            msgstr = "Person '{0}' could not be added automatically as {1}. You may add manually later.".format(s, field)
             personmessages.append((messages.WARNING, msgstr))
-            
-    return personmessages    
+
+    return personmessages
 
 
 def get_person_from_string(s, user, save=False):
     """Parses a string and tries to find the person either in database or
     through ldap, depending on the information in the string.
-    
+
     If string has tag:
         if tag is 'ldap', get person from ldap import (studynumber or initials)
         if tag is number (not 0), get person from database
@@ -351,35 +351,35 @@ def get_person_from_string(s, user, save=False):
         if initials: get person from database or ldap
         else: check for exact or relaxed matches in database
             create a new person, and set appropriate match flags.
-            
+
     match flags:
     ldap:       matched in ldap directory
     db_exact:   matches are exact and found in database
     db_relaxed: relaxed matches found in database
     new:        no matches found in database, person created from name (but not committed)
     pid:        match based on unique person id
-    
+
     It is safe to make relations to 'pid' mathces. 'ldap' and 'new' matches must be committed
     before relations can be made to these (and that should be safe too).
     db_relaxes and db_exact matches should not be used for making relations, only to set
     appropriate match flags on the relation.
     """
-    
+
     msg = []
-    
+
     pid = get_tag(s, 'id')  # get the value of "[id:147]" tags, get_tag will return 147.
     s = remove_tags(s)
-    
+
     if pid == 'ldap':
         if re.search('[a-zA-Z]{1}[0-9]{6}', s):
             # This is a study number...
             p, match = get_from_studynumber(s, user, force_ldap=True)
-            
+
         elif len(re.split('[^A-Za-z]',s)) == 1:
             # this is an entry with only consecutive letters = initials
             p, match = get_from_initials(s, user, force_ldap=True)
-            
-    
+
+
     elif pid:
         # check that person with id exists in database
         # should not be included in choice-list
@@ -399,27 +399,27 @@ def get_person_from_string(s, user, save=False):
             # This is a study number...
             print "looking for study number"
             p, match = get_from_studynumber(s, user)
-            
+
         elif len(re.split('[^A-Za-z]',s)) == 1:
             # this is an entry with only consecutive letters = initials
             p, match = get_from_initials(s, user)
-             
+
         else:
             # otherwise... this is just a name...
-            p, match = get_from_namestring(s, user)    
-        
+            p, match = get_from_namestring(s, user)
+
         if save and p:
             for pers in p:
                 pers.save()
-        
+
     return p, match
-        
-           
+
+
 def get_from_studynumber(s, user, force_ldap=False):
     """Get or create person from study number. Will use ldap lookup if possible."""
 
     p = None
-    
+
     if not force_ldap:
         # See if it is in our own database
         p, match = get_person(id_number=s, exact=True)
@@ -433,15 +433,15 @@ def get_from_studynumber(s, user, force_ldap=False):
         else:
             p = None
             match = None
-    
+
     return p, match
 
-    
+
 def get_from_initials(s, user, force_ldap=False):
     """Get or create person from initials. Will use ldap lookup if possible."""
 
     p = None
-    
+
     if not force_ldap:
         # See if it is in our own database
         p, match = get_person(initials=s, exact=True)
@@ -455,9 +455,9 @@ def get_from_initials(s, user, force_ldap=False):
         else:
             p = None
             match = None
-    
-    return p, match  
-    
+
+    return p, match
+
 
 def get_from_tag(s, user):
     """Get or create person from tag value."""
@@ -486,10 +486,10 @@ def get_from_tag(s, user):
             match = "pid"
         except ObjectDoesNotExist:
             match = None
-            
-    return p, match 
-    
-    
+
+    return p, match
+
+
 def get_from_namestring(s, user):
     """Get or create person from namestring."""
 
@@ -501,9 +501,9 @@ def get_from_namestring(s, user):
     else:
         # Get existing persons using relaxed naming
         p, match = get_person(person=person)
-        
+
     return p, match
-    
+
 
 def get_person(string='', person=None, initials='', person_id='', id_number='', exact=False, relaxed=False):
     """Searches Django database (not ldap) for matches against the arguments passed,
@@ -529,7 +529,7 @@ def get_person(string='', person=None, initials='', person_id='', id_number='', 
     if not p:
         print "   No Exact match found."
         match = None
-    
+
     if not exact:
         if not p or relaxed:
             # No exact match - we'll try relaxed match
@@ -543,13 +543,13 @@ def get_person(string='', person=None, initials='', person_id='', id_number='', 
             print '   No relaxed match found.'
 
     # return result of query (may contain more than one entry)
-    return (p, match)    
-    
-    
-    
-# ----------------------------------------------------------------------------    
+    return (p, match)
+
+
+
+# ----------------------------------------------------------------------------
 #  LDAP RELATED
-# ----------------------------------------------------------------------------    
+# ----------------------------------------------------------------------------
 
 
 
@@ -572,7 +572,7 @@ def find_ldap_person(**kwargs):
     """
     if not 'django_auth_ldap.backend.LDAPBackend' in settings.AUTHENTICATION_BACKENDS:
         return []
-    
+
     # 1) Possibly make translation of attribute names?
     # 2) Generate search string
     searchstr = ''
@@ -652,7 +652,7 @@ def get_or_create_person_from_ldap(person=None, user=None, save=True):
 
         p.created_by = user
         p.modified_by = user
-        
+
         if save:
             p.save()
     else:
@@ -710,7 +710,7 @@ def create_person_from_ldap(person=None, user=None):
     return [p]
 
 
-# ----------------------------------------------------------------------------    
+# ----------------------------------------------------------------------------
 #  Utility functions
 # ----------------------------------------------------------------------------
 
@@ -723,4 +723,4 @@ def result2unicode(pdict):
         except:
             result[k] = v
 
-    return result    
+    return result
