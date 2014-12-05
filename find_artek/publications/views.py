@@ -591,56 +591,6 @@ def add_edit_report(request, pub_id=None):
                 for level, msg in msgs:
                     messages.add_message(request, level, msg)
                     
-#                # Parse author list!
-#                name_list = parse_name_list(request.POST['authors'])
-#
-#                for id, n in enumerate(name_list):
-#                    n = n.strip()
-#                    pid = get_tag(n, 'id')
-#
-#                    if pid == '0':
-#                        # tag [id:0]
-#                        # create new person
-#                        # ...
-#                        n = remove_tags(n)
-#                        if n:
-#                            p = Person(name=n)
-#                            p.created_by = current_user
-#                            p.modified_by = current_user
-#                            p.save()
-#                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
-#
-#                            tmp = Authorship(person=p,
-#                                         publication=r,
-#                                         author_id=id)
-#                            tmp.save()
-#                    elif pid:
-#                        # tag [id:XX] where xx is supposed to be integer.
-#                        # get specified person and add to authorship
-#                        try:
-#                            p = Person.objects.get(id=pid)
-#                        except ObjectDoesNotExist:
-#                            if n:
-#                                # This is only an error, if n is not empty
-#                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
-#                            continue
-#                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
-#                        #name_list[id] = 'DB: '+p.__unicode__()
-#                        tmp = Authorship(person=p,
-#                                         publication=r,
-#                                         author_id=id)
-#                        tmp.save()
-#                    else:
-#                        # No tag...
-#
-#                        # Check if person exists   (exact or loose match)
-#                        # otherwise create person
-#                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n))
-#
-#                        #  msg.append([messages.WARNING,
-#                        #             "No person ID was specified for '{0}' and the person was not added as author. You can add manually later.".format(n)])
-
-
             if ('supervisors' in request.POST) and request.POST['supervisors'].strip():
                 # remove any existing author-relationships
                 s_set = r.supervisorship_set.all()
@@ -652,55 +602,6 @@ def add_edit_report(request, pub_id=None):
                 # Process general file level messages.
                 for level, msg in msgs:
                     messages.add_message(request, level, msg)
-#                # Parse author list!
-#                name_list = parse_name_list(request.POST['supervisors'])
-#
-#                for id, n in enumerate(name_list):
-#                    n = n.strip()
-#                    pid = get_tag(n, 'id')
-#
-#                    if pid == '0':
-#                        # tag [id:0]
-#                        # create new person
-#                        # ...
-#                        n = remove_tags(n)
-#                        if n:
-#                            p = Person(name=n)
-#                            p.created_by = current_user
-#                            p.modified_by = current_user
-#                            p.save()
-#                            messages.info(request, "Person '{0}' [id:{1}] created".format(p, p.id))
-#
-#                            tmp = Supervisorship(person=p,
-#                                         publication=r,
-#                                         supervisor_id=id)
-#                            tmp.save()
-#                    elif pid:
-#                        # tag [id:XX] where xx is supposed to be integer.
-#                        # get specified person and add to supervisorship
-#                        try:
-#                            p = Person.objects.get(id=pid)
-#                        except ObjectDoesNotExist:
-#                            if n:
-#                                # This is only an error, if n is not empty
-#                                messages.error(request, "Person with id:{0} does not exist in database".format(pid))
-#                            continue
-#                            #return HttpResponse('Person with id:{0} does not exist in database!'.format(pid))
-#                        #name_list[id] = 'DB: '+p.__unicode__()
-#                        tmp = Supervisorship(person=p,
-#                                         publication=r,
-#                                         supervisor_id=id)
-#                        tmp.save()
-#                    else:
-#                        # No tag...
-#
-#                        # Check if person exists   (exact or loose match)
-#                        # otherwise create person
-#                        messages.warning(request, "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n))
-#
-#                        #  msg.append([messages.WARNING,
-#                        #             "No person ID was specified for '{0}' and the person was not added as supervisor. You can add manually later.".format(n)])
-
 
             if ('keywords' in request.POST) and request.POST['keywords']:
                 # Get list of keywords already attached
@@ -859,34 +760,6 @@ def add_edit_report(request, pub_id=None):
         else:
             raise ValueError('Problem!')
 
-    # Form was not yet posted...
-#    for k in form.fields.keys():
-#        if not p or request.user.is_superuser:
-#            # Show these fields if we are registering a new report
-#            show_fields =  ['type', 'title', 'number', 'authors', 'supervisors',
-#                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
-#                            'comment']   # This should handle the proper Report type, get list from PubType table.
-#        else:
-#            # Show these fields if we are editing a report
-#            show_fields =  ['type', 'title', 'authors', 'supervisors',
-#                            'abstract', 'year', 'topic', 'keywords', 'pdffile',
-#                            'comment']   # This should handle the proper Report type, get list from PubType table.
-#        if k not in show_fields:
-#            try:
-#                form.exclude.append(k)
-#            except:
-#                form.exclude = []
-#                form.exclude.append(k)
-#            #del form.fields[k]
-#            #pass
-#        elif isinstance(form.fields[k].widget, forms.TextInput):
-#            #print "TextInput: {0}".format(k)
-#            #form.fields[k].widget.attrs['size'] = 90
-#            pass
-#        else:
-#            #print "Field: {0}".format(k)
-#            pass
-
     # generate unique tag for identifying uploaded appendix-files.
     # It is maybe useles to test uniquenss in this way, since the tags will
     # only exist in the database once files have been uploaded.
@@ -907,16 +780,6 @@ def add_edit_report(request, pub_id=None):
             {'form': form, 'pub': p, 'appendix_batch_tag': appendix_batch_tag},
             context_instance=RequestContext(request))
 
-
-
-#def upload_report_files(request, batch_tag, pub_id=None):
-#    if pub_id:
-#        p = get_object_or_404(Publication, pk=pub_id)
-#    else:
-#        p = None
-#
-#    return render_to_response('publications/upload_report_files.html',
-#        {'pub': p, 'batch_tag': batch_tag}, context_instance=RequestContext(request))
 
 
 @login_required(login_url='/accounts/login/')
