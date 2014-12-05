@@ -14,6 +14,8 @@ from find_artek.publications import person_utils
 from find_artek.publications import models
 
 
+raise DeprecationError('Deprecation error: ldap person module no longer supported')
+
 logger = logging.getLogger(__name__)
 logger.debug('TEST: loaded the ldap_person.py module')
 
@@ -87,7 +89,7 @@ def result2unicode(pdict):
     return result
 
 
-def get_or_create_person_from_ldap(person=None, user=None):
+def get_or_create_person_from_ldap(person=None, user=None, save=True):
     """Create Person object from pybtex instance
 
        person is a tuple returned from an ldap search where the first item
@@ -138,11 +140,11 @@ def get_or_create_person_from_ldap(person=None, user=None):
 
         p.created_by = user
         p.modified_by = user
-
-        p.save()
+        
+        if save:
+            p.save()
     else:
         p = p[0]  # pick the first if multiple mathces... there shouldn't be multiple!
-
 
     return [p]
 
