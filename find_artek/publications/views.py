@@ -758,7 +758,18 @@ def add_edit_report(request, pub_id=None):
 
             return redirect('/pubs/detail/{0}/'.format(r.id))
         else:
-            raise ValueError('Problem!')
+            msgstr = "The form contains invalid information in the fields: "
+            remaining = len(form._errors.keys())
+            for fid, f in enumerate(form._errors.keys()):
+                remaining -= 1
+                msgstr = msgstr + f
+                if not remaining == 0:
+                    msgstr = msgstr + ', '
+            
+            msgstr = msgstr + '. Please correct and resubmit.'
+                
+            messages.error(request, msgstr)
+            
 
     # generate unique tag for identifying uploaded appendix-files.
     # It is maybe useles to test uniquenss in this way, since the tags will
@@ -1147,7 +1158,6 @@ def check_person_ajax(request):
                 # First get possible matches from database
                 
                 print 'before get_person_from_string'
-                pdb.set_trace()
                 dbp_list = get_person_from_string(p, request.user, save=False)
                 print 'after get_person_from_string'
                 
