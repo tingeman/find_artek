@@ -579,29 +579,33 @@ def add_edit_report(request, pub_id=None):
             else:
                 messages.success(request, "Report '{0}' was updated.".format(r.number))
 
-            if ('authors' in request.POST) and request.POST['authors'].strip():
-                # remove any existing author-relationships
-                a_set = r.authorship_set.all()
-                if a_set:
-                    for a in a_set:
-                        a.delete()
-                
-                msgs = add_persons_to_publication(request.POST['authors'], r, 'author', current_user)
-                # Process general file level messages.
-                for level, msg in msgs:
-                    messages.add_message(request, level, msg)
-                    
-            if ('supervisors' in request.POST) and request.POST['supervisors'].strip():
+            if ('authors' in request.POST):
+                if request.POST['authors'].strip():
+                    # remove any existing author-relationships
+                    a_set = r.authorship_set.all()
+                    if a_set:
+                        for a in a_set:
+                            a.delete()
+
+                    msgs = add_persons_to_publication(request.POST['authors'], r, 'author', current_user)
+                    # Process general file level messages.
+                    for level, msg in msgs:
+                        messages.add_message(request, level, msg)
+                else:
+                    msg = "Author field must contain at least one author. The field has not been updated."
+                    messages.warning(request, msg)
+
+            if ('supervisors' in request.POST):
                 # remove any existing author-relationships
                 s_set = r.supervisorship_set.all()
                 if s_set:
                     for s in s_set:
                         s.delete()
-                
-                msgs = add_persons_to_publication(request.POST['supervisors'], r, 'supervisor', current_user)
-                # Process general file level messages.
-                for level, msg in msgs:
-                    messages.add_message(request, level, msg)
+                if request.POST['supervisors'].strip():
+                    msgs = add_persons_to_publication(request.POST['supervisors'], r, 'supervisor', current_user)
+                    # Process general file level messages.
+                    for level, msg in msgs:
+                        messages.add_message(request, level, msg)
 
             if ('keywords' in request.POST) and request.POST['keywords']:
                 # Get list of keywords already attached
@@ -765,11 +769,11 @@ def add_edit_report(request, pub_id=None):
                 msgstr = msgstr + f
                 if not remaining == 0:
                     msgstr = msgstr + ', '
-            
+
             msgstr = msgstr + '. Please correct and resubmit.'
-                
+
             messages.error(request, msgstr)
-            
+
 
     # generate unique tag for identifying uploaded appendix-files.
     # It is maybe useles to test uniquenss in this way, since the tags will
@@ -1132,9 +1136,9 @@ def check_person_ajax(request):
         provide html code for a dialog box for each of them.
 
         """
-        
+
         print "... in process fields ..."
-        
+
         json_response = {}
         context = {'name_field': name_field,
                    'persons': []}
@@ -1156,11 +1160,11 @@ def check_person_ajax(request):
             else:
                 # No id-tag, thus make choice
                 # First get possible matches from database
-                
+
                 print 'before get_person_from_string'
                 dbp_list = get_person_from_string(p, request.user, save=False)
                 print 'after get_person_from_string'
-                
+
 #                #print "No id found in name. Getting list of relaxed matches"
 #                dbp_list = get_person(p, exact=False)
 
@@ -1187,7 +1191,7 @@ def check_person_ajax(request):
                     context_instance=RequestContext(request))
             except Exception, e:
                 print str(e)
-                json_response['error'] = str(e)                    
+                json_response['error'] = str(e)
         else:
             # Otherwise return that all is ok.
             json_response['html'] = ''
