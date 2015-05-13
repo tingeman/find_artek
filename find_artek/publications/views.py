@@ -2323,7 +2323,3 @@ def func_delete_publication_file(request, f):
     f.delete()
     messages.info(request, "File deleted: {0}".format(fname))
 
-
-def error_404_view(request, pub_id, apx_id):
-	return render_to_response('404.html', {'exception': ex},
-						      context_instance=RequestContext(request), status=404)
