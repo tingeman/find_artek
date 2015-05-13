@@ -445,6 +445,7 @@ def detail(request, pub_id):
     }
 
     map_ = InfoMap(info, options)
+	
     return render_to_response("publications/detail.html",
             {"pub": p,
              "map": map_,
@@ -2322,4 +2323,5 @@ def func_delete_publication_file(request, f):
     f.file = None
     f.delete()
     messages.info(request, "File deleted: {0}".format(fname))
+
 
