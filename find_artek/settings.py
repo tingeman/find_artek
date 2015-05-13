@@ -8,7 +8,7 @@ from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirector
 from django.conf import global_settings
 
 SITE_ROOT = "D:/find_artek_www/"
-DEBUG = True
+DEBUG = False
 ONLINE = True
 
 if not os.path.exists(SITE_ROOT):
