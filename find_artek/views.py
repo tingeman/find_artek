@@ -1,4 +1,5 @@
 import sys
+import traceback
 import os.path
 import shutil
 from datetime import datetime
@@ -27,6 +28,19 @@ def custom_500(request):
     return HttpResponseServerError(t.render(Context({
         'exception_value': value, })))
 
+		
+def error_404_view(request):
+    tb = ''.join(traceback.format_exception(*sys.exc_info()))
+    return render_to_response('404.html', {'exception': ""},
+						      context_instance=RequestContext(request))
+
+def error_500_view(request):
+    tb = ''.join(traceback.format_exception(*sys.exc_info()))
+    return render_to_response('500.html', {'exception': ""},
+						      context_instance=RequestContext(request))
+
+		
+		
 
 @login_required(login_url='/accounts/login/')
 def db_backup(request):

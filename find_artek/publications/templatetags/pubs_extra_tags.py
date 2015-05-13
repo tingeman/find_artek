@@ -5,7 +5,6 @@ from django.conf import settings
 from django import template
 from django.core.files.storage import default_storage
 
-
 register = template.Library()
 
 @register.filter
@@ -31,4 +30,6 @@ def thumb_file(value):
         furl = os.path.join(settings.STATIC_URL,'publications',
                         'images','preview_not_available.png')
 
+    furl = furl.replace('\\', '/')
+    
     return furl

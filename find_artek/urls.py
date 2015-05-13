@@ -118,4 +118,5 @@ if settings.DEBUG:
    )
 
 
-#handler500 = 'find_artek.views.custom_500'
+handler404 = 'find_artek.views.error_404_view'
+handler500 = 'find_artek.views.error_500_view'
