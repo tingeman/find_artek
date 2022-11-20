@@ -16,10 +16,10 @@ from pybtex.database import Person as pybtexPerson
 from pybtex.bibtex import utils as pybtex_utils     # functions for splitting strings in a tex aware fashion etc.
 
 from find_artek import settings
-from find_artek.publications import models
-from find_artek.publications.utils import dk_unidecode
+from publications import models
+from publications.utils import dk_unidecode
 
-from find_artek.publications.utils import get_tag, remove_tags
+from publications.utils import get_tag, remove_tags
 
 logger = logging.getLogger(__name__)
 logger.debug('TEST: loaded the person_utils.py module')

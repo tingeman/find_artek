@@ -6,7 +6,7 @@ Replace this with more appropriate tests for your application.
 """
 
 from django.test import TestCase
-from find_artek.publications import person_utils
+from publications import person_utils
 
 
 """

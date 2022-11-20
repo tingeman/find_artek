@@ -2,22 +2,24 @@
 
 # Django settings for find_artek project.
 
+import pdb
 import os
 import ldap
 from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirectoryGroupType
 from django.conf import global_settings
 
+
+
+
+
+
+
+# SITE_ROOT = "D:/find_artek_www/"
 SITE_ROOT = "/usr/src/app/find_artek/"
-DEBUG = False
+DEBUG = True
 ONLINE = True
 
-# if not os.path.exists(SITE_ROOT):
-#     SITE_ROOT = "C:/THIN/www/django_sites/find_artek_vb/"
-#     DEBUG = True
-#     ONLINE = False
-    
-#     if not os.path.exists(SITE_ROOT):
-#         raise ValueError('SITE_ROOT incorrectly defined, path does not exist.')
+
 
 
 SETTINGS_ROOT = os.path.dirname(__file__)
@@ -27,6 +29,7 @@ TEMPLATE_DEBUG = DEBUG
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
     ('Thomas Ingeman-Nielsen', 'tin@byg.dtu.dk'),
+    ('Victor Reipur', 'vicre@byg.dtu.dk'),
 )
 
 MANAGERS = ADMINS
@@ -90,8 +93,8 @@ MEDIA_URL = '/media/'
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-#STATIC_ROOT = '/home/bitnami/apps/find_artek/find_artek/static'
-STATIC_ROOT = os.path.join(SETTINGS_ROOT, "static_root/")
+STATIC_ROOT = '/usr/src/app/find_artek_www/find_artek/static_root'
+# STATIC_ROOT = os.path.join(SETTINGS_ROOT, "static_root/")
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
@@ -180,7 +183,7 @@ INSTALLED_APPS = (
     'olwidget',
     'multiuploader',
     'sorl.thumbnail',
-    'find_artek.publications',
+    'publications',
 )
 
 

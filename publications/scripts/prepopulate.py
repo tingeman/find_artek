@@ -8,7 +8,7 @@
 #
 # $ sudo python manage.py shell
 #
-# >>> import find_artek.publications.prepopulate as prepopulate
+# >>> import publications.prepopulate as prepopulate
 # >>> prepopulate.populate_db()
 #
 # To list all entries in the db's:
@@ -24,7 +24,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.auth.models import User
 current_user = User.objects.get(username='thin')
 
-from find_artek.publications.models import Person, PubType, Feature, Topic
+from publications.models import Person, PubType, Feature, Topic
 
 
 def populate_db():

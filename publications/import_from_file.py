@@ -22,7 +22,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 
-from find_artek.publications import models, person_utils, utils
+from publications import models, person_utils, utils
 
 
 import logging

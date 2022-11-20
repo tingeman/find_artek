@@ -40,9 +40,9 @@ img_ext = ['.jpg', '.jpeg', '.tif', '.tiff', '.gif', '.png', '.bmp']
 #else: del uniconsole # reduce pollution, not needed anymore
 
 
-#from find_artek.publications import latex_codec
-from find_artek.publications import models as pub_models
-from find_artek.publications import person_utils
+#from publications import latex_codec
+from publications import models as pub_models
+from publications import person_utils
 
 re_name_sep_words = re.compile(r'\s*[;&\n]+\s*|\s+and\s+|\s+AND\s+|\s+And\s+|\s+og\s+|\s+OG\s+|\s+Og\s+')
 re_space_sep = re.compile(r'(?<!,)\s(?!,)')  # used to find spaces that are not connected to commas

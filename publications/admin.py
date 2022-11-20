@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from find_artek.publications.models import Publication, Person, PubType
-from find_artek.publications.models import Authorship, Editorship, Supervisorship
-from find_artek.publications.models import Feature, Keyword, Topic
-from find_artek.publications.models import FileObject
+from models import Publication, Person, PubType
+from models import Authorship, Editorship, Supervisorship
+from models import Feature, Keyword, Topic
+from models import FileObject
 
 from django.contrib.gis import admin
 #from django.contrib.gis.maps.google import GoogleMap

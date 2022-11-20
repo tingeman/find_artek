@@ -32,22 +32,22 @@ import os.path
 from olwidget.widgets import EditableLayer, InfoLayer, InfoMap
 
 from find_artek.search import get_query
-from find_artek.publications.models import Publication, Person, Feature,        \
+from publications.models import Publication, Person, Feature,        \
                                             PubType, Keyword, Topic,            \
                                             FileObject, ImageObject,            \
                                             Authorship, Editorship, Supervisorship
-from find_artek.publications.forms import AddReportForm,                        \
+from publications.forms import AddReportForm,                        \
                                             UserAddReportForm,                  \
                                             AddPersonForm,         \
                                             AddPublicationsFromFileForm,        \
                                             AddFeatureMapForm,                  \
                                             AddFeatureCoordsForm,               \
                                             AddFeaturesFromFileForm
-from find_artek.publications.utils import CyclicList, get_tag, remove_tags
-from find_artek.publications.person_utils import parse_name_list,               \
+from publications.utils import CyclicList, get_tag, remove_tags
+from publications.person_utils import parse_name_list,               \
                                             get_person, get_person_from_string, \
                                             add_persons_to_publication
-from find_artek.publications import import_from_file
+from publications import import_from_file
 
 from multiuploader.models import MultiuploaderImage
 
@@ -83,11 +83,16 @@ def get_olwidget_params(features):
         ('OTHER',             'white')))
 
     def info_append(info, g, f, html, gtype='point'):
+        try:
+            fcolor = feature_colors[f.type]
+        except:
+            fcolor = feature_colors['OTHER']
+
         if gtype == 'point':
             info.append((g, {
                 'html': html,
                 'style': {
-                    'fill_color': feature_colors[f.type],
+                    'fill_color': fcolor,
                     'fill_opacity': 1,
                     'stroke_color': 'black',
                     'point_radius': 4,
@@ -98,8 +103,8 @@ def get_olwidget_params(features):
             info.append((g, {
                 'html': html,
                 'style': {
-                    'fill_color': feature_colors[f.type],
-                    'stroke_color': feature_colors[f.type],
+                    'fill_color': fcolor,
+                    'stroke_color': fcolor,
                     'stroke_width': 2,
                 },
             }))
@@ -107,7 +112,7 @@ def get_olwidget_params(features):
             info.append((g, {
                 'html': html,
                 'style': {
-                    'fill_color': feature_colors[f.type],
+                    'fill_color': fcolor,
                     'fill_opacity': 0.3,
                     'stroke_color': 'black',
                     'stroke_width': 1,
@@ -176,11 +181,16 @@ def overview(request):
         ('OTHER',             'white')))
 
     def info_append(info, g, f, html, gtype='point'):
+        try:
+            fcolor = feature_colors[f.type]
+        except:
+            fcolor = feature_colors['OTHER']
+            
         if gtype == 'point':
             info.append((g, {
                 'html': html,
                 'style': {
-                    'fill_color': feature_colors[f.type],
+                    'fill_color': fcolor,
                     'fill_opacity': 1,
                     'stroke_color': 'black',
                     'point_radius': 4,
@@ -191,8 +201,8 @@ def overview(request):
             info.append((g, {
                 'html': html,
                 'style': {
-                    'fill_color': feature_colors[f.type],
-                    'stroke_color': feature_colors[f.type],
+                    'fill_color': fcolor,
+                    'stroke_color': fcolor,
                     'stroke_width': 3,
                 },
             }))
@@ -200,7 +210,7 @@ def overview(request):
             info.append((g, {
                 'html': html,
                 'style': {
-                    'fill_color': feature_colors[f.type],
+                    'fill_color': fcolor,
                     'fill_opacity': 0.3,
                     'stroke_color': 'black',
                     'stroke_width': 1,
@@ -445,7 +455,7 @@ def detail(request, pub_id):
     }
 
     map_ = InfoMap(info, options)
-	
+    
     return render_to_response("publications/detail.html",
             {"pub": p,
              "map": map_,

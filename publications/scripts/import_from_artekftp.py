@@ -12,7 +12,7 @@ import pdb
 import time
 import pickle
 
-from find_artek.publications import models
+from publications import models
 
 ftp_encoding = 'ISO-8859-2'
 re_repnum = re.compile(r"\d{2}-\d{2}")

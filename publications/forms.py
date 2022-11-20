@@ -6,7 +6,7 @@ from django.contrib.admin.widgets import AdminFileWidget
 
 from olwidget.forms import MapModelForm
 
-from find_artek.publications.models import Publication, Person, Feature
+from publications.models import Publication, Person, Feature
 from find_artek import fields as myfields
 from find_artek import widgets as mywidgets
 

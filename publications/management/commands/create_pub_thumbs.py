@@ -11,7 +11,7 @@ import os
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.contrib.auth.models import User
-from find_artek.publications import models as pub_models
+from publications import models as pub_models
 
 class Command(BaseCommand):
     args = 'None'

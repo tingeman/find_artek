@@ -10,8 +10,8 @@ import pdb
 import logging
 
 from find_artek import settings
-from find_artek.publications import person_utils
-from find_artek.publications import models
+from publications import person_utils
+from publications import models
 
 
 raise DeprecationError('Deprecation error: ldap person module no longer supported')

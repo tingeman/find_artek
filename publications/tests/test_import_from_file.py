@@ -7,10 +7,10 @@ Replace this with more appropriate tests for your application.
 """
 import pdb
 from django.test import TestCase
-from find_artek.publications import ldap_person
-from find_artek.publications import models
-from find_artek.publications import import_from_file
-from find_artek.publications.scripts import prepopulate
+from publications import ldap_person
+from publications import models
+from publications import import_from_file
+from publications.scripts import prepopulate
 
 """
 Available assertion methods, callable within TestCase by invoking f.ex.:

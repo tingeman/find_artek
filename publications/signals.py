@@ -30,6 +30,8 @@ ARTEK_staff_groups = [u'CN=BYG-CArtek1_staff,OU=Security group,OU=BYG,OU=Institu
 ARTEK_student_groups = [u'CN=11427_Students,OU=11427,OU=Courses,DC=win,DC=dtu,DC=dk',
                         u'CN=BYG-CArtek1_11427,OU=Security group,OU=BYG,OU=Institutter,DC=win,DC=dtu,DC=dk']
 
+#LDAP_basic_user_group = LDAP_authenticated_user						
+						
 logger.debug('TEST: loaded the signals.py module')
 
 
@@ -39,12 +41,14 @@ def post_ldap_authentication(sender, **kwargs):
     memberships.
 
     """
-
+	
+	# Prepare some variables
     user = kwargs['user']
     ldap_user = kwargs['ldap_user']
-
     all_groups_dn = set(ldap_user._user_attrs['memberOf'])
 
+	
+	# Get all the (nested) groups the user is a member of
     searchstr = '(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={0}))'.format(ldap_user._user_dn)
     try:
         result = ldap_user._connection.search_s(CArtek1_groups_base_name, SCOPE_SUBTREE, searchstr, None)
@@ -52,13 +56,26 @@ def post_ldap_authentication(sender, **kwargs):
         result = []
         logger.warning('ldap search for nested groups failed!')
 
+	# Add these nested groups to the list of groups
     if result:
         for r in result: all_groups_dn.add(r[0])
 
-    # all_groups_dn = sorted(all_groups_dn)
 
+	# HANDLE ALL LDAP USERS AND GIVE BASIC PERMISSIONS
+    try:
+        g = Group.objects.get(name='LDAP_authenticated_user')
+    except:
+        logger.debug('LDAP_authenticated_user group not found in django database')
+        g = None
 
-    """  Handle ARTEK STAFF  """
+    if g:
+		# Add the basic LDAP group to the user instance
+		# This provides permissions to edit own publications.
+		user.groups.add(g)
+		logger.debug('TEST: Group {0} added to user {1}'.format(g, user.username))
+	
+		
+    #  HANDLE ARTEK STAFF 
     logger.debug('TEST: Authenticating for STAFF membership')
 
     try:
@@ -80,7 +97,7 @@ def post_ldap_authentication(sender, **kwargs):
                 logger.debug('TEST: Group {0} added to user {1}'.format(g, user.username))
 
 
-    """  Handle ARTEK STUDENTS  """
+    # HANDLE ARTEK STUDENTS
     try:
         g = Group.objects.get(name='ARTEK_student')
     except:
@@ -99,7 +116,7 @@ def post_ldap_authentication(sender, **kwargs):
                 logger.debug('TEST: Group {0} added to user {1}'.format(g, user.username))
 
 
-    """  Handle ARTEK SUPERUSERS  """
+    # Handle ARTEK SUPERUSERS
 
     user.is_superuser = False
     for group in ARTEK_superuser_groups:

@@ -17,11 +17,11 @@ import os.path
 #from unidecode import unidecode
 import pdb
 
-#from find_artek.publications import person_utils
-from find_artek.publications import utils
+#from publications import person_utils
+from . import utils
 from pybtex.database import Person as pybtexPerson
 from pybtex.bibtex import utils as pybtex_utils     # functions for splitting strings in a tex aware fashion etc.
-from find_artek.publications import latex_codec
+from . import latex_codec
 
 
 def has_model_permission( entity, app, perm, model ):
@@ -850,7 +850,7 @@ class Feature(BaseModel):
 
 
 
-# from find_artek.publications import models
+# from publications import models
 # p = models.get_person(u'T Ingeman-Nielsen',exact=False)
 # pp = p[0].get_pybtex_person()
 # myp = models.choose_person(p,pp)
