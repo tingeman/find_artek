@@ -1,1 +1,0 @@
-/opt/bitnami/ctlscript.sh stop
