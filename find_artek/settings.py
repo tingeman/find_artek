@@ -7,17 +7,17 @@ import ldap
 from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirectoryGroupType
 from django.conf import global_settings
 
-SITE_ROOT = "D:/find_artek_www/"
+SITE_ROOT = "/usr/src/app/find_artek/"
 DEBUG = False
 ONLINE = True
 
-if not os.path.exists(SITE_ROOT):
-    SITE_ROOT = "C:/THIN/www/django_sites/find_artek_vb/"
-    DEBUG = True
-    ONLINE = False
+# if not os.path.exists(SITE_ROOT):
+#     SITE_ROOT = "C:/THIN/www/django_sites/find_artek_vb/"
+#     DEBUG = True
+#     ONLINE = False
     
-    if not os.path.exists(SITE_ROOT):
-        raise ValueError('SITE_ROOT incorrectly defined, path does not exist.')
+#     if not os.path.exists(SITE_ROOT):
+#         raise ValueError('SITE_ROOT incorrectly defined, path does not exist.')
 
 
 SETTINGS_ROOT = os.path.dirname(__file__)

@@ -35,3 +35,11 @@ find_artek.sublime-workspace
 *.sublime-workspace
 logs/find_artek.log.1
 logs/find_artek.log.5
+
+
+
+# Keep logs folder but not content VICRE
+# exclude everything
+logs/*
+# exception to the rule
+!logs/.gitkeep 
