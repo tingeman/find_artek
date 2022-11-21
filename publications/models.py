@@ -60,7 +60,7 @@ class BaseModel(models.Model):
     created_by    = models.ForeignKey(User, editable=False, related_name="%(class)s_created")
     modified_by   = models.ForeignKey(User, editable=False, related_name="%(class)s_modified")
 
-#    modified_by    = models.ForeignKey("self", blank=True, null=True, default=None,
+#    modified_by    = models.ForeignKey("self", blank=True, default=None,
 #                                       related_name='person_modifier',
 #                                       on_delete=models.SET_NULL)
 
@@ -475,16 +475,15 @@ class Publication(BaseModel):
     type            = models.ForeignKey(PubType)                            # f.ex. BOOK, ARTICLE
     author          = models.ManyToManyField(Person, through='Authorship',
                                              related_name='publication_authors',
-                                             blank=True,null=True, default=None)
+                                             blank=True, default=None)
     editor          = models.ManyToManyField(Person, through='Editorship',
                                              related_name='publication_editors',
-                                             blank=True,null=True, default=None)
+                                             blank=True, default=None)
     booktitle       = models.CharField(max_length=65535, blank=True)
     title           = models.CharField(max_length=65535, blank=True)
     crossref        = models.CharField(max_length=65535, blank=True)
     chapter         = models.CharField(max_length=65535, blank=True)
-    journal         = models.ForeignKey(Journal, blank=True, null=True, default=None,
-                                        on_delete=models.SET_NULL)
+    journal         = models.ForeignKey(Journal, blank=True, default=None)
     volume          = models.CharField(max_length=100, blank=True)
     number          = models.CharField(max_length=100, blank=True)
     institution     = models.CharField(max_length=65535, blank=True)
@@ -507,25 +506,25 @@ class Publication(BaseModel):
     subject         = models.CharField(max_length=65535, blank=True)   # Could be a short description of the report
     howpublished    = models.CharField(max_length=65535, blank=True)
     comment         = models.TextField(max_length=65535, blank=True)
-    keywords        = models.ManyToManyField(Keyword, blank=True, null=True,
+    keywords        = models.ManyToManyField(Keyword, blank=True,
                                             related_name='publication_keywords',
                                             default=None)
-    URLs            = models.ManyToManyField(URLObject, blank=True, null=True, default=None)
+    URLs            = models.ManyToManyField(URLObject, blank=True, default=None)
 
-    file            = models.OneToOneField(FileObject, blank=True, null=True,
-                                            default=None, on_delete=models.SET_NULL)
-    appendices      = models.ManyToManyField(FileObject, blank=True, null=True, default=None,
+    file            = models.OneToOneField(FileObject, blank=True, 
+                                            default=None)
+    appendices      = models.ManyToManyField(FileObject, blank=True, default=None,
                                              related_name='publication_appendices')
     timestamp       = models.CharField(max_length=100, blank=True)     # Should this be a DateTimeField
 #    entry          = models.CharField(max_length=65535, blank=True)   # Should we have the Full bibtex entry (needed?)
 
-    topics          = models.ManyToManyField(Topic, blank=True, null=True, default=None)
+    topics          = models.ManyToManyField(Topic, blank=True, default=None)
 
     # Additional fields for student reports
     supervisor      = models.ManyToManyField(Person, through='Supervisorship',
                                             related_name='publication_supervisors',
-                                            blank=True, null=True, default=None)
-    grade           = models.CharField(max_length=100, blank=True, null=True, default=None)
+                                            blank=True, default=None)
+    grade           = models.CharField(max_length=100, blank=True, default=None)
     #appendixURL     = models.URLField(blank=True)
 
     # Support for undefined fields or multiple instances of same field:
@@ -778,28 +777,28 @@ class Feature(BaseModel):
     type          = models.CharField(max_length=30, choices=feature_types,
                                         default='OTHER', blank=True)
     area          = models.CharField(max_length=100, blank=True)
-    date          = models.DateField(blank=True, null=True)
+    date          = models.DateField(blank=True)
     direction     = models.CharField(max_length=100, blank=True)
     description   = models.TextField(max_length=65535, blank=True)
     comment       = models.TextField(max_length=65535, blank=True)
-    URLs          = models.ManyToManyField(URLObject, null=True, blank=True)
-    files         = models.ManyToManyField(FileObject, null=True, blank=True)
-    images        = models.ManyToManyField(ImageObject, null=True, blank=True)
+    URLs          = models.ManyToManyField(URLObject, blank=True)
+    files         = models.ManyToManyField(FileObject, blank=True)
+    images        = models.ManyToManyField(ImageObject, blank=True)
 
-    points        = models.MultiPointField(srid=4326, blank=True, null=True)
-    lines         = models.MultiLineStringField(srid=4326, blank=True, null=True)
-    polys         = models.MultiPolygonField(srid=4326, blank=True, null=True)
+    points        = models.MultiPointField(srid=4326, blank=True)
+    lines         = models.MultiLineStringField(srid=4326, blank=True)
+    polys         = models.MultiPolygonField(srid=4326, blank=True)
 
     pos_quality   = models.CharField(max_length=30, choices=pos_qualities,
                                         default='Unknown', blank=True)
 
-#    geometry      = models.GeometryCollectionField(srid=4326, blank=True, null=True)
+#    geometry      = models.GeometryCollectionField(srid=4326, blank=True)
     objects       = models.GeoManager()
 
     quality       = models.SmallIntegerField(choices=quality_flags,
                                              default=CREATED)
 
-    publications  = models.ManyToManyField(Publication, null=True, blank=True)
+    publications  = models.ManyToManyField(Publication, blank=True)
 
     class Meta:
         permissions = (
