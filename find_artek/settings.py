@@ -181,7 +181,6 @@ INSTALLED_APPS = (
     'south',
     'django_extensions',
     'multiuploader',
-    'sorl.thumbnail',
     'publications',
 )
 
