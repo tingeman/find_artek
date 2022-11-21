@@ -4,8 +4,7 @@
 
 import pdb
 import os
-import ldap
-from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, ActiveDirectoryGroupType
+
 from django.conf import global_settings
 
 
@@ -178,62 +177,16 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
     'django.contrib.gis',
-    'south',
     'django_extensions',
     'multiuploader',
     'publications',
 )
 
 
-## LDAP Baseline configuration.
-AUTH_LDAP_SERVER_URI = "ldap://win.dtu.dk"
-
-AUTH_LDAP_BIND_DN = "cn=BYG-Artek_AD_Read,ou=Funktionskonti,ou=BYG,ou=Institutter,DC=win,DC=dtu,DC=dk"
-AUTH_LDAP_BIND_PASSWORD = "KETRAGYB"
-
-AUTH_LDAP_USER_SEARCH = LDAPSearch("ou=DTUBaseUsers,dc=win,dc=dtu,dc=dk",
-                                   ldap.SCOPE_SUBTREE, "(name=%(user)s)")
-
-AUTH_LDAP_GROUP_SEARCH = LDAPSearch("dc=win,dc=dtu,dc=dk", ldap.SCOPE_SUBTREE, "(objectClass=group)")
-AUTH_LDAP_GROUP_TYPE = ActiveDirectoryGroupType(name_attr="cn")
-
-
-AUTH_LDAP_USER_ATTR_MAP = {"first_name": "givenName", "last_name": "sn",
-                           "email": "mail"}
-
-AUTH_LDAP_USER_FLAGS_BY_GROUP = {
-    #"is_active": "cn=active,ou=django,ou=groups,dc=example,dc=com",
-    "is_staff": "CN=BYG-ArktiskCenter,OU=Grupper_migreret_fra_BYG,OU=Security group,OU=BYG,OU=Institutter,DC=win,DC=dtu,DC=dk",
-    #"is_superuser": "cn=superuser,ou=django,ou=groups,dc=example,dc=com"
-}
-
-# This is the default, but I like to be explicit.
-AUTH_LDAP_ALWAYS_UPDATE_USER = True
-
-# Use LDAP group membership to calculate group permissions.
-AUTH_LDAP_FIND_GROUP_PERMS = True
-
-# Cache group memberships for an hour to minimize LDAP traffic
-AUTH_LDAP_CACHE_GROUPS = True
-AUTH_LDAP_GROUP_CACHE_TIMEOUT = 3600
 
 
 
 
-# 'is_active': True,
-# 'is_staff': False,
-# 'is_superuser': False,
-
-
-if ONLINE:
-    AUTHENTICATION_BACKENDS = (
-        'django_auth_ldap.backend.LDAPBackend',
-        'django.contrib.auth.backends.ModelBackend',
-    )
-else:
-    AUTHENTICATION_BACKENDS = (
-        'django.contrib.auth.backends.ModelBackend',
-    )
 
 
 
@@ -263,14 +216,6 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'standard',
         },
-        'ldap_handler': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/ldap.log',
-            'maxBytes': 1024*1024*5,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'standard',
-        },
         'request_handler': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -293,11 +238,6 @@ LOGGING = {
         },
         'django.request': {
             'handlers': ['request_handler'],
-            'level': 'DEBUG',
-            'propagate': False
-        },
-        'django_auth_ldap': {
-            'handlers': ['ldap_handler'],
             'level': 'DEBUG',
             'propagate': False
         },
