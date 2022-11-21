@@ -7,7 +7,7 @@ from models import FileObject
 
 from django.contrib.gis import admin
 #from django.contrib.gis.maps.google import GoogleMap
-from olwidget.admin import GeoModelAdmin
+
 
 
 #GMAP = GoogleMap(key='AIzaSyBIagLz1ayoRbJZef1Er9h8WkWJF26hr44') # Can also set GOOGLE_MAPS_API_KEY in settings
@@ -65,36 +65,7 @@ class PublicationAdmin(admin.ModelAdmin):
             formset.save()
 
 
-# Customize the map
-class FeatureAdmin(GeoModelAdmin):
-    list_display = ('name','modified_date',)
-#    options = {
-#        'layers': ['google.satellite'],
-#        'default_lat': 44,
-#        'default_lon': -72,
-#    }
 
-    # default zoom:
-    zl = 4
-    clon = -52.5
-    clat = 67
-
-    options = {'layers': ['osm.mapnik','google.satellite'],
-        'map_options': {
-            'controls': [
-                         "LayerSwitcher",
-                         "NavToolbar",
-                         "PanZoom",
-                         "Attribution"], },
-#        'popups_outside': True,
-#        'map_div_style': {'width': '600px', 'height': '360px'},
-        'zoom_to_data_extent': True,
-        'default_lon': clon,
-        'default_lat': clat,
-        'default_zoom': zl,
-#        'default_lat': 44,
-#        'default_lon': -72,
-    }
 
 
 class FileObjectAdmin(admin.ModelAdmin):
@@ -108,4 +79,3 @@ admin.site.register(Feature, FeatureAdmin)
 admin.site.register(Topic)
 admin.site.register(Keyword)
 admin.site.register(FileObject, FileObjectAdmin)
-#admin.site.register(Feature, admin.GeoModelAdmin)

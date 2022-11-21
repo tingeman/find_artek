@@ -4,8 +4,6 @@ from django import forms
 from django.forms import ModelForm
 from django.contrib.admin.widgets import AdminFileWidget
 
-from olwidget.forms import MapModelForm
-
 from publications.models import Publication, Person, Feature
 from find_artek import fields as myfields
 from find_artek import widgets as mywidgets
@@ -214,36 +212,6 @@ class AddPersonForm(ModelForm):
         return [field for field in self if not field.is_hidden
                and field.name not in self.Meta.normal_fields]
 
-
-class AddFeatureMapForm(MapModelForm):
-    date = forms.DateField(widget=forms.DateInput(format = '%Y-%m-%d'),
-                       input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
-                       required=False)
-
-    class Meta:
-        model = Feature
-        exclude = ('area', 'URLs', 'files', 'images', 'quality', 'publications',)
-        maps = (
-            (('points', 'lines', 'polys'),
-#            (('points',),
-                {'layers': ['osm.mapnik', 'google.satellite'],
-                 'default_lat': 65.56755, 'default_lon': -45.043945,
-                 'map_options': {
-#                     'controls': ["LayerSwitcher", "Attribution", "MousePosition", "PanZoom"],
-                     'controls': [
-                                    "LayerSwitcher",
-                                    "NavToolbar",
-                                    "PanZoom",
-                                    "Attribution",
-                                    "MousePosition"
-                                 ],
-                 },
-                },
-             ), )
-
-    # def __init__(self, *args, **kwargs):
-    #     # Call the parents initialization method
-    #     super(AddFeatureForm, self).__init__(*args, **kwargs)  # Call to ModelForm constructor
 
 
 
