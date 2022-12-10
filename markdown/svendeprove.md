@@ -8,28 +8,58 @@ __Advertisement :)__
 
 You will like those projects!
 
+å
+
 ---
 
-# DTU Artek
-## Rapport Applikation - Svendeprøve 
+# Artek DTU - <sub><sup>[find.artek.byg.dtu.dk](http://find.artek.byg.dtu.dk/)</sup></sub>
+
+## Artek Student Rapport Applikation
+
 <br/>
 
 ### Indholdfortegnelse
-
-<br/>
-
-1. Indledning
-   1. Formål
-   2. 
-2. 
-3. Integer molestie lorem at massa
-
-
-1. You can use sequential numbers...
-1. ...or keep all the numbers as `1.`
+1. [Introduktion](#introduktion)
+2. [Problemstilling](#problemstilling)
+   1. Udfordringer
+      1. Migration af Data
+      2. Udgåede libraries
 
 
 
+
+
+
+
+
+
+### Introduktion <a name="introduktion"></a>
+Siden 1996 har studerende fra Danmark's Tekniske Universitet (DTU) udført fæltarbejde på Grønland og skrevet tekniske rapporter med fokus på samfundet, teknologier og miløet. I år 2000 blev "Center of Artic Technology (ARTEK) etableret. Formålet med ARTEK er at samle alt som DTU har med det arktiske område at gøre under en ledelse. Grundet mange års fæltarbejde er der blevet lavet en masse rapporter. Indtil da har rapporter været lagret og tilgængelige på en FTP server. På denne server kan man finde rapporter ved at søge på året rapporten udkom på. Søgningen var derfor ikke særlig effiktiv. Det er et ønske fra de Grønlandske myndigheder at forbedre søgemulighederne på gamle rapporter. Hvis det er nemmere at finde relavante repporter, geografiske data, kan resultaterne bruges til at fremtidige studier og være grundlag for politiske beslutninger. På grund af interessen for at gamle rapporter skal være lættere tilgængelige, er en ny database blevet etableret. Det er gjort af Thomas Ingeman-Nielsen lektor for ARTEK. Denne database er blevet lavet for at gøre det nemmere at finde relevante rappporter blandt alle alle dem som skrevet af DTU studerende og/eller tilhørende ARTEK. Rapportene er opdelt i kategorier, og det er muligt at søge på nøgleord, emner, rapportitlen, resumeet eller geografisk lokation.
+
+
+### Formål med find.artek
+Formålet er at gøre det nemmere at finde ARTEKS rapporter. På nuværende tidspunkt er det muligt at finde rapport på ved hjælp af katergorier visualiseret i et grafisk web interface, eller man kan søge rapporter med nøgleord, titel, resume eller geografisk lokation. En udvidelse ville være at kunne søge på sætninger som indtræffer inde i selve rapporten.
+
+
+### Problemstilling <a name="problemstilling"></a>
+Den overordnede problemstilling er at find.artek er nu implementeret i en forædlet version af Django, hvilket DTU's sikkerhedspolitik ikke er kompatibelt med. Altså skal find.arktek migreres over til- eller re-implemteres i den nyeste version af Django. 
+find.artek blev implementeret i den første version af Django frameworket - version 1. P Applikation blev implementeret i en 
+
+
+#### Udfordringer
+find.artek er implementeret på et tidspunkt hvor Django frameworket ikke var helt modent. Det var ikke beta, men da version 1.7 kom ud havde den integreret et trejde parts biblotek til sig som hedder south. Dette biblotek bruges til at synkronisere nogle modeller defineret i Django, som automatisk bliver genereret i en SQL database. 
+* Problem 1: Databasen som bruges er en sqllite3 hvilket gør det svært at modificere data og struktur i selve databasen.
+* Problem 2: South og den integrede udgave af South er ikke enige om hvordan en model skal udforme sig i databasen.
+* Problem 3: Hvordan migreres alt data'en over i en moderne Django model.
+* Løsning til problem 1: 
+
+Mulig
+
+
+Problemstilling<br>
+Applikationen's framework (Django) er forældet og kan derfor ikke være tilgængelig fra DTU's domæne. 
+
+[I august 2022 blev DTU udsat for et hackerangreb.](https://www.dr.dk/nyheder/seneste/dtu-udsat-alvorligt-hackerangreb-alle-skal-skifte-kodeord). Det har kostet DTU og dets medarbejder meget tid og (penge). Det skal så vidt muligt undgås at det sker igen. Efter nye politikker er en Der er blevet fortaget en  åtet mange penge Herefter blev der ryddet gevaldigt op  den august 2022 er blevet hacket, og derfor er der fortaget en større rengøring af servere som ikke længere er med nyeste versioner. Kernen af problemet er at applikation ikke længere supporteres og derfor ikke forsvarligt kan leve pa DTU's servere. Derfor skal applikationen reimplementeres i den nyeste version af Django, for at kunne komme online igen. Der følger en masse pukler (udfordringer) med at fører data over. Samt er mange af de third party libraries døde. stilliJeg arbejder p find_artek.byg.dtu
 
 
 
@@ -141,19 +171,19 @@ console.log(foo(5));
 
 ## Tables
 
-| Option | Description |
-| ------ | ----------- |
+| Option | Description                                                               |
+| ------ | ------------------------------------------------------------------------- |
 | data   | path to data files to supply the data that will be passed into templates. |
-| engine | engine to be used for processing templates. Handlebars is the default. |
-| ext    | extension to be used for dest files. |
+| engine | engine to be used for processing templates. Handlebars is the default.    |
+| ext    | extension to be used for dest files.                                      |
 
 Right aligned columns
 
-| Option | Description |
-| ------:| -----------:|
-| data   | path to data files to supply the data that will be passed into templates. |
-| engine | engine to be used for processing templates. Handlebars is the default. |
-| ext    | extension to be used for dest files. |
+| Option |                                                               Description |
+| -----: | ------------------------------------------------------------------------: |
+|   data | path to data files to supply the data that will be passed into templates. |
+| engine |    engine to be used for processing templates. Handlebars is the default. |
+|    ext |                                      extension to be used for dest files. |
 
 
 ## Links
