@@ -64,6 +64,30 @@ Applikationen's framework (Django) er forældet og kan derfor ikke være tilgæn
 
 
 
+### Features
+En discord bot som er intergreret med serveren som brugere og måske især studerende kan benytte til at spare med hinanden. Login vha. DTU's login portal. Der skal være features som 
+
+
+#### Lav 
+
+
+### Beskriv use cases
+
+### Beskriv unit test
+
+### Beskriv 
+
+
+
+
+
+
+
+
+
+
+
+
 ### h3 Heading
 #### h4 Heading
 ##### h5 Heading
