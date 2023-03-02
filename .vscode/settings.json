@@ -1,4 +1,9 @@
 {
     // make colortheme light
     "workbench.colorTheme": "Default Light+",
+    // hide .git folder
+    "files.exclude": {
+        "**/.git": true
+      }
+
 }
