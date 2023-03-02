@@ -32,17 +32,6 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-# make simple test class
-class Test(BaseModel):
-    name = models.CharField(max_length=100)
-
-    class Meta:
-        permissions = (
-            ("edit_own_test", "Can edit own test"),
-            ("delete_own_test", "Can delete own test"),
-        )
-
-
 
 class Person(BaseModel):
     # variables here 
