@@ -34,6 +34,7 @@ def has_model_permission( entity, app, perm, model ):
     perm:       permission (string). '_model' will be automatically added
     app:        name of the app the model is defined in.
     """
+    # QUESTION: What is this doing?
     return entity.has_perm( "{0}.{1}_{2}".format( app, perm, model ) )
 
 def get_image_path(obj, filename):
@@ -140,7 +141,6 @@ class PublicationType(models.Model):
     def __unicode__(self):
         return self.type
 
-
 class PublicationKeyword(models.Model):
     keyword = models.CharField(max_length=100)
 
@@ -152,12 +152,10 @@ class PublicationTopic(models.Model):
 
     def __unicode__(self):
         return self.topic
-
-
+    
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
 # ********************************************************************
-
 class FileObject(BaseModel):
     upload_to = None  # If set, this value should be used in upload_to function
     original_URL = models.CharField(max_length=1000, blank=True)
@@ -197,37 +195,37 @@ class Publication(models.Model):
     
     # Use plural variable name for many-to-one relationship
     # QUESTION: Not sure if cascade is the correct thing to do when deleting.
-    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE, default=None, related_name='publications') # f.ex. BOOK, ARTICLE
+    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE, default=None, related_name='publications', null=True) # f.ex. BOOK, ARTICLE
 
     key = models.CharField(max_length=100, blank=True)
 
     # Use plural variable name for many-to-many relationship
     authors = models.ManyToManyField(Person, through='Authorship',
                                      related_name='publications_authored',
-                                     blank=True, default=None)
+                                     blank=True, default=None, null=True)
 
     editors = models.ManyToManyField(Person, through='Editorship',
                                      related_name='publications_edited',
-                                     blank=True, default=None)
+                                     blank=True, default=None, null=True)
 
     supervisors = models.ManyToManyField(Person, through='Supervisorship',
                                         related_name='publications_supervised',
-                                        blank=True, default=None)
+                                        blank=True, default=None, null=True)
 
-    keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None)                                        
+    keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None, null=True)                                        
 
-    publication_topics = models.ManyToManyField(PublicationTopic, blank=True, default=None, related_name='publications')
+    publication_topics = models.ManyToManyField(PublicationTopic, blank=True, default=None, related_name='publications', null=True)
 
-    publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
+    publications_urls = models.ManyToManyField(URLObject, blank=True, default=None, null=True)
 
     # QUESTION what is related_name?
-    appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
+    appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices', null=True)
 
     # Use singular variable name for one-to-many relationship
     # QUESTION what is related_name?
-    journal = models.ForeignKey(Journal, blank=True, null=True, default=None, on_delete=models.SET_NULL, related_name='publications')
+    journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
 
-    file_object = models.OneToOneField(FileObject, blank=True, null=True, default=None, on_delete=models.SET_NULL)
+    file_object = models.OneToOneField(FileObject, blank=True, default=None, on_delete=models.SET_NULL, null=True)
 
     booktitle = models.CharField(max_length=255, blank=True)
 
@@ -296,9 +294,6 @@ class Publication(models.Model):
             ("verify_publication", "Can verify publications"),
         )
 
-
-
-
 class Authorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
@@ -318,8 +313,6 @@ class Authorship(models.Model):
         if commit:
             self.save()
 
-
-
 class Editorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
@@ -336,8 +329,6 @@ class Editorship(models.Model):
         self.match_string = ""
         if commit:
             self.save()
-
-
 
 class Supervisorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
@@ -419,8 +410,7 @@ class Feature(BaseModel):
 
 
     name          = models.CharField(max_length=100, blank=True)
-    type          = models.CharField(max_length=30, choices=feature_types,
-                                        default='OTHER', blank=True)
+    type          = models.CharField(max_length=30, choices=feature_types, default='OTHER', blank=True)
     area          = models.CharField(max_length=100, blank=True)
     date          = models.DateField(blank=True)
     direction     = models.CharField(max_length=100, blank=True)
@@ -494,3 +484,9 @@ class Feature(BaseModel):
         # if neither, return False
         return False
 
+class AddPubFields(models.Model):
+    # Model to handle undefined bibtex fields or mulitple instances
+    # of the same field
+    publication   = models.ForeignKey(Publication, on_delete=models.SET_NULL, null=True)
+    bibtexfield   = models.CharField(max_length=100)
+    content       = models.CharField(max_length=1000, blank=True)
