@@ -48,12 +48,9 @@ def get_image_path(obj, filename):
 # Models
 class BaseModel(models.Model):
 
-    created_date = models.DateTimeField(auto_now_add=True)
-
-    modified_date = models.DateTimeField(auto_now=True)
-
+    created_date = models.DateTimeField() # when done moving data use these parameters: auto_now_add=True
+    modified_date = models.DateTimeField() # when done moving data use these parameters: auto_now=True
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_created")
-
     modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_modified")
     
     class Meta:
@@ -62,55 +59,30 @@ class BaseModel(models.Model):
 class Person(BaseModel):
 
     quality = models.SmallIntegerField(choices=quality_flags, default=CREATED)
-
     first_relaxed = models.CharField(max_length=10, blank=True)
-
     last_relaxed = models.CharField(max_length=100, blank=True)
-
     first = models.CharField(max_length=100, blank=True)
-
     middle = models.CharField(max_length=100, blank=True)
-
     prelast = models.CharField(max_length=100, blank=True)
-
     last = models.CharField(max_length=100, blank=True)
-
     lineage = models.CharField(max_length=100, blank=True)
-
     pre_titulation = models.CharField(max_length=100, blank=True)
-
     post_titulation = models.CharField(max_length=100, blank=True)
-
     position = models.CharField(max_length=100, blank=True)
-
     initials = models.CharField(max_length=100, blank=True)
-
     institution = models.CharField(max_length=512, blank=True)
-
     department = models.CharField(max_length=512, blank=True)
-
     address_1 = models.CharField(max_length=512, blank=True)
-
     address_2 = models.CharField(max_length=512, blank=True)
-
     zip_code = models.CharField(max_length=100, blank=True)
-
     town = models.CharField(max_length=512, blank=True)
-
     state = models.CharField(max_length=512, blank=True)
-
     country = models.CharField(max_length=512, blank=True)
-
     phone = models.CharField(max_length=512, blank=True)
-
     cell_phone = models.CharField(max_length=100, blank=True)
-
     email = models.EmailField(blank=True)
-
     homepage = models.URLField(blank=True)
-
     id_number = models.CharField(max_length=100, blank=True)
-
     note = models.TextField(blank=True)
 
     class Meta:
@@ -189,7 +161,7 @@ class URLObject(BaseModel):
     description = models.CharField(max_length=1000, blank=True)
     linktext = models.CharField(max_length=50, blank=True)
 
-class Publication(models.Model):
+class Publication(BaseModel):
 
     not_bibtex = ('supervisor', 'grade', 'quality', 'created', 'modified', 'modified_by')
     
@@ -202,89 +174,51 @@ class Publication(models.Model):
     # Use plural variable name for many-to-many relationship
     authors = models.ManyToManyField(Person, through='Authorship',
                                      related_name='publications_authored',
-                                     blank=True, default=None, null=True)
+                                     blank=True, default=None)
 
     editors = models.ManyToManyField(Person, through='Editorship',
                                      related_name='publications_edited',
-                                     blank=True, default=None, null=True)
+                                     blank=True, default=None)
 
     supervisors = models.ManyToManyField(Person, through='Supervisorship',
                                         related_name='publications_supervised',
-                                        blank=True, default=None, null=True)
+                                        blank=True, default=None)
 
-    keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None, null=True)                                        
-
-    publication_topics = models.ManyToManyField(PublicationTopic, blank=True, default=None, related_name='publications', null=True)
-
-    publications_urls = models.ManyToManyField(URLObject, blank=True, default=None, null=True)
-
-    # QUESTION what is related_name?
-    appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices', null=True)
-
-    # Use singular variable name for one-to-many relationship
-    # QUESTION what is related_name?
+    keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None)
+    publication_topics = models.ManyToManyField(PublicationTopic, blank=True, default=None, related_name='publications')
+    publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
+    appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
     journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
-
     file_object = models.OneToOneField(FileObject, blank=True, default=None, on_delete=models.SET_NULL, null=True)
-
     booktitle = models.CharField(max_length=255, blank=True)
-
     title = models.CharField(max_length=255, blank=True)
-
     crossref = models.CharField(max_length=255, blank=True)
-
     chapter = models.CharField(max_length=255, blank=True)
-
     volume = models.CharField(max_length=255, blank=True)
-
     number = models.CharField(max_length=255, blank=True)
-
     institution = models.CharField(max_length=255, blank=True)
-
     organization = models.CharField(max_length=255, blank=True)
-
     publisher = models.CharField(max_length=255, blank=True)
-
     school = models.CharField(max_length=255, blank=True)
-
     address = models.CharField(max_length=255, blank=True)
-
     edition = models.CharField(max_length=255, blank=True)
-
     pages = models.CharField(max_length=100, blank=True)
-
     month = models.CharField(max_length=100, blank=True)
-
     year = models.CharField(max_length=100, blank=True)
-
     DOI = models.CharField(max_length=255, blank=True)
-
     ISBN = models.CharField(max_length=255, blank=True)
-
     ISBN13 = models.CharField(max_length=255, blank=True)
-
     ISSN = models.CharField(max_length=255, blank=True)
-
     note = models.TextField(max_length=255, blank=True)
-
     series = models.CharField(max_length=255, blank=True)
-
     abstract = models.TextField(max_length=255, blank=True)
-
     remark = models.CharField(max_length=255, blank=True)
-
     subject = models.CharField(max_length=255, blank=True)
-
     howpublished = models.CharField(max_length=255, blank=True)
-
     comment = models.TextField(max_length=255, blank=True)
-
     timestamp = models.CharField(max_length=100, blank=True)
-
     grade = models.CharField(max_length=100, blank=True, null=True, default=None)
-
     verified = models.BooleanField(blank=False, default=False)
-
     quality = models.SmallIntegerField(choices=quality_flags, default=CREATED)
 
     class Meta:
