@@ -2,6 +2,10 @@ import os
 from MySQLdb import IntegrityError
 import django
 
+# THIS SCRIPT TOTALLY DEPENDS ON 
+# models_that_looks_like_old_models.py
+
+
 # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
 # This part of the script transfers the following tables from the sqlite3 database:
 # person, publication, authorship, editorship, supervisorship.
@@ -194,8 +198,6 @@ def run():
 
     # ------------------- Handle transfer supervisorship ends here ------------------ #
 
-
-
     # print total number of person_objects_created
     print("Total number of person objects created:", person_objects_created)
     print("Total number of person objects that already exist", person_objects_already_exist)
@@ -217,7 +219,6 @@ def run():
     print("Total number of supervisor objects that already exist", supervisor_objects_already_exist)
 
 # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
-
 
     exit()
 
