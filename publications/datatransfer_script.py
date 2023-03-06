@@ -37,7 +37,7 @@ def run():
 
 
 
-    # ------------------- Handle person starts here ------------------ #
+    # ------------------- Handle transfer person starts here ------------------ #
     person_table_data = cursor_object.execute('PRAGMA table_info(publications_person)').fetchall() # GET PERSON RECORDS
     person_column_names = [row[1] for row in person_table_data] # Extract column names
 
@@ -75,10 +75,10 @@ def run():
         else:
             person_objects_already_exist += 1
             print("Person already exists with name:", instance.first, instance.last)
-    # ------------------- Handle person ends here ------------------ #
+    # ------------------- Handle transfer person ends here ------------------ #
 
 
-    # ------------------- Handle publication starts here ------------------ #
+    # ------------------- Handle transfer publication starts here ------------------ #
     publication_table_data = cursor_object.execute('PRAGMA table_info(publications_publication)').fetchall() # GET PUBLICATION RECORDS
     publication_column_names = [row[1] for row in publication_table_data] # Extract column names
 
@@ -114,11 +114,11 @@ def run():
         else:
             publication_objects_already_exist += 1
             print("Publication already exists with number:", instance.number)
-    # ------------------- Handle publication ends here ------------------ #
+    # ------------------- Handle transfer publication ends here ------------------ #
 
 
 
-    # ------------------- Handle authorship starts here ------------------ #
+    # ------------------- Handle transfer authorship starts here ------------------ #
     # Extract column names from the tables
     authorship_table_data = cursor_object.execute('PRAGMA table_info(publications_authorship)').fetchall() # GET AUTHOR TABLE INFO
     authorship_column_names = [row[1] for row in authorship_table_data] # Extract column names
@@ -140,10 +140,10 @@ def run():
             else:
                 print(f"New authorship created with person_id {instance.person_id}, publication_id {instance.publication_id} and id {instance.id}")
                 author_objects_already_exist += 1               
-    # ------------------- Handle authorship starts here ------------------ #
+    # ------------------- Handle transfer authorship starts here ------------------ #
 
 
-    # ------------------- Handle editorship starts here ------------------ #
+    # ------------------- Handle transfer editorship starts here ------------------ #
     # Extract column names from the tables
     editorship_table_data = cursor_object.execute('PRAGMA table_info(publications_editorship)').fetchall() # GET AUTHOR TABLE INFO
     editorship_column_names = [row[1] for row in editorship_table_data] # Extract column names
@@ -165,10 +165,10 @@ def run():
                 else:
                     print(f"New editorship created with person_id {instance.person_id}, publication_id {instance.publication_id} and id {instance.id}")
                     editor_objects_already_exist += 1
-    # ------------------- Handle editorship ends here ------------------ #
+    # ------------------- Handle transfer editorship ends here ------------------ #
 
 
-    # ------------------- Handle supervisorship starts here ------------------ #
+    # ------------------- Handle transfer supervisorship starts here ------------------ #
     
     # Extract column names from the tables
     supervisorship_table_data = cursor_object.execute('PRAGMA table_info(publications_supervisorship)').fetchall() # GET AUTHOR TABLE INFO
@@ -192,7 +192,7 @@ def run():
             print(f"New supervisorship created with person_id {instance.person_id}, publication_id {instance.publication_id} and id {instance.id}")
             supervisor_objects_already_exist += 1
 
-    # ------------------- Handle supervisorship ends here ------------------ #
+    # ------------------- Handle transfer supervisorship ends here ------------------ #
 
 
 
@@ -215,6 +215,9 @@ def run():
     # print total number of supervisor_objects_created
     print("Total number of supervisor objects created:", supervisor_objects_created)
     print("Total number of supervisor objects that already exist", supervisor_objects_already_exist)
+
+# ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+
 
     exit()
 
