@@ -3,3 +3,14 @@ __pycache__/
 
 # ignore .sqlite
 *.sqlite
+
+*.bak
+
+# ignore thins in a folder called 'old'
+old/
+
+# ignore things in a folder called 'temp'
+temp/
+
+# ignore things in a folder called 'migrations'
+migrations/
