@@ -4,7 +4,7 @@
 echo "Running implement_models.sh"
 
 # Drops database
-echo 'DROP DATABASE IF EXISTS root_find_artek_v1_0_0;' | python /usr/src/app/find_artek/manage.py dbshell
+echo 'DROP DATABASE IF EXISTS root_find_artek_v1_0_0;' | mysql -h database-service -u root -pnotSecureChangeMe
 echo 'DATABASE HAS BEEN DELETED'
 
 # Creates database

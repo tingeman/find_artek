@@ -2,6 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash-Debug (hardcoded script name)",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/publications/implement_models.sh",
+            "args": []
+        },
+        {
             "name": "Python: Django",
             "type": "python",
             "request": "launch",
@@ -17,7 +25,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
-            "args": ["runscript", "publications.test_get_authors"]
+            "args": ["runscript", "publications.datatransfer_relation_varification_script"]
         }
     ]
 }
