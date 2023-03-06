@@ -4,13 +4,38 @@
         {
             "type": "bashdb",
             "request": "launch",
-            "name": "Bash-Debug (hardcoded script name)",
+            "name": "Bash: Datatransfer",
             "cwd": "${workspaceFolder}",
             "program": "${workspaceFolder}/publications/datatransfer_script.sh",
-            "args": []
+            "args": [
+                "--skip-data-transfer", 
+                "true"
+            ]
         },
         {
-            "name": "Python: Runserver",
+            "name": "Python: Datatransfer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runscript",
+                "publications.datatransfer_script"
+            ],
+            "django": true
+        },
+        {
+            "name": "Python: Unittest",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "test",
+                "publications"
+            ],
+            "django": true
+        },
+        {
+            "name": "Python: Runserver Live",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
@@ -21,16 +46,6 @@
             "django": true,
             "justMyCode": true
         },
-        {
-            "name": "Python: Django Publication Test",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": [
-                "test",
-                "publications"
-            ],
-            "django": true
-        }
+
     ]
 }

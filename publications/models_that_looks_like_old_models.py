@@ -101,6 +101,17 @@ class Journal(models.Model):
 
     def __unicode__(self):
         return self.journal
+    
+
+class PubType(models.Model):
+    type        = models.CharField(max_length=100)               # f.ex. BOOK, ARTICLE
+    description = models.CharField(max_length=200, blank=True)   # Expalnation of usage
+    req_fields  = models.CharField(max_length=200, blank=True)    # from bibtex definition
+    opt_fields  = models.CharField(max_length=200, blank=True)    # from bibtex definition (in practice all
+                                                                   # non-required fields will be optional
+
+    def __unicode__(self):
+        return self.type
 
 # QUESTION: Should Charfield be turned into a text. How much space does these fields require?
 # MYANSWER: These field describes if it is a BOOK, Article
@@ -167,10 +178,10 @@ class Publication(BaseModel):
     
     # Use plural variable name for many-to-one relationship
     # QUESTION: Not sure if cascade is the correct thing to do when deleting.
-    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE, default=None, related_name='publications', null=True) # f.ex. BOOK, ARTICLE
+    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE, default=None, related_name='publication_type', null=True) # f.ex. BOOK, ARTICLE
 
     key = models.CharField(max_length=100, blank=True)
-
+    type = models.ForeignKey(PubType, on_delete=models.PROTECT)
     # Use plural variable name for many-to-many relationship
     authors = models.ManyToManyField(Person, through='Authorship', related_name='publication_author', blank=True, default=None)
 
