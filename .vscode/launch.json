@@ -6,7 +6,7 @@
             "request": "launch",
             "name": "Bash-Debug (hardcoded script name)",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/publications/implement_models.sh",
+            "program": "${workspaceFolder}/publications/datatransfer_script.sh",
             "args": []
         },
         {
@@ -22,11 +22,15 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Data varification",
+            "name": "Python: Django Publication Test",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
-            "args": ["runscript", "publications.datatransfer_relation_varification_script"]
+            "args": [
+                "test",
+                "publications"
+            ],
+            "django": true
         }
     ]
 }
