@@ -1,35 +1,41 @@
 import os
-from MySQLdb import IntegrityError
+import pathlib
+import sqlite3
+from datetime import datetime
+
 import django
+from MySQLdb import IntegrityError
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
 
-# THIS SCRIPT TOTALLY DEPENDS ON 
-# models_that_looks_like_old_models.py
-
-
-# ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
-# This part of the script transfers the following tables from the sqlite3 database:
-# person, publication, authorship, editorship, supervisorship.
-# It also make test if the data is working.
-# set the environment variable for the settings module
+# Configure Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'find_artek.settings')
-
-# configure Django settings
 django.setup()
 
 # Now you can import Django models and use the ORM
+from publications.models import Publication, Person, Authorship
+
+# This is the script that transfers data from the old database into the new one.
+# The old database is implemented using Django v1.6 or earlier models.
+# When the data is transferred into the new database, the new database tries to resemble the old one (models_that_look_like_old_models.py).
+# The new database is implemented using Django v4.1 or later models.
+
+# Note that this SCRIPT TOTALLY DEPENDS ON 
+# models_that_looks_like_old_models.py
+
 from django.contrib.auth.models import User
 from publications import models
 
-import sqlite3
-import pathlib
-from django.contrib.auth.models import User
-from django.conf import settings
-from django.contrib import messages
-from django.shortcuts import get_object_or_404
-from publications.models import Publication, Person, Authorship
-from datetime import datetime
+
+
 
 def run():
+
+
+
+
     # Connect to the old sqlite database
     p = pathlib.Path('/usr/src/app/find_artek/find_artek.sqlite')
     conn = sqlite3.connect(str(p))
@@ -37,8 +43,12 @@ def run():
     # create a cursor object
     cursor_object = conn.cursor()
 
+    
 
-
+    # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
+    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # This part of the script transfers the following tables from the sqlite3 database:
+    # person, publication, authorship, editorship, supervisorship.
 
 
     # ------------------- Handle transfer person starts here ------------------ #
@@ -82,6 +92,9 @@ def run():
     # ------------------- Handle transfer person ends here ------------------ #
 
 
+
+
+
     # ------------------- Handle transfer publication starts here ------------------ #
     publication_table_data = cursor_object.execute('PRAGMA table_info(publications_publication)').fetchall() # GET PUBLICATION RECORDS
     publication_column_names = [row[1] for row in publication_table_data] # Extract column names
@@ -122,6 +135,9 @@ def run():
 
 
 
+
+
+
     # ------------------- Handle transfer authorship starts here ------------------ #
     # Extract column names from the tables
     authorship_table_data = cursor_object.execute('PRAGMA table_info(publications_authorship)').fetchall() # GET AUTHOR TABLE INFO
@@ -147,6 +163,10 @@ def run():
     # ------------------- Handle transfer authorship starts here ------------------ #
 
 
+
+
+
+
     # ------------------- Handle transfer editorship starts here ------------------ #
     # Extract column names from the tables
     editorship_table_data = cursor_object.execute('PRAGMA table_info(publications_editorship)').fetchall() # GET AUTHOR TABLE INFO
@@ -170,6 +190,10 @@ def run():
                     print(f"New editorship created with person_id {instance.person_id}, publication_id {instance.publication_id} and id {instance.id}")
                     editor_objects_already_exist += 1
     # ------------------- Handle transfer editorship ends here ------------------ #
+
+
+
+
 
 
     # ------------------- Handle transfer supervisorship starts here ------------------ #
@@ -198,6 +222,31 @@ def run():
 
     # ------------------- Handle transfer supervisorship ends here ------------------ #
 
+
+    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
+
+
+
+
+    # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
+    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+
+    # ------------------- Handle transfer journal starts here ------------------ #
+    # The table is empty so no need to transfer data
+    # ------------------- Handle transfer journal ends here ------------------ #
+
+    # ------------------- Handle transfer pubtype starts here ------------------ #
+
+
+                    
+    # ------------------- Handle transfer pubtype ends here ------------------ #
+
+# ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
+# ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+
+    # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
+    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
     # print total number of person_objects_created
     print("Total number of person objects created:", person_objects_created)
     print("Total number of person objects that already exist", person_objects_already_exist)
@@ -217,9 +266,14 @@ def run():
     # print total number of supervisor_objects_created
     print("Total number of supervisor objects created:", supervisor_objects_created)
     print("Total number of supervisor objects that already exist", supervisor_objects_already_exist)
+    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # ------------------- PRINTING TABLES TABLES BELOW ENDS HERE ------------------ #
 
-# ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
+    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
 
+    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+    # ------------------- PRINTING TABLES TABLES BELOW ENDS HERE ------------------ #
     exit()
 
 if __name__ == '__main__':
