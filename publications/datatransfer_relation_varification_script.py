@@ -24,8 +24,15 @@ from datetime import datetime
 
 def run():
 
-    # PUT VERIFICATIONS HERE     
-    pass
+    # PUT VERIFICATIONS HERE
+
+    # get person with id 3
+    person = Person.objects.get(id=3)
+
+    # get all publications for person
+    publications = person.publications.all()
+    
+
 
 
 

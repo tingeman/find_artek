@@ -10,18 +10,19 @@
             "args": []
         },
         {
-            "name": "Python: Django",
+            "name": "Python: Runserver",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
             "args": [
-                "runserver"
+                "runserver",
+                "0.0.0.0:80"
             ],
             "django": true,
             "justMyCode": true
         },
         {
-            "name": "Python: Script with Arguments",
+            "name": "Python: Data varification",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
