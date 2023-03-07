@@ -121,7 +121,7 @@ class PublicationKeyword(models.Model):
     def __unicode__(self):
         return self.keyword
 
-class PublicationTopic(models.Model):
+class Topic(models.Model):
     topic = models.CharField(max_length=100)
 
     def __unicode__(self):
@@ -170,21 +170,18 @@ class Publication(BaseModel):
 
     not_bibtex = ('supervisor', 'grade', 'quality', 'created', 'modified', 'modified_by')
     
-    # Use plural variable name for many-to-one relationship
-    # QUESTION: Not sure if cascade is the correct thing to do when deleting.
-    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE, default=None, related_name='publication_type', null=True) # f.ex. BOOK, ARTICLE
-
     key = models.CharField(max_length=100, blank=True)
     type = models.ForeignKey(PubType, on_delete=models.PROTECT)
+
     # Use plural variable name for many-to-many relationship
     authors = models.ManyToManyField(Person, through='Authorship', related_name='publication_author', blank=True, default=None)
 
     editors = models.ManyToManyField(Person, through='Editorship', related_name='publication_editor', blank=True, default=None)
 
     supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='publication_supervisor', blank=True, default=None)
-
+    
+    topics = models.ManyToManyField(Topic, blank=True, default=None)
     keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None)
-    publication_topics = models.ManyToManyField(PublicationTopic, blank=True, default=None, related_name='publications')
     publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
     appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
     journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
