@@ -16,7 +16,7 @@ class TestPublicationData(unittest.TestCase):
     def test_authorships(self):
         # Get the real data from the database
         person_niels_foged = Person.objects.get(id=3)
-        publications_authorships = person_niels_foged.author_publication.all()
+        niels_foged_author_publications = person_niels_foged.author_publication.all()
 
         # Define the expected titles
         expected_titles = [
@@ -24,31 +24,31 @@ class TestPublicationData(unittest.TestCase):
         ]
 
         # Iterate through the publications and compare their titles with the expected titles
-        for i, publication_authored in enumerate(publications_authorships):
+        for i, author_publication in enumerate(niels_foged_author_publications):
             with self.subTest(i=i):
-                self.assertEqual(publication_authored.title, expected_titles[i])
+                self.assertEqual(author_publication.title, expected_titles[i])
 
 
     # Check whether the person named "Niels Foged" is associated with the expected editorship of publications.
     def test_editorships(self):
         # Get the real data from the database
         person_niels_foged = Person.objects.get(id=3)
-        publication_editors = person_niels_foged.editor_publication.all()
+        niels_foged_editor_publications = person_niels_foged.editor_publication.all()
 
         # Define the expected titles (empty list)
         expected_titles = []
 
         # Iterate through the publications and compare their titles with the expected titles
-        for i, publication_editor in enumerate(publication_editors):
+        for i, editor_publication in enumerate(niels_foged_editor_publications):
             with self.subTest(i=i):
-                self.assertIn(publication_editor.title, expected_titles)
+                self.assertIn(editor_publication.title, expected_titles)
 
 
     # Check whether the person named "Niels Foged" is associated with the expected supervision of publications.
     def test_supervisorships(self):
         # Get the real data from the database
         person_niels_foged = Person.objects.get(id=3)
-        publication_supervisors = person_niels_foged.supervisor_publication.all()
+        niels_foged_supervisor_publications = person_niels_foged.supervisor_publication.all()
 
         # Define the expected titles
         expected_titles = [
@@ -58,9 +58,9 @@ class TestPublicationData(unittest.TestCase):
         ]
 
         # Iterate through the publications and compare their titles with the expected titles
-        for i, publication_supervisor in enumerate(publication_supervisors):
+        for i, supervisor_publication in enumerate(niels_foged_supervisor_publications):
             with self.subTest(i=i):
-                self.assertEqual(publication_supervisor.title, expected_titles[i])
+                self.assertEqual(supervisor_publication.title, expected_titles[i])
 
     
 
