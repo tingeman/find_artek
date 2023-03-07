@@ -115,18 +115,18 @@ class PubType(models.Model):
         return self.type
 
 
-class PublicationKeyword(models.Model):
-    keyword = models.CharField(max_length=100)
-
-    def __unicode__(self):
-        return self.keyword
-
 class Topic(models.Model):
     topic = models.CharField(max_length=100)
 
     def __unicode__(self):
         return self.topic
-    
+
+class Keyword(models.Model):
+    keyword = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return self.keyword
+
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
 # ********************************************************************        return self.topic
@@ -180,9 +180,10 @@ class Publication(BaseModel):
 
     supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='publication_supervisor', blank=True, default=None)
     
-    publication_topics = models.ManyToManyField(Topic, through='Topics', blank=True, default=None)
+    publication_topics = models.ManyToManyField(Topic, through='Topicship', blank=True, default=None)
 
-    keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None)
+    publication_keywords = models.ManyToManyField(Keyword, through='Keywordship', blank=True, default=None)
+    
     publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
     appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
     journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
@@ -225,9 +226,13 @@ class Publication(BaseModel):
             ("verify_publication", "Can verify publications"),
         )
 
-class Topics(models.Model):
+class Topicship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
+
+class Keywordship(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    keyword = models.ForeignKey(Keyword, on_delete=models.CASCADE)
 
 class Authorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)

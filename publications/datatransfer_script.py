@@ -47,8 +47,9 @@ def run():
     # create a cursor object
     cursor_object = conn.cursor()
 
+
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- journal (DONE), pubtype (DONE), topic (DONE), keyword, publication_keywords (manytomany) ------------------ #
+    # ------------------- journal (DONE), pubtype (DONE), topic (DONE), keyword (DONE)  ------------------ #
 
     # ------------------- Handle transfer journal starts here ------------------ #
     # The table is empty so no need to transfer data
@@ -108,14 +109,43 @@ def run():
             topic_objects_already_exist += 1
     # ------------------- Handle transfer topic ends here ------------------ #
 
+    # ------------------- Handle transfer keyword starts here ------------------ #
+    # Extract column names from the tables
+    keyword_table_data = cursor_object.execute('PRAGMA table_info(publications_keyword)').fetchall()
+    keyword_column_names = [row[1] for row in keyword_table_data]  # Extract column names
 
-    # ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
-    # ------------------- journal, pubtype, topic, keyword, publication_keywords (manytomany) ------------------ #
+    keyword_dictionary = []
+    for row in cursor_object.execute("SELECT * FROM publications_keyword"):
+        keyword_dictionary.append(dict(zip(keyword_column_names, row)))
+
+    keyword_objects_created = 0
+    keyword_objects_already_exist = 0
+    for dictionary in keyword_dictionary:
+        # add the data
+        instance, created = models.Keyword.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+        if created:
+            print("New keyword created with name:", instance.keyword)
+            keyword_objects_created += 1
+        else:
+            print("Keyword already exists with name:", instance.keyword)
+            keyword_objects_already_exist += 1
+    # ------------------- Handle transfer keyword ends here ------------------ #
+
+
+    # ------------------- IMPORTING TABLES TABLES ENDS HERE ------------------ #
+ 
+
+
+
 
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- person, publication, publication_topics (manytomany), authorship, editorship, supervisorship ------------------ #
+    # ------------------- person (Done), publication (Done), publication_topics (manytomany) (Done), publication_keywords (manytomany) (Done), authorship (Done), editorship (Done), supervisorship (Done)------------------ #
     # This part of the script transfers the following tables from the sqlite3 database:
     # person, publication, authorship, editorship, supervisorship.
+
+
+
 
     # ------------------- Handle transfer person starts here ------------------ #
     person_table_data = cursor_object.execute('PRAGMA table_info(publications_person)').fetchall()  # GET PERSON RECORDS
@@ -158,6 +188,10 @@ def run():
                   instance.first, instance.last)
     # ------------------- Handle transfer person ends here ------------------ #
 
+
+
+
+
     # ------------------- Handle transfer publication starts here ------------------ #
     publication_table_data = cursor_object.execute(
         'PRAGMA table_info(publications_publication)').fetchall()  # GET PUBLICATION RECORDS
@@ -198,6 +232,11 @@ def run():
             print("Publication already exists with number:", instance.number)
     # ------------------- Handle transfer publication ends here ------------------ #
 
+
+
+
+
+
     # ------------------- Handle transfer publication_topics starts here ------------------ #
     # Extract column names from the tables
     publication_topics_table_data = cursor_object.execute('PRAGMA table_info(publications_publication_topics)').fetchall()
@@ -213,7 +252,7 @@ def run():
         # add the data
         
         Publication.objects.get(id=1)
-        instance, created = models.Topics.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+        instance, created = models.Topicship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
 
         if created:
             print("New publication_topics created with id:", instance.id)
@@ -223,6 +262,37 @@ def run():
             publication_topics_objects_already_exist += 1
 
     # ------------------- Handle transfer publication_topics ends here ------------------ #
+
+
+
+
+
+    # ------------------- Handle transfer publication_keywords starts here ------------------ #
+    # Extract column names from the tables
+    publication_keywords_table_data = cursor_object.execute('PRAGMA table_info(publications_publication_keywords)').fetchall()
+    publication_keywords_column_names = [row[1] for row in publication_keywords_table_data]  # Extract column names
+
+    publication_keywords_dictionary = []
+    for row in cursor_object.execute("SELECT * FROM publications_publication_keywords"):
+        publication_keywords_dictionary.append(dict(zip(publication_keywords_column_names, row)))
+
+    publication_keywords_objects_created = 0
+    publication_keywords_objects_already_exist = 0
+    for dictionary in publication_keywords_dictionary:
+
+        # add the data
+        instance, created = models.Keywordship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+        if created:
+            print("New publication_keywords created with id:", instance.id)
+            publication_keywords_objects_created += 1
+        else:
+            print("publication_keywords already exists with id:", instance.id)
+            publication_keywords_objects_already_exist += 1
+
+    # ------------------- Handle transfer publication_keywords ends here ------------------ #
+
+
 
 
     # ------------------- Handle transfer authorship starts here ------------------ #
@@ -300,11 +370,13 @@ def run():
 
     # ------------------- Handle transfer supervisorship ends here ------------------ #
 
-    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
-    # ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
+    # ------------------- IMPORTING TABLES TABLES ENDS HERE ------------------ #
+
+
+
 
     # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- journal, pubtype, topic, publication_keywords (manytomany), keyword ------------------ #
+    # ------------------- journal (DONE), pubtype (DONE), topic (DONE), keyword (DONE)  ------------------ #
     # print total number of journal_objects_created
     print("Total number of journal objects created:", journal_objects_created)
     print("Total number of journal objects that already exist", journal_objects_alerady_exists)
@@ -317,13 +389,16 @@ def run():
     print("Total number of topic objects created:",  topic_objects_created)
     print("Total number of topic objects that already exist", topic_objects_already_exist)
     
+    # print total number of keyword_objects_created
+    print("Total number of keyword objects created:", keyword_objects_created)
+    print("Total number of keyword objects that already exist", keyword_objects_already_exist)
 
-    # ------------------- journal, pubtype, topic, publication_keywords (manytomany), keyword ------------------ #
-    # ------------------- PRINTING TABLES TABLES BELOW ENDS HERE ------------------ #
+    # ------------------- PRINTING TABLES TABLES ENDS HERE ------------------ #
+
 
 
     # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- person, publication, topics (manytomany), authorship, editorship, supervisorship ------------------ #
+    # ------------------- person, publication, topics (manytomany), publication_keywords (manytomany), authorship, editorship, supervisorship ------------------ #
     # print total number of person_objects_created
     print("Total number of person objects created:", person_objects_created)
     print("Total number of person objects that already exist", person_objects_already_exist)
@@ -331,6 +406,14 @@ def run():
     # print total number of publication_objects_created
     print("Total number of publication objects created:", publication_objects_created)
     print("Total number of publication objects that already exist", publication_objects_already_exist)
+
+    # print total number of topics_objects_created
+    print("Total number of topics objects created:", publication_topics_objects_created)
+    print("Total number of topics objects that already exist", publication_topics_objects_already_exist)
+
+    # print total number of publication_keywords_objects_created
+    print("Total number of publication_keywords objects created:", publication_keywords_objects_created)
+    print("Total number of publication_keywords objects that already exist", publication_keywords_objects_already_exist)
 
     # print total number of author_objects_created
     print("Total number of author objects created:", author_objects_created)
@@ -343,7 +426,7 @@ def run():
     # print total number of supervisor_objects_created
     print("Total number of supervisor objects created:", supervisor_objects_created)
     print("Total number of supervisor objects that already exist", supervisor_objects_already_exist)
-    # ------------------- person, publication, topics (manytomany), authorship, editorship, supervisorship ------------------ #
+    # ------------------- person, publication, topics (manytomany), publication_keywords (manytomany), authorship, editorship, supervisorship ------------------ #
     # ------------------- PRINTING TABLES TABLES BELOW ENDS HERE ------------------ #
 
 
