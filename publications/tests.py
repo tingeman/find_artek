@@ -67,7 +67,7 @@ class TestPublicationData(unittest.TestCase):
     def test_authors(self):
         # Get the real data from the database
         publication = Publication.objects.get(id=130) # Title: Tekniske undersøgelser for anlægsarbejde i fjeld i Grønland
-        authors = publication.authorships.all()
+        authors = publication.authors.all()
 
         # Define the expected names
         expected_names = [
@@ -84,7 +84,7 @@ class TestPublicationData(unittest.TestCase):
     def test_supervisors(self):
         # Get the real data from the database
         publication = Publication.objects.get(id=130)
-        supervisors = publication.supervisorships.all()
+        supervisors = publication.supervisors.all()
 
         # Define the expected names
         expected_names = [
