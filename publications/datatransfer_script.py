@@ -48,7 +48,7 @@ def run():
     cursor_object = conn.cursor()
 
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- journal, pubtype, topic, publication_topics (manytomany), keyword, publication_keywords (manytomany) ------------------ #
+    # ------------------- journal (DONE), pubtype (DONE), topic (DONE), keyword, publication_keywords (manytomany) ------------------ #
 
     # ------------------- Handle transfer journal starts here ------------------ #
     # The table is empty so no need to transfer data
@@ -106,14 +106,14 @@ def run():
         else:
             print("Topic already exists with name:", instance.topic)
             topic_objects_already_exist += 1
-
     # ------------------- Handle transfer topic ends here ------------------ #
 
+
     # ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
-    # ------------------- journal, pubtype, topic, publication_topics (manytomany), keyword, publication_keywords (manytomany) ------------------ #
+    # ------------------- journal, pubtype, topic, keyword, publication_keywords (manytomany) ------------------ #
 
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # ------------------- person, publication, publication_topics (manytomany), authorship, editorship, supervisorship ------------------ #
     # This part of the script transfers the following tables from the sqlite3 database:
     # person, publication, authorship, editorship, supervisorship.
 
@@ -198,6 +198,33 @@ def run():
             print("Publication already exists with number:", instance.number)
     # ------------------- Handle transfer publication ends here ------------------ #
 
+    # ------------------- Handle transfer publication_topics starts here ------------------ #
+    # Extract column names from the tables
+    publication_topics_table_data = cursor_object.execute('PRAGMA table_info(publications_publication_topics)').fetchall()
+    publication_topics_column_names = [row[1] for row in publication_topics_table_data]  # Extract column names
+
+    publication_topics_dictionary = []
+    for row in cursor_object.execute("SELECT * FROM publications_publication_topics"):
+        publication_topics_dictionary.append(dict(zip(publication_topics_column_names, row)))
+
+    publication_topics_objects_created = 0
+    publication_topics_objects_already_exist = 0
+    for dictionary in publication_topics_dictionary:
+        # add the data
+        
+        Publication.objects.get(id=1)
+        instance, created = models.Topics.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+        if created:
+            print("New publication_topics created with id:", instance.id)
+            publication_topics_objects_created += 1
+        else:
+            print("publication_topics already exists with id:", instance.id)
+            publication_topics_objects_already_exist += 1
+
+    # ------------------- Handle transfer publication_topics ends here ------------------ #
+
+
     # ------------------- Handle transfer authorship starts here ------------------ #
     # Extract column names from the tables
     authorship_table_data = cursor_object.execute('PRAGMA table_info(publications_authorship)').fetchall()
@@ -277,7 +304,7 @@ def run():
     # ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
 
     # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+    # ------------------- journal, pubtype, topic, publication_keywords (manytomany), keyword ------------------ #
     # print total number of journal_objects_created
     print("Total number of journal objects created:", journal_objects_created)
     print("Total number of journal objects that already exist", journal_objects_alerady_exists)
@@ -291,12 +318,12 @@ def run():
     print("Total number of topic objects that already exist", topic_objects_already_exist)
     
 
-    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+    # ------------------- journal, pubtype, topic, publication_keywords (manytomany), keyword ------------------ #
     # ------------------- PRINTING TABLES TABLES BELOW ENDS HERE ------------------ #
 
 
     # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # ------------------- person, publication, topics (manytomany), authorship, editorship, supervisorship ------------------ #
     # print total number of person_objects_created
     print("Total number of person objects created:", person_objects_created)
     print("Total number of person objects that already exist", person_objects_already_exist)
@@ -316,7 +343,7 @@ def run():
     # print total number of supervisor_objects_created
     print("Total number of supervisor objects created:", supervisor_objects_created)
     print("Total number of supervisor objects that already exist", supervisor_objects_already_exist)
-    # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
+    # ------------------- person, publication, topics (manytomany), authorship, editorship, supervisorship ------------------ #
     # ------------------- PRINTING TABLES TABLES BELOW ENDS HERE ------------------ #
 
 

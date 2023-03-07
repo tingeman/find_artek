@@ -180,7 +180,8 @@ class Publication(BaseModel):
 
     supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='publication_supervisor', blank=True, default=None)
     
-    topics = models.ManyToManyField(Topic, blank=True, default=None)
+    publication_topics = models.ManyToManyField(Topic, through='Topics', blank=True, default=None)
+
     keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None)
     publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
     appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
@@ -223,6 +224,10 @@ class Publication(BaseModel):
             ("delete_own_publication", "Can delete own publications"),
             ("verify_publication", "Can verify publications"),
         )
+
+class Topics(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
 
 class Authorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
