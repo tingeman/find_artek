@@ -1,4 +1,5 @@
 import os
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -113,16 +114,6 @@ class PubType(models.Model):
     def __unicode__(self):
         return self.type
 
-# QUESTION: Should Charfield be turned into a text. How much space does these fields require?
-# MYANSWER: These field describes if it is a BOOK, Article
-class PublicationType(models.Model):
-    type        = models.CharField(max_length=100)  # f.ex. BOOK, ARTICLE
-    description = models.CharField(max_length=200, blank=True)  # Expalnation of usage
-    required_fields  = models.CharField(max_length=200, blank=True)   # from bibtex definition
-    optional_fields  = models.CharField(max_length=200, blank=True)   # from bibtex definition (in practice all                                                      
-
-    def __unicode__(self):
-        return self.type
 
 class PublicationKeyword(models.Model):
     keyword = models.CharField(max_length=100)
@@ -138,7 +129,10 @@ class PublicationTopic(models.Model):
     
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
-# ********************************************************************
+# ********************************************************************        return self.topic
+
+
+
 class FileObject(BaseModel):
     upload_to = None  # If set, this value should be used in upload_to function
     original_URL = models.CharField(max_length=1000, blank=True)
