@@ -118,8 +118,7 @@ def run():
     # person, publication, authorship, editorship, supervisorship.
 
     # ------------------- Handle transfer person starts here ------------------ #
-    person_table_data = cursor_object.execute(
-        'PRAGMA table_info(publications_person)').fetchall()  # GET PERSON RECORDS
+    person_table_data = cursor_object.execute('PRAGMA table_info(publications_person)').fetchall()  # GET PERSON RECORDS
     person_column_names = [row[1] for row in person_table_data]  # Extract column names
 
     person_dictionary = []
