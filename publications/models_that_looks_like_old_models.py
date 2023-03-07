@@ -121,6 +121,7 @@ class Topic(models.Model):
     def __unicode__(self):
         return self.topic
 
+
 class Keyword(models.Model):
     keyword = models.CharField(max_length=100)
 
@@ -136,7 +137,7 @@ class Keyword(models.Model):
 class FileObject(BaseModel):
     upload_to = None  # If set, this value should be used in upload_to function
     original_URL = models.CharField(max_length=1000, blank=True)
-    file = models.FileField(upload_to=get_file_path)
+    file = models.TextField(blank=False)
     description = models.TextField(max_length=65535, blank=True)
 
     # QUESTION: What is this?
@@ -184,10 +185,13 @@ class Publication(BaseModel):
 
     publication_keywords = models.ManyToManyField(Keyword, through='Keywordship', blank=True, default=None)
     
+    appendices = models.ManyToManyField(FileObject, through='Appendenciesship', related_name='publication_appendices', blank=True, default=None)
+
     publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
-    appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
+
+    file = models.OneToOneField(FileObject, blank=True, default=None, on_delete=models.SET_NULL, null=True)
     journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
-    file_object = models.OneToOneField(FileObject, blank=True, default=None, on_delete=models.SET_NULL, null=True)
+
     booktitle = models.CharField(max_length=255, blank=True)
     title = models.CharField(max_length=255, blank=True)
     crossref = models.CharField(max_length=255, blank=True)
@@ -269,6 +273,10 @@ class Editorship(models.Model):
         self.match_string = ""
         if commit:
             self.save()
+
+class Appendenciesship(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    fileobject = models.ForeignKey(FileObject, on_delete=models.CASCADE)
 
 class Supervisorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)

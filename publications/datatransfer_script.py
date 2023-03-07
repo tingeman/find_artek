@@ -133,6 +133,12 @@ def run():
     # ------------------- Handle transfer keyword ends here ------------------ #
 
 
+
+
+
+    # ------------------- Handle transfer file ends here ------------------ #
+
+
     # ------------------- IMPORTING TABLES TABLES ENDS HERE ------------------ #
  
 
@@ -140,7 +146,7 @@ def run():
 
 
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- person (Done), publication (Done), publication_topics (manytomany) (Done), publication_keywords (manytomany) (Done), authorship (Done), editorship (Done), supervisorship (Done)------------------ #
+    # ------------------- person (Done), publication (Done), file (Done), publication_topics (manytomany) (Done), publication_keywords (manytomany) (Done), authorship (Done), editorship (Done), supervisorship (Done) ------------------ #
     # This part of the script transfers the following tables from the sqlite3 database:
     # person, publication, authorship, editorship, supervisorship.
 
@@ -232,6 +238,76 @@ def run():
             print("Publication already exists with number:", instance.number)
     # ------------------- Handle transfer publication ends here ------------------ #
 
+
+
+
+    # ------------------- Handle transfer file starts here ------------------ #
+    # Extract column names from the tables
+    file_table_data = cursor_object.execute('PRAGMA table_info(publications_fileobject)').fetchall()
+    file_column_names = [row[1] for row in file_table_data]  # Extract column names
+
+    file_dictionary = []
+    for row in cursor_object.execute("SELECT * FROM publications_fileobject"):
+        file_dictionary.append(dict(zip(file_column_names, row)))
+
+    file_objects_created = 0
+    file_objects_already_exist = 0
+    for dictionary in file_dictionary:
+
+        # Convert the string to a datetime object
+        for key in ['created_date', 'modified_date']:
+            date_string = dictionary[key]  # '2012-12-19 22:36:14.891000'
+            date_format = '%Y-%m-%d %H:%M:%S.%f'
+            try:
+                date_object = datetime.strptime(date_string, date_format)
+            except ValueError:
+                date_format = '%Y-%m-%d %H:%M:%S'
+                date_object = datetime.strptime(date_string, date_format)
+
+            dictionary[key] = timezone.make_aware(date_object, time_zone)
+
+        illigal_keys = dict()
+        for key in ['created_by_id', 'modified_by_id']:
+            illigal_keys[key] = dictionary.pop(key)
+
+
+        # add the data
+        instance, created = models.FileObject.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+        if created:
+            print("New file created with name:", instance.file)
+            file_objects_created += 1
+        else:
+            print("File already exists with name:", instance.file)
+            file_objects_already_exist += 1
+    # ------------------- Handle transfer file ends here ------------------ #
+
+
+
+    # ------------------- Handle transfer appendenciesship starts here ------------------ #
+    # Extract column names from the tables
+    appendenciesship_table_data = cursor_object.execute('PRAGMA table_info(publications_publication_appendices)').fetchall()
+    appendenciesship_column_names = [row[1] for row in appendenciesship_table_data]  # Extract column names
+
+    appendenciesship_dictionary = []
+    for row in cursor_object.execute("SELECT * FROM publications_publication_appendices"):
+        appendenciesship_dictionary.append(dict(zip(appendenciesship_column_names, row)))
+
+    appendenciesship_objects_created = 0
+    appendenciesship_objects_already_exist = 0
+    for dictionary in appendenciesship_dictionary:
+
+        # add the data
+        instance, created = models.Appendenciesship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+        if created:
+            print("New appendenciesship created with name:", instance)
+            appendenciesship_objects_created += 1
+        else:
+            print("Appendenciesship already exists with name:", instance)
+            appendenciesship_objects_already_exist += 1
+    
+    # ------------------- Handle transfer appendenciesship ends here ------------------ #
 
 
 
