@@ -48,7 +48,7 @@ def run():
     cursor_object = conn.cursor()
 
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
-    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+    # ------------------- journal, pubtype, topic, publication_topics (manytomany), keyword, publication_keywords (manytomany) ------------------ #
 
     # ------------------- Handle transfer journal starts here ------------------ #
     # The table is empty so no need to transfer data
@@ -59,7 +59,7 @@ def run():
     # The table is not empty so i do need to transfer data
     # Extract column names from the tables
     pubtype_table_data = cursor_object.execute(
-        'PRAGMA table_info(publications_pubtype)').fetchall()  # GET AUTHOR TABLE INFO
+        'PRAGMA table_info(publications_pubtype)').fetchall() 
     pubtype_column_names = [row[1]
                             for row in pubtype_table_data]  # Extract column names
 
@@ -89,8 +89,35 @@ def run():
 
     # ------------------- Handle transfer pubtype ends here ------------------ #
 
+
+    # ------------------- Handle transfer topic starts here ------------------ #
+    # Extract column names from the tables
+    publications_topic_data = cursor_object.execute('PRAGMA table_info(publications_topic)').fetchall() 
+    publications_topic_names = [row[1] for row in publications_topic_data]  # Extract column names
+
+    publications_topic_dictionary = []
+    for row in cursor_object.execute("SELECT * FROM publications_topic"):
+        publications_topic_dictionary.append(dict(zip(publications_topic_names, row)))
+
+    publications_topic_objects_created = 0
+    publications_topic_objects_already_exist = 0
+    for dictionary in publications_topic_dictionary:
+            
+        # add the data
+        instance, created = models.Topic.objects.get_or_create(
+            id=dictionary['id'], defaults=dictionary)
+
+        if created:
+            print("New topic created with name:", instance.topic)
+            publications_topic_objects_created += 1
+        else:
+            publications_topic_objects_already_exist += 1
+            print("Topic already exists with name:", instance.topic)
+
+    # ------------------- Handle transfer topic ends here ------------------ #
+
     # ------------------- IMPORTING TABLES TABLES BELOW ENDS HERE ------------------ #
-    # ------------------- journal, pubtype, publication_topics (manytomany), topic, publication_keywords (manytomany), keyword ------------------ #
+    # ------------------- journal, pubtype, topic, publication_topics (manytomany), keyword, publication_keywords (manytomany) ------------------ #
 
     # ------------------- IMPORTING TABLES TABLES BELOW STARTS HERE ------------------ #
     # ------------------- person, publication, authorship, editorship, supervisorship ------------------ #
