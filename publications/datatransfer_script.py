@@ -12,10 +12,13 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 # Configure Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'find_artek.settings')
 django.setup()
+
+
 
 # Now you can import Django models and use the ORM
 
@@ -34,6 +37,8 @@ def run():
     # models = apps.get_models()
     # for model in models:
         # print(model.__name__)
+
+    time_zone = timezone.get_default_timezone()
 
     # Connect to the old sqlite database
     p = pathlib.Path('/usr/src/app/find_artek/find_artek.sqlite')
@@ -116,7 +121,7 @@ def run():
                 date_format = '%Y-%m-%d %H:%M:%S'
                 date_object = datetime.strptime(date_string, date_format)
 
-            dictionary[key] = date_object
+            dictionary[key] = timezone.make_aware(date_object, time_zone)
 
         illigal_keys = dict()
         for key in ['created_by_id', 'modified_by_id']:
@@ -160,7 +165,7 @@ def run():
                 date_format = '%Y-%m-%d %H:%M:%S'
                 date_object = datetime.strptime(date_string, date_format)
 
-            dictionary[key] = date_object
+            dictionary[key] = timezone.make_aware(date_object, time_zone)
 
         illigal_keys = dict()
         for key in ['created_by_id', 'file_id', 'modified_by_id']:
