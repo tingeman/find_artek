@@ -137,7 +137,7 @@ class Keyword(models.Model):
 class FileObject(BaseModel):
     upload_to = None  # If set, this value should be used in upload_to function
     original_URL = models.CharField(max_length=1000, blank=True)
-    file = models.TextField(blank=False)
+    file = models.FileField(upload_to=get_file_path, max_length=1000, blank=False)
     description = models.TextField(max_length=65535, blank=True)
 
     # QUESTION: What is this?
@@ -189,7 +189,8 @@ class Publication(BaseModel):
 
     publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
 
-    file = models.OneToOneField(FileObject, blank=True, default=None, on_delete=models.SET_NULL, null=True)
+    file = models.OneToOneField(FileObject, blank=False, null=True, on_delete=models.CASCADE)
+
     journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
 
     booktitle = models.CharField(max_length=255, blank=True)
