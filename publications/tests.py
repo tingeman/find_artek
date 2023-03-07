@@ -1,7 +1,7 @@
 #
 
 import unittest
-from publications.models import Person
+from publications.models import Person, Publication
 
 
 class TestPublicationData(unittest.TestCase):
@@ -63,6 +63,39 @@ class TestPublicationData(unittest.TestCase):
                 self.assertEqual(supervisor_publication.title, expected_titles[i])
 
     
+    # Test if can get all the authorships from a publication
+    def test_authors(self):
+        # Get the real data from the database
+        publication = Publication.objects.get(id=130) # Title: Tekniske undersøgelser for anlægsarbejde i fjeld i Grønland
+        authors = publication.authorships.all()
+
+        # Define the expected names
+        expected_names = [
+            'Mathias Dahl'
+        ]
+
+        # Iterate through the authors and compare their names with the expected names
+        for i, author in enumerate(authors):
+            with self.subTest(i=i):
+                self.assertEqual(f"{author.first} {author.last}", expected_names[i])
+
+
+    # Test if you can get all the supervisors from a publication
+    def test_supervisors(self):
+        # Get the real data from the database
+        publication = Publication.objects.get(id=130)
+        supervisors = publication.supervisorships.all()
+
+        # Define the expected names
+        expected_names = [
+            'Niels Foged',
+            'Thomas Ingeman-Nielsen'
+        ]
+
+        # Iterate through the supervisors and compare their names with the expected names
+        for i, supervisor in enumerate(supervisors):
+            with self.subTest(i=i):
+                self.assertEqual(f"{supervisor.first} {supervisor.last}", expected_names[i])
 
 
     # ------------------- ends here ------------------- #
