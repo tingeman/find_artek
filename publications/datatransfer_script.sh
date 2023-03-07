@@ -134,22 +134,12 @@ fi
 
 # To this:
 # # Use plural variable name for many-to-many relationship
-# authorships = models.ManyToManyField(Person, through='Authorship', related_name='author_publication', blank=True, default=None)
+# authors = models.ManyToManyField(Person, through='Authorship', related_name='author_publication', blank=True, default=None)
 
-# editorships = models.ManyToManyField(Person, through='Editorship', related_name='editor_publication', blank=True, default=None)
+# editors = models.ManyToManyField(Person, through='Editorship', related_name='editor_publication', blank=True, default=None)
 
-# supervisorships = models.ManyToManyField(Person, through='Supervisorship', related_name='supervisor_publication', blank=True, default=None)
+# supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='supervisor_publication', blank=True, default=None)
 
-# Define the old and new variable names
-OLD_NAMES=("authors" "editors" "supervisors")
-NEW_NAMES=("authorships" "editorships" "supervisorships")
-
-# Loop over the old and new names and run the sed command for each pair
-for i in "${!OLD_NAMES[@]}"; do
-    OLD="${OLD_NAMES[$i]}"
-    NEW="${NEW_NAMES[$i]}"
-    sed -i "/$OLD = models.ManyToManyField(Person, through='\([A-Za-z]\+\)', related_name='\([A-Za-z_]\+\)', blank=True, default=None)/{s//${NEW} = models.ManyToManyField(Person, through='\1', related_name='\2', blank=True, default=None)/; t}; /$OLD = models.ManyToManyField(Person, through='\([A-Za-z]\+\)', related_name='\([A-Za-z_]\+ships\)', blank=True, default=None)/{s//${NEW} = models.ManyToManyField(Person, through='\1', related_name='\2_publication', blank=True, default=None)/; t}; /$OLD = models.ManyToManyField(Person, through='\([A-Za-z]\+\)', related_name='\([A-Za-z_]\+publication\)', blank=True, default=None)/!b; /$OLD = models.ManyToManyField(Person, through='\([A-Za-z]\+\)', related_name='\([A-Za-z_]\+publication\)', blank=True, default=None)/{s//${NEW} = models.ManyToManyField(Person, through='\1', related_name='\2', blank=True, default=None)/; t}" ${PUBLICATION_ROOT}/models.py
-done
 
 # Replace 'publication_author' with 'author_publication' in models.py
 sed -i "s/related_name='publication_author'/related_name='author_publication'/" ${PUBLICATION_ROOT}/models.py
