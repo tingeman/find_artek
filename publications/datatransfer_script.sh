@@ -122,36 +122,6 @@ fi
 # ---------------- # PROBLEM 2 STARTS HERE # ---------------- #
 # ---------------- Refactor models starts here ---------------- #
 
-# ---------------- Publication change variables: [authors editors supervisors] starts here ---------------- #
-
-# Change from this:
-# # Use plural variable name for many-to-many relationship
-# authors = models.ManyToManyField(Person, through='Authorship', related_name='publication_author', blank=True, default=None)
-
-# editors = models.ManyToManyField(Person, through='Editorship', related_name='publication_editor', blank=True, default=None)
-
-# supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='publication_supervisor', blank=True, default=None)
-
-# To this:
-# # Use plural variable name for many-to-many relationship
-# authors = models.ManyToManyField(Person, through='Authorship', related_name='author_publication', blank=True, default=None)
-
-# editors = models.ManyToManyField(Person, through='Editorship', related_name='editor_publication', blank=True, default=None)
-
-# supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='supervisor_publication', blank=True, default=None)
-
-
-# Replace 'publication_author' with 'author_publication' in models.py
-sed -i "s/related_name='publication_author'/related_name='author_publication'/" ${PUBLICATION_ROOT}/models.py
-
-# Replace 'publication_editor' with 'editor_publication' in models.py
-sed -i "s/related_name='publication_editor'/related_name='editor_publication'/" ${PUBLICATION_ROOT}/models.py
-
-# Replace 'publication_supervisor' with 'supervisor_publication' in models.py
-sed -i "s/related_name='publication_supervisor'/related_name='supervisor_publication'/" ${PUBLICATION_ROOT}/models.py
-
-# ---------------- Publication change variables: [authors editors supervisors] ends here ---------------- #
-
 
 # Implement the racfactored models
 python ${APP_ROOT}/manage.py makemigrations publications && python ${APP_ROOT}/manage.py migrate publications
