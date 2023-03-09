@@ -5,6 +5,7 @@ import pathlib
 import sqlite3
 from datetime import datetime
 from django.apps import apps
+import re
 
 import django
 from MySQLdb import IntegrityError
@@ -17,6 +18,7 @@ from django.utils import timezone
 # Configure Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'find_artek.settings')
 django.setup()
+
 
 
 
@@ -33,10 +35,20 @@ django.setup()
 
 def run():
 
-    # # Run this to get models
-    # models = apps.get_models()
-    # for model in models:
-        # print(model.__name__)
+    # ------------------- Check for non characters that you consider invalid ------------------ #
+
+    # invalid_to_valid put chacters here, that you want to replace
+    invalid_to_valid = {
+        '‐': '-'
+    }
+
+    def check_string(input_string):
+        invalid_indices = []
+        for i, char in enumerate(input_string):
+            if char in invalid_to_valid:
+                invalid_indices.append(i)
+        return invalid_indices
+    # ------------------- Check for non characters that you consider invalid ------------------ #
 
     time_zone = timezone.get_default_timezone()
 
@@ -77,6 +89,23 @@ def run():
         pubtype_objects_already_exist = 0
         for dictionary in pubtype_dictionary:
 
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+
+            
+
             # add the data
             instance, created = models.PubType.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
 
@@ -105,6 +134,21 @@ def run():
         topic_objects_created = 0
         topic_objects_already_exist = 0
         for dictionary in topic_dictionary:
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
                 
             # add the data
             instance, created = models.Topic.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
@@ -133,6 +177,22 @@ def run():
         keyword_objects_created = 0
         keyword_objects_already_exist = 0
         for dictionary in keyword_dictionary:
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+
             # add the data
             instance, created = models.Keyword.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
 
@@ -175,6 +235,21 @@ def run():
         person_objects_created = 0
         person_objects_already_exist = 0
         for dictionary in person_dictionary:
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
 
             # Convert the string to a datetime object
             for key in ['created_date', 'modified_date']:
@@ -220,6 +295,22 @@ def run():
         file_objects_created = 0
         file_objects_already_exist = 0
         for dictionary in file_dictionary:
+
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
 
             # Convert the string to a datetime object
             for key in ['created_date', 'modified_date']:
@@ -267,6 +358,23 @@ def run():
         publication_objects_created = 0
         publication_objects_already_exist = 0
         for dictionary in publication_dictionary:
+            
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+                
 
             # Convert the string to a datetime object
             for key in ['created_date', 'modified_date']:
@@ -312,6 +420,21 @@ def run():
         appendenciesship_objects_already_exist = 0
         for dictionary in appendenciesship_dictionary:
 
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+
             # add the data
             instance, created = models.Appendenciesship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
 
@@ -343,7 +466,21 @@ def run():
         publication_topics_objects_created = 0
         publication_topics_objects_already_exist = 0
         for dictionary in publication_topics_dictionary:
-            # add the data
+            
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
             
             Publication.objects.get(id=1)
             instance, created = models.Topicship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
@@ -377,6 +514,21 @@ def run():
         publication_keywords_objects_already_exist = 0
         for dictionary in publication_keywords_dictionary:
 
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+
             # add the data
             instance, created = models.Keywordship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
 
@@ -407,6 +559,21 @@ def run():
         author_objects_already_exist = 0
         for dictionary in author_dictionary:
 
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+
             # add the data
             instance, created = models.Authorship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
 
@@ -435,6 +602,21 @@ def run():
         editor_objects_created = 0
         editor_objects_already_exist = 0
         for dictionary in editor_dictionary:
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
 
             # add the data
             instance, created = models.Editorship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
@@ -465,6 +647,21 @@ def run():
         supervisor_objects_created = 0
         supervisor_objects_already_exist = 0
         for dictionary in supervisor_dictionary:
+
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
 
             # add the data
             instance, created = models.Supervisorship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
