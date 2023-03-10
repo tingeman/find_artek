@@ -9,6 +9,8 @@
             "program": "${workspaceFolder}/publications/datatransfer_script.sh",
             "args": [
                 "--skip-data-transfer", 
+                "true",
+                "--use-sqlite",
                 "true"
             ]
         },

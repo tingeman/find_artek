@@ -3,6 +3,7 @@
 # Define the default values for the named parameters
 SKIP_DATA_TRANSFER=0
 PROMPT_BEFORE_NEXT_PROBLEM=0
+USING_SQLITE=0
 
 # Parse the named parameters
 while [ $# -gt 0 ]; do
@@ -30,6 +31,17 @@ while [ $# -gt 0 ]; do
             fi
         fi
 
+        # if $param is prompt-before-next-problem
+        if [[ $param == "use-sqlite" ]]; then
+            # Check if the value is true
+            if [[ $2 == "true" ]]; then
+                # Set the value to 1
+                USING_SQLITE=1
+            fi
+        fi
+
+
+
         # echo $param $1 $2 # Optional to see the parameter:value result
     fi
 
@@ -44,21 +56,41 @@ done
 
 #
 
-PUBLICATION_ROOT='/usr/src/app/find_artek/publications'
-APP_ROOT='/usr/src/app/find_artek'
+# if using USING_SQLITE, then # if else USING_MYSQL 
+if [[ $USING_SQLITE -eq 1 ]]; then
+
+    echo "using sqlite3"
+    if [ -f /usr/src/app/find_artek/find_artek_django_v4_1.sqlite3 ]; then
+    rm /usr/src/app/find_artek/find_artek_django_v4_1.sqlite3
+    echo 'REMOVING find_artek_django_v4_1.sqlite3'
+    else
+        echo "File does not exist. - no find_artek_django_v4_1.sqlite3 to delete"
+    fi
+
+else
+    echo "using mysql"
+    # Drops database
+    echo 'DROP DATABASE IF EXISTS root_find_artek_v1_0_0;' | mysql -h database-service -u root -pnotSecureChangeMe
+    echo 'DATABASE HAS BEEN DELETED'
+
+    # Creates database
+    echo "CREATE DATABASE root_find_artek_v1_0_0 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" | mysql -h database-service -u root -pnotSecureChangeMe
+    echo 'DATABASE HAS BEEN CREATED'
+fi
+
+
+
+
+# PUBLICATION_ROOT='/usr/src/app/find_artek/publications'
+# APP_ROOT='/usr/src/app/find_artek'
 
 # This script migrate data from the old database into the new database. When this script is running it always runs into a empty database.
 
 # Echo running implement_models script
 echo "Running implement_models.sh"
 
-# Drops database
-echo 'DROP DATABASE IF EXISTS root_find_artek_v1_0_0;' | mysql -h database-service -u root -pnotSecureChangeMe
-echo 'DATABASE HAS BEEN DELETED'
-
-# Creates database
-echo "CREATE DATABASE root_find_artek_v1_0_0 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" | mysql -h database-service -u root -pnotSecureChangeMe
-echo 'DATABASE HAS BEEN CREATED'
+PUBLICATION_ROOT='/usr/src/app/find_artek/publications'
+APP_ROOT='/usr/src/app/find_artek'
 
 # Delete migration folder
 # The folder is not relevant during transition period
