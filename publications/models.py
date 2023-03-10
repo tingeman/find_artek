@@ -1,4 +1,7 @@
 import os
+
+import 
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -101,37 +104,42 @@ class Journal(models.Model):
 
     def __unicode__(self):
         return self.journal
+    
 
-# QUESTION: Should Charfield be turned into a text. How much space does these fields require?
-# MYANSWER: These field describes if it is a BOOK, Article
-class PublicationType(models.Model):
-    type        = models.CharField(max_length=100)  # f.ex. BOOK, ARTICLE
-    description = models.CharField(max_length=200, blank=True)  # Expalnation of usage
-    required_fields  = models.CharField(max_length=200, blank=True)   # from bibtex definition
-    optional_fields  = models.CharField(max_length=200, blank=True)   # from bibtex definition (in practice all                                                      
+class PubType(models.Model):
+    type        = models.CharField(max_length=100)               # f.ex. BOOK, ARTICLE
+    description = models.CharField(max_length=200, blank=True)   # Expalnation of usage
+    req_fields  = models.CharField(max_length=200, blank=True)    # from bibtex definition
+    opt_fields  = models.CharField(max_length=200, blank=True)    # from bibtex definition (in practice all
+                                                                   # non-required fields will be optional
 
     def __unicode__(self):
         return self.type
 
-class PublicationKeyword(models.Model):
+
+class Topic(models.Model):
+    topic = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return self.topic
+
+
+class Keyword(models.Model):
     keyword = models.CharField(max_length=100)
 
     def __unicode__(self):
         return self.keyword
 
-class PublicationTopic(models.Model):
-    topic = models.CharField(max_length=100)
-
-    def __unicode__(self):
-        return self.topic
-    
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
-# ********************************************************************
+# ********************************************************************        return self.topic
+
+
+
 class FileObject(BaseModel):
     upload_to = None  # If set, this value should be used in upload_to function
     original_URL = models.CharField(max_length=1000, blank=True)
-    file = models.FileField(upload_to=get_file_path)
+    file = models.FileField(upload_to=get_file_path, max_length=1000, blank=False)
     description = models.TextField(max_length=65535, blank=True)
 
     # QUESTION: What is this?
@@ -165,31 +173,28 @@ class Publication(BaseModel):
 
     not_bibtex = ('supervisor', 'grade', 'quality', 'created', 'modified', 'modified_by')
     
-    # Use plural variable name for many-to-one relationship
-    # QUESTION: Not sure if cascade is the correct thing to do when deleting.
-    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE, default=None, related_name='publications', null=True) # f.ex. BOOK, ARTICLE
-
     key = models.CharField(max_length=100, blank=True)
+    type = models.ForeignKey(PubType, on_delete=models.PROTECT)
 
     # Use plural variable name for many-to-many relationship
-    authors = models.ManyToManyField(Person, through='Authorship',
-                                     related_name='publications_authored',
-                                     blank=True, default=None)
+    authors = models.ManyToManyField(Person, through='Authorship', related_name='publication_author', blank=True, default=None)
 
-    editors = models.ManyToManyField(Person, through='Editorship',
-                                     related_name='publications_edited',
-                                     blank=True, default=None)
+    editors = models.ManyToManyField(Person, through='Editorship', related_name='publication_editor', blank=True, default=None)
 
-    supervisors = models.ManyToManyField(Person, through='Supervisorship',
-                                        related_name='publications_supervised',
-                                        blank=True, default=None)
+    supervisors = models.ManyToManyField(Person, through='Supervisorship', related_name='publication_supervisor', blank=True, default=None)
+    
+    publication_topics = models.ManyToManyField(Topic, through='Topicship', blank=True, default=None)
 
-    keywords = models.ManyToManyField(PublicationKeyword, blank=True, related_name='publications', default=None)
-    publication_topics = models.ManyToManyField(PublicationTopic, blank=True, default=None, related_name='publications')
+    publication_keywords = models.ManyToManyField(Keyword, through='Keywordship', blank=True, default=None)
+    
+    appendices = models.ManyToManyField(FileObject, through='Appendenciesship', related_name='publication_appendices', blank=True, default=None)
+
     publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
-    appendices = models.ManyToManyField(FileObject, blank=True, default=None, related_name='publication_appendices')
+
+    file = models.OneToOneField(FileObject, blank=False, null=True, on_delete=models.CASCADE)
+
     journal = models.ForeignKey(Journal, blank=True, default=None, on_delete=models.SET_NULL, related_name='publications', null=True)
-    file_object = models.OneToOneField(FileObject, blank=True, default=None, on_delete=models.SET_NULL, null=True)
+
     booktitle = models.CharField(max_length=255, blank=True)
     title = models.CharField(max_length=255, blank=True)
     crossref = models.CharField(max_length=255, blank=True)
@@ -228,6 +233,14 @@ class Publication(BaseModel):
             ("verify_publication", "Can verify publications"),
         )
 
+class Topicship(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
+
+class Keywordship(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    keyword = models.ForeignKey(Keyword, on_delete=models.CASCADE)
+
 class Authorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
@@ -263,6 +276,10 @@ class Editorship(models.Model):
         self.match_string = ""
         if commit:
             self.save()
+
+class Appendenciesship(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    fileobject = models.ForeignKey(FileObject, on_delete=models.CASCADE)
 
 class Supervisorship(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
@@ -354,21 +371,12 @@ class Feature(BaseModel):
     files         = models.ManyToManyField(FileObject, blank=True)
     images        = models.ManyToManyField(ImageObject, blank=True)
 
-    # QUESTION: Should we use the following fields?
-    # Maybe we should use google maps instead?
-    # points        = models.MultiPointField(srid=4326, blank=True, null=True)
-    # lines         = models.MultiLineStringField(srid=4326, blank=True, null=True)
-    # polys         = models.MultiPolygonField(srid=4326, blank=True, null=True)
+    points        = models.MultiPointField(srid=4326, blank=True, null=True)
+    lines         = models.MultiLineStringField(srid=4326, blank=True, null=True)
+    polys         = models.MultiPolygonField(srid=4326, blank=True, null=True)
 
-    pos_quality   = models.CharField(max_length=30, choices=pos_qualities,
-                                        default='Unknown', blank=True)
-
-    # QUESTION: Should we use the following fields?
-    # objects       = models.GeoManager()
-
-    quality       = models.SmallIntegerField(choices=quality_flags,
-                                             default=CREATED)
-
+    pos_quality   = models.CharField(max_length=30, choices=pos_qualities, default='Unknown', blank=True)
+    quality       = models.SmallIntegerField(choices=quality_flags, default=CREATED)
     publications  = models.ManyToManyField(Publication, blank=True)
 
     class Meta:
