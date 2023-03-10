@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'django.contrib.gis',
+    'world',
     'publications'
 ]
 
@@ -77,19 +79,11 @@ WSGI_APPLICATION = 'find_artek.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'sql_mode': 'traditional',
-        },
-        'NAME': 'root_find_artek_v1_0_0',
-        'USER': 'root',
-        'PASSWORD': 'notSecureChangeMe',
-        'HOST': 'database-service',
-        'PORT': '3306',
-    }
+        'ENGINE': 'django.contrib.gis.db.backends.spatialite',
+        'NAME': BASE_DIR / 'find_artek_django_v4_1.sqlite3',
+    },
 }
+
 
 
 # Password validation
