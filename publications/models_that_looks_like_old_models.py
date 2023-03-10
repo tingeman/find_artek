@@ -369,21 +369,12 @@ class Feature(BaseModel):
     files         = models.ManyToManyField(FileObject, blank=True)
     images        = models.ManyToManyField(ImageObject, blank=True)
 
-    # QUESTION: Should we use the following fields?
-    # Maybe we should use google maps instead?
     # points        = models.MultiPointField(srid=4326, blank=True, null=True)
     # lines         = models.MultiLineStringField(srid=4326, blank=True, null=True)
     # polys         = models.MultiPolygonField(srid=4326, blank=True, null=True)
 
-    pos_quality   = models.CharField(max_length=30, choices=pos_qualities,
-                                        default='Unknown', blank=True)
-
-    # QUESTION: Should we use the following fields?
-    # objects       = models.GeoManager()
-
-    quality       = models.SmallIntegerField(choices=quality_flags,
-                                             default=CREATED)
-
+    pos_quality   = models.CharField(max_length=30, choices=pos_qualities, default='Unknown', blank=True)
+    quality       = models.SmallIntegerField(choices=quality_flags, default=CREATED)
     publications  = models.ManyToManyField(Publication, blank=True)
 
     class Meta:
