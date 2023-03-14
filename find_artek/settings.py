@@ -80,8 +80,13 @@ WSGI_APPLICATION = 'find_artek.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-        'NAME': BASE_DIR / 'find_artek_django_v4_1.sqlite3',
+        'NAME': BASE_DIR / 'find_artek_new.sqlite',
     },
+    'OPTIONS': {
+        'spatialite': {
+            'library_path': '/usr/lib/x86_64-linux-gnu/mod_spatialite.so',
+        }
+    }
 }
 
 
