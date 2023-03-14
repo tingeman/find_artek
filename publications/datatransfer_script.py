@@ -213,7 +213,7 @@ def run():
     
  
 
-
+    
 
 
     
@@ -342,6 +342,66 @@ def run():
         return file_objects_created, file_objects_already_exist
         # ------------------- Handle transfer file ends here ------------------ #
 
+    def handle_transfer_Image_objects():
+
+        # Extract column names from the tables
+        publication_table_data      = cursor_object.execute('PRAGMA table_info(publications_imageobject)').fetchall()  # GET PUBLICATION RECORDS
+        publication_column_names    = [row[1] for row in publication_table_data]  # Extract column names
+
+        image_dictionary = []
+
+        # add the data
+
+        for row in cursor_object.execute("SELECT * FROM publications_imageobject"):
+            image_dictionary.append(dict(zip(publication_column_names, row)))
+        
+        image_objects_created = 0
+        image_objects_already_exist = 0
+        for dictionary in image_dictionary:
+            
+            # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
+            for key, value in dictionary.items():
+                input_string = str(value)
+                while True:
+                    invalid_indices = check_string(input_string)
+                    if not invalid_indices:
+                        break
+                    for i in invalid_indices:
+                        invalid_char = input_string[i]
+                        if invalid_char in invalid_to_valid:
+                            replacement = invalid_to_valid[invalid_char]
+                            input_string = input_string[:i] + replacement + input_string[i+1:]
+                            dictionary[key] = input_string
+
+                
+
+            # Convert the string to a datetime object
+            for key in ['created_date', 'modified_date']:
+                date_string = dictionary[key]  # '2012-12-19 22:36:14.891000'
+                date_format = '%Y-%m-%d %H:%M:%S.%f'
+                try:
+                    date_object = datetime.strptime(date_string, date_format)
+                except ValueError:
+                    date_format = '%Y-%m-%d %H:%M:%S'
+                    date_object = datetime.strptime(date_string, date_format)
+
+                dictionary[key] = timezone.make_aware(date_object, time_zone)
+
+            illigal_keys = dict()
+            for key in ['created_by_id', 'modified_by_id']:
+                illigal_keys[key] = dictionary.pop(key)
+
+            instance, created = models.ImageObject.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+            if created:
+                print("New publication created with name:", instance.caption)
+                image_objects_created += 1
+            else:
+                print("Publication already exists with name:", instance.caption)
+                image_objects_already_exist += 1
+            
+        return image_objects_created, image_objects_already_exist
+
 
 
     def handle_transfer_publication():
@@ -450,6 +510,31 @@ def run():
     
 
 
+    def handle_transfer_image_objectsship():
+        # ------------------- Handle transfer image_objectsship starts here ------------------ #
+        # Extract column names from the tables
+        image_objectsship_table_data = cursor_object.execute('PRAGMA table_info(publications_feature_images)').fetchall()
+        image_objectsship_column_names = [row[1] for row in image_objectsship_table_data]
+
+        image_objectsship_dictionary = []
+        for row in cursor_object.execute("SELECT * FROM publications_feature_images"):
+            image_objectsship_dictionary.append(dict(zip(image_objectsship_column_names, row)))
+
+        image_objectsship_objects_created = 0
+        image_objectsship_objects_already_exist = 0
+        for dictionary in image_objectsship_dictionary:
+
+            # add the data
+            instance, created = models.ImageObjectship.objects.get_or_create(id=dictionary['id'], defaults=dictionary)
+
+            if created:
+                print("New image_objectsship created with name:", instance)
+                image_objectsship_objects_created += 1
+            else:
+                print("New image_objectsship already exists with name:", instance)
+                appendenciesship_objects_already_exist += 1
+
+        return image_objectsship_objects_created, image_objectsship_objects_already_exist
 
 
 
@@ -702,6 +787,8 @@ def run():
     author_objects_created, author_objects_already_exist = handle_transfer_authorship()
     editor_objects_created, editor_objects_already_exist = handle_transfer_editorship()
     supervisor_objects_created, supervisor_objects_already_exist = handle_transfer_supervisorship()
+    image_objects_created, image_objects_already_exist = handle_transfer_Image_objects()
+    # image_objectsship_objects_created, image_objectsship_objects_already_exist = handle_transfer_image_objectsship()
     # ------------------- IMPORTING TABLES TABLES ENDS HERE ------------------ #
 
 
@@ -728,6 +815,16 @@ def run():
     # ------------------- PRINTING TABLES TABLES ENDS HERE ------------------ #
 
 
+    # Print handle_transfer_Image_objects()
+    # handle_transfer_Image_objects()
+
+    # print image_objectsship_objects_created, image_objectsship_objects_already_exist
+    # print("Total number of image_objectsship objects created:", image_objectsship_objects_created)
+    # print("Total number of image_objectsship objects that already exist", image_objectsship_objects_already_exist)
+
+
+    print("Total number of image objects created:", image_objects_created)
+    print("Total number of image objects that already exist", image_objects_already_exist)
 
     # ------------------- PRINTING TABLES TABLES BELOW STARTS HERE ------------------ #
     # ------------------- person, publication, topics (manytomany), publication_keywords (manytomany), authorship, editorship, supervisorship ------------------ #
