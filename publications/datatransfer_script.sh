@@ -59,12 +59,12 @@ done
 # if using USING_SQLITE, then # if else USING_MYSQL 
 if [[ $USING_SQLITE -eq 1 ]]; then
 
-    echo "using sqlite3"
-    if [ -f /usr/src/app/find_artek/find_artek_django_v4_1.sqlite3 ]; then
-    rm /usr/src/app/find_artek/find_artek_django_v4_1.sqlite3
-    echo 'REMOVING find_artek_django_v4_1.sqlite3'
+    echo "using sqlite"
+    if [ -f /usr/src/app/find_artek/find_artek_new.sqlite ]; then
+    rm /usr/src/app/find_artek/find_artek_new.sqlite
+    echo 'REMOVING find_artek_new.sqlite'
     else
-        echo "File does not exist. - no find_artek_django_v4_1.sqlite3 to delete"
+        echo "File does not exist. - no find_artek_new.sqlite to delete"
     fi
 
 else
