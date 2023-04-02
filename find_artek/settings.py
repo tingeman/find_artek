@@ -10,6 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import os
+
+#### LPAP ####
+import ldap
+from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
+ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+#### LPAP ####
+
+
+
+from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -130,3 +141,36 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+#### LPAP ####
+AUTHENTICATION_BACKENDS = (
+    'django_auth_ldap.backend.LDAPBackend',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+AUTH_LDAP_SERVER_URI = "ldaps://win.dtu.dk"
+
+AUTH_LDAP_BIND_DN = "CN=sus-pit-artek-ad-read,OU=Funktionskonti,OU=BYG,OU=Institutter,DC=win,DC=dtu,DC=dk"
+# Read the LDAP bind password from the file
+with open('secret/AUTH_LDAP_BIND_PASSWORD.txt', 'r') as f:
+    AUTH_LDAP_BIND_PASSWORD = f.read().strip()
+
+AUTH_LDAP_USER_SEARCH = LDAPSearch("OU=DTUBaseUsers,DC=win,DC=dtu,DC=dk",
+                                   ldap.SCOPE_SUBTREE,
+                                   "(sAMAccountName=%(user)s)")
+
+AUTH_LDAP_GROUP_SEARCH = LDAPSearch("DC=win,DC=dtu,DC=dk",
+                                    ldap.SCOPE_SUBTREE,
+                                    "(objectClass=group)")
+
+AUTH_LDAP_GROUP_TYPE = GroupOfNamesType()
+
+AUTH_LDAP_USER_ATTR_MAP = {
+    "first_name": "givenName",
+    "last_name": "sn",
+    "email": "mail"
+}
+#### LPAP ####

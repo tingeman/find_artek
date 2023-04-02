@@ -13,3 +13,8 @@ temp/
 
 # ignore things in a folder called 'migrations'
 migrations/
+
+secret/
+
+
+publications/active_directory_authetication_test.py
