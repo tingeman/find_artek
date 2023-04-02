@@ -5,17 +5,30 @@ import datetime
 
 def run():
 
-
+    # print in green text "Loading json file"
+    print("\033[92m" + "Loading json file" + "\033[0m")
 
     # Load exported features from file
     with open('/usr/src/app/find_artek/publications/datatransfer_feature_data.json', 'r') as f:
         exported_features = json.load(f)
 
+    # print in green text "Creating new Feature objects"
+    print("\033[92m" + "Creating new Feature objects" + "\033[0m")
+
     # Loop through exported features and create new Feature objects
     for exported_feature in exported_features:
+        # Print the feature name, if the name is empty print the id
+        if exported_feature['fields']['name'] == '':
+            print("id" + str(exported_feature['pk']))
+        else:
+            print("name" + str(exported_feature['fields']['name']))
+
+        # q: does this create a new Feature entry?
+        # a: yes, it does
         new_feature = Feature.objects.create(
 
             # Add fields
+            id = exported_feature['pk'],
             created_date = exported_feature['fields']['created_date'],
             modified_date = exported_feature['fields']['modified_date'],
 
@@ -37,15 +50,20 @@ def run():
         )
         
         # Add ManyToManyField relationships
+        for publication_id in exported_feature['fields']['publications']:
+            new_feature.publications.add(publication_id) 
+
         for url_id in exported_feature['fields']['URLs']:
             new_feature.URLs.add(url_id)
+
         for file_id in exported_feature['fields']['files']:
             new_feature.files.add(file_id)
+
         for image_id in exported_feature['fields']['images']:
             new_feature.images.add(image_id)
-        for publication_id in exported_feature['fields']['publications']:
-            new_feature.publications.add(publication_id)
-        
+
+
+
         # Save new Feature object
         new_feature.save()
 

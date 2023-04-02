@@ -1,7 +1,7 @@
 #
 
 import unittest
-from publications.models import FileObject, Keyword, Person, Publication, Topic
+from publications.models import FileObject, Keyword, Person, Publication, Topic, Feature
 
 
 class TestPublicationData(unittest.TestCase):
@@ -354,7 +354,294 @@ class TestPublicationData(unittest.TestCase):
 
 
 
- 
+
+
+
+    ####### TESTING FEATURES STARTS HERE #######
+
+
+    # Rapport 532 skal være den rigtige rapport.
+    # Titlen skal ende pa Western Alps.
+    # Expects rapport with id 532 to have the title
+    # "Preliminary assessment of geohazards related to ice-rich landforms in the Western Alps"
+    def test_expext_report_532_to_be_the_right_report(self):
+        # Get repport from 
+        report = Publication.objects.filter(id="532")[0]
+
+        # Expect the title to be "Preliminary assessment of geohazards related to ice-rich landforms in the Western Alps"
+        self.assertEqual(report.title, 'Preliminary assessment of geohazards related to ice-rich landforms in the Western Alps')
+
+
+
+
+
+
+    # Rapport med id 532 og publication_id = 17-05, skal pege pa feature 1818,1819 Features. 
+    # Feature 1818 skal have titlen "Aiguille du plat"
+    # Feature 1819 skal have titlen "Aiguille du plat"
+    def test_report_532_should_have_features_1818_and_1819(self):
+        
+        # Get repport with id 532
+        publication = Publication.objects.get(id=532)
+
+        # Expects to features associated with the report id 1818, 1819
+        # list with expected feature ids, and name
+        expected_features = [
+            (1818, 'Aiguille du Plat de la Selle'),
+            (1819, 'Aiguille du Plat de la Selle'),
+        ]
+
+        # Get associated appendices
+        associated_features = Feature.objects.filter(publications=publication)
+
+        for feature in associated_features:
+            # assert that the feature is in the expected features list
+            self.assertIn((feature.id, feature.name), expected_features)
+
+
+
+
+    # Test if feature with ID 1767 is associated with publication 17-01.
+    def test_field_measurements_associated_with_report_17_01(self):
+
+        # Get repport with report number 17-01
+        publication = Publication.objects.get(number="17-01")
+
+        # Get all field measurements associated with the report
+        associated_field_measurement = Feature.objects.filter(publications=publication)
+
+        # Get the field measurement with pk 1767
+        associated_field_measurement = associated_field_measurement.get(pk=1767)
+
+        # Expected description of the field measurements
+        expected_field_measurement_description = [
+            'Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 51,91',
+        ]
+
+        # Get associated field measurements
+        self.assertTrue(associated_field_measurement.description, expected_field_measurement_description[0])
+
+
+    # Test find all features associated with publication 17-01
+    def test_find_all_features_associated_with_report_17_01(self):
+
+        # Get repport with report number 17-01
+        publication = Publication.objects.get(number="17-01")
+
+        # Get all field measurements associated with the report
+        associated_field_measurement = Feature.objects.filter(publications=publication)
+
+
+
+        # Kig i den gamle app under rapporten, 17-01, saa kan du se det passer.
+        # Expected description of the field measurements
+        expected_field_measurement_names = [
+            'Bathymetri',
+            'KAN_HA_FP_1',
+            'KAN_HA_FP_2',
+            'KAN_HA_FP_3',
+            'KAN_HA_SH_1',
+            'KAN_HA_SH_12',
+            'KAN_HA_SH_13',
+            'KAN_HA_SH_14',
+            'KAN_HA_SH_15',
+            'KAN_HA_SH_16',
+            'KAN_HA_SH_17',
+            'KAN_HA_SH_18',
+            'KAN_HA_SH_19',
+            'KAN_HA_SH_20',
+            'KAN_HA_SH_21',
+            'KAN_HA_SH_2',
+            'KAN_HA_SH_23',
+            'KAN_HA_SH_24',
+            'KAN_HA_SH_25',
+            'KAN_HA_SH_26',
+            'KAN_HA_SH_27',
+            'KAN_HA_SH_28',
+            'KAN_HA_SH_29',
+            'KAN_HA_SH_30',
+            'KAN_G_SH_1',
+            'KAN_HB_SH_1',
+            'KAN_HA_SH_3',
+            'KAN_HB_SH_3',
+            'KAN_HB_SH_2',
+            'KAN_HB_SH_4',
+            'KAN_HB_SH_5',
+            'KAN_HB_SH_6',
+            'KAN_HA_SH_31',
+            'KAN_HA_SH_32',
+            'KAN_HB_SH_7',
+            'KAN_HB_SH_8',
+            'KAN_HB_SH_9',
+            'KAN_HA_SH_5',
+            'KAN_HB_SH_10',
+            'KAN_HB_SH_11',
+            'KAN_HB_SH_12',
+            'KAN_HB_SH_13',
+            'KAN_HB_SH_14',
+            'KAN_HB_SH_15',
+            'KAN_G_SH_2',
+            'KAN_FP_3',
+            'KAN_FP_3',
+            'KAN_HA_SH_6',
+            'KAN_HA_SH_7',
+            'KAN_HA_SH_8',
+            'KAN_HA_SH_9',
+            'KAN_HA_SH_11',
+            'Water level',
+        ]
+
+        expected_field_measurement_description = [
+            "Bathymetric measurements with echo sounder. Reference UTM 22 N gr96 Mean Sea Level",
+            "Rock sample from gneiss, <20 cm from surface. UCS = 57 MPa, Brazilian = 7,6 Mpa",
+            "Rock sample from gneiss, <20 cm from surface. UCS = 80 MPa, Brazilian = 6,1 Mpa",
+            "Rock sample from dolerite. UCS = 179 MPa, Brazilian = 23,6 Mpa",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 51,91",
+            "Schmidt hammer on grinded surface (gneiss), angle = -52, HR = 40,55",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 47,32",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 51,75",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 53,30",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 49,60",
+            "Schmidt hammer on grinded surface (gneiss), angle = -53, HR = 45,50",
+            "Schmidt hammer on grinded surface (gneiss), angle = -55, HR = 51,00",
+            "Schmidt hammer on grinded surface (gneiss), angle = -46, HR = 50,00",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 30,00",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 48,25",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 44,25",
+            "Schmidt hammer on grinded surface (gneiss), angle = -45, HR = 51,86",
+            "Schmidt hammer on grinded surface (gneiss), angle = -60, HR = 49,52",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 50,47",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 45,74",
+            "Schmidt hammer on grinded surface (gneiss), angle = -75, HR = 51,30",
+            "Schmidt hammer on grinded surface (gneiss), angle = -60, HR = 48,20",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 47,90",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 47,32",
+            "Schmidt hammer on grinded surface (dolerite), angle = -90, HR = 54,32",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 47,58",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 47,80",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 49,63",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 39,92",
+            "Schmidt hammer on grinded surface (gneiss), angle = -65, HR = 46,10",
+            "Schmidt hammer on grinded surface (gneiss), angle = -60, HR = 40,14",
+            "Schmidt hammer on grinded surface (gneiss), angle = -60, HR = 50,25",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 49,55",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 48,05",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 50,79",
+            "Schmidt hammer on grinded surface (gneiss), angle = -80, HR = 44,65",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 47,95",
+            "Schmidt hammer on grinded surface (gneiss), angle = -70, HR = 43,20",
+            "Schmidt hammer on grinded surface (gneiss), angle = -75, HR = 51,74",
+            "Schmidt hammer on grinded surface (gneiss), angle = -75, HR = 47,22",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 46,40",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 49,10",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 55,80",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 50,30",
+            "Schmidt hammer on grinded surface (dolerite), angle = -35, HR = 58,50",
+            "Schmidt hammer on grinded surface (dolerite), angle = -60, HR = 46,6",
+            "Schmidt hammer on grinded surface (dolerite), angle = 0, HR = 57,85",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 47,15",
+            "Schmidt hammer on grinded surface (gneiss), angle = -90, HR = 48,60",
+            "Schmidt hammer on grinded surface (gneiss), angle = -80, HR = 48,11",
+            "Schmidt hammer on grinded surface (gneiss), angle = -50, HR = 38,83",
+            "Schmidt hammer on grinded surface (gneiss), angle = -50, HR = 46,47",
+            "Water level measured each 5 min. from 3/10/16 to 14/10/16. Reference: Mean Sea Level.",
+        ]
+
+        expected_field_measurement_pk = [
+            1763,
+            1764,
+            1765,
+            1766,
+            1767,
+            1768,
+            1769,
+            1770,
+            1771,
+            1772,
+            1773,
+            1774,
+            1775,
+            1776,
+            1777,
+            1778,
+            1779,
+            1780,
+            1781,
+            1782,
+            1783,
+            1784,
+            1785,
+            1786,
+            1787,
+            1788,
+            1789,
+            1790,
+            1791,
+            1792,
+            1793,
+            1794,
+            1795,
+            1796,
+            1797,
+            1798,
+            1799,
+            1800,
+            1801,
+            1802,
+            1803,
+            1804,
+            1805,
+            1806,
+            1807,
+            1808,
+            1809,
+            1810,
+            1811,
+            1812,
+            1813,
+            1814,
+            1815,
+        ]
+        
+
+        # loop though associated_field_measurement
+        for i in range(len(associated_field_measurement)):
+            # check if the name is correct
+            self.assertEqual(
+                associated_field_measurement[i].name,
+                expected_field_measurement_names[i],
+                "The name of the field measurement is not correct",
+            )
+            # check if the description is correct
+            self.assertEqual(
+                associated_field_measurement[i].description,
+                expected_field_measurement_description[i],
+                "The description of the field measurement is not correct",
+            )
+            # check if the primary key is correct
+            self.assertEqual(
+                associated_field_measurement[i].pk,
+                expected_field_measurement_pk[i],
+                "The primary key of the field measurement is not correct",
+            )
+    # q: assert true for the following arrays
+    # expected_field_measurement_names
+    # expected_field_measurement_description
+    # expected_field_measurement_pk
+
+
+
+    ####### TESTING FEATURES ENDS HERE #######   
+        
+
+
+
+
+# Tjek feature pa 1818,1819. og se om deres titler er som forventet. (Aiguille du plat)
+# Feature 1818 skal have titlen "Aiguille du plat"
+
 
     # ------------------- ends here ------------------- #
     # These unit tests were created to compare data relations in the old v1.6 app and verify that features such as many-to-many relationships are still functioning correctly. 
+
+# Write image function check if image is objectship association is correct

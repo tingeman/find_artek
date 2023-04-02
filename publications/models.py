@@ -1,9 +1,9 @@
 import os
 
-import 
-
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models as geo_models
+
 
 # Global variables
 CURRENT = 0
@@ -130,6 +130,39 @@ class Keyword(models.Model):
     def __unicode__(self):
         return self.keyword
 
+
+class ImageObject(BaseModel):
+    upload_to = None     # If set, this value should be used in upload_to function
+    original_URL = models.CharField(max_length=1000, blank=True)
+                         # Temporary field for handling multiple registrations of the same
+                         # file in the import from MySQL RoadDB database.
+                         # Should be deleted when the import is finished and checked!
+    image = models.ImageField(upload_to=get_image_path)
+    caption = models.TextField(max_length=1000)
+
+    def filesize(self):
+        unit = 'bytes'
+
+        try:
+            fsize = self.image.size
+        except:
+            return " inaccessible! "
+
+        if fsize > 1024 * 1024 * 1024:
+            fsize = fsize / 1024 / 1024 / 1024
+            unit = 'Gb'
+        elif fsize > 1024 * 1024:
+            fsize = fsize / 1024 / 1024
+            unit = 'Mb'
+        elif fsize > 1024:
+            fsize = fsize / 1024
+            unit = 'kb'
+
+        return "{0:.1f} {1}".format(fsize, unit)
+
+    def filename(self):
+        return os.path.basename(self.image.name)
+
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
 # ********************************************************************        return self.topic
@@ -189,7 +222,7 @@ class Publication(BaseModel):
     
     appendices = models.ManyToManyField(FileObject, through='Appendenciesship', related_name='publication_appendices', blank=True, default=None)
 
-    publications_urls = models.ManyToManyField(URLObject, blank=True, default=None)
+    URLs = models.ManyToManyField(URLObject, through='PublicationURLObjectship', blank=True, default=None)
 
     file = models.OneToOneField(FileObject, blank=False, null=True, on_delete=models.CASCADE)
 
@@ -232,6 +265,105 @@ class Publication(BaseModel):
             ("delete_own_publication", "Can delete own publications"),
             ("verify_publication", "Can verify publications"),
         )
+
+class Feature(BaseModel):
+    PHOTO =             'PHOTO'
+    SAMPLE =            'SAMPLE'
+    BOREHOLE =          'BOREHOLE'
+    GEOPHYSICAL_DATA =  'GEOPHYSICAL DATA'
+    FIELD_MEASUREMENT = 'FIELD MEASUREMENT'
+    LAB_MEASUREMENT =   'LAB MEASUREMENT'
+    RESOURCE =          'RESOURCE'
+    OTHER =             'OTHER'
+
+    feature_types = (
+        (PHOTO,             'Photo'),
+        (SAMPLE,            'Sample'),
+        (BOREHOLE,          'Borehole'),
+        (GEOPHYSICAL_DATA,  'Geophysical data'),
+        (FIELD_MEASUREMENT, 'Field measurement'),
+        (LAB_MEASUREMENT,   'Lab measurement'),
+        (RESOURCE,          'Resource'),
+        (OTHER,             'Other'),
+    )
+
+    pos_qualities = (
+        ('Approximate', 'Approximate'),
+        ('GPS (phase)', 'GPS (phase)'),
+        ('GPS (code)', 'GPS (code)'),
+        ('Unknown', 'Unknown'),
+    )
+
+
+    name          = models.CharField(max_length=100, blank=True)
+    type          = models.CharField(max_length=30, choices=feature_types, default='OTHER', blank=True)
+    area          = models.CharField(max_length=100, blank=True)
+    date          = models.DateField(blank=True)
+    direction     = models.CharField(max_length=100, blank=True)
+    description   = models.TextField(max_length=65535, blank=True)
+    comment       = models.TextField(max_length=65535, blank=True)
+    URLs          = models.ManyToManyField(URLObject, blank=True)
+    files         = models.ManyToManyField(FileObject, blank=True)
+    images        = models.ManyToManyField(ImageObject, through='ImageObjectship', blank=True)
+
+    points        = geo_models.MultiPointField(srid=4326, blank=True, null=True)
+    lines         = geo_models.MultiLineStringField(srid=4326, blank=True, null=True)
+    polys         = geo_models.MultiPolygonField(srid=4326, blank=True, null=True)
+
+    pos_quality   = models.CharField(max_length=30, choices=pos_qualities, default='Unknown', blank=True)
+    quality       = models.SmallIntegerField(choices=quality_flags, default=CREATED)
+    publications  = models.ManyToManyField(Publication, blank=True)
+
+    class Meta:
+        permissions = (
+            ("edit_own_feature", "Can edit own featuress"),
+            ("delete_own_feature", "Can delete own features"),
+        )
+
+    def __unicode__(self):
+        return '%s %s' % (self.name, 'Geometry')
+
+    @classmethod
+    def feature_type_list(self):
+        return [f[0] for f in self.feature_types]
+
+    def is_editable_by(self, entity):
+        """Checks if entity (group or user) has permissions to edit this model instance"""
+
+        # check for 'change_' permission
+        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.verbose_name):
+            return True
+
+        # check for 'edit_own_' permission
+        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.verbose_name):
+            # Test if user/entity is related to this model
+            if hasattr(entity, 'username'):
+                if entity.username == self.created_by.username or entity.username == self.modified_by.username:
+                    return True
+
+        # if neither, return False
+        return False
+
+    def is_deletable_by(self, entity):
+        """Checks if entity (group or user) has permissions to delete this model instance"""
+
+        # check for 'delete_' permission
+        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.verbose_name):
+            return True
+
+        # check for 'delete_own_' permission
+        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.verbose_name):
+            # Test if user/entity is related to this model
+            if hasattr(entity, 'username'):
+                if entity.username == self.created_by.username or entity.username == self.modified_by.username:
+                    return True
+
+        # if neither, return False
+        return False
+
+class ImageObjectship(models.Model):
+    imageobject = models.ForeignKey(ImageObject, on_delete=models.CASCADE)
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE)
 
 class Topicship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
@@ -299,132 +431,11 @@ class Supervisorship(models.Model):
         if commit:
             self.save()
 
-class ImageObject(BaseModel):
-    upload_to = None     # If set, this value should be used in upload_to function
-    original_URL = models.CharField(max_length=1000, blank=True)
-                         # Temporary field for handling multiple registrations of the same
-                         # file in the import from MySQL RoadDB database.
-                         # Should be deleted when the import is finished and checked!
-    # image = models.ImageField(upload_to=get_image_path)
-    caption = models.TextField(max_length=1000)
-
-    def filesize(self):
-        unit = 'bytes'
-
-        try:
-            fsize = self.image.size
-        except:
-            return " inaccessible! "
-
-        if fsize > 1024 * 1024 * 1024:
-            fsize = fsize / 1024 / 1024 / 1024
-            unit = 'Gb'
-        elif fsize > 1024 * 1024:
-            fsize = fsize / 1024 / 1024
-            unit = 'Mb'
-        elif fsize > 1024:
-            fsize = fsize / 1024
-            unit = 'kb'
-
-        return "{0:.1f} {1}".format(fsize, unit)
-
-    def filename(self):
-        return os.path.basename(self.image.name)
-
-class Feature(BaseModel):
-    PHOTO =             'PHOTO'
-    SAMPLE =            'SAMPLE'
-    BOREHOLE =          'BOREHOLE'
-    GEOPHYSICAL_DATA =  'GEOPHYSICAL DATA'
-    FIELD_MEASUREMENT = 'FIELD MEASUREMENT'
-    LAB_MEASUREMENT =   'LAB MEASUREMENT'
-    RESOURCE =          'RESOURCE'
-    OTHER =             'OTHER'
-
-    feature_types = (
-        (PHOTO,             'Photo'),
-        (SAMPLE,            'Sample'),
-        (BOREHOLE,          'Borehole'),
-        (GEOPHYSICAL_DATA,  'Geophysical data'),
-        (FIELD_MEASUREMENT, 'Field measurement'),
-        (LAB_MEASUREMENT,   'Lab measurement'),
-        (RESOURCE,          'Resource'),
-        (OTHER,             'Other'),
-    )
-
-    pos_qualities = (
-        ('Approximate', 'Approximate'),
-        ('GPS (phase)', 'GPS (phase)'),
-        ('GPS (code)', 'GPS (code)'),
-        ('Unknown', 'Unknown'),
-    )
+class PublicationURLObjectship(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+    URLs = models.ForeignKey(URLObject, on_delete=models.CASCADE)
 
 
-    name          = models.CharField(max_length=100, blank=True)
-    type          = models.CharField(max_length=30, choices=feature_types, default='OTHER', blank=True)
-    area          = models.CharField(max_length=100, blank=True)
-    date          = models.DateField(blank=True)
-    direction     = models.CharField(max_length=100, blank=True)
-    description   = models.TextField(max_length=65535, blank=True)
-    comment       = models.TextField(max_length=65535, blank=True)
-    URLs          = models.ManyToManyField(URLObject, blank=True)
-    files         = models.ManyToManyField(FileObject, blank=True)
-    images        = models.ManyToManyField(ImageObject, blank=True)
-
-    points        = models.MultiPointField(srid=4326, blank=True, null=True)
-    lines         = models.MultiLineStringField(srid=4326, blank=True, null=True)
-    polys         = models.MultiPolygonField(srid=4326, blank=True, null=True)
-
-    pos_quality   = models.CharField(max_length=30, choices=pos_qualities, default='Unknown', blank=True)
-    quality       = models.SmallIntegerField(choices=quality_flags, default=CREATED)
-    publications  = models.ManyToManyField(Publication, blank=True)
-
-    class Meta:
-        permissions = (
-            ("edit_own_feature", "Can edit own featuress"),
-            ("delete_own_feature", "Can delete own features"),
-        )
-
-    def __unicode__(self):
-        return '%s %s' % (self.name, 'Geometry')
-
-    @classmethod
-    def feature_type_list(self):
-        return [f[0] for f in self.feature_types]
-
-    def is_editable_by(self, entity):
-        """Checks if entity (group or user) has permissions to edit this model instance"""
-
-        # check for 'change_' permission
-        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.verbose_name):
-            return True
-
-        # check for 'edit_own_' permission
-        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.verbose_name):
-            # Test if user/entity is related to this model
-            if hasattr(entity, 'username'):
-                if entity.username == self.created_by.username or entity.username == self.modified_by.username:
-                    return True
-
-        # if neither, return False
-        return False
-
-    def is_deletable_by(self, entity):
-        """Checks if entity (group or user) has permissions to delete this model instance"""
-
-        # check for 'delete_' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.verbose_name):
-            return True
-
-        # check for 'delete_own_' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.verbose_name):
-            # Test if user/entity is related to this model
-            if hasattr(entity, 'username'):
-                if entity.username == self.created_by.username or entity.username == self.modified_by.username:
-                    return True
-
-        # if neither, return False
-        return False
 
 class AddPubFields(models.Model):
     # Model to handle undefined bibtex fields or mulitple instances
