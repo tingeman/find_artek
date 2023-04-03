@@ -148,6 +148,10 @@ if [[ $SKIP_DATA_TRANSFER -eq 0 ]]; then
     # Import the spatial data via the json file
     # Create the association with the publications
 
+    # Echo in green text deleting users, that are not author, editor or supervisor
+    echo -e "\e[32mdeleting users, that are not author, editor or supervisor\e[0m"
+    python ${APP_ROOT}/manage.py runscript publications.delete_irrelevant_users
+
 
 
     # # Run the script that creates the association between the geo locations and the publications papers.
@@ -179,5 +183,12 @@ fi
 
 # Implement the refactored models
 python ${APP_ROOT}/manage.py makemigrations publications && python ${APP_ROOT}/manage.py migrate publications
+
+
+# Run unittest
+# Echo in green text 'starting unittest', sleep for 1 second, then echo in green text 'finished unittest'
+echo -e "\e[32mstarting unittest\e[0m"
+sleep 1
+python ${APP_ROOT}/manage.py test publications.tests
 # ---------------- Refactor models ends here ---------------- #
 # ---------------- # PROBLEM 2 ENDS HERE # ---------------- #

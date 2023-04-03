@@ -1,7 +1,7 @@
 #
 
 import unittest
-from publications.models import FileObject, Keyword, Person, Publication, Topic, Feature
+from publications.models import FileObject, ImageObject, Keyword, Person, Publication, Topic, Feature
 
 
 class TestPublicationData(unittest.TestCase):
@@ -624,6 +624,60 @@ class TestPublicationData(unittest.TestCase):
                 expected_field_measurement_pk[i],
                 "The primary key of the field measurement is not correct",
             )
+    
+
+    # Make a unit test that check if a fileobject is associated with a feature
+    def test_fileobject_associated_with_feature(self):
+        # get the feature
+        feature = Feature.objects.get(id=549)
+        # get the associated fileobject
+        fileObjects = FileObject.objects.filter(feature=feature)
+
+        # Expects 2 fileobjects 
+        expected_fileobject_ids = [
+            26,
+            27,
+        ]
+
+
+        # Assert 
+        for i in range(len(fileObjects)):
+            self.assertEqual(
+                fileObjects[i].id,
+                expected_fileobject_ids[i],
+                "The fileobject is not associated with the feature",
+            )
+
+
+
+   
+        
+    # Make a unit test that check if a imageObject is associated with a feature
+    def test_imageobject_associated_with_feature(self):
+        # get the feature
+        feature = Feature.objects.get(id=5)
+        # get the associated fileobject
+        imageObjects = ImageObject.objects.filter(feature=feature)
+
+        # Expects 2 fileobjects 
+        expected_imageobject_ids = [
+            4,
+            5,
+            6,
+        ]
+
+
+        # Assert 
+        for i in range(len(imageObjects)):
+            self.assertEqual(
+                imageObjects[i].id,
+                expected_imageobject_ids[i],
+                "The imageobject is not associated with the feature",
+            )
+
+
+            
+    
     # q: assert true for the following arrays
     # expected_field_measurement_names
     # expected_field_measurement_description
