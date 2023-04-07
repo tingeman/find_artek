@@ -18,3 +18,8 @@ secret/
 
 
 publications/active_directory_authetication_test.py
+
+# ignore files in __pycache__ folders
+**/__pycache__/*
+
+publications/models.py

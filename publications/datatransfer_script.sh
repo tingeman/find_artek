@@ -180,6 +180,11 @@ fi
 # ---------------- # PROBLEM 2 STARTS HERE # ---------------- #
 # ---------------- Refactor models starts here ---------------- #
 
+# in find_artek/publications/models.py
+# replace "created_date = models.DateTimeField() # when done moving data use these parameters: auto_now_add=True" with "created_date = models.DateTimeField(auto_now_add=True)"
+# replace "modified_date = models.DateTimeField() # when done moving data use these parameters: auto_now=True" with "modified_date = models.DateTimeField(auto_now=True)"
+sed -i -e 's/created_date = models.DateTimeField() # when done moving data use these parameters: auto_now_add=True/created_date = models.DateTimeField(auto_now_add=True)/' -e 's/modified_date = models.DateTimeField() # when done moving data use these parameters: auto_now=True/modified_date = models.DateTimeField(auto_now=True)/' ${PUBLICATION_ROOT}/models.py
+
 
 # Implement the refactored models
 python ${APP_ROOT}/manage.py makemigrations publications && python ${APP_ROOT}/manage.py migrate publications
