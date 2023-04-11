@@ -1,13 +1,19 @@
-<div class="author-list">{% for auth in pub.sorted_authorships %}<a href="/pubs/person/{{ auth.person.id }}/" target="_blank">{{ auth.person.last }}{% if auth.person.first or auth.person.middle %}, {% endif %}{% if auth.person.first %}{{ auth.person.first|slice:"0:1" }}.{% endif %}{% if auth.person.middle %} {{ auth.person.middle|slice:"0:1" }}.{% endif %}</a>{% if user.is_authenticated %}{% if auth.exact_match %} (<a title="Multiple author instances in database with this exact name!" href="/pubs/person/{{ auth.person.id }}/merge/" target="_blank" style="color:red; font-weight:bold;">!</a>){% elif auth.relaxed_match %} (<a title="This author instance is possibly similar to another instance in the database (relaxed match of inital and lastname)." href="/pubs/person/{{ auth.person.id }}/merge/" target="_blank" style="color:red; font-weight:bold;">?</a>){% endif %}{% endif %}{% if forloop.revcounter0 == 1 %} &amp; {% elif not forloop.last %} ; {% endif %}{% endfor %}</div>
+<div class="author-list">
 
-{% comment %}
+    {% for auth in pub.sorted_authorships %}
+        <a href="/pubs/person/{{ auth.person.id }}/" target="_blank">
+            {{ auth.person.last }}
+            {% if auth.person.first or auth.person.middle %}, {% endif %}
+            {% if auth.person.first %}{{ auth.person.first|slice:"0:1" }}.{% endif %}
+            {% if auth.person.middle %} {{ auth.person.middle|slice:"0:1" }}.{% endif %}
+        </a>
+        
+        {# Display & or semicolong #}
+        {% if forloop.revcounter0 == 1 %}
+            &amp;
+        {% elif not forloop.last %}
+            ;
+        {% endif %}
+    {% endfor %}
+</div>
 
-{% for auth in pub.sorted_authors %}
-<a href="/pubs/person/{{ auth.person.id }}/" target="_blank">
-{{ auth.person.last }}{% if auth.person.first or auth.person.middle %}, {% endif %}
-{% if auth.person.first %}{{ auth.person.first|slice:"0:1" }}.{% endif %}{% if auth.person.middle %} {{ auth.person.middle|slice:"0:1" }}.{% endif %}</a>
-{% if auth.exact_match %} (<a href="" style="color:red; font-weight:bold;">!</a>){% elif auth.relaxed_match %} (<a href="" style="color:red; font-weight:bold;">?</a>){% endif %}
-{% if forloop.revcounter0 == 1 %} &amp; {% elif not forloop.last %} ; {% endif %}
-{% endfor %}
-
-{% endcomment %}

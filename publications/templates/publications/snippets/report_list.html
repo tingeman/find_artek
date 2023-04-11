@@ -7,40 +7,20 @@
         <td>{% trans "pdf" %}</td>
         <td>{% trans "Type" %}</td>
         <td style="text-align: center">{% trans "Features" %}</td>
-        {% if user.is_authenticated %}
-            <td style="width: 64px; text-align: left">{% trans "Tools" %}</td>
-        {% endif %}
     </tr>
     {% for pub in publications %}
         <tr >
             {% include "publications/snippets/report_td.html" %}
             <td>
                 {% if pub.file %}
-                    <a href='{{ pub.file.file.name }}' target="_blank">
-                        <img src="{% static 'publications/img/pdf_16x16.png' %}" />
+                    <a href='{{MEDIA_URL}}{{ pub.file.file.name }}' target="_blank">
+                        <img src="{% static 'publications/img/pdf_16x16.png' %}"/>
                     </a>
                 {% endif %}
             </td>
             <td style="text-align: center">{{ pub.type.type }}</td>
             <td style="text-align: center">{{ pub.feature_set.all.count }}</td>
 
-            {% if user.is_authenticated %}
-                <td style="text-align: center">
-                    <a href="/pubs/edit/report/{{ pub.id }}/" target="_blank">
-                        <img src="{% static 'icons/Hamburg/16x16/edit.png' %}" />
-                    </a>
-                    {% if not pub.verified %}
-                        <img src="{% static 'icons/Hamburg/16x16/lightbulb.png' %}" title="{% trans "Entry needs verification!" %}" />
-                    {% else %}
-                        <div style="width: 16px; height: 16px; display:inline-block;"></div>
-                    {% endif %}
-                    {% if pub.comment %}
-                        <img src="{% static 'icons/Hamburg/16x16/comment.png' %}" title="{{ pub.comment }}" />
-                    {% else %}
-                        <div style="width: 16px; height: 16px; display:inline-block;"></div>
-                    {% endif %}
-                </td>
-            {% endif %}
         </tr>
     {% endfor %}
 </table>

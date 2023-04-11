@@ -21,32 +21,10 @@
     <header id="header">
         <div class="header-content">
             <nav>
-                <a href="/pubs/frontpage/">{% trans "Frontpage" %}</a>
-                |
-                <a href="/pubs/overview/">{% trans "Map" %}</a>
-                |
                 <a href="/pubs/publist/">{% trans "All reports" %}</a>
-                |
-                <a href="/pubs/list/persons/">{% trans "All persons" %}</a>
-                |
-                <a href="/pubs/keywords/list/">{% trans "All keywords" %}</a>
-    
-                {% if user.is_authenticated %}
-                |
-                <a href="/pubs/add/">{% trans "Administration" %}</a>
-                {% endif %}
+
             </nav>
     
-            <div class="header-right">
-                {% if user.is_authenticated %}
-                    <span>{% trans "User" %}: {{ user.username }}</span>
-                    |
-                    <a href="/accounts/logout/?next={{request.path}}">{% trans "Logout" %}</a>
-                    
-                {% else %}
-                    <a href="/accounts/login/?next={{request.path}}">{% trans "Login" %}</a>
-                {% endif %}
-            </div>
         </div>
     </header>
 

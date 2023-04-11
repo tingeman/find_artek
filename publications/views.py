@@ -77,6 +77,7 @@ def publist(request):
 
     publications = publications.extra(select={'year': 'CAST(year AS INTEGER)'}).extra(order_by=['-year', '-number'])
 
+    publications = publications.exclude(verified=False)
 
     context = {
         'publications': publications
