@@ -1,24 +1,33 @@
-{% extends "base.html" %}{% load i18n static %}
-{% block title %}{% trans "Publication list" %}{% endblock %}
-{% block head %}
-<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/publist.css' %}" />
+{% extends "publications/base.html" %}
+{% load i18n static %}
+
+{% block title %}
+    {% trans "Publication list" %}
 {% endblock %}
 
+{% block head %}
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/publist.css' %}" />
+{% endblock %}
 
-{% block headline %}{% trans "List of reports" %}{% endblock %}
-
+{% block headline %}
+    {% trans "List of reports" %}
+{% endblock %}
 
 {% block body %}
-
-{% comment %}Translators: Label for display of the terms used in a search{% endcomment %}
-{% if query %}<p>{% trans "Search string" %}:  {{query}}</p>{% endif %}
-<p>{% trans "Number of reports" %}:  {% if pub_list %}{{pub_list|length}}{% else %}0{% endif %}</p>
-</br>
-{% if pub_list %}
-    {% include "publications/snippets/report_list.html" %}
-{% else %}
-    <p>{% trans "No reports available" %}.</p>
-{% endif %}
-
-
+    {# Display the number of reports #}
+    <p>
+        {% trans "Number of reports" %}:
+        {% if publications %}
+            {{publications|length}}
+        {% else %}
+            0
+        {% endif %}
+    </p>
+    
+    {# Display the report list if there are any publications #}
+    {% if publications %}
+        {% include "publications/snippets/report_list.html" %}
+    {% else %}
+        <p>{% trans "No reports available" %}.</p>
+    {% endif %}
 {% endblock %}

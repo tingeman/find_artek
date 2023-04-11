@@ -26,6 +26,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# SITE_ROOT = "/usr/src/app/find_artek/"
+MEDIA_ROOT = os.path.join(BASE_DIR, '../find_artek_media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -37,6 +39,9 @@ SECRET_KEY = 'django-insecure-smfukm8mjpzo##+9j9lk5*cp&&enk3_y=s=-9tq+g9yj95-=#b
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+# Media url
+MEDIA_URL = '/media/'
 
 
 # Application definition
@@ -51,6 +56,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django.contrib.gis',
     'publications',
+    'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
@@ -74,6 +80,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.template.context_processors.media',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -135,7 +142,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+# STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

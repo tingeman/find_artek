@@ -265,6 +265,66 @@ class Publication(BaseModel):
             ("delete_own_publication", "Can delete own publications"),
             ("verify_publication", "Can verify publications"),
         )
+        
+    def create_key(self):
+        if not self.author.all():
+            return
+
+        alphabet = ['']
+        alphabet.extend(list('abcdefghijklmnopqrstuvwxyz'))
+        success = False
+        if self.type.type == 'STUDENTREPORT':
+            for letter in alphabet:
+                key = '{0}({1}{2})'.format(self.author.all().order_by('authorship__author_id')[0].last,
+                                            self.year, letter)
+                if not Publication.objects.filter(key=key):
+                    success = True
+                    break
+
+            if not success:
+                raise ValueError('Could not construct valid key!')
+        else:
+            key = ''
+
+        if success:
+            self.key = key
+            self.save()
+
+    def sorted_authors(self):
+        """ Returns the authors as a list of Person instances sorted
+        according to the author index (so in the correct order from
+        the publication. """
+        return self.author.all().order_by('authorship__author_id')
+
+    def sorted_authorships(self):
+        """ Returns the authorships as a list of Authorship instances sorted
+        according to the author index (so in the correct order from
+        the publication. """
+        return self.authorship_set.all().order_by('author_id')
+
+    def sorted_supervisors(self):
+        """ Returns the supervisors as a list of Person instances sorted
+        according to the supervisor index (so in the correct order from
+        the publication. """
+        return self.supervisor.all().order_by('supervisorship__supervisor_id')
+
+    def sorted_supervisorships(self):
+        """ Returns the supervisorships as a list of supervisorship instances sorted
+        according to the supervisor index (so in the correct order from
+        the publication. """
+        return self.supervisorship_set.all().order_by('supervisor_id')
+
+    def sorted_editors(self):
+        """ Returns the editors as a list of Person instances sorted
+        according to the editor index (so in the correct order from
+        the publication. """
+        return self.editor.all().order_by('editorship__editor_id')
+
+    def sorted_editorships(self):
+        """ Returns the editorships as a list of editorship instances sorted
+        according to the editor index (so in the correct order from
+        the publication. """
+        return self.editorship_set.all().order_by('editor_id')
 
 class Feature(BaseModel):
     PHOTO =             'PHOTO'

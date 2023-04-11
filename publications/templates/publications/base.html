@@ -4,61 +4,67 @@
 <html lang="en">
 
 <head>
+    
     <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/style.css' %}" />
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
     <title>{% block title %}{% endblock %}</title>
+
     {% block head %}{% endblock %}
+
 </head>
 
 <body>
-    <div id="top-line">
-        <div id='top-menu'>
+
+    <!-- NAMESPACING HEADER (the top menu) -->
+    <!-- ALL HEADER CSS IS IN BASE.CSS, and is namespaced with #header -->
+    
+    <header id="header">
+        <div class="header-content">
             <nav>
-                <a href="/pubs/frontpage/">{% trans "Frontpage" %}</a>|
-                <a href="/pubs/overview/">{% trans "Map" %}</a>|
-                <a href="/pubs/publist/">{% trans "All reports" %}</a>|
-                <a href="/pubs/list/persons/">{% trans "All persons" %}</a>|
-                <a href="/pubs/keywords/list/">{% trans "All keywords" %}</a>|
+                <a href="/pubs/frontpage/">{% trans "Frontpage" %}</a>
+                |
+                <a href="/pubs/overview/">{% trans "Map" %}</a>
+                |
+                <a href="/pubs/publist/">{% trans "All reports" %}</a>
+                |
+                <a href="/pubs/list/persons/">{% trans "All persons" %}</a>
+                |
+                <a href="/pubs/keywords/list/">{% trans "All keywords" %}</a>
+    
                 {% if user.is_authenticated %}
+                |
                 <a href="/pubs/add/">{% trans "Administration" %}</a>
                 {% endif %}
             </nav>
-
-            <div class="topnav-right">
+    
+            <div class="header-right">
                 {% if user.is_authenticated %}
-                <span>{% trans "User" %}: {{ user.username }}</span>|
-                <a href="/accounts/logout/?next={{request.path}}">{% trans "Logout" %}</a>|
+                    <span>{% trans "User" %}: {{ user.username }}</span>
+                    |
+                    <a href="/accounts/logout/?next={{request.path}}">{% trans "Logout" %}</a>
+                    
                 {% else %}
-                <a href="/accounts/login/?next={{request.path}}">{% trans "Login" %}</a>|
-                {% endif %}
-
-                {% if not hide_language_choices %}
-                <span>{% trans "Language" %}:</span>
-                <form name="setLangEnglish" action="/i18n/setlang/" method="POST">{% csrf_token %}
-                    <input name="next" type="hidden" value="" />
-                    <input type="hidden" name="language" value="en" />
-                    <button type="submit">EN</button>
-                </form>
-                <form name="setLangDanish" action="/i18n/setlang/" method="POST">{% csrf_token %}
-                    <input name="next" type="hidden" value="" />
-                    <input type="hidden" name="language" value="da" />
-                    <button type="submit">DK</button>
-                </form>
+                    <a href="/accounts/login/?next={{request.path}}">{% trans "Login" %}</a>
                 {% endif %}
             </div>
         </div>
+    </header>
 
-    </div>
-    <div class='site_container'>
-        <div class='headline'>
-            <h2>{% block headline %}{% endblock %}</h2>
+    <main id="main">
+        <div class='site-container'>
+            <div class='headline'>
+                <h2>
+                    {% block headline %}{% endblock %}
+                </h2>
+            </div>
+            <br>
+            <br>
+            {% block body %}
+            {% endblock %}
         </div>
-        {% include "publications/snippets/message_list.html" %}
-        <br>
-        <br>
-        {% block body %}
-        {% endblock %}
-    </div>
+    </main>
+
+
     <br>
     <br>
     <br>

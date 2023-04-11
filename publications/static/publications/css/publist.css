@@ -1,4 +1,4 @@
-div.author-list {
+/* div.author-list {
     color:           grey;
     font-size:       0.9em;
     text-decoration: none;
@@ -17,9 +17,4 @@ div.author-list a:hover {
 
 .report-title {
     font-weight: bold;
-}
-
-/* div.report-title a:link,a:visited {
-    text-decoration: None;
-    color: inherit;
 } */
