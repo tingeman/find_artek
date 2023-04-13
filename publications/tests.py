@@ -203,6 +203,21 @@ class TestPublicationData(unittest.TestCase):
                 self.assertEqual(appendix.file, expected_file_name)
 
 
+   # find all appendencis associated with a publication
+    def test_get_appendices_on_number2(self):
+        publication = Publication.objects.get(number="17-02")
+        appendices = publication.appendices.all()
+
+        # Define the expected file name
+        expected_file_name = 'reports/2017/17-02/appendix_diplomingeniør.pdf'
+
+
+        # asser each appendix
+        for i, appendix in enumerate(appendices):
+            with self.subTest(i=i):
+                self.assertEqual(appendix.file, expected_file_name)
+
+
     # Test if you can get the file object associated with publication id 130
     def test_file(self):
         # Get the real data from the database

@@ -123,6 +123,8 @@ class Topic(models.Model):
     def __unicode__(self):
         return self.topic
 
+    def __str__(self):
+        return self.topic
 
 class Keyword(models.Model):
     keyword = models.CharField(max_length=100)
@@ -130,6 +132,8 @@ class Keyword(models.Model):
     def __unicode__(self):
         return self.keyword
 
+    def __str__(self):
+        return self.keyword
 
 class ImageObject(BaseModel):
     upload_to = None     # If set, this value should be used in upload_to function
@@ -494,8 +498,6 @@ class Supervisorship(models.Model):
 class PublicationURLObjectship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     URLs = models.ForeignKey(URLObject, on_delete=models.CASCADE)
-
-
 
 class AddPubFields(models.Model):
     # Model to handle undefined bibtex fields or mulitple instances

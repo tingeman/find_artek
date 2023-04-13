@@ -132,24 +132,19 @@ def publist(request):
 def detail(request, pub_id):
 
 
-    p = get_object_or_404(Publication, pk=pub_id)
+    publication = get_object_or_404(Publication, pk=pub_id)
 
     # If the report is not verified, only authenticated users can see it
-    if not p.verified and not request.user.is_authenticated:
+    if not publication.verified and not request.user.is_authenticated:
         error = "You do not have permissions to access this publication!"
 
-        return render(request, 'publications/access_denied.html', context = {'pub': p, 'error': error})
-
-
+        return render(request, 'publications/access_denied.html', context = {'pub': publication, 'error': error})
 
 
     context = {
-        'pub': p,
+        'publication': publication,
     }
 
+
     return render(request, "publications/detail.html", context)
-
-
-
-
 
