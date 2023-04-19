@@ -1,51 +1,57 @@
-{% load i18n static %}
 
-<!DOCTYPE html>
-<html lang="en">
+    {% load i18n static %}
 
-<head>
-    
-    <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
-    <title>{% block title %}{% endblock %}</title>
+    <!DOCTYPE html>
+    <html lang="en">
 
-    {% block head %}{% endblock %}
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
+        <title>{% block title %}{% endblock %}</title>
 
-</head>
+        {% block head %}{% endblock %}
 
-<body>
+    </head>
 
-    <!-- NAMESPACING HEADER (the top menu) -->
-    <!-- ALL HEADER CSS IS IN BASE.CSS, and is namespaced with #header -->
-    
-    <header id="header">
-        <div class="header-content">
-            <nav>
-                <a href="/pubs/publist/">{% trans "All reports" %}</a>
+    <body>
 
-            </nav>
-    
-        </div>
-    </header>
+        <header id="header">
+            <div class="header-content">
+                <nav>
+                    <a href="/publications/frontpage/">{% trans "Frontpage" %}</a>
+                    |
+                    <a href="/publications/map/">{% trans "Map" %}</a>
+                    |
+                    <a href="/publications/reports/">{% trans "All reports" %}</a>
 
-    <main id="main">
-        <div class='site-container'>
-            <div class='headline'>
-                <h2>
-                    {% block headline %}{% endblock %}
-                </h2>
+                </nav>
             </div>
-            <br>
-            <br>
-            {% block body %}
-            {% endblock %}
-        </div>
-    </main>
+        </header>
 
+        <main id="main">
+            <div class="site-container">
+                <div class='headline'>
+                    <h2>
+                        {% block headline %}{% endblock %}
+                    </h2>
+                </div>
+                <br>
+                <br>
+                {% block body %}
+                {% endblock %}
+            </div>
+        </main>
 
-    <br>
-    <br>
-    <br>
-    <br>
+        <footer id="footer">
+            <div class="footer-content">
+                <!-- Add your footer content here -->
+            </div>
+        </footer>
+
+        <br>
+        <br>
+        <br>
+        <br>
     </body>
+
     </html>

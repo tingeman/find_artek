@@ -5,5 +5,8 @@
     // hide .git folder
     "files.exclude": {
         "**/.git": true
-      }
+      },
+      "files.associations": {
+        "publications/templates/**/*.*": "django-html"
+      },
 }

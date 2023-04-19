@@ -1,0 +1,26 @@
+{% load i18n static %}
+
+<table class="entity-list">
+    <tr class="header" style="background-color: #B0C4DE; border: 1px solid #B0C4DE; padding: 5px">
+        <td>#</td>
+        <td>{% trans "Title" %}</td>
+        <td>{% trans "pdf" %}</td>
+        <td>{% trans "Type" %}</td>
+        <td style="text-align: center">{% trans "Features" %}</td>
+    </tr>
+    {% for publication in publications %}
+        <tr >
+            {% include "publications/reports_snippets/report_td.html" %}
+            <td>
+                {% if publication.file %}
+                    <a href='{{MEDIA_URL}}{{ publication.file.file.name }}' target="_blank">
+                        <img src="{% static 'publications/img/pdf_16x16.png' %}"/>
+                    </a>
+                {% endif %}
+            </td>
+            <td style="text-align: center">{{ publication.type.type }}</td>
+            <td style="text-align: center">{{ publication.feature_set.all.count }}</td>
+
+        </tr>
+    {% endfor %}
+</table>

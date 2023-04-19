@@ -1,0 +1,39 @@
+{#      reports.html                                            #}
+{#      └── reports_snippets/report_list.html                   #}
+{#          └── reports_snippets/report_td.html                 #}
+{#              └── shared_snippets/authorlist_short.html       #}
+
+
+{% extends "publications/base.html" %}
+{% load i18n static %}
+
+{% block title %}
+    {% trans "Publication list" %}
+{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/reports.css' %}" />
+{% endblock %}
+
+{% block headline %}
+    {% trans "List of reports" %}
+{% endblock %}
+
+{% block body %}
+    {# Display the number of reports #}
+    <p>
+        {% trans "Number of reports" %}:
+        {% if publications %}
+            {{publications|length}}
+        {% else %}
+            0
+        {% endif %}
+    </p>
+    
+    {# Display the report list if there are any publications #}
+    {% if publications %}
+        {% include "publications/reports_snippets/report_list.html" %}
+    {% else %}
+        <p>{% trans "No reports available" %}.</p>
+    {% endif %}
+{% endblock %}

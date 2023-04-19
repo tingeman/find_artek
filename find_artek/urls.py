@@ -18,17 +18,19 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
+
 
 urlpatterns = [
 
      # admin site
     path('admin/', admin.site.urls),
 
-    # redirect to publications app
-    path('', include('publications.urls')),
+    # redirect root URL to pubs/publist
+    path('', RedirectView.as_view(url='publications/reports/', permanent=True)),
     
     # include the urls from the publications app
-    path('pubs/', include('publications.urls')),
+    path('publications/', include('publications.urls')),
 ]
 
 
