@@ -24,7 +24,7 @@
 
 {% block headline %}{% trans "Publication detail" %}{% endblock %}
 
-{% block body %}
+{% block main-content %}
 {% load thumbnail %}
 {% load pubs_extra_tags %}
 
@@ -206,24 +206,14 @@
                     </div>
                 </td>
                 <td>
-                    {% include "publications/details_snippets/feature_type_legend.html" %}
+                    {% comment %} {% include "publications/details_snippets/feature_type_legend.html" %} {% endcomment %}
                 </td>
             </tr>
         </table>
 
         <br><br>
 
-        {% include "publications/details_snippets/feature_list.html" with feat_list=publication.feature_set.all%}
 
-        {% if user.is_authenticated %}
-        <a href="/pubs/report/{{ publication.id }}/delete_all_features/">{% trans "delete all" %}</a>
-        <a href="/pubs/report/{{ publication.id }}/add/feature/">{% trans "add feature" %}</a>
-        {% endif %}
-
-        {% else %}{% trans "No features registered" %}.
-        {% if user.is_authenticated %}
-        <a href="/pubs/report/{{ publication.id }}/add/feature/">{% trans "add feature" %}</a>
-        {% endif %}
         {% endif %}
 
     </div>
