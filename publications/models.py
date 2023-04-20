@@ -223,7 +223,7 @@ class Publication(BaseModel):
     publication_topics = models.ManyToManyField(Topic, through='Topicship', blank=True, default=None)
 
     publication_keywords = models.ManyToManyField(Keyword, through='Keywordship', blank=True, default=None)
-    
+
     appendices = models.ManyToManyField(FileObject, through='Appendenciesship', related_name='publication_appendices', blank=True, default=None)
 
     URLs = models.ManyToManyField(URLObject, through='PublicationURLObjectship', blank=True, default=None)
@@ -424,6 +424,9 @@ class Feature(BaseModel):
 
         # if neither, return False
         return False
+
+    def get_related_publications(self):
+        return self.publications.all()
 
 class ImageObjectship(models.Model):
     imageobject = models.ForeignKey(ImageObject, on_delete=models.CASCADE)

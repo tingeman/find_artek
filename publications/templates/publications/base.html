@@ -5,16 +5,20 @@
     <html lang="en">
 
     <head>
+        <!-- static head content starts here -->
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
-        <title>{% block title %}{% endblock %}</title>
+        <title>{% block title %}Base Title{% endblock %}</title>
+        <!-- static head content ends here -->
 
+        <!-- dynamic head content starts here -->
         {% block head %}{% endblock %}
-
+        <!-- dynamic head content ends here -->
     </head>
 
     <body>
-
+        
         <header id="header">
             <div class="header-content">
                 <nav>
@@ -29,16 +33,15 @@
         </header>
 
         <main id="main">
-            <div class="site-container">
+            <div class="main-content">
                 <div class='headline'>
-                    <h2>
-                        {% block headline %}{% endblock %}
-                    </h2>
+                    <h2>{% block headline %}{% endblock %}</h2>
                 </div>
                 <br>
                 <br>
-                {% block body %}
-                {% endblock %}
+                <!-- dynamic main-content starts here -->
+                {% block main-content %}{% endblock %}
+                <!-- dynamic main-content ends here -->
             </div>
         </main>
 

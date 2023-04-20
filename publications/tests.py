@@ -643,7 +643,36 @@ class TestPublicationData(unittest.TestCase):
     # expected_field_measurement_names
     # expected_field_measurement_description
     # expected_field_measurement_pk
+    
+    
+    
+    def test_get_related_publications(self):
 
+
+        #
+        feature = Feature.objects.get(pk=1352)
+        print("feature.pk: ", feature.pk)
+        print("feature.name: ", feature.name)
+        print("feature.description: ", feature.description)
+        print("feature.publications: ", feature.publications)
+
+        # Get the related publications
+        related_publications = feature.get_related_publications()
+
+        # esxpected related publications titles
+        expected_related_publications_titles = [
+            'Screening for Greenlandic bacteria capable of inhibiting pathogenic bacteria',
+        ]
+
+        # assert 
+        for i in range(len(related_publications)):
+            self.assertEqual(
+                related_publications[i].title,
+                expected_related_publications_titles[i],
+                "The title of the publication is not correct",
+            )
+
+     
 
 
     ####### TESTING FEATURES ENDS HERE #######   

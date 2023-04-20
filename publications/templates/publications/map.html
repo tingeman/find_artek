@@ -1,1 +1,27 @@
-hello world
+{% extends "publications/base.html" %}{% load i18n %}
+
+
+{% block title %}Map{% endblock %}
+
+{% block head %}<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/map.css" />
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+            integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+            crossorigin="" />{% endblock %}
+
+
+
+{% block main-content %}<div id="map"></div>
+
+                <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+                    integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+                    crossorigin=""></script>
+
+                <!-- context data -->
+                <script>
+                    const featureData = {{ feature_data|safe }};
+                    const fetureColors = {{ feature_colors|safe }};
+                </script>
+                <!-- context data -->
+
+                <script src="{{STATIC_URL}}/static/publications/js/map.js"></script>{% endblock %}

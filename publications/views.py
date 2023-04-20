@@ -1,8 +1,11 @@
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext
+from django.core import serializers
+from django.http import JsonResponse
 
-from publications.models import Publication, Topic
+
+from publications.models import Publication, Topic, Feature
 
 # Create your views here.
 
@@ -200,20 +203,108 @@ def report(request, publication_id):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def map(request):
-    return render(request, 'publications/map.html')
+    feature_colors = dict((
+        ('PHOTO',             'red'),
+        ('SAMPLE',            'green'),
+        ('BOREHOLE',          'yellow'),
+        ('GEOPHYSICAL DATA',  'blue'),
+        ('FIELD MEASUREMENT', 'purple'),
+        ('LAB MEASUREMENT',   'pink'),
+        ('RESOURCE',          'brown'),
+        ('OTHER',             'white')))
+
+    features = Feature.objects.all()
+
+    # Extract the points, lines, and polys from each feature
+    feature_data = []
+    for feature in features:
+
+
+        related_publications = feature.get_related_publications()
+
+        # 
+
+        related_publications_data = [
+
+        ]
+
+        for publication in related_publications:
+            related_publications_data.append({
+                'pk': publication.pk,
+                'number': publication.number,
+
+            })
+
+        # for each 
+
+
+
+        feature_data.append({
+            'points': feature.points.geojson if feature.points else "",
+            'lines': feature.lines.geojson if feature.lines else "",
+            'polys': feature.polys.geojson if feature.polys else "",
+            'name': feature.name if feature.name else "",
+            'type': feature.type if feature.type else "",
+            'date': feature.date.strftime('%Y-%m-%d') if feature.date else "",
+            'feature_pk': feature.pk,
+            'related_publications'  : related_publications_data,
+            })
+
+    context = {
+
+        'feature_data': feature_data,
+        'feature_colors': feature_colors,
+    }
+
+    return render(request, 'publications/map.html', context=context)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def map_data(request):
+    features = Feature.objects.all()
+    # q: in debug mode, how to loop through features and print out the attributes?
+    # for feature in features:
+    #     print(feature)
+    serialized_features = serializers.serialize('json', features)
+    return JsonResponse(serialized_features, safe=False)
