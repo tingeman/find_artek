@@ -1,0 +1,27 @@
+{% extends "publications/base.html" %} {% load i18n %}
+
+{% block title %}{% trans "Feature detail" %}{% endblock %}
+{% block head %}
+<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/feature.css" />
+{% endblock %}
+
+{% block headline %}Base Headline{% endblock %}
+
+{% block main-content %}
+
+<div id="info-box">
+    <div id="info-content">
+        <table id="info-table" style="font-family: Verdana, Arial; font-size: 8pt;">
+            <!-- Your table rows go here -->
+        </table>
+    </div>
+    <div>
+        <a href='/media/reports/2012/12-14.pdf'>
+            <img alt="Picture of first page of pdf document" src="/media/reports/2012/thumbs/12-14_thumb.jpg" height="300" id="report-thumb">
+        </a>
+    </div>
+</div>
+
+<!-- The rest of your HTML goes here -->
+
+{% endblock %}

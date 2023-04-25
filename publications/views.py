@@ -308,3 +308,52 @@ def map_data(request):
     #     print(feature)
     serialized_features = serializers.serialize('json', features)
     return JsonResponse(serialized_features, safe=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def feature(request, feature_id):
+    feature = get_object_or_404(Feature, pk=feature_id)
+
+    context = {
+        'feature': feature,
+    }
+
+    return render(request, "publications/feature.html", context)

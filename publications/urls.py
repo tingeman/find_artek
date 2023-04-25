@@ -7,6 +7,7 @@ urlpatterns = [
     path('map/data/', views.map_data, name='map_data'),
     path('reports/', views.reports, name='reports'),
     path('report/<int:publication_id>/', views.report, name='report'),
+    path('feature/<int:feature_id>/', views.feature, name='feature'),
     
     # q: how to implement this in django 4.1 url(r'^pubs/report/(?P<pub_id>\d+)/$', 'publications.views.detail'),
     # path('report/<int:pk>/', views.detail, name='detail'),
