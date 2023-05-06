@@ -16,6 +16,7 @@ migrations/
 
 secret/
 
+staticfiles/
 
 publications/active_directory_authetication_test.py
 
