@@ -1,60 +1,135 @@
+{% load i18n static %}
 
-    {% load i18n static %}
+<!DOCTYPE html>
+<html lang="en">
 
-    <!DOCTYPE html>
-    <html lang="en">
+<head>
+    <!-- static head content starts here -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
+    <link rel="icon" href="{% static 'publications/img/artek_logo_absract_transparent_resized_favicon.ico' %}"
+        type="image/x-icon" />
+    <title>{% block title %}Base Title{% endblock %}</title>
+    <!-- static head content ends here -->
 
-    <head>
-        <!-- static head content starts here -->
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
-        <title>{% block title %}Base Title{% endblock %}</title>
-        <!-- static head content ends here -->
+    <!-- dynamic head content starts here -->
+    {% block head %}{% endblock %}
+    <!-- dynamic head content ends here -->
+</head>
 
-        <!-- dynamic head content starts here -->
-        {% block head %}{% endblock %}
-        <!-- dynamic head content ends here -->
-    </head>
+<body>
 
-    <body>
-        
-        <header id="header">
-            <div class="header-content">
-                <nav>
-                    <a href="/publications/frontpage/">{% trans "Frontpage" %}</a>
-                    |
-                    <a href="/publications/map/">{% trans "Map" %}</a>
-                    |
-                    <a href="/publications/reports/">{% trans "All reports" %}</a>
 
-                </nav>
-            </div>
-        </header>
 
-        <main id="main">
-            <div class="main-content">
-                <div class='headline'>
-                    <h2>{% block headline %}Base Headline{% endblock %}</h2>
+
+
+
+    <header class="flex-container flex-column justify-center">
+
+        <!-- default header menu. Mobile is hidden, the code is beneath the default menu -->
+        <div class="default-header-content flex-container justify-between">
+
+            <!-- navigiation to the left -->
+            <nav class="nav-left">
+
+
+
+                <a class="nav-link frontpage" href="/publications/frontpage/">
+                    <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
+                        alt="ArtTek Logo">
+                </a>
+
+
+
+
+                <a class="nav-link map" href="/publications/map/">{% trans "Map" %}</a>
+
+                <a class="nav-link reports" href="/publications/reports/">{% trans "All reports" %}</a>
+
+            </nav>
+            <!-- navigiation to the left -->
+
+
+            <!-- navigiation to the right -->
+            <nav class="nav-right">
+                <a class="sign-in nav-link" href="/publications/login/">
+                    <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                        alt="ArtTek Logo">
+                    <span>{% trans "Sign in" %}</span>
+                </a>
+            </nav>
+            <!-- navigiation to the right -->
+        </div>
+
+
+
+        <!-- hidden menu for mobile -->
+        <div class="mobile-header-content" style="display: none;">
+            <nav class="nav-mobile">
+
+                <div class="sign-in">
+                    <a class="nav-link flex-container" href="/publications/login/">
+                        <img height="16"
+                            src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                            alt="ArtTek Logo">
+                        <span>{% trans "Sign in" %}</span>
+                    </a>
                 </div>
-                <br>
-                <br>
-                <!-- dynamic main-content starts here -->
-                {% block main-content %}{% endblock %}
-                <!-- dynamic main-content ends here -->
+
+                <div class="frontpage-logo"></div>
+                <a class="nav-link" href="/publications/frontpage/">
+                    <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
+                        alt="ArtTek Logo">
+                </a>
+
+                <div class="menu">
+                    menu
+                    <!-- <a class="nav-link" href="/publications/reports/">{% trans "All reports" %}</a> -->
+                    <!-- <a class="nav-link" href="/publications/map/">{% trans "Map" %}</a> -->
+                </div>
+
+            </nav>
+        </div>
+        <!-- hidden menu for mobile -->
+
+    </header>
+
+
+
+
+
+
+    <main id="main">
+        <div class="main-content">
+            <div class='headline'>
+                <h2>{% block headline %}Base Headline{% endblock %}</h2>
             </div>
-        </main>
+            <!-- dynamic main-content starts here -->
+            {% block main-content %}{% endblock %}
+            <!-- dynamic main-content ends here -->
+        </div>
+    </main>
 
-        <footer id="footer">
-            <div class="footer-content">
-                <!-- Add your footer content here -->
-            </div>
-        </footer>
 
-        <br>
-        <br>
-        <br>
-        <br>
-    </body>
 
-    </html>
+
+
+
+    <footer id="footer">
+        <div class="footer-content">
+            <!-- Add your footer content here -->
+            <p>Footer content</p>
+        </div>
+    </footer>
+
+
+
+
+
+
+
+
+</body>
+
+</html>

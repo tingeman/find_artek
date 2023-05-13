@@ -1,18 +1,87 @@
+@font-face {
+    font-family: 'Roboto'; /* Replace with your preferred font name */
+    src: url('/static/publications/font/roboto/Roboto-Light.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Mona Sans';
+    src: url('/static/publications/font/Mona_Sans/Mona-Sans.ttf') format('truetype');
+
+    font-weight: 200 900;
+    font-stretch: 75% 125%;
+  }
+
 :root {
-    --primary-font-family: Verdana, Geneva, sans-serif;
+    --primary-font-family:  "Mona Sans", "Roboto", Verdana, Geneva, sans-serif;
     --primary-color: black;
-    --primary-bacground-color: #B0C4DE;
+    --primary-background-color: #B0C4DE;
     --message-border-width: 1px;
     --primary-site-width: 80%;
+    --dtu-color-corporate-red: #900;
 
+
+    /* header variables starts here */
+
+    /* header variables ends here */
 }
+
+
+
+
+/* General styling starts here */
+/* Define a base class for flex containers */
+.flex-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+}
+
+.flex-row {
+    flex-direction: row;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.justify-start {
+    justify-content: flex-start;
+}
+
+.justify-end {
+    justify-content: flex-end;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-around {
+    justify-content: space-around;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+/* General styling ends here */
+
+
+
+
+
+
 
 body {
     margin: 0;
     padding: 0;
     font-family: var(--primary-font-family);
-    font-size: 0.6em;
     color: var(--primary-color);
+    height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 body a:link, body a:visited {
@@ -24,6 +93,106 @@ body a:hover {
     color: grey;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* header styling starts here  */
+
+header {
+    background: var(--primary-background-color);
+    width: auto;
+    height: 64px;
+}
+
+.default-header-content {
+    width: var(--primary-site-width);
+    font-family: var(--primary-font-family), sans-serif; /* The second font is a fallback in case the custom font fails to load */
+    font-size: 16px;
+}
+
+
+
+header .nav-right span {
+    margin-left: 10px;
+}
+
+
+
+
+header .header-content .nav-left .nav-link, .nav-right .nav-link {
+    margin: 0 10px; /* Adjust the value as needed */
+}
+
+.nav-mobile {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .nav-mobile {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        width: 100%;
+    }
+
+    .sign-in {
+        border: 1px solid #900;
+        border-radius: 10px;
+        padding: 8px;
+    }
+
+    .sign-in > .nav-link > img {
+        margin-right: 10px;
+    }
+
+
+    header .header-content .nav-left,
+    header .header-content .nav-right {
+        display: none;
+    }
+}
+
+/* header styling ends here  */
+
+
+
+
+
+
+
+
+
+
+
+
+
+main {
+    width: var(--primary-site-width);
+    margin: 0 auto; /* Add this to center the main content horizontally */
+    flex-grow: 1;
+}
+
+footer {
+    /* Your footer styles here */
+}
+
+
+/* 
 input[type=text] {
     margin: 5px 0;
     display: block;
@@ -36,27 +205,15 @@ a {
     text-decoration: none;
 }
 
-header {
-    background: var(--primary-bacground-color);
-    width: auto;
-}
 
-.header-content {
-    width: var(--primary-site-width);
+
+
+.flex-space-between {
     display: flex;
-    padding: 0.5em;
-    margin: 0;
-    border: none;
-    font-size: 0.9em;
-    font-weight: bold;
     justify-content: space-between;
-    margin: 0 auto; /* Add this to center the header-content horizontally */
 }
 
-main {
-    width: var(--primary-site-width);
-    margin: 0 auto; /* Add this to center the main content horizontally */
-}
+
 
 ul.messages, table.messages {
     border: var(--message-border-width) solid #C8DCC2;
@@ -121,3 +278,5 @@ table.entity-list tr:hover {
     top: 1px;
     padding: 6px 10px 4px;
 }
+ */
+

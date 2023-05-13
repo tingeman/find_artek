@@ -27,7 +27,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SITE_ROOT = "/usr/src/app/find_artek/"
-MEDIA_ROOT = os.path.join(BASE_DIR, '../find_artek_media')
+MEDIA_ROOT = os.path.join('/var/www/find_artek_static/media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -40,9 +40,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# Media url
-MEDIA_URL = '/media/'
+# # Media url
+# MEDIA_URL = '/media/'
+# Default port setting
+DEFAULT_PORT = '80'
 
+# Media url
+MEDIA_URL = f'http://localhost:{DEFAULT_PORT}/media/'
 
 # Application definition
 
