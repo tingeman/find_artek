@@ -1,9 +1,11 @@
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.template import RequestContext
 from django.core import serializers
 from django.http import JsonResponse
+from django.contrib.auth import authenticate, login
 
+from publications.forms import LoginForm
 
 from publications.models import Publication, Topic, Feature
 
@@ -357,3 +359,50 @@ def feature(request, feature_id):
     }
 
     return render(request, "publications/feature.html", context)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def login_view(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('frontpage')  # or wherever you want to redirect after successful login
+            else:
+                form.add_error(None, 'Authentication failed')
+    else:
+        form = LoginForm()
+    return render(request, 'publications/login.html', {'form': form})
+
+
+
+

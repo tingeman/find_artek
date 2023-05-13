@@ -34,8 +34,8 @@
             <nav class="nav-left">
 
 
-
-                <a class="nav-link frontpage" href="/publications/frontpage/">
+                <!-- abstact ice icon that leads to frontpage -->
+                <a class="nav-link frontpage" href="{% url 'frontpage' %}">
                     <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
                         alt="ArtTek Logo">
                 </a>
@@ -52,6 +52,11 @@
 
 
             <!-- navigiation to the right -->
+            {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}">
+                 {% trans "Sign out" %} ({{ user.username }})
+            </a> <!-- Assuming /logout/ is your logout URL -->
+            {% else %}
             <nav class="nav-right">
                 <a class="sign-in nav-link" href="/publications/login/">
                     <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
@@ -59,6 +64,7 @@
                     <span>{% trans "Sign in" %}</span>
                 </a>
             </nav>
+            {% endif %}
             <!-- navigiation to the right -->
         </div>
 

@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, reverse_lazy
+from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
@@ -8,8 +9,6 @@ urlpatterns = [
     path('reports/', views.reports, name='reports'),
     path('report/<int:publication_id>/', views.report, name='report'),
     path('feature/<int:feature_id>/', views.feature, name='feature'),
-    
-    # q: how to implement this in django 4.1 url(r'^pubs/report/(?P<pub_id>\d+)/$', 'publications.views.detail'),
-    # path('report/<int:pk>/', views.detail, name='detail'),
-    
+    path('login/', views.login_view, name='login'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 ]
