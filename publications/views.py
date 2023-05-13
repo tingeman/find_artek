@@ -4,6 +4,8 @@ from django.template import RequestContext
 from django.core import serializers
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
+from django.views import View
+
 
 from publications.forms import LoginForm
 
@@ -12,16 +14,39 @@ from publications.models import Publication, Topic, Feature
 # Create your views here.
 
 
+class BaseView(View):
+    base_template = "publications/base.html"
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'base_template': self.base_template,
+            # Other common context variables...
+        }
+        return context
 
 
 
 
 
 
-# create view for frontpage
-def frontpage(request):
-    return render(request, 'publications/frontpage.html')
+
+
+
+
+class FrontPageView(BaseView):
+
+    template_name = 'publications/frontpage.html'
+
+    def get(self, request, **kwargs):
+        context = self.get_context_data(**kwargs)
+        return render(request, self.template_name, context)
+
+
+# # create view for frontpage
+# def frontpage(request):
+    # return render(request, 'publications/frontpage.html')
     
+
 
 
 

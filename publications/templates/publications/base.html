@@ -1,4 +1,7 @@
+<!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
+<!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
 {% load i18n static %}
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -14,7 +17,7 @@
     <!-- static head content ends here -->
 
     <!-- dynamic head content starts here -->
-    {% block head %}{% endblock %}
+    {% block dynamic_head_content %}{% endblock %}
     <!-- dynamic head content ends here -->
 </head>
 
@@ -43,9 +46,9 @@
 
 
 
-                <a class="nav-link map" href="/publications/map/">{% trans "Map" %}</a>
+                <a class="nav-link map" href="{% url 'map' %}">{% trans "Map" %}</a>
 
-                <a class="nav-link reports" href="/publications/reports/">{% trans "All reports" %}</a>
+                <a class="nav-link reports" href="{% url 'reports' %}">{% trans "Reports" %}</a>
 
             </nav>
             <!-- navigiation to the left -->
@@ -58,7 +61,7 @@
             </a> <!-- Assuming /logout/ is your logout URL -->
             {% else %}
             <nav class="nav-right">
-                <a class="sign-in nav-link" href="/publications/login/">
+                <a class="sign-in nav-link" href="{% url 'login' %}">
                     <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
                         alt="ArtTek Logo">
                     <span>{% trans "Sign in" %}</span>
@@ -75,7 +78,7 @@
             <nav class="nav-mobile">
 
                 <div class="sign-in">
-                    <a class="nav-link flex-container" href="/publications/login/">
+                    <a class="nav-link flex-container" href="{% url 'login' %}">
                         <img height="16"
                             src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
                             alt="ArtTek Logo">
@@ -84,7 +87,7 @@
                 </div>
 
                 <div class="frontpage-logo"></div>
-                <a class="nav-link" href="/publications/frontpage/">
+                <a class="nav-link" href="{% url 'frontpage' %}">
                     <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
                         alt="ArtTek Logo">
                 </a>
