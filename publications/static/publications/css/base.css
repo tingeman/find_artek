@@ -23,8 +23,13 @@
 
 
     /* header variables starts here */
-
+    --header-height: 64px;
     /* header variables ends here */
+
+
+    /* footer variables starts here */
+    --footer-height: 64px;
+    /* footer variables ends here */
 }
 
 
@@ -36,7 +41,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
+    /* padding: 1rem; */
 }
 
 .flex-row {
@@ -67,7 +72,6 @@
     justify-content: space-between;
 }
 /* General styling ends here */
-
 
 
 
@@ -116,7 +120,8 @@ body a:hover {
 header {
     background: var(--primary-background-color);
     width: auto;
-    height: 64px;
+    height: var(--header-height);
+    overflow: auto;
 }
 
 .default-header-content {
@@ -132,47 +137,62 @@ header .nav-right span {
 }
 
 
-
+.nav-left {
+    width : 200px;
+}
 
 header .header-content .nav-left .nav-link, .nav-right .nav-link {
     margin: 0 10px; /* Adjust the value as needed */
 }
 
 .nav-mobile {
-    display: none !important;
+    display: none;
 }
 
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
+
+
+    .default-header-content {
+        display: none;
+    }
+
+
+    .mobile-header-content {
+        width: 90%;
+        display: flex !important;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px;
+    }
+
     .nav-mobile {
+
         display: flex !important;
         flex-direction: row !important;
         justify-content: space-between !important;
-        width: 100%;
-    }
 
-    .sign-in {
+    }
+    
+    .sign-up {
         border: 1px solid #900;
         border-radius: 10px;
         padding: 8px;
     }
 
-    .sign-in > .nav-link > img {
-        margin-right: 10px;
+
+
+    .nav-right {
+        width: 200px;
     }
 
 
-    header .header-content .nav-left,
-    header .header-content .nav-right {
-        display: none;
-    }
-}
+
+} */
+
+
 
 /* header styling ends here  */
-
-
-
-
-
 
 
 
@@ -185,9 +205,16 @@ main {
     width: var(--primary-site-width);
     margin: 0 auto; /* Add this to center the main content horizontally */
     flex-grow: 1;
+    overflow: auto;
+    min-height: calc(100vh - var(--header-height) - var(--footer-height));
 }
 
 footer {
+    overflow: auto;
+    width: auto;
+    height: auto;
+    min-height: var(--footer-height);
+    background: var(--primary-background-color);
     /* Your footer styles here */
 }
 

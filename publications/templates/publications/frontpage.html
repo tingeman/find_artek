@@ -9,15 +9,14 @@
 
 
 {% block dynamic_head_content %}
-<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/frontpage.css" />
+<!-- <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/frontpage.css" /> -->
 {% endblock %}
 
 
-{% block headline %}<div class='contents'><h1>find.artek</h1></div>{% endblock %}
+<!-- headline for the page -->
+{% block headline %}find.artek{% endblock %}
 
 
 {% block main-content %}
-
 <p>{% trans "Access ARTEKs student reports. Please choose below: topic based access, geographical access, or search in title/abstract." %}</p>	
-
 {% endblock %}

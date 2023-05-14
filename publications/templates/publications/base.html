@@ -34,7 +34,7 @@
         <div class="default-header-content flex-container justify-between">
 
             <!-- navigiation to the left -->
-            <nav class="nav-left">
+            <nav class="nav-left flex-container justify-around">
 
 
                 <!-- abstact ice icon that leads to frontpage -->
@@ -57,13 +57,13 @@
             <!-- navigiation to the right -->
             {% if user.is_authenticated %}
             <a href="{% url 'logout' %}">
-                 {% trans "Sign out" %} ({{ user.username }})
+                {% trans "Sign out" %} ({{ user.username }})
             </a> <!-- Assuming /logout/ is your logout URL -->
             {% else %}
             <nav class="nav-right">
                 <a class="sign-in nav-link" href="{% url 'login' %}">
                     <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
-                        alt="ArtTek Logo">
+                        alt="DTU Logo">
                     <span>{% trans "Sign in" %}</span>
                 </a>
             </nav>
@@ -77,27 +77,40 @@
         <div class="mobile-header-content" style="display: none;">
             <nav class="nav-mobile">
 
-                <div class="sign-in">
-                    <a class="nav-link flex-container" href="{% url 'login' %}">
-                        <img height="16"
-                            src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                <nav class="nav-left flex-container justify-around">
+
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'logout' %}">
+                        {% trans "Sign out" %} ({{ user.username }})
+                    </a> <!-- Assuming /logout/ is your logout URL -->
+                    {% else %}
+                    <nav class="">
+                        <a class="sign-in nav-link" href="{% url 'login' %}">
+                            <img height="16"
+                                src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                                alt="DTU Logo">
+                            <span>{% trans "Sign in" %}</span>
+                        </a>
+                    </nav>
+                    {% endif %}
+
+                    <div class="frontpage-logo"></div>
+                    <a class="nav-link" href="{% url 'frontpage' %}">
+                        <img height="40"
+                            src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
                             alt="ArtTek Logo">
-                        <span>{% trans "Sign in" %}</span>
                     </a>
-                </div>
 
-                <div class="frontpage-logo"></div>
-                <a class="nav-link" href="{% url 'frontpage' %}">
-                    <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
-                        alt="ArtTek Logo">
-                </a>
+                </nav>
 
-                <div class="menu">
-                    menu
-                    <!-- <a class="nav-link" href="/publications/reports/">{% trans "All reports" %}</a> -->
-                    <!-- <a class="nav-link" href="/publications/map/">{% trans "Map" %}</a> -->
-                </div>
+                <nav class="nav-right flex-container justify-end">
 
+                    <div class="menu">
+                        menu
+                        <!-- <a class="nav-link" href="/publications/reports/">{% trans "All reports" %}</a> -->
+                        <!-- <a class="nav-link" href="/publications/map/">{% trans "Map" %}</a> -->
+                    </div>
+                </nav>
             </nav>
         </div>
         <!-- hidden menu for mobile -->
@@ -109,15 +122,14 @@
 
 
 
-    <main id="main">
-        <div class="main-content">
-            <div class='headline'>
-                <h2>{% block headline %}Base Headline{% endblock %}</h2>
-            </div>
-            <!-- dynamic main-content starts here -->
-            {% block main-content %}{% endblock %}
-            <!-- dynamic main-content ends here -->
+    <main>
+        <div class='headline'>
+            <h1>{% block headline %}Base Headline{% endblock %}</h1>
         </div>
+        <!-- dynamic main-content starts here -->
+        {% block main-content %}{% endblock %}
+        <!-- dynamic main-content ends here -->
+
     </main>
 
 
@@ -125,11 +137,10 @@
 
 
 
-    <footer id="footer">
-        <div class="footer-content">
-            <!-- Add your footer content here -->
-            <p>Footer content</p>
-        </div>
+    <footer>
+
+        <!-- Add your footer content here -->
+        <p>Footer content</p>
     </footer>
 
 
