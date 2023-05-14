@@ -27,7 +27,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # redirect root URL to pubs/publist
-    path('', RedirectView.as_view(url='publications/reports/', permanent=True)),
+    path('', RedirectView.as_view(url='publications/frontpage/', permanent=True)),
     
     # include the urls from the publications app
     path('publications/', include('publications.urls')),

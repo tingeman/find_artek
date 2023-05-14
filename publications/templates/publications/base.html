@@ -74,45 +74,7 @@
 
 
         <!-- hidden menu for mobile -->
-        <div class="mobile-header-content" style="display: none;">
-            <nav class="nav-mobile">
 
-                <nav class="nav-left flex-container justify-around">
-
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'logout' %}">
-                        {% trans "Sign out" %} ({{ user.username }})
-                    </a> <!-- Assuming /logout/ is your logout URL -->
-                    {% else %}
-                    <nav class="">
-                        <a class="sign-in nav-link" href="{% url 'login' %}">
-                            <img height="16"
-                                src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
-                                alt="DTU Logo">
-                            <span>{% trans "Sign in" %}</span>
-                        </a>
-                    </nav>
-                    {% endif %}
-
-                    <div class="frontpage-logo"></div>
-                    <a class="nav-link" href="{% url 'frontpage' %}">
-                        <img height="40"
-                            src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
-                            alt="ArtTek Logo">
-                    </a>
-
-                </nav>
-
-                <nav class="nav-right flex-container justify-end">
-
-                    <div class="menu">
-                        menu
-                        <!-- <a class="nav-link" href="/publications/reports/">{% trans "All reports" %}</a> -->
-                        <!-- <a class="nav-link" href="/publications/map/">{% trans "Map" %}</a> -->
-                    </div>
-                </nav>
-            </nav>
-        </div>
         <!-- hidden menu for mobile -->
 
     </header>
