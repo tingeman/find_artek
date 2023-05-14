@@ -26,27 +26,24 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SITE_ROOT = "/usr/src/app/find_artek/"
-MEDIA_ROOT = os.path.join('/var/www/find_artek_static/media')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-smfukm8mjpzo##+9j9lk5*cp&&enk3_y=s=-9tq+g9yj95-=#b'
+# SECRET_KEY = 'django-insecure-smfukm8mjpzo##+9j9lk5*cp&&enk3_y=s=-9tq+g9yj95-=#b'
+with open('secret/DJANGO_SECRET_KEY.txt', 'r') as f:
+    SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# # Media url
-# MEDIA_URL = '/media/'
-# Default port setting
-DEFAULT_PORT = '80'
-
 # Media url
-MEDIA_URL = f'http://localhost:{DEFAULT_PORT}/media/'
+MEDIA_ROOT = os.path.join('/var/www/find_artek_static/media')
+MEDIA_URL = '/media/'
 
 # Application definition
 
@@ -166,6 +163,7 @@ AUTHENTICATION_BACKENDS = (
 AUTH_LDAP_SERVER_URI = "ldaps://win.dtu.dk"
 
 AUTH_LDAP_BIND_DN = "CN=sus-pit-artek-ad-read,OU=Funktionskonti,OU=BYG,OU=Institutter,DC=win,DC=dtu,DC=dk"
+
 # Read the LDAP bind password from the file
 with open('secret/AUTH_LDAP_BIND_PASSWORD.txt', 'r') as f:
     AUTH_LDAP_BIND_PASSWORD = f.read().strip()

@@ -6,6 +6,9 @@ from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
 from django.views import View
 
+from publications.library import get_client_ip, is_private
+
+
 
 from publications.forms import LoginForm
 
@@ -38,7 +41,11 @@ class FrontPageView(BaseView):
     template_name = 'publications/frontpage.html'
 
     def get(self, request, **kwargs):
-        context = self.get_context_data(**kwargs)
+
+        context = {
+        }
+
+        context.update(self.get_context_data(**kwargs))
         return render(request, self.template_name, context)
 
 
@@ -94,56 +101,61 @@ class FrontPageView(BaseView):
 
 class MapView(BaseView): 
     template_name = 'publications/map.html'
-
-    feature_colors = dict((
-        ('PHOTO',             'red'),
-        ('SAMPLE',            'green'),
-        ('BOREHOLE',          'yellow'),
-        ('GEOPHYSICAL DATA',  'blue'),
-        ('FIELD MEASUREMENT', 'purple'),
-        ('LAB MEASUREMENT',   'pink'),
-        ('RESOURCE',          'brown'),
-        ('OTHER',             'white')))
-
-    features = Feature.objects.all()
-
-    # Extract the points, lines, and polys from each feature
-    feature_data = []
-    for feature in features:
-
-
-        related_publications = feature.get_related_publications()
-
-
-        related_publications_data = []
-
-        for publication in related_publications:
-            related_publications_data.append({
-                'pk': publication.pk,
-                'number': publication.number,
-
-            })
-
-
-        feature_data.append({
-            'points': feature.points.geojson if feature.points else "",
-            'lines': feature.lines.geojson if feature.lines else "",
-            'polys': feature.polys.geojson if feature.polys else "",
-            'name': feature.name if feature.name else "",
-            'type': feature.type if feature.type else "",
-            'date': feature.date.strftime('%Y-%m-%d') if feature.date else "",
-            'feature_pk': feature.pk,
-            'related_publications'  : related_publications_data,
-            })
-
-    context = {
-
-        'feature_data': feature_data,
-        'feature_colors': feature_colors,
-    }
-
     def get(self, request, **kwargs):
-        context = self.get_context_data(**kwargs)
+
+
+
+        feature_colors = dict((
+            ('PHOTO',             'red'),
+            ('SAMPLE',            'green'),
+            ('BOREHOLE',          'yellow'),
+            ('GEOPHYSICAL DATA',  'blue'),
+            ('FIELD MEASUREMENT', 'purple'),
+            ('LAB MEASUREMENT',   'pink'),
+            ('RESOURCE',          'brown'),
+            ('OTHER',             'white')))
+
+        features = Feature.objects.all()
+
+        # Extract the points, lines, and polys from each feature
+        feature_data = []
+        for feature in features:
+
+
+            related_publications = feature.get_related_publications()
+
+
+            related_publications_data = []
+
+            for publication in related_publications:
+                related_publications_data.append({
+                    'pk': publication.pk,
+                    'number': publication.number,
+
+                })
+
+
+            feature_data.append({
+                'points': feature.points.geojson if feature.points else "",
+                'lines': feature.lines.geojson if feature.lines else "",
+                'polys': feature.polys.geojson if feature.polys else "",
+                'name': feature.name if feature.name else "",
+                'type': feature.type if feature.type else "",
+                'date': feature.date.strftime('%Y-%m-%d') if feature.date else "",
+                'feature_pk': feature.pk,
+                'related_publications'  : related_publications_data,
+                })
+
+        context = {
+
+            'feature_data': feature_data,
+            'feature_colors': feature_colors,
+        }
+
+
+
+        context.update(self.get_context_data(**kwargs))
+
         return render(request, self.template_name, context)
 
 
@@ -347,56 +359,20 @@ class ReportView(BaseView):
 
 
 
+class FeatureView(BaseView):
 
 
+    def get(self, request, feature_id, **kwargs):
 
+        feature = get_object_or_404(Feature, pk=feature_id)
 
+        context = {
+            'feature': feature,
+        }
 
+        context.update(self.get_context_data(**kwargs))
 
-
-
-
-def map_data(request):
-    features = Feature.objects.all()
-    # q: in debug mode, how to loop through features and print out the attributes?
-    # for feature in features:
-    #     print(feature)
-    serialized_features = serializers.serialize('json', features)
-    return JsonResponse(serialized_features, safe=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return render(request, "publications/feature.html", context)
 
 
 
@@ -440,8 +416,119 @@ def feature(request, feature_id):
 
 
 
-def login_view(request):
-    if request.method == 'POST':
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class LoginView(BaseView):
+    template_view = 'publications/login.html'
+
+    # Check what is the IP address of the user
+
+
+
+    def get(self, request, **kwargs):
+        form = LoginForm()
+        context = {'form': form}
+        context.update(self.get_context_data(**kwargs))
+        return render(request, self.template_view, context)
+
+    def post(self, request, **kwargs):
+
+        ip = get_client_ip(request)
+
+
+        # Check if the IP address is in the list of allowed IP addresses
+        if not is_private(ip):
+                return render(request, 'publications/access_denied.html', context = {'error': 'Your IP address is not allowed to access this page!'})
+                
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username']
@@ -452,10 +539,50 @@ def login_view(request):
                 return redirect('frontpage')  # or wherever you want to redirect after successful login
             else:
                 form.add_error(None, 'Authentication failed')
-    else:
-        form = LoginForm()
-    return render(request, 'publications/login.html', {'form': form})
+
+        context = {'form': form}
+        context.update(self.get_context_data(**kwargs))
+        return render(request, self.template_view, context)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def map_data(request):
+    features = Feature.objects.all()
+    # q: in debug mode, how to loop through features and print out the attributes?
+    # for feature in features:
+    #     print(feature)
+    serialized_features = serializers.serialize('json', features)
+    return JsonResponse(serialized_features, safe=False)
 

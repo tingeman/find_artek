@@ -9,7 +9,7 @@
 
 
 {% block dynamic_head_content %}
-<!-- <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/frontpage.css" /> -->
+<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/frontpage.css" />
 {% endblock %}
 
 
@@ -18,5 +18,157 @@
 
 
 {% block main-content %}
-<p>{% trans "Access ARTEKs student reports. Please choose below: topic based access, geographical access, or search in title/abstract." %}</p>	
+<p>{% trans "Access ARTEKs student reports. Please choose below: topic based access, geographical access, or search in title/abstract." %}</p>
+
+<div class="grid-container">
+    <div class="fmitem">
+        <form id="Infrastruktur" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Infrastruktur">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/infrastruktur_fly_190x150.jpg" alt="Infrastruktur">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Infrastructure" %}</span>
+                    <span class='text'><br>{% trans "roads, harbours, airports" %} ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+
+    <div class="fmitem">
+        <form id="Byggeri" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Byggeri">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/byggeri_190x150.jpg" alt="Byggeri">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Buildings" %}</span>
+                    <span class='text'><br>{% trans "isolation, indoor climate, materials" %} ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Miljø" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Miljø">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/whale_190x150.jpg" 
+                        alt="Miljø">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Environment" %}</span>
+                    <span class='text'><br>{% trans "water quality, nature, pollution, waste" %} ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Energi" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Energi">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/vindmølle_190x150.jpg" alt="Energi">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Energy" %}</span>
+                    <span class='text'><br>{% trans "windmills, hydropower, solar power" %} ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+
+
+    <div class="fmitem">
+        <form id="Geoteknik" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Geoteknik">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/Geoteknik_190x150.jpg" alt="Geoteknik">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Geotechnics" %}</span>
+                    <span class='text'><br>{% trans "engineering geology, geophysics, foundations, permafrost" %}
+                        ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Råstoffer" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Råstoffer">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/Vandkraft_190x150.jpg" alt="Råstoffer">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Raw materials" %}</span>
+                    <span class='text'><br>{% trans "resource geology, mapping, mining, oil" %} ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Samfund" action="/publications/reports/" method="get">
+            <input type="hidden" name="topic" value="Samfund">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/Samfund_190x150.jpg" "
+                        alt="Samfund">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "Society" %}</span>
+                    <span class='text'><br>{% trans "societal issues, planning, education" %} ...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+
+
+
+
+
+    <div class="fmitem">
+        <a class="fmimage" href='/pubs/publist/'>
+            <img src="{{STATIC_URL}}/static/publications/img/reports_3_190x150.jpg"  alt="[Her skal være et billede...]">
+            <span class="fmtext">
+                <span class="topic">{% trans "All reports" %}</span>
+                <br>{% trans "the complete list" %}
+            </span>
+        </a>
+    </div>
+    
+    <div class="fmitem">
+        <a class="fmimage" href='/pubs/overview/?zl=12&clon=-53.67&clat=66.94'>
+            <img src="{{STATIC_URL}}/static/publications/img/Sisimiut_map_190x150.jpg" alt="[Her skal være et billede...]">
+            <span class="fmtext">
+                <span class="topic">{% trans "Sisimiut" %}</span>
+                <br>{% trans "Reports from Sisimiut" %}
+            </span>
+        </a>
+    </div>
+    
+    <div class="fmitem">
+        <a class="fmimage" href='/pubs/overview/?zl=8&clon=-52.30&clat=67.00'>
+            <img src="{{STATIC_URL}}/static/publications/img/vej_JHS_SFJ_2_full.jpg"  alt="[Her skal være et billede...]">
+            <span class="fmtext">
+                <span class="topic">{% trans "The road project" %}</span>
+                <br>{% trans "Sisimiut-Kangerlussuaq" %}
+            </span>
+        </a>
+    </div>
+    
+    <div class="fmitem">
+        <a class="fmimage" href='/pubs/overview/?zl=3&clon=-47.82&clat=70.44'>
+            <img src="{{STATIC_URL}}/static/publications/img/kort.jpg" alt="[Her skal være et billede...]">
+            <span class="fmtext">
+                <span class="topic">{% trans "All Greenland" %}</span>
+                <br>{% trans "geographical access" %}
+            </span>
+        </a>
+    </div>
+
+</div>
 {% endblock %}

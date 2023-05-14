@@ -1,0 +1,43 @@
+.link-button {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch; /* ensures child items stretch to full width */
+    height: 100%; /* makes the button take full height of .fmitem */
+    background: none;
+    border: none;
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 1em;
+    font-family: inherit;
+    padding: 0; /* removes any default button padding */
+}
+
+.link-button:focus {
+    outline: none;
+}
+
+.fmimage, .fmtext {
+    flex-grow: 1;
+}
+
+.fmimage img {
+    width: 100%;
+    height: 100%; /* makes the image take full height of .fmimage */
+    object-fit: cover;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.fmitem {
+    width: 100%;
+    height: 300px; /* adjust as needed */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
