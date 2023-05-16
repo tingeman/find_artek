@@ -30,8 +30,8 @@
                     <img src="{{STATIC_URL}}/static/publications/img/infrastruktur_fly_190x150.jpg" alt="Infrastruktur">
                 </div>
                 <div class="fmtext">
-                    <!-- <span class="topic">{% trans "Infrastructure" %}</span>
-                    <span class='text'>{% trans "roads, harbours, airports" %} ...</span> -->
+                    <span class="topic">{% trans "Infrastructure" %}</span>
+                    <span class='text'>{% trans "roads, harbours, airports" %} ...</span>
                 </div>
             </button>
         </form>
@@ -126,24 +126,46 @@
             </button>
         </form>
     </div>
+
+    <!-- all reports -->
+
     <div class="fmitem">
-        <a class="fmimage" href='/pubs/publist/'>
-            <img src="{{STATIC_URL}}/static/publications/img/reports_3_190x150.jpg"  alt="[Her skal være et billede...]">
-            <span class="fmtext">
-                <span class="topic">{% trans "All reports" %}</span>
-                <br>{% trans "the complete list" %}
-            </span>
-        </a>
+        <form id="all-reports" action="/publications/reports/" method="get">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/reports_3_190x150.jpg" "
+                        alt="all reports">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "All reports" %}</span>
+                    <span class='text'><br>{% trans "the complete list" %} ...</span>
+                </div>
+            </button>
+        </form>
     </div>
+
+
+    <!-- all greenland -->
+    <!-- 70.44, -47.82, 3 -->
+
     <div class="fmitem">
-        <a class="fmimage" href='/pubs/overview/?zl=3&clon=-47.82&clat=70.44'>
-            <img src="{{STATIC_URL}}/static/publications/img/kort.jpg" alt="[Her skal være et billede...]">
-            <span class="fmtext">
-                <span class="topic">{% trans "All Greenland" %}</span>
-                <br>{% trans "geographical access" %}
-            </span>
-        </a>
+        <form id="all-greenland" action="/publications/map/" method="get">
+            <input type="hidden" name="lat" value="70.44">
+            <input type="hidden" name="lon" value="-47.82">
+            <input type="hidden" name="zoom" value="3">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{{STATIC_URL}}/static/publications/img/kort.jpg" "
+                        alt="picture of greenland">
+                </div>
+                <div class="fmtext">
+                    <span class="topic">{% trans "All Greenland" %}</span>
+                    <span class='text'><br>{% trans "geographical access" %} ...</span>
+                </div>
+            </button>
+        </form>
     </div>
+
 
 </div>
 {% endblock %}

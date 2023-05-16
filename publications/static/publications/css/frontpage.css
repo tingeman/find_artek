@@ -36,23 +36,32 @@
     width: 190px;
 }
 
-.fmtext {
-
-}
-
 .fmitem img {
-    height: auto;
+    height: 150px;
     width: 190px;
     object-fit: cover;
 }
 
 .fmitem span {
-    display: block;
+    display: inline-block;
     text-align: left;
     padding: 0px;
 }
 
+.topic {
+    font-size: medium;
+    font-weight: bold;
+    text-align: center;
+    padding: 0.5em;
+}
 
+.text {
+    /* font-size: small; */
+    /* text-align: center; */
+    /* padding: 0.5em; */
+    /* overflow: hidden; */
+    /* white-space: nowrap; */
+}
 
 /* .fmtext {
     font-size: 1em;
@@ -61,12 +70,6 @@
 } */
 
 /* 
-.topic {
-    font-size: 1.2em;
-    font-weight: bold;
-    text-align: center;
-    padding: 0.5em;
-} */
 
 /* .fmitem .topic {
     font-size: 1.2em;
