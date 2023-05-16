@@ -1,0 +1,226 @@
+{% extends "publications/base.html" %}
+{% load i18n pubs_extra_tags static %}
+{% block title %}{% trans "Publication detail" %}{% endblock %}
+{% block head %}
+
+<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/detail.css' %}" />
+<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+{% if publication.feature_set.all %}
+{{ map.media }}
+{% endif %}
+
+<script>
+    $(function () {
+        $(".toggle").click(function () {
+            var $toggled = $(this).attr('href');
+            $($toggled).siblings(':visible').hide();
+            $($toggled).toggle();
+            return false;
+        });
+    });
+</script>
+{% endblock %}
+
+{% block headline %}{% trans "Publication detail" %}{% endblock %}
+
+{% block main-content %}
+{% load thumbnail %}
+{% load pubs_extra_tags %}
+
+<div id="info-box">
+    <div id="info-content">
+        <table style='font-family: Verdana, Arial; font-size: 8pt; width:100%'>
+            <tr>
+                <td style="vertical-align:top;">
+                    <table>
+                        <tr>
+                            <td id="label-column">{% trans "Title" %}</td>
+                            <td class='report-title'>{{ publication.title }}</td>
+                        </tr>
+                        <tr>
+                            <td id="label-column">{% trans "Authors" %}</td>
+                            <td>{% include "publications/shared_snippets/authorlist_short.html" %}</td>
+                        </tr>
+                        <tr>
+                            <td><br></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td id="label-column">{% trans "Year" %}</td>
+                            <td>{{ publication.year }}</td>
+                        </tr>
+                        <tr>
+                            <td id="label-column">{% trans "Report no." %}</td>
+                            <td>{{ publication.number }}</td>
+                        </tr>
+                        <tr>
+                            <td id="label-column">{% trans "Topics" %}</td>
+                            <td>
+                                {% for k in publication.publication_topics.all %}
+                                {{ k }}
+                                {% if not forloop.last %}
+                                    ,
+                                {% endif %}
+                                {% empty %}
+                                    {% trans "No topics registered" %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td id="label-column">{% trans "Keywords" %}</td>
+                            <td>
+                                {% for k in publication.publication_keywords.all %}
+                                {{ k }}
+                                {% if not forloop.last %}
+                                    ,
+                                {% endif %}
+                                {% empty %}
+                                    {% trans "No keywords registered" %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% if publication.file %}
+                        <tr>
+                            <td id="label-column">{% trans "pdf-file" %}</td>
+                            <td>
+                                <a href='{{MEDIA_URL}}{{ publication.file.file.name }}'>{% trans "download report as pdf" %}</a>
+                                {% if user.is_authenticated %}
+                                <a style='color:#c80000;font-weight:bold;text-decoration: None;'
+                                    href='/pubs/report/{{ publication.id }}/delete_reportfile/' title='Delete'>X</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if publication.sorted_supervisorships %}
+                        <tr>
+                            <td id="label-column">{% trans "Supervisors" %}</td>
+                            <td>{% include "publications/shared_snippets/supervisorlist_short.html" %}</td>
+                        </tr>
+                        {% endif %}
+
+                        <tr>
+                            <td><br></td>
+                            <td></td>
+                        </tr>
+
+                        <tr>
+                            <td id="label-column">{% trans "Abstract" %}</td>
+                            <td>
+                                {% comment %}
+                                Look into this template tag for truncating words with character limit:
+                                https://djangosnippets.org/snippets/1516/
+                                {% endcomment %}
+
+
+                                {% if publication.abstract %}
+                                {% if publication.abstract|length > 300 %}
+                                {{ publication.abstract|slice:":280" }}<span id="abstract-collapsed">
+                                        .... <a
+                                        href="#abstract-expanded" class="toggle">[expand]</a></span><span
+                                        id="abstract-expanded">{{ publication.abstract|slice:"280:" }} <a
+                                        href="#abstract-collapsed" class="toggle">[collapse]</a></span>
+                                {% else %}
+                                    {{ publication.abstract }}
+                                {% endif %}
+                                {% else %}
+                                    {% trans "No abstract registered" %}
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td><br></td>
+                            <td></td>
+                        </tr>
+
+                        {% if publication.comment %}
+                        <tr>
+                            <td>{% trans "Comment" %}</td>
+                            <td>
+                                {{ publication.comment }}
+                            </td>
+                        </tr>
+                        {% endif %}
+
+                        <tr>
+                            <td><br></td>
+                            <td></td>
+                        </tr>
+
+
+
+
+                    </table>
+
+                </td>
+                <td style="vertical-align:top;">
+                    <a href='{{MEDIA_URL}}{{ publication.file.file.name }}'>
+                        <img src="{% thumb_file publication.file.file.name  %}" height="300" id="report-thumb">
+                    </a>
+                </td>
+        </table>
+
+    </div> <!-- end of info-content -->
+</div> <!-- end of info-box -->
+
+
+
+
+<div id="appendix-box">
+    <div id="appendix-content">
+
+        {% if publication.appendices.all %}
+            <h3>{% trans "Appendices" %}:</h3>
+            <table>
+                {% for ap in publication.appendices.all %}
+                <tr>
+                    <td>
+                        <a href="{{ ap.file.url }}">{{ ap.file.file.name }}</a>
+                    </td>
+                </tr>
+                    {% endfor %}
+            </table>
+
+        {% else %}
+            <h3>{% trans "Appendices" %}:</h3>
+            {% trans "No appendices registered" %}.
+        {% endif %}
+
+    </div>  <!-- end of appendix-content -->
+</div>      <!-- end of appendix-box -->
+
+
+
+
+<div id="map-box">
+    <div id="map-content">
+
+        <h3>{% trans "Registered features" %}:</h3>
+        {% if publication.feature_set.all %}
+        <table>
+            <tr>
+                <td>
+                    <div id="map-viewport">
+                        {{ map }}
+                    </div>
+                </td>
+                <td>
+                    {% comment %} {% include "publications/details_snippets/feature_type_legend.html" %} {% endcomment %}
+                </td>
+            </tr>
+        </table>
+
+        <br><br>
+
+
+        {% endif %}
+
+    </div>
+</div>
+
+
+<br />
+<br />
+
+{% endblock %}

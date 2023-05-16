@@ -1,0 +1,50 @@
+main > * {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.info-box {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+    min-height: 412px;
+}
+
+.info-box .row {
+    display: flex;
+}
+
+.info-box span {
+    display: inline-block;
+  }
+
+.info-box .property {
+    width: 150px; /* Adjust this value to get the desired distance */
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.info-box .value {
+    /* flex-grow: 1; */
+}
+
+.appendix-box {
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+    min-height: 100px;
+}
+
+.map-box {
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+    min-height: 412px;
+}
+
+

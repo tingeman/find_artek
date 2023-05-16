@@ -282,24 +282,8 @@ class ReportView(BaseView):
 
         return render(request, self.template_name, context)
 
-# def report(request, publication_id):
 
 
-#     publication = get_object_or_404(Publication, pk=publication_id)
-
-#     # If the report is not verified, only authenticated users can see it
-#     if not publication.verified and not request.user.is_authenticated:
-#         error = "You do not have permissions to access this publication!"
-
-#         return render(request, 'publications/access_denied.html', context = {'publication': publication, 'error': error})
-
-
-#     context = {
-#         'publication': publication,
-#     }
-
-
-#     return render(request, "publications/report.html", context)
 
 
 
