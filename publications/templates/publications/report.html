@@ -28,7 +28,7 @@
 
     <div class="row">
         <span class="property">Authors</span>
-        <span class="value">Sand, A. H. & Christensen, M. T.</span>
+        <span class="value"><a>Sand, A. H.</a> & <a href="">Christensen, M. T.</a></span>
     </div>
 
     <div class="row">
@@ -53,27 +53,31 @@
 
     <div class="row">
         <span class="property">pdf-file</span>
-        <span class="value"><a href="{{STATIC_URL}}/static/publications/pdf/17-01.pdf" target="_blank">download report as pdf (21.0 Mb)</a></span>
+        <span class="value pdf-file"><a href="{{STATIC_URL}}/static/publications/pdf/17-01.pdf" target="_blank">download report as pdf (21.0 Mb)</a></span>
     </div>
 
     <div class="row">
         <span class="property">Supervisors</span>
-        <span class="value">Ingeman-Nielsen, T.</span>
+        <span class="value"><a>Ingeman-Nielsen, T.</a></span>
     </div>
 
     <div class="row">
         <span class="property">Abstract</span>
-        <span class="value">Den begrænsede vanddybde i havnen i Kangaamiut medfører at RALs nye bygdeskib ikke effektivt kan anløbe bygden. En ny havn som opfylder Qeqqata Kommunias ønsker om at forbedre besejlingsforholdene – så bygden også kan anløbes af kystpassagerskibet Sarfaq Ittuk og mindre krydstogtskibe – kan anlægges i det nord-syd-gående stræde vest for bygden. Det foreslås at placere kajen på en pynt ca. 200 meter nord for dumpen, hvor der er plads til at imødekomme kommunens ønske om håndtering af containere. I strædet er der tilstrækkelig dybt til at Sarfaq Ittuk planmæssigt sejler igennem, men detaljeret viden om bathymetrien er begrænset, og feltundersøgelser har vist et behov for yderligere opmåling i området nord for pynten, inden kajens placering fastlægges. Anlægsomkostningerne til havn og vej estimeres til 17-25 mio. kr. afhængigt af behovet for uddybning i strædet. Derudover må påregnes udgifter til forundersøgelser og en oprydning af dumpen, hvis den foreslåede placering skal benyttes.</span>
+        <span class="visible" id="abstract-collapsed">Den begrænsede vanddybde i havnen i Kangaamiut medfører at RALs nye bygdeskib ikke effektivt kan anløbe bygden. En ny havn som opfylder Qeqqata Kommunias ønsker om at forbedre besejlingsforholdene - så bygden også kan anløbes af kystpassagerskibet Sarfaq Ittuk og mindre krydstog.... <p id="abstract-expand-btn" class="abstract-btn" >[Expand]</p></span>
+        <span class="hidden" id="abstract-expanded">Den begrænsede vanddybde i havnen i Kangaamiut medfører at RALs nye bygdeskib ikke effektivt kan anløbe bygden. En ny havn som opfylder Qeqqata Kommunias ønsker om at forbedre besejlingsforholdene - så bygden også kan anløbes af kystpassagerskibet Sarfaq Ittuk og mindre krydstogtskibe - kan anlægges i det nord-syd-gående stræde vest for bygden. Det foreslås at placere kajen på en pynt ca. 200 meter nord for dumpen, hvor der er plads til at imødekomme kommunens ønske om håndtering af containere. I strædet er der tilstrækkelig dybt til at Sarfaq Ittuk planmæssigt sejler igennem, men detaljeret viden om bathymetrien er begrænset, og feltundersøgelser har vist et behov for yderligere opmåling i området nord for pynten, inden kajens placering fastlægges. Anlægsomkostningerne til havn og vej estimeres til 17-25 mio. kr. afhængigt af behovet for uddybning i strædet. Derudover må påregnes udgifter til forundersøgelser og en oprydning af dumpen, hvis den foreslåede placering skal benyttes. <p id="abstract-collapse-btn" class="abstract-btn" >[Collapse]</p></span>
     </div>
 
 </div>
 
 <div class="appendix-box">
-
+    <button onclick="toggleAbstract()">Expand/Collapse Abstract</button>
 </div>
 
 <div class="map-box">
 
 </div>
+
+
+<script type="text/javascript" src="{{STATIC_URL}}/static/publications/js/report.js"></script>
 
 {% endblock %}

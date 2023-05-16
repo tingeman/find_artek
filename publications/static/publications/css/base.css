@@ -99,6 +99,7 @@ body a:link, body a:visited {
 
 body a:hover {
     color: grey;
+    cursor: pointer;
 }
 
 

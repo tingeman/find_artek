@@ -1,3 +1,11 @@
+.hidden {
+    display: none;
+  }
+
+.visible {
+    display: block;
+  }
+
 main > * {
     margin-top: 20px;
     margin-bottom: 20px;
@@ -15,11 +23,12 @@ main > * {
 
 .info-box .row {
     display: flex;
+    margin-top: 10px;
 }
 
-.info-box span {
+/* .info-box span {
     display: inline-block;
-  }
+  } */
 
 .info-box .property {
     width: 150px; /* Adjust this value to get the desired distance */
@@ -27,8 +36,17 @@ main > * {
     text-align: left;
 }
 
-.info-box .value {
-    /* flex-grow: 1; */
+spand > p {
+    margin: 0;
+    
+}
+
+
+
+.pdf-file {
+    /* make underline on text */
+    text-decoration: underline;
+
 }
 
 .appendix-box {
@@ -48,3 +66,13 @@ main > * {
 }
 
 
+
+.abstract-btn {
+    display: inline;
+    text-decoration: underline;
+}
+
+.abstract-btn:hover {
+    color: grey;
+    cursor: pointer;
+}
