@@ -89,7 +89,7 @@ body {
     color: var(--primary-color);
     height: 100vh;
     width: 100%;
-    box-sizing: border-box;
+    
 }
 
 body a:link, body a:visited {
@@ -100,8 +100,6 @@ body a:link, body a:visited {
 body a:hover {
     color: grey;
 }
-
-
 
 
 

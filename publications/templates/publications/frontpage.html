@@ -21,6 +21,7 @@
 <p>{% trans "Access ARTEKs student reports. Please choose below: topic based access, geographical access, or search in title/abstract." %}</p>
 
 <div class="grid-container">
+
     <div class="fmitem">
         <form id="Infrastruktur" action="/publications/reports/" method="get">
             <input type="hidden" name="topic" value="Infrastruktur">
@@ -29,13 +30,12 @@
                     <img src="{{STATIC_URL}}/static/publications/img/infrastruktur_fly_190x150.jpg" alt="Infrastruktur">
                 </div>
                 <div class="fmtext">
-                    <span class="topic">{% trans "Infrastructure" %}</span>
-                    <span class='text'><br>{% trans "roads, harbours, airports" %} ...</span>
+                    <!-- <span class="topic">{% trans "Infrastructure" %}</span>
+                    <span class='text'>{% trans "roads, harbours, airports" %} ...</span> -->
                 </div>
             </button>
         </form>
     </div>
-
     <div class="fmitem">
         <form id="Byggeri" action="/publications/reports/" method="get">
             <input type="hidden" name="topic" value="Byggeri">
@@ -65,6 +65,7 @@
             </button>
         </form>
     </div>
+
     <div class="fmitem">
         <form id="Energi" action="/publications/reports/" method="get">
             <input type="hidden" name="topic" value="Energi">
@@ -79,8 +80,6 @@
             </button>
         </form>
     </div>
-
-
     <div class="fmitem">
         <form id="Geoteknik" action="/publications/reports/" method="get">
             <input type="hidden" name="topic" value="Geoteknik">
@@ -110,6 +109,8 @@
             </button>
         </form>
     </div>
+
+
     <div class="fmitem">
         <form id="Samfund" action="/publications/reports/" method="get">
             <input type="hidden" name="topic" value="Samfund">
@@ -125,11 +126,6 @@
             </button>
         </form>
     </div>
-
-
-
-
-
     <div class="fmitem">
         <a class="fmimage" href='/pubs/publist/'>
             <img src="{{STATIC_URL}}/static/publications/img/reports_3_190x150.jpg"  alt="[Her skal være et billede...]">
@@ -139,27 +135,6 @@
             </span>
         </a>
     </div>
-    
-    <div class="fmitem">
-        <a class="fmimage" href='/pubs/overview/?zl=12&clon=-53.67&clat=66.94'>
-            <img src="{{STATIC_URL}}/static/publications/img/Sisimiut_map_190x150.jpg" alt="[Her skal være et billede...]">
-            <span class="fmtext">
-                <span class="topic">{% trans "Sisimiut" %}</span>
-                <br>{% trans "Reports from Sisimiut" %}
-            </span>
-        </a>
-    </div>
-    
-    <div class="fmitem">
-        <a class="fmimage" href='/pubs/overview/?zl=8&clon=-52.30&clat=67.00'>
-            <img src="{{STATIC_URL}}/static/publications/img/vej_JHS_SFJ_2_full.jpg"  alt="[Her skal være et billede...]">
-            <span class="fmtext">
-                <span class="topic">{% trans "The road project" %}</span>
-                <br>{% trans "Sisimiut-Kangerlussuaq" %}
-            </span>
-        </a>
-    </div>
-    
     <div class="fmitem">
         <a class="fmimage" href='/pubs/overview/?zl=3&clon=-47.82&clat=70.44'>
             <img src="{{STATIC_URL}}/static/publications/img/kort.jpg" alt="[Her skal være et billede...]">
