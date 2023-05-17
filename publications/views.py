@@ -105,51 +105,51 @@ class MapView(BaseView):
 
 
 
-        feature_colors = dict((
-            ('PHOTO',             'red'),
-            ('SAMPLE',            'green'),
-            ('BOREHOLE',          'yellow'),
-            ('GEOPHYSICAL DATA',  'blue'),
-            ('FIELD MEASUREMENT', 'purple'),
-            ('LAB MEASUREMENT',   'pink'),
-            ('RESOURCE',          'brown'),
-            ('OTHER',             'white')))
+        # feature_colors = dict((
+        #     ('PHOTO',             'red'),
+        #     ('SAMPLE',            'green'),
+        #     ('BOREHOLE',          'yellow'),
+        #     ('GEOPHYSICAL DATA',  'blue'),
+        #     ('FIELD MEASUREMENT', 'purple'),
+        #     ('LAB MEASUREMENT',   'pink'),
+        #     ('RESOURCE',          'brown'),
+        #     ('OTHER',             'white')))
 
-        features = Feature.objects.all()
+        # features = Feature.objects.all()
 
-        # Extract the points, lines, and polys from each feature
-        feature_data = []
-        for feature in features:
-
-
-            related_publications = feature.get_related_publications()
+        # # Extract the points, lines, and polys from each feature
+        # feature_data = []
+        # for feature in features:
 
 
-            related_publications_data = []
-
-            for publication in related_publications:
-                related_publications_data.append({
-                    'pk': publication.pk,
-                    'number': publication.number,
-
-                })
+        #     related_publications = feature.get_related_publications()
 
 
-            feature_data.append({
-                'points': feature.points.geojson if feature.points else "",
-                'lines': feature.lines.geojson if feature.lines else "",
-                'polys': feature.polys.geojson if feature.polys else "",
-                'name': feature.name if feature.name else "",
-                'type': feature.type if feature.type else "",
-                'date': feature.date.strftime('%Y-%m-%d') if feature.date else "",
-                'feature_pk': feature.pk,
-                'related_publications'  : related_publications_data,
-                })
+        #     related_publications_data = []
+
+        #     for publication in related_publications:
+        #         related_publications_data.append({
+        #             'pk': publication.pk,
+        #             'number': publication.number,
+
+        #         })
+
+
+        #     feature_data.append({
+        #         'points': feature.points.geojson if feature.points else "",
+        #         'lines': feature.lines.geojson if feature.lines else "",
+        #         'polys': feature.polys.geojson if feature.polys else "",
+        #         'name': feature.name if feature.name else "",
+        #         'type': feature.type if feature.type else "",
+        #         'date': feature.date.strftime('%Y-%m-%d') if feature.date else "",
+        #         'feature_pk': feature.pk,
+        #         'related_publications'  : related_publications_data,
+        #         })
 
         context = {
 
-            'feature_data': feature_data,
-            'feature_colors': feature_colors,
+            # 'feature_data': feature_data,
+            # 'feature_colors': feature_colors,
         }
 
 
@@ -277,6 +277,7 @@ class ReportView(BaseView):
 
 
         context = {
+            'publication_id': publication_id,
             'associated_features': associated_features,
             'publication': publication,
         }
@@ -365,16 +366,6 @@ class FeatureView(BaseView):
 
 
 
-
-
-def feature(request, feature_id):
-    feature = get_object_or_404(Feature, pk=feature_id)
-
-    context = {
-        'feature': feature,
-    }
-
-    return render(request, "publications/feature.html", context)
 
 
 
@@ -565,11 +556,11 @@ class LoginView(BaseView):
 
 
 
-def map_data(request):
-    features = Feature.objects.all()
-    # q: in debug mode, how to loop through features and print out the attributes?
-    # for feature in features:
-    #     print(feature)
-    serialized_features = serializers.serialize('json', features)
-    return JsonResponse(serialized_features, safe=False)
+# def map_data(request):
+#     features = Feature.objects.all()
+#     # q: in debug mode, how to loop through features and print out the attributes?
+#     # for feature in features:
+#     #     print(feature)
+#     serialized_features = serializers.serialize('json', features)
+#     return JsonResponse(serialized_features, safe=False)
 

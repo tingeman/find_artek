@@ -20,19 +20,9 @@
 {% block headline %}Map{% endblock %}
 
 {% block main-content %}
-    <div class="map" id="map"></div>
 
-
-    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-        integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
-
-    <!-- context data -->
-    <script>
-        const featureData = {{ feature_data| safe }};
-        const fetureColors = {{ feature_colors| safe }};
-    </script>
-    <!-- context data -->
-
-<script src="{{STATIC_URL}}/static/publications/js/map.js"></script>
-
+<div class="map" id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
+<script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
+<script src="{% static 'publications/js/map.js' %}" defer></script>
 {% endblock %}

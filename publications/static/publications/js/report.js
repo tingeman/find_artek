@@ -1,18 +1,59 @@
-window.onload = function () {
-    initMap();
-
-};
-
-
+document.addEventListener("DOMContentLoaded", function (event) {
+    // This block will run when the DOM is loaded.
+    main();
+});
 
 
 
+// // ============
+// // Main
+// // ============
+async function main() {
+
+    const myMapClass = new MyMapClass();
+
+    try {
+        map = await myMapClass.initialize();
+        // Fetch the JSON data from /publications/api/feature/
+
+        // q: get the url the path from the url without the domain name or parameters or protocol
+        // a: window.location.pathname
+        const path = window.location.pathname;
+        const parts = path.split('/');
+        const id = parts[parts.length - 2]; // -1 for the last element (which is an empty string after the trailing slash), -2 for the second to last element
+
+        const params = new URLSearchParams({
+            publication_id: id // Replace with actual value or variable
+        });
+
+
+        const response = await fetch(`/publications/api/feature/?${params}`);
+        const featureData = await response.json();
+
+        myMapClass.addFeatureDataToMap(map, featureData, true);
+
+    } catch (error) {
+        console.error("Error initializing map or fetching feature data: ", error);
+    }
+
+}
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+// ============
 // ----------------- encapsulated code that do it's own thing (not part of the main). Starts here ----------------- //
+// ============
 
 // This block toggles the abstract between collapsed and expanded
 (function () {
@@ -40,90 +81,23 @@ window.onload = function () {
 
 })();
 
-
-// create feature map
-function initMap() {
-
-    function getURLParameters(url) {
-        // Create a new URL object
-        var urlObj = new URL(url);
-
-        // Get the search parameters from the URL
-        var params = new URLSearchParams(urlObj.search);
-
-        // Create an empty object to store the parameters
-        var paramsObj = {};
-
-        // Iterate over each parameter and add it to the object
-        for (let param of params) {
-            paramsObj[param[0]] = param[1];
-        }
-
-        // Return the object with the parameters
-        return paramsObj;
-    }
-
-
-
-    const createMap = (id, lat, lng, zoom) => {
-        return L.map(id).setView([lat, lng], zoom);
-    };
-
-
-    const addTileLayer = (map, url, options) => {
-        L.tileLayer(url, options).addTo(map);
-    };
-
-
-
-
-
-
-
-
-
-
-    // Execution starts here
-    var params = getURLParameters(window.location.href)
-    var lat = params.lat;
-    var lng = params.lng;
-    var zoom = params.zoom;
-
-    // if lat lng or zsom are not defined, use default values
-    if (!lat || !lng || !zoom) {
-        lat = 76.31;
-        lng = -40.43;
-        zoom = 3;
-    }
-    
-    const map = createMap('map', lat, lng, zoom);
-    
-    map.on('moveend zoomend', function () {
-        var center = map.getCenter();
-        var zoom = map.getZoom();
-
-        // Update parameters
-        var newParams = new URLSearchParams(window.location.search);
-        newParams.set('lat', center.lat.toFixed(2));
-        newParams.set('lng', center.lng.toFixed(2));
-        newParams.set('zoom', zoom.toFixed(2));
-
-
-
-        // Update the URL without reloading the page
-        window.history.replaceState({}, '', '?' + newParams.toString());
-    });
-
-    addTileLayer(map, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 29,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    });
-
-    
-
-
-
-
-};
-
+// ============
 // ----------------- encapsulated code that do it's own thing (not part of the main). Ends here ----------------- //
+// ============
+
+
+
+
+
+
+
+
+
+// ============
+// ----------------- classes and functions that are part of the main. Starts here ----------------- //
+// ============
+
+
+// ============
+// ----------------- classes and functions that are part of the main. Ends here ----------------- //
+// ============

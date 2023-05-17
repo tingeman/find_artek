@@ -193,7 +193,8 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
-<script type="text/javascript" src="{{STATIC_URL}}/static/publications/js/report.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
+<script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
+<script src="{% static 'publications/js/report.js' %}" defer></script>
 
 {% endblock %}
