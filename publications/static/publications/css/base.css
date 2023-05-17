@@ -109,11 +109,34 @@ body a:hover {
 
 
 
+#loading-overlay {
+    position: absolute; /* Position it absolutely within the relative container */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+    display: flex; /* To center the loading icon and text */
+    align-items: center;
+    justify-content: center;
+    z-index: 2000; /* To make sure it appears above the other content, including Leaflet's components */
+  }
 
 
 
+  #loading-icon {
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid var(--primary-background-color); /* Blue */
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    animation: spin 2s linear infinite;
+}
 
-
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
 
 

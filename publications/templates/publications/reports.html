@@ -20,8 +20,11 @@
     {% trans "Publication list" %}
 {% endblock %}
 
-{% block head %}
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/reports.css' %}" />
+{% block dynamic_head_content %}
+
+<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/reports.css" />
+
+
 {% endblock %}
 
 {% block headline %}
@@ -29,20 +32,7 @@
 {% endblock %}
 
 {% block main-content %}
-    {# Display the number of reports #}
-    <p>
-        {% trans "Number of reports" %}:
-        {% if publications %}
-            {{publications|length}}
-        {% else %}
-            0
-        {% endif %}
-    </p>
-    
-    {# Display the report list if there are any publications #}
-    {% if publications %}
-        {% include "publications/reports_snippets/report_list.html" %}
-    {% else %}
-        <p>{% trans "No reports available" %}.</p>
-    {% endif %}
+
+{% include "publications/reports_snippets/report_list.html" %}
+
 {% endblock %}

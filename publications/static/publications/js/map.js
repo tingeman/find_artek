@@ -172,8 +172,15 @@ async function main() {
   try {
     map = await myMapClass.initialize();
     // Fetch the JSON data from /publications/api/feature/
+    const loadingOverlay = document.getElementById('loading-overlay');
+    // To show the overlay
+    loadingOverlay.style.display = 'flex';
+
     const response = await fetch('/publications/api/feature/');
     const featureData = await response.json();
+
+    // To hide the overlay
+    loadingOverlay.style.display = 'none';
 
     myMapClass.addFeatureDataToMap(map, featureData);
 

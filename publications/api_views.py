@@ -41,3 +41,12 @@ def feature_geographic_location_data(request):
     return JsonResponse(feature_data, safe=False)
 
 
+
+
+# Create the API view for reports 
+
+
+# Create the API view for persons
+
+
+# Finish the feature view

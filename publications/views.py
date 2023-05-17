@@ -182,40 +182,40 @@ class ReportsView(BaseView):
 
 
     def get(self, request, **kwargs):
-        # Get the topic from the GET parameters
-        topic = request.GET.get('topic', None)
+        # # Get the topic from the GET parameters
+        # topic = request.GET.get('topic', None)
 
 
-        # If the topic is not None, get the publications with that topic
-        if topic is not None:
-            # switch though each valid topic
-            if topic == 'Infrastruktur':
-                topic = Topic.objects.get(topic="Infrastruktur")
-            if topic == 'Miljø':
-                topic = Topic.objects.get(topic="Miljø")
-            if topic == 'Energi':
-                topic = Topic.objects.get(topic="Energi")
-            if topic == 'Byggeri':
-                topic = Topic.objects.get(topic="Byggeri")
-            if topic == 'Geoteknik':
-                topic = Topic.objects.get(topic="Geoteknik")
-            if topic == 'Samfund':
-                topic = Topic.objects.get(topic="Samfund")
-            if topic == 'Råstoffer':
-                topic = Topic.objects.get(topic="Råstoffer")
+        # # If the topic is not None, get the publications with that topic
+        # if topic is not None:
+        #     # switch though each valid topic
+        #     if topic == 'Infrastruktur':
+        #         topic = Topic.objects.get(topic="Infrastruktur")
+        #     if topic == 'Miljø':
+        #         topic = Topic.objects.get(topic="Miljø")
+        #     if topic == 'Energi':
+        #         topic = Topic.objects.get(topic="Energi")
+        #     if topic == 'Byggeri':
+        #         topic = Topic.objects.get(topic="Byggeri")
+        #     if topic == 'Geoteknik':
+        #         topic = Topic.objects.get(topic="Geoteknik")
+        #     if topic == 'Samfund':
+        #         topic = Topic.objects.get(topic="Samfund")
+        #     if topic == 'Råstoffer':
+        #         topic = Topic.objects.get(topic="Råstoffer")
 
-        if topic is not None:
-            publications = Publication.objects.filter(publication_topics=topic)
-        else:
-            publications = Publication.objects.all()
+        # if topic is not None:
+        #     publications = Publication.objects.filter(publication_topics=topic)
+        # else:
+        #     publications = Publication.objects.all()
 
 
-        publications = publications.extra(select={'year': 'CAST(year AS INTEGER)'}).extra(order_by=['-year', '-number'])
+        # publications = publications.extra(select={'year': 'CAST(year AS INTEGER)'}).extra(order_by=['-year', '-number'])
 
-        publications = publications.exclude(verified=False)
+        # publications = publications.exclude(verified=False)
 
         context = {
-            'publications': publications
+            # 'publications': publications
         }
 
         context.update(self.get_context_data(**kwargs))
