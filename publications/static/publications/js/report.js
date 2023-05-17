@@ -9,7 +9,7 @@
 
 
 
-// ----------------- encapsulated code (not part of the main) starts here ----------------- //
+// ----------------- encapsulated code that do it's own thing (not part of the main). Starts here ----------------- //
 
 // This block toggles the abstract between collapsed and expanded
 (function () {
@@ -38,4 +38,4 @@
 })();
 
 
-// ----------------- encapsulated code (not part of the main) ends here ----------------- //
+// ----------------- encapsulated code that do it's own thing (not part of the main). Ends here ----------------- //
