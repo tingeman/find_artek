@@ -18,10 +18,6 @@ function getURLParameters(url) {
 }
 
 
-
-
-
-
 const createMap = (id, lat, lng, zoom) => {
   return L.map(id).setView([lat, lng], zoom);
 };

@@ -10,6 +10,10 @@
 
 {% block dynamic_head_content %}
 <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/report.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+     integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+     crossorigin=""/>
+
 {% endblock %}
 
 
@@ -123,9 +127,73 @@
 
 </div>
 
-<div class="map-box">
+<div class="feature-box">
+    <div class="map-box">
+
+        <div class="map-box-inner" id="map"></div>
+
+        <div class="color-guide-box">
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:blue"></div>
+                <p>GEOPHYSICAL-DATA</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:purple"></div>
+                <p>FIELD-MEASUREMENT</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:brown"></div>
+                <p>RESOURCE</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:red"></div>
+                <p>PHOTO</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:green"></div>
+                <p>SAMPLE</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:white"></div>
+                <p>OTHER</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:yellow"></div>
+                <p>BOREHOLE</p>
+            </div>
+            <div class="color-guide-box-inner">
+                <div class="color-guide-box-inner-presentation" style="background-color:pink"></div>
+                <p>LAB MEASUREMENT</p>
+            </div>
+        </div>
+
+    </div>
+    <div class="feature-table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feature in associated_features %}
+                    <tr>
+                        <td>{{feature.id}}</td>
+                        <td>{{feature.name}}</td>
+                        <td>{{feature.type}}</td>
+                        <td>{{feature.date}}</td>
+                        <td>{{feature.description}}</td>
+                    </tr>
+                {% endfor %}
+        </table>
+    </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
 <script type="text/javascript" src="{{STATIC_URL}}/static/publications/js/report.js"></script>
 
 {% endblock %}

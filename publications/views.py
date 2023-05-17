@@ -267,6 +267,8 @@ class ReportView(BaseView):
     def get(self, request, publication_id, **kwargs):
         publication = get_object_or_404(Publication, pk=publication_id)
 
+        associated_features = Feature.objects.filter(publications=publication)
+
         # If the report is not verified, only authenticated users can see it
         if not publication.verified and not request.user.is_authenticated:
             error = "You do not have permissions to access this publication!"
@@ -275,6 +277,7 @@ class ReportView(BaseView):
 
 
         context = {
+            'associated_features': associated_features,
             'publication': publication,
         }
 
