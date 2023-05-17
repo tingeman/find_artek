@@ -29,7 +29,23 @@
     
         <div class="row">
             <span class="property">Authors</span>
-            <span class="value"><a>Sand, A. H.</a> & <a href="">Christensen, M. T.</a></span>
+            <span class="value">
+                {% for author in publication.authors.all %}
+
+                    <a href="#">{{ author.first }} {{ author.last }}</a>
+
+                    {% if forloop.counter == 1 and publication.authors.count == 2 %}
+
+                        &amp;
+
+                    {% elif not forloop.last %}
+
+                        ,
+
+                    {% endif %}
+                    
+                {% endfor %}
+            </span>
         </div>
     
         <div class="row">
@@ -44,17 +60,38 @@
     
         <div class="row">
             <span class="property">Topics</span>
-            <span class="value">Infrastruktur, Geoteknik</span>
+            <span class="value">
+                {% for topic in publication.publication_topics.all %}
+                    {{ topic.topic }}
+                    {% if forloop.counter == 1 and publication.publication_topics.count == 2 %}
+                        &amp;
+                    {% elif not forloop.last %}
+                        ,
+                    {% endif %}
+                {% endfor %}
+                <!-- Infrastruktur, Geoteknik -->
+            </span>
         </div>
     
         <div class="row">
             <span class="property">Keywords</span>
-            <span class="value">Havn, Kangaamiut</span>
+            <span class="value">
+                {% for keyword in publication.publication_keywords.all %}
+                    {{ keyword.keyword }}
+                    {% if forloop.counter == 1 and publication.publication_keywords.count == 2 %}
+                        &amp;
+                    {% elif not forloop.last %}
+                        ,
+                    {% endif %}
+            {% endfor %}
+                <!-- Havn, Kangaamiut -->
+            
+            </span>
         </div>
     
         <div class="row">
             <span class="property">pdf-file</span>
-            <span class="value pdf-file"><a href="{{STATIC_URL}}/static/publications/pdf/17-01.pdf" target="_blank">download report as pdf (21.0 Mb)</a></span>
+            <span class="value pdf-file"><a href="{{MEDIA_URL}}reports/{{publication.year}}/{{publication.number}}.pdf" target="_blank">download report as pdf (21.0 Mb)</a></span>
         </div>
     
         <div class="row">
