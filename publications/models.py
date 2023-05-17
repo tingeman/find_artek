@@ -200,6 +200,10 @@ class FileObject(BaseModel):
             unit = 'bytes'
 
         return "{0:.1f} {1}".format(file_size, unit)
+    
+    def filename(self):
+        return os.path.basename(self.file.name)
+
 
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)
