@@ -1,11 +1,11 @@
 document.addEventListener("DOMContentLoaded", function (event) {
     // This block will run when the DOM is loaded.
-    // main().then((finished) => {
-    //     if (finished) {
-    //         console.log("main() is done executing.");
-    //     }
-    // });
-        
+    main().then((finished) => {
+        if (finished) {
+            console.log("main() is done executing.");
+        }
+    });
+
 });
 
 
@@ -26,49 +26,73 @@ async function main() {
     const response = await fetch('/publications/api/reports/');
 
     const reportData = await response.json();
-   
+
     const reportsTableList = document.getElementById('reports-table-list');
 
     reportData.forEach((report) => {
+        // Create table row
         const reportRow = document.createElement('tr');
-        
-        const reportId = document.createElement('td');
-        
-        // title
-        const reportLink = document.createElement('a');
-        reportLink.href = report.url;
-        report.authors.forEach((author) => {
-            reportLink.innerText = reportLink.innerText + author.first + ' & ' + author.last + ', ';
-        });
-        const reportTitle = document.createElement('td');
 
-
-
-        
+        // Create cells for the row
+        const reportNumber = document.createElement('td');
+        const reportTitleCell = document.createElement('td');
         const reportFile = document.createElement('td');
-
-
         const reportType = document.createElement('td');
         const reportDownloadCount = document.createElement('td');
 
 
-        reportId.innerText = report.number;
+        // ----------------- Handle reportNumber ----------------- //
+        // Add innertext to reportNumber
+        reportNumber.innerText = report.number;
+        // ----------------- Handle reportNumber ----------------- //
 
-        reportTitle.innerText = report.title;
 
-        reportTitle.appendChild(document.createElement('br'));
-        reportTitle.appendChild(reportLink);
-        reportFile.innerText = report.file;
-        reportType.innerText = report.type;
-        reportDownloadCount.innerText = report.feature_count;
+        // ----------------- Handle reportTitleCell ----------------- //
+        // Create divs and add classes to them. Then append them to the reportTitleCell
+        // Create divs for reportTitleCell, "report-title" and "report-aurthors"
+        const reportTitleDiv = document.createElement('div');
+        const authorTitleDiv = document.createElement('div');
 
-        reportRow.appendChild(reportId);
-        reportRow.appendChild(reportTitle);
-        reportRow.appendChild(reportFile);
-        reportRow.appendChild(reportType);
-        reportRow.appendChild(reportDownloadCount);
+        // Add classes to the divs 
+        reportTitleDiv.classList.add('report-title');
+        authorTitleDiv.classList.add('report-authors');
 
-        reportsTableList.appendChild(reportRow);
+        // Append the divs to the reportTitleCell
+        reportTitleCell.appendChild(reportTitleDiv);
+        reportTitleCell.appendChild(authorTitleDiv);
+
+        // -------
+        // Handle content for reportTitleDiv starts here //
+        // -------
+
+        // Create a link for the report title
+        const reportTitleLink = document.createElement('a');
+
+        // Add href to to reportTitleLink
+        reportTitleLink.href = `#`;
+
+        // Add innertext to reportTitleLink
+        reportTitleLink.innerText = report.title;
+
+        // Append reportTitleLink to reportTitleDiv
+        reportTitleDiv.appendChild(reportTitleLink);
+
+        // -------
+        // Handle content for reportTitleDiv ends here //
+        // -------
+
+        
+
+
+
+        // ----------------- Handle reportTitleCell ----------------- //
+
+        // // Append reportTitleCell to the reportRow
+        // reportRow.appendChild(reportTitleCell);
+
+        // // Append reportRow to the reportsTableList
+        // reportsTableList.appendChild(reportRow);
+
     });
 
     // To hide the overlay
