@@ -4,23 +4,7 @@
 
 }
 
-/* div.author-list {
-    color:           grey;
-    font-size:       0.9em;
-    text-decoration: none;
-}
+ th, td {
+    border: 1px solid;
+  }
 
-div.author-list a:link,a:visited {
-    text-decoration: None;
-    color: inherit;
-}
-
-
-div.author-list a:hover {
-    text-decoration: None;
-    color:           #A6A6A6;
-}
-
-.report-title {
-    font-weight: bold;
-} */

@@ -24,36 +24,15 @@
 
 <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/reports.css" />
 
+
 {% endblock %}
-
-
 
 {% block headline %}
     {% trans "List of reports" %}
 {% endblock %}
 
-
 {% block main-content %}
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>pdf</th>
-                <th>Type</th>
-                <th>Features</th>
-            </tr>
-        </thead>
-        <tbody id="reports-table-list"></tbody>
-    </table>
-
-    <div id="loading-overlay">
-        <div id="loading-icon"></div>
-    </div>
-</div>
-
-<script src="{% static 'publications/js/reports.js' %}" defer></script>
+{% include "publications/reports_snippets/report_list.html" %}
 
 {% endblock %}

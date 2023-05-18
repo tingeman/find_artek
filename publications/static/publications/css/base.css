@@ -71,6 +71,8 @@
 .justify-between {
     justify-content: space-between;
 }
+
+
 /* General styling ends here */
 
 
@@ -243,6 +245,7 @@ footer {
     background: var(--primary-background-color);
     /* Your footer styles here */
 }
+
 
 
 /* 

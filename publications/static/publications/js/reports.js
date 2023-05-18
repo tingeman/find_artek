@@ -1,6 +1,11 @@
 document.addEventListener("DOMContentLoaded", function (event) {
     // This block will run when the DOM is loaded.
-    main();
+    main().then((finished) => {
+        if (finished) {
+            console.log("main() is done executing.");
+        }
+    });
+        
 });
 
 
@@ -13,31 +18,63 @@ document.addEventListener("DOMContentLoaded", function (event) {
 // // ============
 async function main() {
 
-    const myMapClass = new MyMapClass();
+    const loadingOverlay = document.getElementById('loading-overlay');
 
-    try {
-        map = await myMapClass.initialize();
-        // Fetch the JSON data from /publications/api/feature/
+    // To show the overlay
+    loadingOverlay.style.display = 'flex';
 
-        // q: get the url the path from the url without the domain name or parameters or protocol
-        // a: window.location.pathname
-        const path = window.location.pathname;
-        const parts = path.split('/');
-        const id = parts[parts.length - 2]; // -1 for the last element (which is an empty string after the trailing slash), -2 for the second to last element
+    const response = await fetch('/publications/api/reports/');
 
-        const params = new URLSearchParams({
-            publication_id: id // Replace with actual value or variable
+    const reportData = await response.json();
+   
+    const reportsTableList = document.getElementById('reports-table-list');
+
+    reportData.forEach((report) => {
+        const reportRow = document.createElement('tr');
+        
+        const reportId = document.createElement('td');
+        
+        // title
+        const reportLink = document.createElement('a');
+        reportLink.href = report.url;
+        report.authors.forEach((author) => {
+            reportLink.innerText = reportLink.innerText + author.first + ' & ' + author.last + ', ';
         });
+        const reportTitle = document.createElement('td');
 
 
-        const response = await fetch(`/publications/api/feature/?${params}`);
-        const featureData = await response.json();
 
-        myMapClass.addFeatureDataToMap(map, featureData, true);
+        
+        const reportFile = document.createElement('td');
 
-    } catch (error) {
-        console.error("Error initializing map or fetching feature data: ", error);
-    }
+        
+        const reportType = document.createElement('td');
+        const reportDownloadCount = document.createElement('td');
+
+
+        reportId.innerText = report.number;
+
+        reportTitle.innerText = report.title;
+
+        reportTitle.appendChild(document.createElement('br'));
+        reportTitle.appendChild(reportLink);
+        reportFile.innerText = report.file;
+        reportType.innerText = report.type;
+        reportDownloadCount.innerText = report.feature_count;
+
+        reportRow.appendChild(reportId);
+        reportRow.appendChild(reportTitle);
+        reportRow.appendChild(reportFile);
+        reportRow.appendChild(reportType);
+        reportRow.appendChild(reportDownloadCount);
+
+        reportsTableList.appendChild(reportRow);
+    });
+
+    // To hide the overlay
+    loadingOverlay.style.display = 'none';
+
+    return true;
 }
 
 // ============
