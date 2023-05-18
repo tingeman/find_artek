@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", function (event) {
     // This block will run when the DOM is loaded.
-    main().then((finished) => {
-        if (finished) {
-            console.log("main() is done executing.");
-        }
-    });
+    // main().then((finished) => {
+    //     if (finished) {
+    //         console.log("main() is done executing.");
+    //     }
+    // });
         
 });
 
@@ -47,7 +47,7 @@ async function main() {
         
         const reportFile = document.createElement('td');
 
-        
+
         const reportType = document.createElement('td');
         const reportDownloadCount = document.createElement('td');
 
