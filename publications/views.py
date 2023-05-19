@@ -354,8 +354,14 @@ class FeatureView(BaseView):
 
         feature = get_object_or_404(Feature, pk=feature_id)
 
+        geometry = feature.points or feature.lines or feature.polys
+
+        
+
+
         context = {
             'feature': feature,
+            'geometry': geometry,
         }
 
         context.update(self.get_context_data(**kwargs))

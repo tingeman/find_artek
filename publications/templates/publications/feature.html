@@ -1,27 +1,103 @@
-{% extends "publications/base.html" %} {% load i18n %}
+{% extends base_template %}
 
-{% block title %}{% trans "Feature detail" %}{% endblock %}
-{% block head %}
+<!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
+<!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
+{% load i18n static %}
+
+{# title #}
+{% block title %}Report{% endblock %}
+
+
+{% block dynamic_head_content %}
 <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/feature.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
 {% endblock %}
 
-{% block headline %}Base Headline{% endblock %}
+<!-- headline for the page -->
+{% block headline %}Feature information{% endblock %}
 
 {% block main-content %}
 
-<div id="info-box">
-    <div id="info-content">
-        <table id="info-table" style="font-family: Verdana, Arial; font-size: 8pt;">
-            <!-- Your table rows go here -->
-        </table>
+<div class="info-box">
+    <div class="upper-box">
+        <div class="details-box-left">
+            <div class="row">
+                <span class="property">Name</span>                
+                <span class="value">{{ feature.name }}</span>
+            </div>
+            
+            <div class="row">
+                <span class="property">Type</span>
+                <span class="value">{{ feature.type }}</span>
+            </div>
+    
+            <div class="row">
+                <span class="property">Date</span>
+                <span class="value">{{ feature.date|date:"Y-m-d"  }}</span>
+            </div>
+    
+            <div class="row">
+                <span class="property">Report:</span>
+                <!-- TODO: fix layout -->
+                {% for report in feature.publications.all %}
+                    <!-- TODO fix href -->
+                    <span class="value"><a href="#">{{ report.title }}</a></span>
+                {% endfor %}
+            </div>
+    
+            <div class="row">
+                <span class="property">SRID:</span>
+                <span class="value">{{geometry.srid}}</span>
+            </div>
+    
+            <div class="row">
+                <span class="property">WKT:</span>
+                <span class="value">{{geometry.wkt|slice:":100"}}</span>
+            </div>
+    
+            <div class="row">
+                <span class="property">Description</span>
+                <span class="value">{{ feature.description }}</span>
+            </div>
+    
+            <div class="row">
+                <span class="property">Comment</span>
+                <span class="value">{{ feature.comment }}</span>
+            </div>
+    
+          
+        </div>
+
+        <div class="map-box-right">
+            <div class="map-box-inner" id="map"></div>
+        </div>
     </div>
-    <div>
-        <a href='/media/reports/2012/12-14.pdf'>
-            <img alt="Picture of first page of pdf document" src="/media/reports/2012/thumbs/12-14_thumb.jpg" height="300" id="report-thumb">
-        </a>
+
+    <div class="under-box">
+        <div class="links-to-associated-files-box">
+            <div class="row">
+                <span class="property">Registered Files:</span>
+                {% for file in feature.files.all %}
+                    <!-- TODO: fix href -->
+                    <span class="value"><a href="{% static 'file.file' %}" download>{{file.filename}}</a></span>
+                {% endfor %}
+            </div>
+            <div class="row">
+                <span class="property">Registered Images:</span>
+                {% for image in feature.images.all %}
+                    <!-- TODO: fix href -->
+                    <span class="value"><a href="#" download>{{image.filename}}</a></span>
+                {% endfor %}
+            </div>
+        </div>
     </div>
+    
 </div>
 
-<!-- The rest of your HTML goes here -->
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
+<script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
+<script src="{% static 'publications/js/feature.js' %}" defer></script>
 
 {% endblock %}

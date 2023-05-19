@@ -431,6 +431,13 @@ class Feature(BaseModel):
 
     def get_related_publications(self):
         return self.publications.all()
+    
+    def filename(self):
+        return os.path.basename(self.file.name)
+    
+    def imagesnames(self):
+        return os.path.basename(self.images.name)
+
 
 class ImageObjectship(models.Model):
     imageobject = models.ForeignKey(ImageObject, on_delete=models.CASCADE)

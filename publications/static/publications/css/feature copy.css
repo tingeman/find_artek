@@ -1,0 +1,33 @@
+#info-box {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    grid-template-areas: "info-content report-thumb";
+    gap: 16px;
+    border-color: black;
+    border-style: solid;
+    border-width: 1px;
+}
+
+#info-content {
+    grid-area: info-content;
+}
+
+#report-thumb {
+    grid-area: report-thumb;
+}
+
+#info-table {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 16px;
+    align-items: center;
+}
+
+.id-label {
+    font-weight: bold;
+}
+
+.toggle {
+    cursor: pointer;
+}
+
