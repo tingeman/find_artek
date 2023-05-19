@@ -78,6 +78,17 @@ async function main() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
         // ----------------- Handle reportNumber starts here ----------------- //
         // Add innertext to reportNumber
         reportNumber.innerText = report.number;
@@ -85,6 +96,23 @@ async function main() {
         // Report number is ready to be appended to the reportRow
         reportRow.appendChild(reportNumber);
         // ----------------- Handle reportNumber ends here ----------------- //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -138,17 +166,59 @@ async function main() {
 
 
         // create <div class="report-authors">
+
+        // ------ add dynamic authors starts here ------ //
+        // ------
+        // this code does the following when adding authors:
+        //
+        //if 1 
+        //    <name>
+        //
+        //if 2
+        //    <name> & <name>
+        //
+        //if > 2
+        //    <name>; <name>; <name> & <name>
+
+
+
         const authorTitleDiv = document.createElement('div');
         authorTitleDiv.classList.add('report-authors');
-        authorTempLink = document.createElement('a');
-        authorTempLink.innerText = 'Temp author';
-        authorTitleDiv.appendChild(authorTempLink);
+        
+        let authorNames = report.authors.map((author) => {
+            const authorLink = document.createElement('a');
+            authorLink.href = `/publications/author/#/`;
+            authorLink.innerText = `${author.first} ${author.last}`;
+            return authorLink.outerHTML;
+        });
+        
+        let formattedAuthorNames;
+        
+        switch (authorNames.length) {
+            case 1:
+                formattedAuthorNames = authorNames[0];
+                break;
+            case 2:
+                formattedAuthorNames = authorNames.join(' & ');
+                break;
+            default:
+                formattedAuthorNames = `${authorNames.slice(0, -1).join('; ')} & ${authorNames.slice(-1)}`;
+                break;
+        }
+        
+        authorTitleDiv.innerHTML = formattedAuthorNames;
 
         // THIS PART IS NOW DONE
         //         <div class="report-authors">
         //             <a href="#" >Andersen, N. P.</a>
+                       // ;
         //             <a href="#">Christensen, M. T.</a>
         //         </div>
+        
+        // ------ add dynamic authors ends here ------ //
+        
+        
+
 
 
         // Append the divs to the reportTitleCell
@@ -170,6 +240,15 @@ async function main() {
 
 
 
+
+
+
+
+
+
+
+
+        
 
 
 
@@ -198,6 +277,39 @@ async function main() {
         // ----------------- Handle reportDownloadLink ends here ----------------- //
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         // ----------------- Handle reportType starts here ----------------- //
 
         // Creates:
@@ -207,6 +319,32 @@ async function main() {
         // Append reportType to reportRow
         reportRow.appendChild(reportType);
         // ----------------- Handle reportType ends here ----------------- //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -229,111 +367,6 @@ async function main() {
         
         // ----------------- Handle reportDownloadCount ends here ----------------- //
 
-
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        // // Create a link for the report title
-        // const reportTitleLink = document.createElement('a');
-
-        // // Add href to to reportTitleLink
-        // reportTitleLink.href = `#`;
-
-        // // Add innertext to reportTitleLink
-        // reportTitleLink.innerText = report.title;
-
-        // // Append reportTitleLink to reportTitleDiv
-        // reportTitleDiv.appendChild(reportTitleLink);
-
-        // // -------
-        // Handle content for reportTitleDiv ends here //
-        // -------
-
-        // -------
-        // // Handle content for authorTitleDiv starts here //
-        // // -------
-
-        // // Create a link for the report authors
-        // const reportAuthorsLink = document.createElement('a');
-
-        // // Add href to to reportAuthorsLink
-        // reportAuthorsLink.href = `#`;
-
-        // // Add innertext to reportAuthorsLink
-
-
-
-
-        // // ----------------- Handle reportTitleCell ----------------- //
-
-
-
-
-        // // ----------------- Append row to the table ----------------- //
-
-
-        // // Append reportNumber to the reportRow
-        // reportRow.appendChild(reportNumber);
-
-        // // Append reportTitleCell to the reportRow
-        // reportRow.appendChild(reportTitleCell);
-
-        // // Append reportFile to the reportRow
 
 
 
