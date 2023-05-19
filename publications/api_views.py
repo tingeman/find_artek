@@ -73,11 +73,12 @@ def get_reports_table_data(request):
         authors_list = [{'first': author.first, 'last': author.last} for author in publication.authors.all()]
 
         data.append({
+            'id': publication.pk,  # This is the primary key of the publication
             'number': publication.number,
             'title': publication.title,
             'authors': authors_list,
             'file': publication.file.filename() if publication.file else None,  # Make sure to handle case when file is None
-            'url': publication.file.file.url if publication.file else None,  # Make sure to handle case when file is None
+            'link_to_pdf_associated_with_this_publication': publication.file.file.url if publication.file else None,  # Make sure to handle case when file is None
             'type': publication.type.type if publication.type else None,  # Handle case when type is None
             'feature_count': publication.feature_set.count(),
         })
@@ -97,105 +98,6 @@ def get_reports_table_data(request):
 
 
 
-
-
-
-
-
-
-
-
-# def get_reports_data(request):
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-        # # Get the topic from the GET parameters
-        # topic = request.GET.get('topic', None)
-
-
-        # # If the topic is not None, get the publications with that topic
-        # if topic is not None:
-        #     # switch though each valid topic
-        #     if topic == 'Infrastruktur':
-        #         topic = Topic.objects.get(topic="Infrastruktur")
-        #     if topic == 'Miljø':
-        #         topic = Topic.objects.get(topic="Miljø")
-        #     if topic == 'Energi':
-        #         topic = Topic.objects.get(topic="Energi")
-        #     if topic == 'Byggeri':
-        #         topic = Topic.objects.get(topic="Byggeri")
-        #     if topic == 'Geoteknik':
-        #         topic = Topic.objects.get(topic="Geoteknik")
-        #     if topic == 'Samfund':
-        #         topic = Topic.objects.get(topic="Samfund")
-        #     if topic == 'Råstoffer':
-        #         topic = Topic.objects.get(topic="Råstoffer")
-
-        # if topic is not None:
-        #     publications = Publication.objects.filter(publication_topics=topic)
-        # else:
-        #     publications = Publication.objects.all()
-
-
-        # publications = publications.extra(select={'year': 'CAST(year AS INTEGER)'}).extra(order_by=['-year', '-number'])
-
-        # publications = publications.exclude(verified=False)
-
-        # publications = serializers.serialize('json', publications)
-        # return HttpResponse(publications, content_type='application/json')
-
-        # try:
-        #     topic_obj = Topic.objects.get(topic=topic)
-        # except Topic.DoesNotExist:
-        #     return JsonResponse({'error': 'invalid topic'}, status=400)
-
-        # publications = Publication.objects.filter(
-        #     publication_topics=topic_obj,
-        #     verified=True
-        # ).extra(
-        #     select={'year': 'CAST(year AS INTEGER)'}
-        # ).extra(
-        #     order_by=['-year', '-number']
-        # )
-
-        # data = serializers.serialize('json', publications)
-        # return JsonResponse(data, safe=False)
-
-        # context.update(self.get_context_data(**kwargs))
-
-        # return render(request, self.template_name, context)
 
 # Create the API view for persons
 def get_persons_data(request):
