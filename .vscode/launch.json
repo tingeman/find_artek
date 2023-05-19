@@ -24,6 +24,17 @@
             "django": true,
             "justMyCode": true
         },
-        
+
+        {
+            "name": "ChromiumDev: Home",
+            "version": "stable",
+            "runtimeExecutable": "C:\\Program Files\\chromium\\chrome-win\\chrome.exe",
+
+            "request": "launch",
+            "type": "msedge",
+            "url": "http://localhost",
+            "webRoot": "${workspaceFolder}/publications",
+            "disableNetworkCache": true
+        },
     ]
 }

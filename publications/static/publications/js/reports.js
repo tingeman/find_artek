@@ -81,17 +81,43 @@ async function main() {
         // Handle content for reportTitleDiv ends here //
         // -------
 
-        
+        // -------
+        // Handle content for authorTitleDiv starts here //
+        // -------
+
+        // Create a link for the report authors
+        const reportAuthorsLink = document.createElement('a');
+
+        // Add href to to reportAuthorsLink
+        reportAuthorsLink.href = `#`;
+
+        // Add innertext to reportAuthorsLink
+
 
 
 
         // ----------------- Handle reportTitleCell ----------------- //
 
-        // // Append reportTitleCell to the reportRow
-        // reportRow.appendChild(reportTitleCell);
 
-        // // Append reportRow to the reportsTableList
-        // reportsTableList.appendChild(reportRow);
+        
+
+        // ----------------- Append row to the table ----------------- //
+
+
+        // Append reportNumber to the reportRow
+        reportRow.appendChild(reportNumber);
+
+        // Append reportTitleCell to the reportRow
+        reportRow.appendChild(reportTitleCell);
+
+        // Append reportFile to the reportRow
+        
+        
+        
+        // Append reportRow to the reportsTableList
+        reportsTableList.appendChild(reportRow);
+
+        // ----------------- Append row to the table ----------------- //
 
     });
 
