@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     let $ = {
         reportsTableList: reportsTableList,
         myReportsClass: new MyReportsClass(loadingOverlay, reportsTableList, '/publications/api/reports/'),
-        filter: {topic: 'all'}
+        filter: { personId: personId }
     }
 
 

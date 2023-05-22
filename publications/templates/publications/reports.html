@@ -21,9 +21,9 @@
 {% endblock %}
 
 {% block dynamic_head_content %}
-
 <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/reports.css" />
-
+<script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
+<script src="{% static 'publications/js/reports.js' %}" defer></script>
 {% endblock %}
 
 
@@ -94,6 +94,6 @@
     </div>
 </div>
 
-<script src="{% static 'publications/js/reports.js' %}" defer></script>
+
 
 {% endblock %}

@@ -1,7 +1,6 @@
 class MyReportsClass {
-    constructor(loadingOverlay, reportsTableList, defaultUrl) {
-        this.loadingOverlay = loadingOverlay;
-        this.reportsTableList = reportsTableList
+    constructor(loadingOverlayId, defaultUrl) {
+        this.loadingOverlay = document.getElementById(loadingOverlayId);
         this.defaultUrl = defaultUrl;
      }
 
@@ -36,6 +35,9 @@ class MyReportsClass {
         // Show the loading overlay, until tha data is present
         this.loadingOverlay.style.display = 'flex';
 
+        // check if get paramete 'topic' is present
+        const urlParams = new URLSearchParams(window.location.search);
+        let topic = urlParams.get('topic');
 
         let url = this.defaultUrl;
 
@@ -47,17 +49,18 @@ class MyReportsClass {
             }
 
             // If 'personID' is in filter, append it to the url
-            if (filter.personId) {
-                url = `${this.defaultUrl}?person_id=${filter.personId}`;
+            if (filter.personID) {
+                url = `${this.defaultUrl}?person_id=${filter.personID}`;
             }
         }
-
+        
         // Fetch the data from the api
         const response = await fetch(url);
 
         // Convert the response to json
         const reportData = await response.json();
 
+        const reportsTableList = document.getElementById('reports-table-list');
 
         // Create a table row for each report
         reportData.forEach((report) => {
@@ -372,7 +375,7 @@ class MyReportsClass {
 
 
             // Append reportRow to the reportsTableList
-            this.reportsTableList.appendChild(reportRow);
+            reportsTableList.appendChild(reportRow);
 
             // ----------------- Append row to the table ----------------- //
 

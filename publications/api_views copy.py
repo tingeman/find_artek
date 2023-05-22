@@ -53,26 +53,24 @@ def get_reports_table_data(request):
     if topic and person_id:
         return JsonResponse({'error': 'can only specify one of topic or person'}, status=400)
 
-    # Start with all verified publications
     publications = Publication.objects.filter(verified=True)
 
-    # If 'all' is not specified as topic, and a valid topic is present, filter by topic
-    if topic != 'all' and topic:
-        try:
-            topic_obj = Topic.objects.get(topic=topic)
-            publications = publications.filter(publication_topics=topic_obj)
-        except Topic.DoesNotExist:
-            # Return an error if the topic doesn't correspond to any topics
-            return JsonResponse({'error': 'invalid topic'}, status=400)
-
-    # Try to filter by person_id if it's specified and topic is not 'all'
-    if person_id and topic != 'all':
+    # Try to filter by person_id if it's specified
+    if person_id:
         try:
             person = Person.objects.get(pk=person_id)
             publications = person.publication_supervisor.all()
         except Person.DoesNotExist:
             # Return an error if the person_id doesn't correspond to any person
             return JsonResponse({'error': 'invalid person'}, status=400)
+    # If person_id wasn't specified or was invalid, try to filter by topic if it's specified
+    elif topic:
+        try:
+            topic_obj = Topic.objects.get(topic=topic)
+            publications = publications.filter(publication_topics=topic_obj)
+        except Topic.DoesNotExist:
+            # Return an error if the topic doesn't correspond to any topics
+            return JsonResponse({'error': 'invalid topic'}, status=400)
 
     # Apply some ordering and extra selection to the publications query
     publications = publications.extra(
