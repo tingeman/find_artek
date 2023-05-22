@@ -1,7 +1,7 @@
 # api_views.py
 from django.http import HttpResponse, JsonResponse
 from django.core import serializers
-from publications.models import Publication, Topic, Feature
+from publications.models import Publication, Topic, Feature, Person
 
 
 def get_feature_geographic_location_data(request):
@@ -100,9 +100,19 @@ def get_reports_table_data(request):
 
 
 # Create the API view for persons
-def get_persons_data(request):
-    pass
+def get_persons_table_data(request):
+    persons = Person.objects.all()
 
+    # Manually creating list of dicts for each person with only specified fields
+    data = []
+    for person in persons:
+        data.append({
+            'id': person.pk,
+            'first': person.first,
+            'last': person.last,
+        })
+
+    return JsonResponse(data, safe=False)
 # Finish the feature view
 # Finish the person view
 # Fix the links in the report template

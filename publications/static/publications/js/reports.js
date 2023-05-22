@@ -50,8 +50,21 @@ async function main() {
     const loadingOverlay = document.getElementById('loading-overlay');
     loadingOverlay.style.display = 'flex';
 
+    // check if get paramete 'topic' is present
+    const urlParams = new URLSearchParams(window.location.search);
+    let topic = urlParams.get('topic');
+
+    let url = `/publications/api/reports/?topic=${topic}`
+
+    // if topic is null or undefined, set it to 'all'
+    if (topic === null || topic === undefined) {
+        url = `/publications/api/reports/`
+    }
+
+    
+
     // Fetch the data from the api
-    const response = await fetch('/publications/api/reports/');
+    const response =  await fetch(url);
 
     // Convert the response to json
     const reportData = await response.json();

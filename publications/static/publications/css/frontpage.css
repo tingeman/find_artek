@@ -1,9 +1,5 @@
 
 
-/* .link-button:focus {
-    outline: none;
-} */
-
 .grid-container {
     display: grid;
     grid-template-rows: repeat(3, auto);
@@ -13,34 +9,50 @@
 }
 
 
+/* grid box */
 .fmitem {
-    box-sizing: content-box;
-    width: 190px;
+    width: 200px;
     height: auto; /* adjust as needed */
+    overflow: auto;
 }
 
 .fmitem form {
-    width: fit-content;
+    height: 100%; /* makes the form take full height of .fmitem */
+    width: 100%; /* makes the form take full width of .fmitem */
+    padding: 0; /* removes any default form padding */
 }
 
-.link-button {
+.fmitem form input {
+    display: none;
+}
+
+.fmitem form button {
+    display: flex;
+    flex-direction: column;
     height: 100%; /* makes the button take full height of .fmitem */
     width: 100%; /* makes the button take full width of .fmitem */
     color: black;
     cursor: pointer;
     padding: 0; /* removes any default button padding */
+    border: none;
 }
 
-.fmimage {
+.fmitem form button .fmimage {
     height: 150px;
-    width: 190px;
+    width: 100%;
 }
 
-.fmitem img {
-    height: 150px;
+.fmitem form button .fmimage img {
     width: 190px;
-    object-fit: cover;
+    height: 150px;
 }
+
+.fmitem form button .fmtext {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
 
 .fmitem span {
     display: inline-block;
@@ -54,32 +66,3 @@
     text-align: center;
     padding: 0.5em;
 }
-
-.text {
-    /* font-size: small; */
-    /* text-align: center; */
-    /* padding: 0.5em; */
-    /* overflow: hidden; */
-    /* white-space: nowrap; */
-}
-
-/* .fmtext {
-    font-size: 1em;
-    text-align: center;
-    padding: 0.5em;
-} */
-
-/* 
-
-/* .fmitem .topic {
-    font-size: 1.2em;
-    font-weight: bold;
-    text-align: center;
-    padding: 0.5em;
-}
-
-.fmitem .text {
-    font-size: 1em;
-    text-align: center;
-    padding: 0.5em;
-} */
