@@ -152,7 +152,7 @@ header {
     width: auto;
     height: var(--header-height);
     overflow: auto;
-    margin-bottom: 20px;
+    
 }
 
 .default-header-content {
@@ -204,6 +204,8 @@ header .header-content .nav-left .nav-link, .nav-right .nav-link {
 
 
 main {
+    padding-top: 20px;
+    padding-bottom: 20px;
     width: var(--primary-site-width);
     margin: 0 auto; /* Add this to center the main content horizontally */
     flex-grow: 1;
@@ -213,7 +215,7 @@ main {
 
 footer {
 
-    margin-top: 40px;
+    
     overflow: auto;
     width: auto;
     

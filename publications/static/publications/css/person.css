@@ -8,18 +8,28 @@
 
 
 .info-box {
+
     border: 1px solid #ddd;
-    display: flex;
-    flex-direction: grid;
-    justify-content: center;
+
     padding-left: 5%;
     padding-right: 5%;
+    margin-bottom: 10px;
+}
 
+.details-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    padding: 10px;
 }
 
 .row {
     display: flex;
-    margin-top: 10px;
+
+    justify-content: space-between;
+    width: 200px;
+    align-items: center;
 }
 
 
