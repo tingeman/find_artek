@@ -32,14 +32,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-smfukm8mjpzo##+9j9lk5*cp&&enk3_y=s=-9tq+g9yj95-=#b'
 with open('secret/DJANGO_SECRET_KEY.txt', 'r') as f:
     SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'find-artek.vezit.net',
+    'find.artek.byg.dtu.dk',
+    'localhost'
+]
 
 # Media url
 MEDIA_ROOT = os.path.join('/var/www/find_artek_static/media')
@@ -143,8 +146,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-# STATIC_URL = 'static/'
 STATIC_URL = '/static/'
+
+# the docker volume dedicated to apache server is also secretly mounted here to conviently overwrite create the static files
+# python manage.py collectstatic
+# sets up the static files for the webserver
+STATIC_ROOT = '/var/www/find_artek_static/staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
