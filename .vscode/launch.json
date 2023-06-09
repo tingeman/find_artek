@@ -19,7 +19,11 @@
             "program": "${workspaceFolder}/manage.py",
             "args": [
                 "runserver",
-                "0.0.0.0:80"
+                "0.0.0.0:80",
+                "--noreload",
+                "--settings",
+                "myproject.settings",
+                "--debug"
             ],
             "django": true,
             "justMyCode": true

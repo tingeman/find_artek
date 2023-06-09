@@ -36,7 +36,8 @@ with open('secret/DJANGO_SECRET_KEY.txt', 'r') as f:
     SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# if 
+DEBUG = False
 
 ALLOWED_HOSTS = [
     'find-artek.vezit.net',
