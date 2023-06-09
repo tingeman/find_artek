@@ -28,58 +28,87 @@
 
 
 
-    <header class="flex-container flex-column justify-center">
+   <header class="flex-container flex-column justify-center">
 
-        <!-- default header menu. Mobile is hidden, the code is beneath the default menu -->
-        <div class="default-header-content flex-container justify-between">
+    <!-- default header menu. Mobile is hidden, the code is beneath the default menu -->
+    <div class="default-header-content flex-container justify-between">
 
-            <!-- navigiation to the left -->
-            <nav class="nav-left flex-container justify-around">
-
-
-                <!-- abstact ice icon that leads to frontpage -->
-                <a class="nav-link frontpage" href="{% url 'frontpage' %}">
-                    <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
-                        alt="ArtTek Logo">
-                </a>
+        <!-- navigiation to the left -->
+        <nav class="nav-left flex-container justify-around">
 
 
+            <!-- abstact ice icon that leads to frontpage -->
+            <a class="nav-link frontpage" href="{% url 'frontpage' %}">
+                <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
+                    alt="ArtTek Logo">
+            </a>
 
 
-                <a class="nav-link header-nav-map" href="{% url 'map' %}">{% trans "Map" %}</a>
-
-                <a class="nav-link header-nav-reports" href="{% url 'reports' %}">{% trans "Reports" %}</a>
-
-                <a class="nav-link header-nav-persons" href="{% url 'persons' %}">{% trans "Persons" %}</a>
-
-            </nav>
-            <!-- navigiation to the left -->
 
 
-            <!-- navigiation to the right -->
+            <a class="nav-link header-nav-map" href="{% url 'map' %}">{% trans "Map" %}</a>
+
+            <a class="nav-link header-nav-reports" href="{% url 'reports' %}">{% trans "Reports" %}</a>
+
+            <a class="nav-link header-nav-persons" href="{% url 'persons' %}">{% trans "Persons" %}</a>
+
+        </nav>
+        <!-- navigiation to the left -->
+
+
+        <!-- navigiation to the right -->
+        {% if user.is_authenticated %}
+        <a href="{% url 'logout' %}">
+            {% trans "Sign out" %} ({{ user.username }})
+        </a> <!-- Assuming /logout/ is your logout URL -->
+        {% else %}
+        <nav class="nav-right">
+            <a class="sign-in nav-link" href="{% url 'login' %}">
+                <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                    alt="DTU Logo">
+                <span>{% trans "Sign in" %}</span>
+            </a>
+        </nav>
+        {% endif %}
+        <!-- navigiation to the right -->
+    </div>
+
+
+
+    <!-- hidden menu for mobile -->
+    <div class="mobile-header-content">
+        <a class="nav-link frontpage" href="{% url 'frontpage' %}">
+            <img height="40" src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
+                alt="ArtTek Logo">
+        </a>
+
+        <button class="menu-toggle">
+            <span class="menu-icon"></span>
+        </button>
+
+        <div class="mobile-menu">
+            <a class="nav-link header-nav-map" href="{% url 'map' %}">{% trans "Map" %}</a>
+
+            <a class="nav-link header-nav-reports" href="{% url 'reports' %}">{% trans "Reports" %}</a>
+
+            <a class="nav-link header-nav-persons" href="{% url 'persons' %}">{% trans "Persons" %}</a>
+
             {% if user.is_authenticated %}
             <a href="{% url 'logout' %}">
                 {% trans "Sign out" %} ({{ user.username }})
             </a> <!-- Assuming /logout/ is your logout URL -->
             {% else %}
-            <nav class="nav-right">
-                <a class="sign-in nav-link" href="{% url 'login' %}">
-                    <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
-                        alt="DTU Logo">
-                    <span>{% trans "Sign in" %}</span>
-                </a>
-            </nav>
+            <a class="sign-in nav-link" href="{% url 'login' %}">
+                <img height="16" src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                    alt="DTU Logo">
+                <span>{% trans "Sign in" %}</span>
+            </a>
             {% endif %}
-            <!-- navigiation to the right -->
         </div>
+    </div>
+    <!-- hidden menu for mobile -->
 
-
-
-        <!-- hidden menu for mobile -->
-
-        <!-- hidden menu for mobile -->
-
-    </header>
+</header>
 
 
 

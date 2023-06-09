@@ -12,8 +12,13 @@ document.addEventListener("DOMContentLoaded", function (event) {
     // Gloval variables
     let $ = {
         reportsTableList: reportsTableList,
-        myReportsClass: new MyReportsClass(loadingOverlay, reportsTableList, '/publications/api/reports/'),
+        myReportsClass: new MyReportsClass(
+            loadingOverlay, 
+            reportsTableList, 
+            null,
+            '/publications/api/reports/'),
         filter: { personId: personId }
+
     }
 
 

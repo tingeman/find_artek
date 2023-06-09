@@ -1,12 +1,18 @@
 class MyReportsClass {
-    constructor(loadingOverlay, reportsTableList, defaultUrl) {
+    constructor(
+        loadingOverlay,
+        reportsTableList,
+        totalReportsNumber = null,
+        defaultUrl
+    ) {
         this.loadingOverlay = loadingOverlay;
         this.reportsTableList = reportsTableList
+        this.totalReportsNumber = totalReportsNumber;
         this.defaultUrl = defaultUrl;
-     }
+    }
 
 
-    async getReports(filter = {topic: 'all'}) {
+    async getReports(filter = { topic: 'All', personId: null }) {
 
 
 
@@ -58,6 +64,11 @@ class MyReportsClass {
         // Convert the response to json
         const reportData = await response.json();
 
+        // List total number of reports
+        // If total report number element is present
+        if (null !== this.totalReportsNumber) {
+            this.totalReportsNumber.innerText = `Reports: ${reportData.length}`
+        }
 
         // Create a table row for each report
         reportData.forEach((report) => {

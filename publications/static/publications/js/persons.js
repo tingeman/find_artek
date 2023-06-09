@@ -1,6 +1,21 @@
 document.addEventListener("DOMContentLoaded", function (event) {
+
+    // In this block I want all DOM variables specified, it gives me a better overview.
+    const loadingOverlay = document.getElementById('loading-overlay')
+    const personsTableList = document.getElementById('persons-table-list');
+    // Here we are getting the elements from the DOM
+
+
+    const $ = {
+        loadingOverlay: loadingOverlay,
+        personsTableList: personsTableList,
+        apiPersonEndpoint: '/publications/api/persons/',   
+    }
+
+
+
     // This block will run when the DOM is loaded.
-    main().then((finished) => {
+    main($).then((finished) => {
         if (finished) {
             console.log("main() is done executing.");
         }
@@ -11,23 +26,22 @@ document.addEventListener("DOMContentLoaded", function (event) {
 // ============
 // Main
 // ============
-async function main() {
+async function main($) {
     // Complete structure that needs to be build
     // 
     // <tr><td>Victor</td></tr>
     // <tr><td>Alex</td></tr>
 
     // Show the loading overlay, until the data is present
-    const loadingOverlay = document.getElementById('loading-overlay');
-    loadingOverlay.style.display = 'flex';
+    $.loadingOverlay.style.display = 'flex';
 
     // Fetch the data from the api
-    const response =  await fetch('/publications/api/persons/');
+    const response =  await fetch($.apiPersonEndpoint);
 
     // Convert the response to json
     const personData = await response.json();
 
-    const personsTableList = document.getElementById('persons-table-list');
+    
 
 // Create a table row for each person
 personData.forEach((person) => {
@@ -49,12 +63,12 @@ personData.forEach((person) => {
     personRow.appendChild(personCell);
 
     // Append the row to the table
-    personsTableList.appendChild(personRow);
+    $.personsTableList.appendChild(personRow);
 });
 
 
     // To hide the overlay
-    loadingOverlay.style.display = 'none';
+    $.loadingOverlay.style.display = 'none';
 
     return true;
 }

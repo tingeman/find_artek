@@ -57,7 +57,7 @@ def get_reports_table_data(request):
     publications = Publication.objects.filter(verified=True)
 
     # If 'all' is not specified as topic, and a valid topic is present, filter by topic
-    if topic != 'all' and topic:
+    if topic != 'All' and topic:
         try:
             topic_obj = Topic.objects.get(topic=topic)
             publications = publications.filter(publication_topics=topic_obj)
@@ -66,7 +66,7 @@ def get_reports_table_data(request):
             return JsonResponse({'error': 'invalid topic'}, status=400)
 
     # Try to filter by person_id if it's specified and topic is not 'all'
-    if person_id and topic != 'all':
+    if person_id and topic != 'All':
         try:
             person = Person.objects.get(pk=person_id)
             publications = person.publication_supervisor.all()
