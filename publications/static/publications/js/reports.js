@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
     const apiEndpoint = '/publications/api/reports/';
 
-    // Globaæl variables
+    // Global variables
     let $ = {
         reportsTableList: reportsTableList,
         myReportsClass: new MyReportsClass(
@@ -30,7 +30,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
             ),
         filter: {topic: topic}
     }
-
 
 
 
