@@ -13,3 +13,5 @@ Erstat sign in side med "Page is under construction" // Done
 Lav script som overføre applikationen
 
 
+Fix html header, gør den RWD venlig, publicer, genstart pc og rens ud. 
+Fix script som overføre et projekt

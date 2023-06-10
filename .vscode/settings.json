@@ -9,4 +9,5 @@
       "files.associations": {
         "publications/templates/**/*.*": "django-html"
       },
+      "editor.hover.enabled": false
 }

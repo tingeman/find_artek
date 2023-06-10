@@ -36,7 +36,6 @@ with open('secret/DJANGO_SECRET_KEY.txt', 'r') as f:
     SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# if 
 DEBUG = False
 
 ALLOWED_HOSTS = [
@@ -50,7 +49,6 @@ MEDIA_ROOT = os.path.join('/var/www/find_artek_static/media')
 MEDIA_URL = '/media/'
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

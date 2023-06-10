@@ -26,6 +26,10 @@ class BaseView(View):
             # Other common context variables...
         }
         return context
+    
+    def get(self, request, **kwargs):
+        context = self.get_context_data(**kwargs)
+        return render(request, self.base_template, context)
 
 
 
