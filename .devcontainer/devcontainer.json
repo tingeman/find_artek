@@ -1,0 +1,15 @@
+{
+    "name": "Find Artek Django Dev Container",
+    "build": {
+        "context": ".",
+        "dockerfile": "Dockerfile"
+    },
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    } 
+}
