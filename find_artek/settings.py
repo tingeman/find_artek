@@ -20,7 +20,7 @@ import os
 
 
 
-from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
+# from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
