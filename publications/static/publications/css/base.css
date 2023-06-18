@@ -1,5 +1,7 @@
+/* defining fonts starts here */
 @font-face {
-    font-family: 'Roboto'; /* Replace with your preferred font name */
+    font-family: 'Roboto';
+    /* Replace with your preferred font name */
     src: url('/static/publications/font/roboto/Roboto-Light.ttf') format('truetype');
     font-weight: 600;
     font-style: normal;
@@ -11,10 +13,56 @@
 
     font-weight: 200 900;
     font-stretch: 75% 125%;
-  }
+}
 
+/* defining fonts ends here */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* sets variables starts here */
 :root {
-    --primary-font-family:  "Mona Sans", "Roboto", Verdana, Geneva, sans-serif;
+    --primary-font-family: "Mona Sans", "Roboto", Verdana, Geneva, sans-serif;
     --primary-color: black;
     --primary-background-color: #B0C4DE;
     --message-border-width: 1px;
@@ -22,8 +70,12 @@
     --dtu-color-corporate-red: #900;
 
 
+
+
     /* header variables starts here */
     --header-height: 64px;
+    --header-sign-in-icon-width: 12px;
+    --header-sign-in-span-width: 51px;
     /* header variables ends here */
 
 
@@ -32,16 +84,77 @@
     /* footer variables ends here */
 }
 
+/* sets variables ends here */
 
 
 
-/* General styling starts here */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Helper classes starts here */
+
 /* Define a base class for flex containers */
 .flex-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* padding: 1rem; */
 }
 
 .flex-row {
@@ -72,17 +185,59 @@
     justify-content: space-between;
 }
 
+.blur {
+    filter: blur(2px);
+    z-index: -1;
+}
 
-/* General styling ends here */
+/* Helper classes ends here */
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* General default styling for all pages starts here */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    
 }
+
 
 
 body {
@@ -91,12 +246,12 @@ body {
     font-family: var(--primary-font-family);
     color: var(--primary-color);
     min-height: 100vh;
-    height:auto;
+    height: auto;
     width: 100%;
-    
 }
 
-body a:link, body a:visited {
+body a:link,
+body a:visited {
     text-decoration: none;
     color: var(--primary-color);
 }
@@ -106,41 +261,181 @@ body a:hover {
     cursor: pointer;
 }
 
+ul {
+    list-style-type: none;
+}
+/* General default styling for all pages ends here */
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Loading icon styling for map and reports starts here */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
 
 
 
 #loading-overlay {
-    position: absolute; /* Position it absolutely within the relative container */
+    position: absolute;
+    /* Position it absolutely within the relative container */
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
-    display: flex; /* To center the loading icon and text */
+    background: rgba(255, 255, 255, 0.8);
+    /* Semi-transparent white background */
+    display: flex;
+    /* To center the loading icon and text */
     align-items: center;
     justify-content: center;
-    z-index: 2000; /* To make sure it appears above the other content, including Leaflet's components */
-  }
+    z-index: 2000;
+    /* To make sure it appears above the other content, including Leaflet's components */
+}
 
 
 
-  #loading-icon {
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid var(--primary-background-color); /* Blue */
+#loading-icon {
+    border: 8px solid #f3f3f3;
+    /* Light grey */
+    border-top: 8px solid var(--primary-background-color);
+    /* Blue */
     border-radius: 50%;
     width: 80px;
     height: 80px;
     animation: spin 2s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+/* Loading icon styling for map and reports ends here */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -152,46 +447,198 @@ header {
     width: auto;
     height: var(--header-height);
     overflow: auto;
-    
 }
 
-.default-header-content {
+header .default-header-content {
     width: var(--primary-site-width);
-    font-family: var(--primary-font-family), sans-serif; /* The second font is a fallback in case the custom font fails to load */
+    font-family: var(--primary-font-family), sans-serif;
+    /* The second font is a fallback in case the custom font fails to load */
     font-size: 16px;
 }
 
 
 
-header .nav-right span {
-    margin-left: 10px;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* <!-- default header menu. starts here --> */
+
+/* <!-- navigiation to the left starts here --> */
+header .nav-left {
+    width: 240px;
+}
+
+header .frontpage-icon {
+    height: 40px;
 }
 
 
-.nav-left {
-    width : 240px;
+
+/* <!-- navigiation to the left ends here --> */
+
+
+
+
+
+
+
+
+
+
+
+
+/* <!-- navigiation to the right starts here --> */
+header .nav-right .sign-in {
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 5px;
+    width: calc(var(--header-sign-in-icon-width) + var(--header-sign-in-span-width) + 20px);
 }
 
-
-
-header .header-content .nav-left .nav-link, .nav-right .nav-link {
-    margin: 0 10px; /* Adjust the value as needed */
+header .sign-in-icon {
+    height: 18px;
+    width: var(--header-sign-in-icon-width);
 }
 
-.headline {
-    margin-bottom: 20px;
+header .sign-in span {
+    height: 18px;
+    min-width: var(--header-sign-in-span-width);
 }
 
-.headline-description {
-    margin-bottom: 20px;
-}
+/* <!-- navigiation to the right ends here --> */
 
-.nav-mobile {
+header .mobile-header-content {
     display: none;
 }
 
-/* @media (max-width: 768px) {} */
+/* <!-- default header menu. ends here --> */
 
+
+
+
+
+
+/* <!-- mobile menu. starts here --> */
+
+
+@media screen and (max-width: 768px) {
+    .default-header-content {
+        display: none;
+    }
+
+    header .mobile-header-content {
+        padding-left: 10vw;
+        padding-right: 10vw;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--primary-background-color);
+    }
+
+
+    /* this is the hamburger menu starts here */
+    .bar1,
+    .bar2,
+    .bar3 {
+        width: 35px;
+        height: 5px;
+        background-color: #333;
+        margin: 6px 0;
+        transition: 0.4s;
+    }
+
+    .change .bar1 {
+        transform: translate(0, 11px) rotate(-45deg);
+    }
+
+    .change .bar2 {
+        opacity: 0;
+    }
+
+    .change .bar3 {
+        transform: translate(0, -11px) rotate(45deg);
+    }
+    /* this is the hamburger menu ends here */
+
+
+    .mobile-menu-expanded {
+        border-radius: 10px;
+        width: 200px;
+        height: calc(100vh - var(--header-height) - var(--footer-height) - 500px);
+        background-color: var(--primary-background-color);
+        display: none;
+        position: absolute;
+        top: 80px;
+        right: 4vw;
+
+    }
+
+    .mobile-menu-expanded li {
+        margin-top: 30px;
+        margin-left: 20px;
+    }
+
+    
+    header .sign-in {
+        border: 1px solid black;
+        border-radius: 5px;
+        padding: 5px;
+        width: calc(var(--header-sign-in-icon-width) + var(--header-sign-in-span-width) + 20px);
+    }
+    
+    header .sign-in-icon {
+        height: 18px;
+        width: var(--header-sign-in-icon-width);
+    }
+    
+    header .sign-in span {
+        height: 18px;
+        min-width: var(--header-sign-in-span-width);
+    }
+    
+}
+/* <!-- mobile menu. ends here --> */
 
 
 /* header styling ends here  */
@@ -203,31 +650,163 @@ header .header-content .nav-left .nav-link, .nav-right .nav-link {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* MAIN STYLING STARTS HERE */
+/* This styling should be further adjusted in a template css file */
+
 main {
+    position: relative;
     padding-top: 20px;
     padding-bottom: 20px;
     width: var(--primary-site-width);
-    margin: 0 auto; /* Add this to center the main content horizontally */
+    margin: 0 auto;
+    /* Add this to center the main content horizontally */
     flex-grow: 1;
     overflow: auto;
     min-height: calc(100vh - var(--header-height) - var(--footer-height));
 }
 
-footer {
+main .headline {
+    margin-bottom: 20px;
+}
 
-    
+main .headline-description {
+    margin-bottom: 20px;
+}
+
+
+/* MAIN STYLING ENDS HERE */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* FOOTER STYLING STARTS HERE */
+footer {
     overflow: auto;
     width: auto;
-    
     height: var(--footer-height);
     background: var(--primary-background-color);
-    /* Your footer styles here */
 }
 
 .footer-content {
     width: 100%;
     height: 100%;
-    
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -242,16 +821,15 @@ footer {
     width: 400px;
     height: 100%;
     display: flex;
-    /* flex-direction: grid; */
 }
 
-.browsers-msg {
+.footer-content .box-right .browsers-msg {
     display: flex;
     align-items: center;
     font-size: small;
 }
 
-.list-of-browsers-img {
+.footer-content .box-right .list-of-browsers-img {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -260,88 +838,10 @@ footer {
     height: 100%;
 }
 
-.list-of-browsers-img > img {
+.footer-content .box-right .list-of-browsers-img>img {
     margin-left: 10px;
     width: 32px;
     height: 32px;
 }
 
-
-
-@media screen and (max-width: 768px) {
-    .default-header-content {
-      display: none !important;
-    }
-  
-    .mobile-header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      background-color: #f8f8f8;
-    }
-  
-    .menu-toggle {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      width: 30px;
-      height: 20px;
-      cursor: pointer;
-    }
-  
-    .menu-icon {
-      width: 100%;
-      height: 3px;
-      background-color: #333;
-      border-radius: 3px;
-    }
-  
-    .mobile-menu {
-      display: none;
-      flex-direction: column;
-      padding: 10px;
-      background-color: #f8f8f8;
-    }
-  
-    .mobile-menu a {
-      display: block;
-      margin-bottom: 10px;
-      font-size: 16px;
-      color: #333;
-      text-decoration: none;
-    }
-  
-    .mobile-menu a:hover {
-      color: #0074d9;
-    }
-  
-    .mobile-menu a.sign-in {
-      display: flex;
-      align-items: center;
-    }
-  
-    .mobile-menu a.sign-in img {
-      margin-right: 10px;
-    }
-  
-    .mobile-menu a.sign-in span {
-      font-size: 16px;
-      font-weight: bold;
-    }
-  
-    .menu-open .menu-icon {
-      transform: rotate(45deg);
-      background-color: #0074d9;
-    }
-  
-    .menu-open .menu-icon:before,
-    .menu-open .menu-icon:after {
-      transform: rotate(-90deg);
-      background-color: #0074d9;
-    }
-  
-    .menu-open .mobile-menu {
-      display: flex;
-    }
-  }
+/* FOOTER STYLING ENDS HERE */
