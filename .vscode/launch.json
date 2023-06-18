@@ -18,12 +18,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
             "args": [
-                "runserver",
-                "0.0.0.0:80",
-                "--noreload",
-                "--settings",
-                "myproject.settings",
-                "--debug"
+                "runserver", "0.0.0.0:8000",
+                "--settings", "find_artek.development_settings"
             ],
             "django": true,
             "justMyCode": true

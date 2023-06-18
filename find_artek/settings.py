@@ -20,7 +20,7 @@ import os
 
 
 
-from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
+# from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -32,8 +32,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-with open('secret/DJANGO_SECRET_KEY.txt', 'r') as f:
-    SECRET_KEY = f.read().strip()
+SECRET_KEY = "secret"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # if 
@@ -61,7 +60,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django.contrib.gis',
     'publications',
-    'sorl.thumbnail',
+    # 'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
