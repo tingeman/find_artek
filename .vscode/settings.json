@@ -9,4 +9,6 @@
       "files.associations": {
         "publications/templates/**/*.*": "django-html"
       },
+
+      // "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
 }

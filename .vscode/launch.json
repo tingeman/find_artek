@@ -18,23 +18,71 @@
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
             "args": [
-                "runserver", "0.0.0.0:8000",
-                "--settings", "find_artek.development_settings"
+                "runserver",
+                "0.0.0.0:8000",
+                "--settings",
+                "find_artek.development_settings"
             ],
             "django": true,
             "justMyCode": true
         },
-
         {
             "name": "ChromiumDev: Home",
-            "version": "stable",
             "runtimeExecutable": "C:\\Program Files\\chromium\\chrome-win\\chrome.exe",
-
             "request": "launch",
             "type": "msedge",
-            "url": "http://localhost",
+            "url": "http://localhost:8000",
             "webRoot": "${workspaceFolder}/publications",
             "disableNetworkCache": true
+        },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash: Datatransfer",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/publications/datatransfer_script.sh",
+            "args": [
+                "--skip-data-transfer", 
+                "false",
+                "--use-sqlite",
+                "true"
+            ]
+        },
+        {
+            "name": "Python: Datatransfer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runscript",
+                "publications.datatransfer_script"
+            ],
+            "django": true
+        },
+        {
+            "name": "Python: FeatureData",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runscript",
+                "publications.datatranser_feature_data"
+            ],
+            "django": true
         },
     ]
 }

@@ -4,12 +4,17 @@
         "context": ".",
         "dockerfile": "Dockerfile"
     },
-    "workspaceFolder": "/workspace",
+    "workspaceFolder": "/workspaces/find_artek",
     "customizations": {
         "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/workspaces/find_artek/venv/bin/python"
+            },
             "extensions": [
-                "ms-python.python"
+                "ms-python.python",
+                "rogalmic.bash-debug"
             ]
         }
-    } 
+    },
+    "postCreateCommand": ""
 }

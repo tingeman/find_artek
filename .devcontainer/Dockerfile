@@ -40,3 +40,5 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN python3 -m venv $VIRTUAL_ENV
 RUN /bin/bash -c "source $VIRTUAL_ENV/bin/activate"
+
+
