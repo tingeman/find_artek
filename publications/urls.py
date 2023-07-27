@@ -12,7 +12,8 @@ urlpatterns = [
     path('report/<int:publication_id>/', views.ReportView.as_view(), name='report'),
     path('person/<int:person_id>/', views.PersonView.as_view(), name='person'),
     path('feature/<int:feature_id>/', views.FeatureView.as_view(), name='feature'),
-    path('login/', views.LoginView.as_view(), name='login'),
+    # path('login/', views.LoginView.as_view(), name='login'),
+    # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
     # API DATA NAMESPACE

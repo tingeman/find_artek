@@ -38,6 +38,11 @@ SECRET_KEY = "secret"
 # if 
 DEBUG = False
 
+
+# CAS
+CAS_SERVER_URL = 'https://auth2.dtu.dk/dtu/'
+
+
 ALLOWED_HOSTS = [
     'find-artek.vezit.net',
     'find.artek.byg.dtu.dk',
@@ -49,7 +54,6 @@ MEDIA_ROOT = os.path.join('/var/www/find_artek_static/media')
 MEDIA_URL = '/media/'
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -60,7 +64,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django.contrib.gis',
     'publications',
-    # 'sorl.thumbnail',
+    'django_cas_ng'
 ]
 
 MIDDLEWARE = [
@@ -159,6 +163,10 @@ STATIC_ROOT = '/var/www/find_artek_static/staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'django_cas_ng.backends.CASBackend',
+)
 
 
 #### LPAP ####

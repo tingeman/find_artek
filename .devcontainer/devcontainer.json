@@ -11,8 +11,7 @@
                 "python.defaultInterpreterPath": "/workspaces/find_artek/venv/bin/python"
             },
             "extensions": [
-                "ms-python.python",
-                "rogalmic.bash-debug"
+                "ms-python.python"
             ]
         }
     },

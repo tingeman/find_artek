@@ -19,7 +19,7 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
-
+import django_cas_ng.views
 
 urlpatterns = [
 
@@ -31,6 +31,9 @@ urlpatterns = [
     
     # include the urls from the publications app
     path('publications/', include('publications.urls')),
+
+    path('login', django_cas_ng.views.LoginView.as_view(), name='cas_ng_login'),
+    path('logout', django_cas_ng.views.LogoutView.as_view(), name='cas_ng_logout'),
 ]
 
 

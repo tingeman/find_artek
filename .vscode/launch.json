@@ -36,53 +36,5 @@
             "disableNetworkCache": true
         },
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-        {
-            "type": "bashdb",
-            "request": "launch",
-            "name": "Bash: Datatransfer",
-            "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/publications/datatransfer_script.sh",
-            "args": [
-                "--skip-data-transfer", 
-                "false",
-                "--use-sqlite",
-                "true"
-            ]
-        },
-        {
-            "name": "Python: Datatransfer",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": [
-                "runscript",
-                "publications.datatransfer_script"
-            ],
-            "django": true
-        },
-        {
-            "name": "Python: FeatureData",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": [
-                "runscript",
-                "publications.datatranser_feature_data"
-            ],
-            "django": true
-        },
     ]
 }

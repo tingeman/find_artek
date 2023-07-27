@@ -68,7 +68,7 @@
 
 
 
-                <a class="sign-in nav-link flex-container justify-between" href="{% url 'login' %}">
+                <a class="sign-in nav-link flex-container justify-between" href="{% if user.is_authenticated %}{% url 'cas_ng_logout' %}{% else %}{% url 'cas_ng_login' %}{% endif %}">
 
                     <img class="sign-in-icon"
                         src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
@@ -184,7 +184,7 @@
 
 
             <div class="outer-sign-in-link">
-                <a class="sign-in nav-link flex-container justify-between" href="{% url 'login' %}">
+                <a class="sign-in nav-link flex-container justify-between" href="{% if user.is_authenticated %}{% url 'cas_ng_logout' %}{% else %}{% url 'cas_ng_login' %}{% endif %}">
 
                     <img class="sign-in-icon"
                         src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
