@@ -6,21 +6,21 @@ document.addEventListener("DOMContentLoaded", function (event) {
     const loadingOverlay = document.getElementById('loading-overlay');
     const reportsTableList = document.getElementById('reports-table-list');
     const totalReportsNumber = document.getElementById('total-reports-number');
-
-    // Get topic get parameter from url
-    const urlParams = new URLSearchParams(window.location.search);
-    const topic = urlParams.get('topic');
-    if (!topic) {
-        throw new Error('Topic parameter not found in URL');
-    }
-
-    // from http://localhost/publications/person/2/ extract 2
-    const personId = window.location.pathname.split('/')[3];
+    
 
     const apiEndpoint = '/publications/api/reports/';
 
+    // check if get paramete 'topic' is present
+    const urlParams = new URLSearchParams(window.location.search);
+    let topic = urlParams.get('topic');
+    // if topic is null or undefined, set it to 'all'
+    if (topic === null || topic === undefined) {
+        topic = 'All';
+    }
+    
+
     // Global variables
-    let $ = {
+    let $my = {
         reportsTableList: reportsTableList,
         myReportsClass: new MyReportsClass(
             loadingOverlay, 
@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 
     // This block will run when the DOM is loaded.
-    main($).then((finished) => {
+    main($my).then((finished) => {
         if (finished) {
             console.log("main() is done executing.");
         }
@@ -51,8 +51,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
 // ============
 // Main
 // ============
-async function main($) {
-    $.myReportsClass.getReports($.filter)
+async function main($my) {
+    $my.myReportsClass.getReports($my.filter)
 }
 
 // ============

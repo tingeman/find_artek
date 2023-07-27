@@ -689,3 +689,15 @@ class TestPublicationData(unittest.TestCase):
     # These unit tests were created to compare data relations in the old v1.6 app and verify that features such as many-to-many relationships are still functioning correctly. 
 
 # Write image function check if image is objectship association is correct
+
+
+
+
+
+
+
+
+
+
+
+# test if api works 
