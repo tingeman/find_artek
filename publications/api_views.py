@@ -16,7 +16,7 @@ def get_feature_geographic_location_data(request):
 
     feature_data = []
     for feature in features:
-        related_publications = feature.get_related_publications()
+        related_publications = feature.publications.all()
 
         related_publications_data = []
 

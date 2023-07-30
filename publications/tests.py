@@ -656,8 +656,10 @@ class TestPublicationData(unittest.TestCase):
         print("feature.description: ", feature.description)
         print("feature.publications: ", feature.publications)
 
-        # Get the related publications
-        related_publications = feature.get_related_publications()
+        # publication = Publication.objects.get(pk=1352)
+        # # Get the related publications
+        # related_publications = feature.get_related_publications()
+        related_publications = feature.publications.all()
 
         # esxpected related publications titles
         expected_related_publications_titles = [

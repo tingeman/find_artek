@@ -51,8 +51,8 @@ def get_image_path(obj, filename):
 # Models
 class BaseModel(models.Model):
 
-    created_date = models.DateTimeField() # when done moving data use these parameters: auto_now_add=True
-    modified_date = models.DateTimeField() # when done moving data use these parameters: auto_now=True
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_created")
     modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_modified")
     
@@ -123,8 +123,6 @@ class Topic(models.Model):
     def __unicode__(self):
         return self.topic
 
-    def __str__(self):
-        return self.topic
 
 class Keyword(models.Model):
     keyword = models.CharField(max_length=100)
@@ -132,8 +130,6 @@ class Keyword(models.Model):
     def __unicode__(self):
         return self.keyword
 
-    def __str__(self):
-        return self.keyword
 
 class ImageObject(BaseModel):
     upload_to = None     # If set, this value should be used in upload_to function
@@ -200,10 +196,6 @@ class FileObject(BaseModel):
             unit = 'bytes'
 
         return "{0:.1f} {1}".format(file_size, unit)
-    
-    def filename(self):
-        return os.path.basename(self.file.name)
-
 
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)
@@ -227,7 +219,7 @@ class Publication(BaseModel):
     publication_topics = models.ManyToManyField(Topic, through='Topicship', blank=True, default=None)
 
     publication_keywords = models.ManyToManyField(Keyword, through='Keywordship', blank=True, default=None)
-
+    
     appendices = models.ManyToManyField(FileObject, through='Appendenciesship', related_name='publication_appendices', blank=True, default=None)
 
     URLs = models.ManyToManyField(URLObject, through='PublicationURLObjectship', blank=True, default=None)
@@ -273,66 +265,6 @@ class Publication(BaseModel):
             ("delete_own_publication", "Can delete own publications"),
             ("verify_publication", "Can verify publications"),
         )
-        
-    def create_key(self):
-        if not self.author.all():
-            return
-
-        alphabet = ['']
-        alphabet.extend(list('abcdefghijklmnopqrstuvwxyz'))
-        success = False
-        if self.type.type == 'STUDENTREPORT':
-            for letter in alphabet:
-                key = '{0}({1}{2})'.format(self.author.all().order_by('authorship__author_id')[0].last,
-                                            self.year, letter)
-                if not Publication.objects.filter(key=key):
-                    success = True
-                    break
-
-            if not success:
-                raise ValueError('Could not construct valid key!')
-        else:
-            key = ''
-
-        if success:
-            self.key = key
-            self.save()
-
-    def sorted_authors(self):
-        """ Returns the authors as a list of Person instances sorted
-        according to the author index (so in the correct order from
-        the publication. """
-        return self.author.all().order_by('authorship__author_id')
-
-    def sorted_authorships(self):
-        """ Returns the authorships as a list of Authorship instances sorted
-        according to the author index (so in the correct order from
-        the publication. """
-        return self.authorship_set.all().order_by('author_id')
-
-    def sorted_supervisors(self):
-        """ Returns the supervisors as a list of Person instances sorted
-        according to the supervisor index (so in the correct order from
-        the publication. """
-        return self.supervisor.all().order_by('supervisorship__supervisor_id')
-
-    def sorted_supervisorships(self):
-        """ Returns the supervisorships as a list of supervisorship instances sorted
-        according to the supervisor index (so in the correct order from
-        the publication. """
-        return self.supervisorship_set.all().order_by('supervisor_id')
-
-    def sorted_editors(self):
-        """ Returns the editors as a list of Person instances sorted
-        according to the editor index (so in the correct order from
-        the publication. """
-        return self.editor.all().order_by('editorship__editor_id')
-
-    def sorted_editorships(self):
-        """ Returns the editorships as a list of editorship instances sorted
-        according to the editor index (so in the correct order from
-        the publication. """
-        return self.editorship_set.all().order_by('editor_id')
 
 class Feature(BaseModel):
     PHOTO =             'PHOTO'
@@ -429,16 +361,6 @@ class Feature(BaseModel):
         # if neither, return False
         return False
 
-    def get_related_publications(self):
-        return self.publications.all()
-    
-    def filename(self):
-        return os.path.basename(self.file.name)
-    
-    def imagesnames(self):
-        return os.path.basename(self.images.name)
-
-
 class ImageObjectship(models.Model):
     imageobject = models.ForeignKey(ImageObject, on_delete=models.CASCADE)
     feature = models.ForeignKey(Feature, on_delete=models.CASCADE)
@@ -512,6 +434,8 @@ class Supervisorship(models.Model):
 class PublicationURLObjectship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     URLs = models.ForeignKey(URLObject, on_delete=models.CASCADE)
+
+
 
 class AddPubFields(models.Model):
     # Model to handle undefined bibtex fields or mulitple instances
