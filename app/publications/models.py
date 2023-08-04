@@ -51,8 +51,8 @@ def get_image_path(obj, filename):
 # Models
 class BaseModel(models.Model):
 
-    created_date = models.DateTimeField() # when done moving data use these parameters: auto_now_add=True
-    modified_date = models.DateTimeField() # when done moving data use these parameters: auto_now=True
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_created")
     modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_modified")
     
@@ -196,6 +196,9 @@ class FileObject(BaseModel):
             unit = 'bytes'
 
         return "{0:.1f} {1}".format(file_size, unit)
+    
+    def filename(self):
+        return os.path.basename(self.file.name)
 
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)
@@ -242,7 +245,7 @@ class Publication(BaseModel):
     edition = models.CharField(max_length=255, blank=True)
     pages = models.CharField(max_length=100, blank=True)
     month = models.CharField(max_length=100, blank=True)
-    year = models.CharField(max_length=100, blank=True)
+    year = models.IntegerField(max_length=4, blank=True)
     DOI = models.CharField(max_length=255, blank=True)
     ISBN = models.CharField(max_length=255, blank=True)
     ISBN13 = models.CharField(max_length=255, blank=True)

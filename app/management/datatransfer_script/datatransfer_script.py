@@ -431,6 +431,23 @@ def run():
         publication_objects_created = 0
         publication_objects_already_exist = 0
         for dictionary in publication_dictionary:
+
+
+            # if year is not valid for fomat 'YYYY' then set it to None
+            try:
+                dictionary['year'] = int(dictionary['year'])
+            except ValueError:
+                number = dictionary['number']
+                number = number[:2] 
+                # extract first to characters from the number string
+                if int(number[:1]) == 1:
+                    dictionary['year'] = '19' + number
+                else:
+                    dictionary['year'] = '20' + number
+
+    
+                
+
             
 
             # This part replace invalid characters to valid characters, for example '‐' (8211) to this '-' (45)
@@ -446,6 +463,8 @@ def run():
                             replacement = invalid_to_valid[invalid_char]
                             input_string = input_string[:i] + replacement + input_string[i+1:]
                             dictionary[key] = input_string
+
+            
 
                 
 

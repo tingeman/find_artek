@@ -16,6 +16,5 @@ urlpatterns = [
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
-    # API DATA NAMESPACE
-    path('api/', include('publications.api_urls')),
+
 ]

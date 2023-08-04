@@ -2,7 +2,9 @@
 
 import unittest
 from publications.models import FileObject, Keyword, Person, Publication, Topic, Feature
-
+import json
+from django.conf import settings
+import os 
 
 class TestPublicationData(unittest.TestCase):
     def setUp(self):
@@ -678,7 +680,54 @@ class TestPublicationData(unittest.TestCase):
 
 
     ####### TESTING FEATURES ENDS HERE #######   
-        
+
+
+
+# Test FileObject
+    def test_get_file_foreach_publication(self):
+
+        # import json file
+        json_file_path = os.path.join(settings.BASE_DIR, 'management', 'datatransfer_script', 'publications_fileobject_assoc.json')
+        with open(json_file_path) as json_file:
+            data = json.load(json_file)
+
+
+        publications = Publication.objects.all()
+        for d in data:
+            
+            asserted_filename = d['filename']
+
+            if asserted_filename is None:
+                # expect an error when trying to get the file
+                publication = publications.get(pk=d['id'])
+
+                # Here, the with self.assertRaises(AttributeError): block will pass if an AttributeError is thrown within the block. If no AttributeError is thrown, then the test will fail.
+                with self.assertRaises(AttributeError):
+                    filename = publication.file.filename()
+
+                # if publication.file is not None:
+                
+                #     # Here, the with self.assertRaises(AttributeError): block will pass if an AttributeError is thrown within the block. If no AttributeError is thrown, then the test will fail.
+                #     with self.assertRaises(AttributeError):
+                #         filename = publication.file.filename()
+                # else:
+                #     print (publication.file)
+
+                
+            else :
+                publication = publications.get(pk=d['id'])
+                # get the fileobject
+                filename = publication.file.filename()              
+                # assert that that file name are the same
+                self.assertEqual(filename, asserted_filename, "The filename is correct")
+
+
+
+
+
+   
+    
+# Test FileObject
 
 
 

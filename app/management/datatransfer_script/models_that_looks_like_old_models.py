@@ -196,6 +196,9 @@ class FileObject(BaseModel):
             unit = 'bytes'
 
         return "{0:.1f} {1}".format(file_size, unit)
+    
+    def filename(self):
+        return os.path.basename(self.file.name)
 
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)
@@ -242,7 +245,7 @@ class Publication(BaseModel):
     edition = models.CharField(max_length=255, blank=True)
     pages = models.CharField(max_length=100, blank=True)
     month = models.CharField(max_length=100, blank=True)
-    year = models.CharField(max_length=100, blank=True)
+    year = models.IntegerField(max_length=4, blank=True)
     DOI = models.CharField(max_length=255, blank=True)
     ISBN = models.CharField(max_length=255, blank=True)
     ISBN13 = models.CharField(max_length=255, blank=True)
