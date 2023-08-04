@@ -6,10 +6,10 @@
             "request": "launch",
             "name": "Bash: Datatransfer",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/management/datatransfer_script/datatransfer_script.sh",
+            "program": "${workspaceFolder}/app/management/datatransfer_script/datatransfer_script.sh",
             "args": [
                 "--skip-data-transfer", 
-                "false",
+                "true",
                 "--use-sqlite",
                 "true"
             ]
@@ -18,7 +18,7 @@
             "name": "Python: Datatransfer",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/app/manage.py",
             "args": [
                 "runscript",
                 "management.datatransfer_script.datatransfer_script"
@@ -29,7 +29,7 @@
             "name": "Python: FeatureData",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/app/manage.py",
             "args": [
                 "runscript",
                 "management.datatransfer_script.datatranser_feature_data"
@@ -40,7 +40,7 @@
             "name": "Python: Unittest",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/app/manage.py",
             "args": [
                 "test",
                 "publications"
@@ -51,7 +51,7 @@
             "name": "Python: Runserver Live",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/app/manage.py",
             "args": [
                 "runserver",
                 "0.0.0.0:8000",
@@ -67,7 +67,7 @@
             "request": "launch",
             "type": "msedge",
             "url": "http://localhost:8000",
-            "webRoot": "${workspaceFolder}/publications",
+            "webRoot": "${workspaceFolder}/app/publications",
             "disableNetworkCache": true
         },
 

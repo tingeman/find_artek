@@ -1,19 +1,18 @@
 {
     "name": "Find Artek Django Dev Container",
-    "build": {
-        "context": ".",
-        "dockerfile": "Dockerfile"
-    },
-    "workspaceFolder": "/workspaces/find_artek",
+    "dockerComposeFile": "docker-compose.yaml",
+    "service": "find-artek-app",
+    "workspaceFolder": "/usr/src/find_artek",
     "customizations": {
         "vscode": {
             "settings": {
-                "python.defaultInterpreterPath": "/workspaces/find_artek/venv/bin/python"
+                "python.defaultInterpreterPath": "/usr/src/app/venv/bin/python"
             },
             "extensions": [
-                "ms-python.python"
+                "ms-python.python",
+                "rogalmic.bash-debug"
             ]
         }
     },
-    "postCreateCommand": ""
+    "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
 }
