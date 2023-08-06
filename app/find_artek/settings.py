@@ -39,7 +39,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "secret"
+# get secret key from .env file
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # if 
@@ -73,6 +74,7 @@ INSTALLED_APPS = [
     'publications',
     'django_cas_ng',
     'rest_framework',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -182,7 +184,8 @@ STATIC_URL = '/static/'
 # the docker volume dedicated to apache server is also secretly mounted here to conviently overwrite create the static files
 # python manage.py collectstatic
 # sets up the static files for the webserver
-STATIC_ROOT = '/var/www/find_artek_static/staticfiles'
+# BASE_DIR = '/usr/src/find_artek/app'
+STATIC_ROOT = os.path.join(BASE_DIR, '..', 'app-data', 'static')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

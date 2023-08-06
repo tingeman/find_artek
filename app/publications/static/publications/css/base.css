@@ -829,7 +829,7 @@ footer {
     font-size: small;
 }
 
-.footer-content .box-right .list-of-browsers-img {
+.footer-content .box-right .github-img {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -838,7 +838,7 @@ footer {
     height: 100%;
 }
 
-.footer-content .box-right .list-of-browsers-img>img {
+.footer-content .box-right .github-img>img {
     margin-left: 10px;
     width: 32px;
     height: 32px;

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Publication list{% endblock %}
+{% block head %}
+	<link rel="stylesheet" href="{{STATIC_URL}}jquery/css/redmond/jquery-ui-1.9.2.custom.css" />
+	<link rel="stylesheet" href="{{STATIC_URL}}publications/css/person_form_ajax.css" />
+    <script src="{{STATIC_URL}}jquery/js/jquery-1.8.3.js"></script>
+    <script src="{{STATIC_URL}}jquery/js/jquery-ui-1.9.2.custom.js"></script>
+	<script>
+		$(function() {
+			$( "#collapsible" ).accordion({
+				collapsible: true,
+				active: false,
+				heightStyle: "content",
+			});
+		});
+	</script>
+{% endblock %}
+
+
+{% block headline %}Tilføj eller ændre person{% endblock %}
+
+
+{% block body %}
+
+
+<div id="person-form-dialog" title="Create new Person">
+    <p class="validateTips">Please fill in information about person.</p>
+
+    <form method="post" id="person-form">{% csrf_token %}
+		{# Include the visible fields #}
+		{% for field in form.normal_fields %}
+
+				<p>{{ field.label_tag }} {{ field }}<span class="help-block">{{ field.help_text }}</span></p>
+
+		{% endfor %}
+		<div id='collapsible'>
+		<h3>Additional information</h3>
+		<div>
+		{% for field in form.collapsible_fields %}
+				<p>{{ field.label_tag }} {{ field }}<span class="help-block">{{ field.help_text }}</span></p>
+		{%endfor%}
+		</div>
+		</div>
+		<button type="submit" id="submit">submit</button>
+    </form>
+</div>
+<div id="person-form-response"></div>
+
+
+{% endblock %}

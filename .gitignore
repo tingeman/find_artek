@@ -5,9 +5,9 @@ app/venv/*
 
 app-data/*
 
+httpd/*
 
-
-
+*.zip
 
 
 # ------ files to ignore from app-classic ------ #

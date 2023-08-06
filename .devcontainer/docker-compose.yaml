@@ -11,7 +11,8 @@ services:
     volumes:
       - ..:/usr/src/find_artek
       - ../app-data:/usr/src/find_artek/app-data
-    command: sleep infinity
+    #command: sleep infinity
+    command: bash -c 'cd /usr/src/find_artek/app && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8000'
 
   find-artek-db:
     image: postgis/postgis:latest
@@ -37,7 +38,7 @@ services:
     volumes:
       - ../app-data:/usr/src/app/app-data
       - ../app-classic/find_artek:/usr/src/app/find_artek
-    command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:8080'
+    command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:80'
 
     # command: sleep infinity
     stdin_open: true

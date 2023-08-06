@@ -54,6 +54,8 @@
 
                 <a class="nav-link header-nav-persons" href="{% url 'persons' %}">{% trans "Persons" %}</a>
 
+                <a class="nav-link header-nav-api" href="{% url 'schema-swagger-ui' %}">{% trans "API" %}</a>
+
                 
 
             </nav>
@@ -87,84 +89,6 @@
             </nav>
             <!-- navigiation to the right -->
         </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -355,15 +279,19 @@
 
     <footer>
         <div class="footer-content">
-            <div class="box-left"></div>
+            <div class="box-left">
+                Switch to classic version
+                Report a bug, or request a feature (requires login - for avoiding spam)
+
+            </div>
             <div class="box-right">
                 <div class="browsers-msg">
-                    <span>Designed and tested for Chromium and Firefox</span>
+                    <span>{% trans "Source code" %}</span>
                 </div>
-                <div class="list-of-browsers-img">
-                    <img src="{% static 'publications/img/Chromium_Logo.png'  %}" alt="" class="src">
-                    <img src="{% static 'publications/img/Firefox_Developer_Edition_logo.png'  %}"
-                        alt="Firefox_Developer_Edition_logo" srcset="">
+                <div class="github-img">
+                    <img src="{% static 'publications/img/Octicons-mark-github.svg.png'  %}" alt="" class="src">
+                    <!-- <img src="{% static 'publications/img/Firefox_Developer_Edition_logo.png'  %}"
+                        alt="Firefox_Developer_Edition_logo" srcset=""> -->
                 </div>
             </div>
         </div>

@@ -153,7 +153,7 @@ class TestPublicationData(unittest.TestCase):
 
 
     # Test if you can find all publications and it's assicated files related to a person - Niels Foged with id 3
-    # This is relevant under http://find-artek-1-6-11.local:8080/pubs/person/3/
+    # This is relevant under http://find-artek-classic.vezit.net:8080/pubs/person/3/
     def test_get_files_on_person(self):
         # Get the real data from the database
         person = Person.objects.get(id=3)

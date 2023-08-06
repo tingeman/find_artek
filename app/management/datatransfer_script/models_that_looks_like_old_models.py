@@ -245,7 +245,7 @@ class Publication(BaseModel):
     edition = models.CharField(max_length=255, blank=True)
     pages = models.CharField(max_length=100, blank=True)
     month = models.CharField(max_length=100, blank=True)
-    year = models.IntegerField(max_length=4, blank=True)
+    year = models.IntegerField(blank=True)
     DOI = models.CharField(max_length=255, blank=True)
     ISBN = models.CharField(max_length=255, blank=True)
     ISBN13 = models.CharField(max_length=255, blank=True)

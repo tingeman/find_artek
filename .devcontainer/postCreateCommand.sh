@@ -3,3 +3,4 @@ cd ./app && rm -rf venv && python3 -m venv venv && source venv/bin/activate && p
 
 git config --global user.email "victor.reipur@gmail.com"
 git config --global user.name "Victor Reipur"
+git config --global --add safe.directory /usr/src/find_artek

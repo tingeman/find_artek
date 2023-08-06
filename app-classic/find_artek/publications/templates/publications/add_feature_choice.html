@@ -1,0 +1,107 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% trans "Add feature" %}{% endblock %}
+{% block head %}
+<style>
+.add_feature_choice {
+display:               inline-block;
+border-style:          solid;
+border-width:           4px;
+border-color:           #B0C4DE;
+-moz-border-radius:     6px;
+-webkit-border-radius:  6px;
+border-radius:          6px;
+width:                  350px;
+height:                 250px;
+padding-left:           20px;
+padding-right:          20px;
+padding-bottom:         20px;
+margin-right:           20px;
+margin-bottom:          20px;
+vertical-align:         top;
+horizontal-align:       center;
+}
+.add_feature_choice h3 {
+    font-size:     1.7em;
+}
+.add_feature_choice p {
+    display:     inline;
+}
+.add_feature_choice li {
+    padding-bottom:   5px;
+}
+
+
+.button, .button:link, button:hover {
+    background: #ECECEC;
+    background: -moz-linear-gradient(top, #fff 0, #ececec 100%);
+    background: -o-linear-gradient(top, #fff 0, #ececec 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #fff), color-stop(100%, #ececec));
+    background: linear-gradient(top, #ffffff 0%,#ececec 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFF', endColorstr='#ECECEC',GradientType=0 );
+    border-color: #ccc;
+    color: #585858 !important;
+    text-shadow: none;
+    border-width: 1px;
+    border-style: solid;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: normal;
+    margin: 5px;
+    overflow: visible;
+    padding: 3px 10px 2px;
+    text-decoration: none !important;
+    vertical-align: top;
+    width: auto;
+}
+
+.button:hover {
+    background: #ECECEC;
+}
+
+
+
+</style>
+{% endblock %}
+
+
+{% block headline %}{% trans "Add feature" %}{% endblock %}
+
+
+{% block body %}
+
+
+<div class="add_feature_choice">
+    <h3>{% trans "Coordinates available..." %}</h3>
+    <p>{% trans "If you have coordinates for the feature(s) you want to add, choose one the choices below to register the feature." %}</p>
+    <ul>
+        <li>{% trans "If you are registering only one or very few POINT features, you may use the interactive online form. (This form does not allow registration of LINE or POLYGON features!)" %}</li>
+        <li>{% trans "If you are registering several features (or lines/polygons), it may be more convenient to use the option to fill and upload an Excel sheet containing the information about the features. Press the button to acces the upload page and a link to download the Excel file template to fill." %}</li>
+    </ul>
+    <br>
+    <a href="/pubs/report/{{ pub.id }}/add/feature/online_form/" class="button">{% trans "Online form" %}</a>
+    <a href="/pubs/report/{{ pub.id }}/add/features/from_file/" class="button">{% trans "Registration by Excel sheet" %}</a>
+
+    <!---
+    <ul class="action-links">
+        <li><a href="" class="button"><span>{% trans "Online form" %}</span></a></li>
+        <li><a href="" class="button"><span>{% trans "Registration by Excel sheet" %}</spa/pubs/report/{{ pub.id }}/add/feature/digitize/>
+    -->
+</div>
+
+<div class="add_feature_choice">
+    <h3>{% trans "Digitize from map..." %}</h3>
+    <p>{% trans "If you don't have coordinates for the feature(s) you want to register, you can choose this option to register a feature position by clicking an interactive map." %}</p>
+    <br>
+    <br>
+    <br>
+    <a href="/pubs/report/{{ pub.id }}/add/feature/digitize/" class="button">{% trans "Digitize from map" %}</a>
+    <!--
+    <ul class="action-links">
+        <li><a href="" class="button"><span>{% trans "Digitize from map" %}</span></a></li>
+    </ul>
+    -->
+</div>
+{% endblock %}
