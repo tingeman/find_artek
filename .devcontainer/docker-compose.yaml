@@ -10,6 +10,7 @@ services:
       - 8000:8000
     volumes:
       - ..:/usr/src/find_artek
+      - ../app-data:/usr/src/find_artek/app-data
     command: sleep infinity
 
   find-artek-db:
@@ -30,4 +31,27 @@ services:
       - 5050:80
     depends_on:
       - find-artek-db
-      
+
+  find-artek-classic:
+    image: vicmrp/django1-6-11_python2-7-9_artek_2022-11-21-v0-2
+    volumes:
+      - ../app-data:/usr/src/app/app-data
+      - ../app-classic/find_artek:/usr/src/app/find_artek
+    command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:8080'
+
+    # command: sleep infinity
+    stdin_open: true
+    tty: true
+
+
+
+  httpd:
+    image: httpd:2.4
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ../app-data:/app-data
+      - ../httpd/usr/local/apache2:/usr/local/apache2
+
+

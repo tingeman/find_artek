@@ -9,7 +9,7 @@
             "program": "${workspaceFolder}/app/management/datatransfer_script/datatransfer_script.sh",
             "args": [
                 "--skip-data-transfer", 
-                "true",
+                "false",
                 "--use-sqlite",
                 "true"
             ]
