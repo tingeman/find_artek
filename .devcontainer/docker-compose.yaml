@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   find-artek-app:
-    # image: find-artek-app
+    image: vicmrp/find-artek-app
+    container_name: find-artek-app
     build:
       context: .
       dockerfile: Dockerfile-find-artek

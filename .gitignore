@@ -9,6 +9,7 @@ httpd/*
 
 *.zip
 
+*.gz
 
 # ------ files to ignore from app-classic ------ #
 
