@@ -2,7 +2,7 @@ app/venv/*
 temp/
 
 # ignore .env files
-*.env
+**/.env
 
 app-data/*
 
