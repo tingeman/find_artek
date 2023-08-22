@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 
 async function getFeatureData() {
-  const jsonString = await fetch('/api/features/')
+  const jsonString = await fetch('/api/feature/')
   const featureData = jsonString.json()
   return featureData
 }

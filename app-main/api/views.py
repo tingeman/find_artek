@@ -26,9 +26,6 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         return string_of_topics
 
 
-    # x = Topic.objects.all()
-
-    # y = 0
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter(
@@ -50,6 +47,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         return Response(serializer.data)
 
 
+    # This functions returns the values to the client
     def get_queryset(self):
         queryset = Publication.objects.all()
         filter_param = self.request.query_params.get('topic', None)
@@ -66,3 +64,33 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
 
             
         return queryset
+    
+
+
+
+class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = FeatureSerializer
+
+
+    @swagger_auto_schema(
+        manual_parameters=[
+
+        ],
+        responses={
+            200: 'List of geograhic associated data.',
+            404: 'Ressource not found'
+        }
+    )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    
+    def get_queryset(self):
+        queryset = Feature.objects.all()
+    
+        return queryset
+        
