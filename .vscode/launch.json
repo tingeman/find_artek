@@ -6,19 +6,19 @@
             "request": "launch",
             "name": "Bash: Datatransfer",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/app/management/datatransfer_script/datatransfer_script.sh",
+            "program": "${workspaceFolder}/app-main/management/datatransfer_script/datatransfer_script.sh",
             "args": [
                 "--skip-data-transfer", 
                 "false",
                 "--use-sqlite",
-                "true"
+                "false"
             ]
         },
         {
             "name": "Python: Datatransfer",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runscript",
                 "management.datatransfer_script.datatransfer_script"
@@ -29,7 +29,7 @@
             "name": "Python: FeatureData",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runscript",
                 "management.datatransfer_script.datatranser_feature_data"
@@ -40,7 +40,7 @@
             "name": "Python: Unittest",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "test",
                 "publications"
@@ -51,10 +51,10 @@
             "name": "Python: Runserver Live",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runserver",
-                "0.0.0.0:8000",
+                "0.0.0.0:8080",
                 "--settings",
                 "find_artek.development_settings"
             ],
@@ -66,8 +66,8 @@
             "runtimeExecutable": "C:\\Program Files\\chromium\\chrome-win\\chrome.exe",
             "request": "launch",
             "type": "msedge",
-            "url": "http://localhost:8000",
-            "webRoot": "${workspaceFolder}/app/publications",
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}/app-main/publications",
             "disableNetworkCache": true
         },
 

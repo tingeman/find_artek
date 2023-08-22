@@ -1,10 +1,9 @@
-app/venv/*
+app-main/venv/
 temp/
 
 # ignore .env files
 **/.env
 
-app-data/*
 
 
 
@@ -13,53 +12,9 @@ app-data/*
 *.gz
 
 
+shared-project-data
 
-# ------ files to ignore from app-classic ------ #
-
-#ignore thumbnails created by windows
-Thumbs.db
-#Ignore files build by Visual Studio
-*.obj
-*.exe
-*.pdb
-*.user
-*.aps
-*.pch
-*.vspscc
-*_i.c
-*_p.c
-*.ncb
-*.suo
-*.tlb
-*.tlh
-*.bak
-*.cache
-*.ilk
-*.log
-[Bb]in
-[Dd]ebug*/
-*.lib
-*.sbr
-obj/
-[Rr]elease*/
-_ReSharper*/
-[Tt]est[Rr]esult*
-*.pyc
-*.sqlite
-[Mm]igrations/
-
-find_artek.sublime-workspace
-*.sublime-workspace
-logs/find_artek.log.1
-logs/find_artek.log.5
+app-classic
 
 
 
-# Keep logs folder but not content VICRE
-# exclude everything
-logs/*
-# exception to the rule
-!logs/.gitkeep 
-#
-
-# ------ files to ignore from app-classic ------ #

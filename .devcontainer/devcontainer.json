@@ -1,12 +1,12 @@
 {
     "name": "Find Artek Django Dev Container",
     "dockerComposeFile": "docker-compose.yaml",
-    "service": "find-artek-app",
-    "workspaceFolder": "/usr/src/find_artek",
+    "service": "find-artek-app-main",
+    "workspaceFolder": "/usr/src/project",
     "customizations": {
         "vscode": {
             "settings": {
-                "python.defaultInterpreterPath": "/usr/src/app/venv/bin/python"
+                "python.defaultInterpreterPath": "/usr/src/project/app-main/venv/bin/python"
             },
             "extensions": [
                 "ms-python.python",
