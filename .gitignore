@@ -1,5 +1,9 @@
 app-main/venv/
 temp/
+__pycache__
+
+*.pyc
+
 
 # ignore .env files
 **/.env
@@ -15,6 +19,4 @@ temp/
 shared-project-data
 
 app-classic
-
-
 
