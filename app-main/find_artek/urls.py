@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
 import django_cas_ng.views
+from publications_meta.views import AdminCasLoginView
 
 from django.urls import re_path
 from rest_framework import permissions
@@ -45,6 +46,7 @@ urlpatterns = [
 
     # admin panel 
     path('admin/', admin.site.urls),
+    path('admin-cas-login/', AdminCasLoginView.as_view(), name='admin-cas-login'),
 
     # api/*
     path('api/', include('api.urls')),

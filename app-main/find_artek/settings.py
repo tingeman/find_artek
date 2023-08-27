@@ -47,8 +47,10 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = False
 
 
-# CAS
-CAS_SERVER_URL = 'https://auth2.dtu.dk/dtu/'
+CAS_SERVER_URL = 'https://auth.dtu.dk/dtu/' # no multifactor
+# CAS_SERVER_URL = 'https://auth2.dtu.dk/dtu/' # with multifactor
+CAS_VERSION = '2'
+# Application definition
 
 
 ALLOWED_HOSTS = [
@@ -92,7 +94,7 @@ ROOT_URLCONF = 'find_artek.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
