@@ -59,7 +59,7 @@
                 "find_artek.development_settings"
             ],
             "django": true,
-            "justMyCode": true
+            "justMyCode": false
         },
         {
             "name": "ChromiumDev: Home",
