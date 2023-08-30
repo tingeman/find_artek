@@ -16,7 +16,7 @@ services:
     tty: true
     
     # RUN THIS IN PRODUCTION
-    # command: bash -c 'cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8000'
+    # command: bash -c 'cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:80'
     
     # RUN THIS IN DEVELOPMENT
 
@@ -85,14 +85,14 @@ services:
     networks:
       - shared_network
 
-  httpd-service:
+  find-artek-httpd-service:
     image: httpd:2.4
     stdin_open: true
     tty: true
 
-    ports:
-      - 80:80
-      - 443:443
+    # ports:
+    #   - 80:80
+    #   - 443:443
     volumes:
       - ../shared-project-data:/mnt/shared-project-data
       # - find-artek-httpd-server:/usr/local/apache2
