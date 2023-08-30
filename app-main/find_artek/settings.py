@@ -56,7 +56,9 @@ CAS_VERSION = '2'
 ALLOWED_HOSTS = [
     'find-artek.vezit.net',
     'find.artek.byg.dtu.dk',
-    'localhost'
+    'find-artek-httpd-service',
+    'localhost',
+    
 ]
 
 # Media url
@@ -231,3 +233,23 @@ AUTHENTICATION_BACKENDS = (
 #     "email": "mail"
 # }
 #### LPAP ####
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
