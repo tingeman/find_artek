@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     let topic = urlParams.get('topic');
     // if topic is null or undefined, set it to 'all'
     if (topic === null || topic === undefined || topic.toLowerCase() === 'all') {
-        topic = 'All';
+        topic = null;
     }
     
 
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
 // Main
 // ============
 async function main($my) {
-    $my.myReportsClass.getReports($my.filter)
+    $my.myReportsClass.getReports()
 }
 
 // ============

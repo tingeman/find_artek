@@ -12,7 +12,7 @@ class MyReportsClass {
     }
 
 
-    async getReports(filter = { topic: 'All', personId: null }) {
+    async getReports(filter = { topic: null, personId: null }) {
 
 
 
@@ -49,7 +49,14 @@ class MyReportsClass {
         if (filter) {
             // If 'topic' is in filter, append it to the url
             if (filter.topic) {
-                url = `${this.defaultUrl}?topic=${filter.topic}`;
+
+                if (filter.topic === null) {
+                    url = `${this.defaultUrl}`;
+                }
+                else {
+                    url = `${this.defaultUrl}?topic=${filter.topic}`;
+                }
+                
             }
 
             // If 'personID' is in filter, append it to the url
