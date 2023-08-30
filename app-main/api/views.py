@@ -31,7 +31,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
             openapi.Parameter(
                 name='topic',
                 in_=openapi.IN_QUERY,
-                description=f"Filter publications by topic name. Available topics are:\n\n {get_available_topics()}",
+                description=f"Filter publications by topic name. Available topics are:\n\n {get_available_topics()} \n if no topic is provided, all reports are returned.",
                 type=openapi.TYPE_STRING,
             )
         ],
@@ -93,4 +93,3 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
         queryset = Feature.objects.all()
     
         return queryset
-        
