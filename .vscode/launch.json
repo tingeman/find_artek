@@ -1,41 +1,41 @@
 {
     "version": "0.2.0",
     "configurations": [
-        {
-            "type": "bashdb",
-            "request": "launch",
-            "name": "Bash: Datatransfer",
-            "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/app-main/management/datatransfer_script/datatransfer_script.sh",
-            "args": [
-                "--skip-data-transfer", 
-                "false",
-                "--use-sqlite",
-                "false"
-            ]
-        },
-        {
-            "name": "Python: Datatransfer",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/app-main/manage.py",
-            "args": [
-                "runscript",
-                "management.datatransfer_script.datatransfer_script"
-            ],
-            "django": true
-        },
-        {
-            "name": "Python: FeatureData",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/app-main/manage.py",
-            "args": [
-                "runscript",
-                "management.datatransfer_script.datatranser_feature_data"
-            ],
-            "django": true
-        },
+        // {
+        //     "type": "bashdb",
+        //     "request": "launch",
+        //     "name": "Bash: Datatransfer",
+        //     "cwd": "${workspaceFolder}",
+        //     "program": "${workspaceFolder}/app-main/management/datatransfer_script/datatransfer_script.sh",
+        //     "args": [
+        //         "--skip-data-transfer", 
+        //         "false",
+        //         "--use-sqlite",
+        //         "false"
+        //     ]
+        // },
+        // {
+        //     "name": "Python: Datatransfer",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app-main/manage.py",
+        //     "args": [
+        //         "runscript",
+        //         "management.datatransfer_script.datatransfer_script"
+        //     ],
+        //     "django": true
+        // },
+        // {
+        //     "name": "Python: FeatureData",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app-main/manage.py",
+        //     "args": [
+        //         "runscript",
+        //         "management.datatransfer_script.datatranser_feature_data"
+        //     ],
+        //     "django": true
+        // },
         {
             "name": "Python: Unittest",
             "type": "python",
@@ -57,6 +57,19 @@
                 "0.0.0.0:8080",
                 "--settings",
                 "find_artek.development_settings"
+            ],
+            "django": true,
+            "justMyCode": false
+        },
+        {
+            "name": "Runserver L Proxy",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-main/manage.py",
+            "args": [
+                "runserver",
+                "0.0.0.0:8000"
+
             ],
             "django": true,
             "justMyCode": false

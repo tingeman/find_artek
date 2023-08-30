@@ -20,3 +20,6 @@ shared-project-data
 
 app-classic
 
+.migrate
+
+debug.log
