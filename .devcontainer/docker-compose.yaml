@@ -7,7 +7,7 @@ services:
     # container_name: app-main
     build:
       context: .
-      dockerfile: Dockerfile-app-main
+      dockerfile: Dockerfile-find-artek-app-main
     volumes:
       - ..:/usr/src/project
       - ../shared-project-data:/mnt/shared-project-data

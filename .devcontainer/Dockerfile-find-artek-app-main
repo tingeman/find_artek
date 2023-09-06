@@ -44,3 +44,7 @@ RUN /bin/bash -c "source $VIRTUAL_ENV/bin/activate"
 
 
 
+# ENTRY POINT
+#bash -c 'cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8000
+CMD ["/bin/bash", "-c", "cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8000"]
+# CMD ["/bin/bash", "-c", "source $VIRTUAL_ENV/bin/activate && python3 manage.py runserver"]
