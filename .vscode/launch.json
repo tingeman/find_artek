@@ -62,7 +62,7 @@
             "justMyCode": false
         },
         {
-            "name": "Runserver L Proxy",
+            "name": "Runserver Live via Proxy",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/app-main/manage.py",
