@@ -140,9 +140,6 @@ class ImageObject(BaseModel):
     image = models.ImageField(upload_to=get_image_path)
     caption = models.TextField(max_length=1000)
 
-    def url(self):
-        return self.image.url
-
     def filesize(self):
         unit = 'bytes'
 

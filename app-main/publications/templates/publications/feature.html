@@ -87,8 +87,7 @@
                 <span class="property">Registered Images:</span>
                 {% for image in feature.images.all %}
                     <!-- TODO: fix href -->
-                    <span class="value"><a style="color:blue" href="{{ image.url }}" download>{{image.filename}}</a></span>
-                    
+                    <span class="value"><a href="#" download>{{image.filename}}</a></span>
                 {% endfor %}
             </div>
         </div>

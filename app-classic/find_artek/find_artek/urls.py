@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, include, url
-from django.conf.urls.static import static
+
 # Uncomment the next two lines to enable the admin:
 from django.contrib.gis import admin
 import settings
@@ -111,21 +111,14 @@ urlpatterns = patterns('',
 )
 
 if settings.DEBUG:
+    urlpatterns += patterns('',
+        url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {
+            'document_root': settings.MEDIA_ROOT,
+        }),
+   )
+# if settings.DEBUG:
+#     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-#     urlpatterns += patterns(
-
-#         '',
-#         url('static', 'django.views.static.serve', {
-#             'document_root': settings.STATIC_ROOT,
-#         }),
-
-#         url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {
-#             'document_root': settings.MEDIA_ROOT,
-#         }),
-
-#    )
 
 
 handler404 = 'find_artek.views.error_404_view'
