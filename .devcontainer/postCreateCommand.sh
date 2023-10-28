@@ -8,3 +8,4 @@ git config --global user.email "victor.reipur@gmail.com"
 git config --global user.name "Victor Reipur"
 git config --global --add safe.directory /usr/src/project
 
+apt-get update && apt-get install iputils-ping -y

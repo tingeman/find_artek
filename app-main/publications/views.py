@@ -351,6 +351,15 @@ class FeatureView(BaseView):
 
         feature = get_object_or_404(Feature, pk=feature_id)
 
+        # # get publication that has the feature wit feature_id
+        # related_publications = feature.publications.all()
+
+        # # i know that the 
+
+
+        # # publication, find publication that d
+
+
         geometry = feature.points or feature.lines or feature.polys
 
         
