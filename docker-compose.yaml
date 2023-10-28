@@ -23,7 +23,7 @@ services:
 
 
   find-artek-db:
-    image: postgis/postgis:15
+    image: postgis/postgis:15-master
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
