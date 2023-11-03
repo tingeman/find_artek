@@ -61,23 +61,15 @@ services:
     networks:
       - shared_network
 
-  find-artek-classic:
-    image: vicmrp/django1-6-11_python2-7-9_artek_2022-11-21-v0-2
-    volumes:
+  # find-artek-classic:
+  #   image: vicmrp/django1-6-11_python2-7-9_artek_2022-11-21-v0-2
+  #   volumes:
 
-      - ../shared-project-data:/mnt/shared-project-data
-      - ../app-classic/find_artek:/usr/src/app/find_artek
+  #     - ../shared-project-data:/mnt/shared-project-data
+  #     - ../app-classic/find_artek:/usr/src/app/find_artek
     
-    # Run this in production
-    command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:80'
-    # ports:
-    #   - 79:79
-
-    # Run this in development
-    # ports:
-    #   - 80:80
-    # command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:8079'
-    # command: sleep infinity
+  #   # Run this in production
+  #   command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:80'
 
     
     stdin_open: true
@@ -90,12 +82,9 @@ services:
     stdin_open: true
     tty: true
 
-    # ports:
-    #   - 80:80
-    #   - 443:443
+
     volumes:
       - ../shared-project-data:/mnt/shared-project-data
-      # - find-artek-httpd-server:/usr/local/apache2
       - ../httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
       - ../httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
     networks:
@@ -106,11 +95,8 @@ services:
 volumes:
   find-artek-postgresql:
     external: true
-  find-artek-httpd-server:
-    external: true
   find-artek-pgadmin:
     external: true
-
 
 networks:
   shared_network:
