@@ -162,6 +162,9 @@ class ImageObject(BaseModel):
 
     def filename(self):
         return os.path.basename(self.image.name)
+    
+    def filelocation(self):
+        return os.path.dirname(self.image.name)
 
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
@@ -199,6 +202,9 @@ class FileObject(BaseModel):
     
     def filename(self):
         return os.path.basename(self.file.name)
+    
+    def filelocation(self):
+        return os.path.dirname(self.file.name)
 
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)

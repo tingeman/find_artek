@@ -4,6 +4,7 @@ services:
   # du behøver ikke namespace her, du gør docker for dig, du kan bare kalde den app-main
   find-artek-app-main:
     image: vicmrp/find-artek-app-main
+
     # container_name: app-main
     build:
       context: .
@@ -19,21 +20,20 @@ services:
     # command: bash -c 'cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:80'
     
     # RUN THIS IN DEVELOPMENT
-
+    # command: bash -c 'cd /usr/src/project/app-main && source venv/bin/activate && sleep infinity'
     # Run this if you want data to come from apache-service
     # command: bash -c 'cd /usr/src/project/app-main && source venv/bin/activate && python manage.py runserver 0.0.0.0:8000'
-    
+    command: sleep infinity
     # run this if you want to run directly on the application
     # ports:
     #   - 8080:8080
-    command: sleep infinity
     
     networks:
       - shared_network
 
 
   find-artek-db:
-    image: postgis/postgis:latest
+    image: postgis/postgis:15-master
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -50,8 +50,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: "victor.reipur@gmail.com"
       PGADMIN_DEFAULT_PASSWORD: "vicmrp"
-    # ports:
-      # - 5050:80
+
     depends_on:
       - find-artek-db
     stdin_open: true
@@ -61,24 +60,12 @@ services:
     networks:
       - shared_network
 
-  # find-artek-classic:
-  #   image: vicmrp/django1-6-11_python2-7-9_artek_2022-11-21-v0-2
-  #   volumes:
-
-  #     - ../shared-project-data:/mnt/shared-project-data
-  #     - ../app-classic/find_artek:/usr/src/app/find_artek
-    
-  #   # Run this in production
-  #   command: sh -c 'cd /usr/src/app/find_artek && python manage.py runserver 0.0.0.0:80'
-
-    
-    stdin_open: true
-    tty: true
-    networks:
-      - shared_network
 
   find-artek-httpd-service:
-    image: httpd:2.4
+    image: vicmrp/find-artek-httpd-service
+    build:
+      context: .
+      dockerfile: Dockerfile-find-artek-httpd-service
     stdin_open: true
     tty: true
 
