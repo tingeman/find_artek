@@ -79,15 +79,13 @@
             <div class="row">
                 <span class="property">Registered Files:</span>
                 {% for file in feature.files.all %}
-                    <!-- TODO: fix href -->
-                    <span class="value"><a href="{% static 'file.file' %}" download>{{file.filename}}</a></span>
+                    <span class="value"><a href="{{MEDIA_URL}}{{file.filelocation}}/{{file.filename}}" download>{{file.filename}}</a></span>
                 {% endfor %}
             </div>
             <div class="row">
                 <span class="property">Registered Images:</span>
                 {% for image in feature.images.all %}
-                    <!-- TODO: fix href -->
-                    <span class="value"><a href="#" download>{{image.filename}}</a></span>
+                    <span class="value"><a href="{{MEDIA_URL}}{{image.filelocation}}/{{image.filename}}" download>{{image.filename}}</a></span>
                 {% endfor %}
             </div>
         </div>
