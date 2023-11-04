@@ -40,13 +40,14 @@
 
 
                 <!-- abstact ice icon that leads to frontpage -->
-                <a class="nav-link frontpage" href="{% url 'frontpage' %}">
+                <a class="nav-link header-nav-frontpage-icon" href="{% url 'frontpage' %}">
 
                     <img class="frontpage-icon"
                         src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
                         alt="ArtTek Logo">
                 </a>
 
+                <a class="nav-link header-nav-frontpage" href="{% url 'frontpage' %}">{% trans "Frontpage" %}</a>
 
                 <a class="nav-link header-nav-map" href="{% url 'map' %}">{% trans "Map" %}</a>
 

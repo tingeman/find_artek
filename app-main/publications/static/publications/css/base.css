@@ -504,7 +504,14 @@ header .default-header-content {
 
 /* <!-- navigiation to the left starts here --> */
 header .nav-left {
-    width: 240px;
+    width: auto;
+    display: flex;
+    gap: 5px;
+}
+
+/* add a little more gap between the logo and 'frontpag' */
+header .nav-left .header-nav-frontpage-icon {
+    margin-right: 10px;
 }
 
 header .frontpage-icon {
