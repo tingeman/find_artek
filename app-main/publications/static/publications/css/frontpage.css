@@ -2,75 +2,91 @@
 
 .grid-container {
     display: grid;
-    grid-template-rows: repeat(3, auto);
-    grid-auto-flow: column;
-    gap: 40px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
     justify-content: center;
 }
 
+/* Media query for smaller screens */
+@media (max-width: 1200px) { /* Adjust 800px to the point where you want the layout to change */
+    .grid-container {
+      grid-template-columns: repeat(2, 1fr); /* Change to 2 columns */
+      gap: 0;
+      justify-content: center;
+    }
 
-/* grid box */
+    main {
+        max-width: calc(280px + 280px);
+    }
+  }
+
+/* Media query for smaller screens */
+@media (max-width: 725px) { /* Adjust 800px to the point where you want the layout to change */
+    .grid-container {
+      grid-template-columns: repeat(1, 1fr); /* Change to 2 columns */
+      gap: 0;
+      justify-content: center;
+    }
+
+    main {
+        max-width: calc(280px);
+    }
+  }
+
+
+
+
 .fmitem {
-    width: 200px;
-    height: auto; /* adjust as needed */
-    overflow: auto;
+    width: auto;
+    height: auto; 
 }
 
-.fmitem form {
-    height: 100%; /* makes the form take full height of .fmitem */
-    width: 100%; /* makes the form take full width of .fmitem */
-    padding: 0; /* removes any default form padding */
-}
-
-.fmitem form input {
-    display: none;
-}
 
 .fmitem form button {
+    width: 280px;
+    height: 230px;
     display: flex;
     flex-direction: column;
-    height: 100%; /* makes the button take full height of .fmitem */
-    width: 100%; /* makes the button take full width of .fmitem */
-    color: black;
-    cursor: pointer;
-    padding: 0; /* removes any default button padding */
+    flex-grow: 1; 
+    align-items: center;
+    justify-content: center; 
+    padding: 20px;
     border: none;
+    border-radius: 20px;
 }
 
-.fmitem form button .fmimage {
-    height: 150px;
-    width: 100%;
+
+.fmitem form button:hover {
+    background-color: #e0e0e0;  
+    cursor: pointer;
 }
 
 .fmitem form button .fmimage img {
-    width: 190px;
-    height: 150px;
+    width: 190px; 
+    height: 150px; 
+    object-fit: cover;
+    object-position: bottom;
 }
 
-.fmitem form button .fmtext {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
+/* .fmitem form button .fmtext {
+    flex-grow: 1; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
 }
 
-
-.fmitem span {
+.fmitem form button .fmtext span {
     display: inline-block;
     text-align: left;
     padding: 0px;
 }
 
-.topic {
+.fmitem form button .fmtext .topic {
     font-size: medium;
     font-weight: bold;
     text-align: center;
     padding: 0.5em;
-}
+} */
 
 
-/* Media query for smaller screens */
-@media (max-width: 768px) { /* Adjust this value based on your needs */
-    .grid-container {
-        grid-auto-flow: row;
-    }
-}
+
