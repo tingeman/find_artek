@@ -67,6 +67,7 @@
     --primary-background-color: #B0C4DE;
     --message-border-width: 1px;
     --primary-site-width: 80%;
+    --primary-site-width-max: 900px;
     --dtu-color-corporate-red: #900;
 
 
@@ -722,6 +723,7 @@ main {
     padding-top: 20px;
     padding-bottom: 20px;
     width: var(--primary-site-width);
+    max-width: var(--primary-site-width-max);
     margin: 0 auto;
     /* Add this to center the main content horizontally */
     flex-grow: 1;

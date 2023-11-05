@@ -2,67 +2,70 @@
 
 .grid-container {
     display: grid;
-    grid-template-rows: repeat(3, auto);
-    grid-auto-flow: column;
-    gap: 40px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
     justify-content: center;
 }
 
+/* Media query for smaller screens */
+@media (max-width: 1200px) { /* Adjust 800px to the point where you want the layout to change */
+    .grid-container {
+      grid-template-columns: repeat(2, 1fr); /* Change to 2 columns */
+      gap: 0;
+      justify-content: center;
+    }
 
-/* grid box */
+    main {
+        max-width: calc(280px + 280px);
+    }
+  }
+
+/* Media query for smaller screens */
+@media (max-width: 725px) { /* Adjust 800px to the point where you want the layout to change */
+    .grid-container {
+      grid-template-columns: repeat(1, 1fr); /* Change to 2 columns */
+      gap: 0;
+      justify-content: center;
+    }
+
+    main {
+        max-width: calc(280px);
+    }
+  }
+
+
+
+
 .fmitem {
-    /* border-radius: 10px; */
     width: auto;
     height: auto; 
-    /* overflow: hidden;
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-between;  */
 }
 
-
-  
-/* .fmitem:hover {
-    
-    transition: background-color 0.1s ease;   
-} */
-
-  
-
-
-/* .fmitem form input {
-    display: none;
-} */
 
 .fmitem form button {
     width: 280px;
     height: 230px;
     display: flex;
     flex-direction: column;
-    flex-grow: 1; /* Added to allow button to fill available space */
-    align-items: center; /* Aligns content in the center horizontally */
-    justify-content: center; /* Aligns content in the center vertically */
+    flex-grow: 1; 
+    align-items: center;
+    justify-content: center; 
     padding: 20px;
     border: none;
+    border-radius: 20px;
 }
 
 
 .fmitem form button:hover {
-    background-color: #f1f1f1;
-    transition: background-color 0.1s ease;
+    background-color: #e0e0e0;  
+    cursor: pointer;
 }
 
-/* .fmitem form button .fmimage { */
-    /* flex-grow: 0;  */
-/*  */
-/* } */
-
 .fmitem form button .fmimage img {
-    width: 190px; /* Make image fill the available width */
-    height: 150px; /* Adjust height automatically */
+    width: 190px; 
+    height: 150px; 
     object-fit: cover;
     object-position: bottom;
-    
 }
 
 /* .fmitem form button .fmtext {
@@ -86,9 +89,4 @@
 } */
 
 
-/* Media query for smaller screens */
-@media (max-width: 768px) { /* Adjust this value based on your needs */
-    .grid-container {
-        grid-auto-flow: row;
-    }
-}
+
