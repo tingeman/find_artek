@@ -1,5 +1,7 @@
 
 
+
+
 .grid-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -37,16 +39,19 @@
 
 
 .fmitem {
-    margin: 20px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .fmitem form button {
     background-color: var(--primary-background-color);
+    height:218px;
     display: flex;
+    flex-direction: column;
     flex-direction: column;
     flex-grow: 1; 
     align-items: center;
-    justify-content: center; 
+    justify-content: flex-start;
     padding: 1px;
     border: none;
     /* border-radius: 20px; */
