@@ -37,10 +37,8 @@
 
 
 .fmitem {
-    width: 280px;
-    height: 320px;
+    margin: 20px;
 }
-
 
 .fmitem form button {
     background-color: var(--primary-background-color);
