@@ -3,17 +3,39 @@
 // ============
 document.addEventListener("DOMContentLoaded", function (event) {
   // This block will run when the DOM is loaded.
-  main();
+  main().catch(error => {
+    console.error("Error initializing map or fetching feature data: ", error);
+    // handle error, for example by showing an error message to the user
+  });
 });
 
 
+
+// ============
+// Functions
+// ============
 async function getFeatureData() {
-  const jsonString = await fetch('/api/feature/')
-  const featureData = jsonString.json()
-  return featureData
+  // Try to get the data from session storage first
+  let featureData = sessionStorage.getItem('featureData');
+  
+  if (featureData) {
+    // If data exists in storage, parse it from the string and return
+    return JSON.parse(featureData);
+  } else {
+    // If not, fetch the data from the endpoint
+    const response = await fetch('/api/feature/');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    featureData = await response.json();
+    
+    // Store the data in session storage as a string
+    sessionStorage.setItem('featureData', JSON.stringify(featureData));
+    
+    // Return the fetched data
+    return featureData;
+  }
 }
-
-
 
 
 
