@@ -44,8 +44,6 @@ class MyMapClass {
         };
         L.tileLayer(url, options).addTo(map);
 
-
-
         
         // ================= this part is that sets a location, that is passed in the url             ================= //
         // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00  ================= //
@@ -69,15 +67,6 @@ class MyMapClass {
         // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00  ================= //
 
 
-
-
-
-
-
-
-
-
-
         // Resolve the promise with the map object
         resolve(map);
       } catch (error) {
@@ -86,7 +75,19 @@ class MyMapClass {
     });
   }
 
+
+
+
+
+
+
+
+
+
   addFeatureDataToMap(map, featureData, relocate = false) {
+
+
+
     // if featureData not null, add a geojson layer to the map
     if (featureData) {
       const allFeatures = {
@@ -125,6 +126,11 @@ class MyMapClass {
         map.fitBounds(bounds);
       }
     }
+
+
+
+
+    
   }
 
 
