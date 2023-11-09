@@ -1,12 +1,21 @@
 class MyMapClass {
   constructor() { }
 
+
+  // this funcion creates a map you can work with
+  // const map = await myMapClass.initialize();
   initialize() {
     return new Promise((resolve, reject) => {
 
 
 
       try {
+
+
+
+        // ================= this part is to (attempt) retrive a location, that is passed in the url ================= //
+        // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00 ================= //
+        
         // if featureData is not null, use it to set the map center and zoom
         var params = this.#_getURLParameters(window.location.href);
         var lat = params.lat;
@@ -20,13 +29,34 @@ class MyMapClass {
           zoom = 4.00;
         }
 
-        const map = this.#_createMap('map', lat, lng, zoom);
+        // ================= this part is to (attempt) retrive a location, that is passed in the url ================= //
+        // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00 ================= //
+
+
+
+        // Create the map, set the view to the lat, lng, and zoom
+        // I think lat, lng, and zoom will be what you see in the map.
+        const map = L.map('map').setView([lat, lng], zoom);
+        const url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const options = {
+          maxZoom: 29,
+          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">'
+        };
+        L.tileLayer(url, options).addTo(map);
+
+
+
+        
+        // ================= this part is that sets a location, that is passed in the url             ================= //
+        // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00  ================= //
+        // it sort of a side effect, that is happening here, which i am not pitucularly big fan of. but it is my implementation so fare.
+
         map.on('moveend zoomend', function () {
-          var center = map.getCenter();
-          var zoom = map.getZoom();
+          const center = map.getCenter();
+          const zoom = map.getZoom();
 
           // Update parameters
-          var newParams = new URLSearchParams(window.location.search);
+          const newParams = new URLSearchParams(window.location.search);
           newParams.set('lat', center.lat.toFixed(2));
           newParams.set('lng', center.lng.toFixed(2));
           newParams.set('zoom', zoom.toFixed(2));
@@ -35,10 +65,18 @@ class MyMapClass {
           window.history.replaceState({}, '', '?' + newParams.toString());
         });
 
-        this.#_addTileLayer(map, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 29,
-          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        });
+        // ================= this part is that sets a location, that is passed in the url             ================= //
+        // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00  ================= //
+
+
+
+
+
+
+
+
+
+
 
         // Resolve the promise with the map object
         resolve(map);
@@ -89,13 +127,6 @@ class MyMapClass {
     }
   }
 
-  #_createMap(id, lat, lng, zoom) {
-    return L.map(id).setView([lat, lng], zoom);
-  };
-
-  #_addTileLayer(map, url, options) {
-    L.tileLayer(url, options).addTo(map);
-  };
 
   #_getURLParameters(url) {
     // Create a new URL object
