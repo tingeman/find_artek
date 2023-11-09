@@ -3,41 +3,48 @@ class MyMapClass {
 
   initialize() {
     return new Promise((resolve, reject) => {
-      // if featureData is not null, use it to set the map center and zoom
-      var params = this.#_getURLParameters(window.location.href);
-      var lat = params.lat;
-      var lng = params.lng;
-      var zoom = params.zoom;
 
-      // if lat, lng or zoom are not defined, use default values
-      if (!lat || !lng || !zoom) {
-        lat = 74.86;
-        lng = -44.60;
-        zoom = 4.00;
+
+
+      try {
+        // if featureData is not null, use it to set the map center and zoom
+        var params = this.#_getURLParameters(window.location.href);
+        var lat = params.lat;
+        var lng = params.lng;
+        var zoom = params.zoom;
+
+        // if lat, lng or zoom are not defined, use default values
+        if (!lat || !lng || !zoom) {
+          lat = 74.86;
+          lng = -44.60;
+          zoom = 4.00;
+        }
+
+        const map = this.#_createMap('map', lat, lng, zoom);
+        map.on('moveend zoomend', function () {
+          var center = map.getCenter();
+          var zoom = map.getZoom();
+
+          // Update parameters
+          var newParams = new URLSearchParams(window.location.search);
+          newParams.set('lat', center.lat.toFixed(2));
+          newParams.set('lng', center.lng.toFixed(2));
+          newParams.set('zoom', zoom.toFixed(2));
+
+          // Update the URL without reloading the page
+          window.history.replaceState({}, '', '?' + newParams.toString());
+        });
+
+        this.#_addTileLayer(map, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 29,
+          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        });
+
+        // Resolve the promise with the map object
+        resolve(map);
+      } catch (error) {
+        reject(error);
       }
-
-      const map = this.#_createMap('map', lat, lng, zoom);
-      map.on('moveend zoomend', function () {
-        var center = map.getCenter();
-        var zoom = map.getZoom();
-
-        // Update parameters
-        var newParams = new URLSearchParams(window.location.search);
-        newParams.set('lat', center.lat.toFixed(2));
-        newParams.set('lng', center.lng.toFixed(2));
-        newParams.set('zoom', zoom.toFixed(2));
-
-        // Update the URL without reloading the page
-        window.history.replaceState({}, '', '?' + newParams.toString());
-      });
-
-      this.#_addTileLayer(map, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 29,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      });
-
-      // Resolve the promise with the map object
-      resolve(map);
     });
   }
 
