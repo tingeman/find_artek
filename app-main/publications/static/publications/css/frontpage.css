@@ -37,27 +37,26 @@
 
 
 .fmitem {
-    width: auto;
-    height: auto; 
+    width: 280px;
+    height: 320px;
 }
 
 
 .fmitem form button {
-    width: 280px;
-    height: 230px;
+    background-color: var(--primary-background-color);
     display: flex;
     flex-direction: column;
     flex-grow: 1; 
     align-items: center;
     justify-content: center; 
-    padding: 20px;
+    padding: 1px;
     border: none;
-    border-radius: 20px;
+    /* border-radius: 20px; */
 }
 
 
 .fmitem form button:hover {
-    background-color: #e0e0e0;  
+    color:#777777;
     cursor: pointer;
 }
 
@@ -68,24 +67,32 @@
     object-position: bottom;
 }
 
-/* .fmitem form button .fmtext {
+.fmitem form button .fmtext {
+    text-align: left;
+    width: 190px;
+}
+
+/* 
+.fmitem form button .fmtext {
     flex-grow: 1; 
     display: flex; 
+
     flex-direction: column; 
     justify-content: center; 
+    text-align: left; 
 }
 
 .fmitem form button .fmtext span {
-    display: inline-block;
-    text-align: left;
+    display: block; 
     padding: 0px;
 }
 
 .fmitem form button .fmtext .topic {
     font-size: medium;
     font-weight: bold;
-    text-align: center;
+    text-align: left; 
     padding: 0.5em;
+    margin: 0; 
 } */
 
 
