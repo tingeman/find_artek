@@ -11,31 +11,31 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-// ============
-// Functions
-// ============
-async function getFeatureData() {
-  // Try to get the data from session storage first
-  let featureData = sessionStorage.getItem('featureData');
+// // ============
+// // Functions
+// // ============
+// async function getFeatureData() {
+//   // Try to get the data from session storage first
+//   let featureData = sessionStorage.getItem('featureData');
   
-  if (featureData) {
-    // If data exists in storage, parse it from the string and return
-    return JSON.parse(featureData);
-  } else {
-    // If not, fetch the data from the endpoint
-    const response = await fetch('/api/feature/');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    featureData = await response.json();
+//   if (featureData) {
+//     // If data exists in storage, parse it from the string and return
+//     return JSON.parse(featureData);
+//   } else {
+//     // If not, fetch the data from the endpoint
+//     const response = await fetch('/api/feature/');
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+//     featureData = await response.json();
     
-    // Store the data in session storage as a string
-    sessionStorage.setItem('featureData', JSON.stringify(featureData));
+//     // Store the data in session storage as a string
+//     sessionStorage.setItem('featureData', JSON.stringify(featureData));
     
-    // Return the fetched data
-    return featureData;
-  }
-}
+//     // Return the fetched data
+//     return featureData;
+//   }
+// }
 
 
 
@@ -68,7 +68,7 @@ async function main() {
     loadingOverlay.style.display = 'flex';
 
     // get feature data
-    const featureData = await getFeatureData()
+    const featureData = await myMapClass.getFeatureData()
 
     // To hide the overlay
     loadingOverlay.style.display = 'none';

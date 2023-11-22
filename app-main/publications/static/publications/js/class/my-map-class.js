@@ -84,7 +84,7 @@ class MyMapClass {
 
 
 
-  addFeatureDataToMap(map, featureData, relocate = false) {
+  addFeatureDataToMap(map, featureData = self.getFeatureData(), relocate = false) {
 
 
 
@@ -132,6 +132,34 @@ class MyMapClass {
 
     
   }
+
+
+
+
+  async getFeatureData() {
+    // Try to get the data from session storage first
+    let featureData = sessionStorage.getItem('featureData');
+    
+    if (featureData) {
+      // If data exists in storage, parse it from the string and return
+      return JSON.parse(featureData);
+    } else {
+      // If not, fetch the data from the endpoint
+      const response = await fetch('/api/feature/');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      featureData = await response.json();
+      
+      // Store the data in session storage as a string
+      sessionStorage.setItem('featureData', JSON.stringify(featureData));
+      
+      // Return the fetched data
+      return featureData;
+    }
+  }
+
+
 
 
   #_getURLParameters(url) {
