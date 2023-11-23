@@ -24,7 +24,7 @@ async function main() {
     try {
 
         // load and cache feature data in background
-        const featureData = await myMapClass.getFeatureData()
+        await myMapClass.getFeatureData()
 
         // load and cache reports data in background
         const topics = [
@@ -40,7 +40,7 @@ async function main() {
 
         for (let i = 0; i < topics.length; i++) {
             const topic = topics[i];
-            myReportsClass.getReportsData('/api/report/', topic);
+            await myReportsClass.getReportsData('/api/report/', topic);
         }
 
 
