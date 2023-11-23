@@ -23,7 +23,7 @@ async function main() {
     const totalReportsNumber = document.getElementById('total-reports-number');
 
 
-    const apiEndpoint = '/api/report/';
+    // const apiEndpoint = '/api/report/';
 
     // check if get paramete 'topic' is present
     const urlParams = new URLSearchParams(window.location.search);
@@ -36,7 +36,7 @@ async function main() {
     const myReportsClass = new MyReportsClass(
         reportsTableList,
         totalReportsNumber,
-        apiEndpoint
+        url = '/api/report/'
         );
 
 
@@ -48,32 +48,10 @@ async function main() {
     // To hide the overlay
     loadingOverlay.style.display = 'none';
 
-    // // Global variables
-    // let $my = {
-    //     reportsTableList: reportsTableList,
-    //     myReportsClass: new MyReportsClass(
-    //         loadingOverlay,
-    //         reportsTableList,
-    //         totalReportsNumber,
-    //         apiEndpoint
-    //         ),
-    //     filter: {topic: topic}
-    // }
 
-
-
-
-    // This block will run when the DOM is loaded.
-    // main($my).then((finished) => {
-    //     if (finished) {
-    //         console.log("main() is done executing.");
-    //     }
-    // });
 }
 
-// async function main($my) {
-//     $my.myReportsClass.getReports()
-// }
+
 
 // ============
 // Classes

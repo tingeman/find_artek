@@ -42,6 +42,7 @@ class MyReportsClass {
 
 
         let url = this.defaultUrl;
+        let topic = null;
 
         // Check if a filter was provided
         if (filter) {
@@ -66,8 +67,21 @@ class MyReportsClass {
         // Fetch the data from the api
         // const response = await fetch(url);
 
+
+        // check of ?topic exist in url
+        if (url.includes('?topic=')) {
+            // get the topic from the url
+            topic = url.split('?topic=')[1];
+            url = url.split('?topic=')[0];
+        } else {
+            topic = null;
+            url = url;
+        }
+
+        
+
         // Convert the response to json
-        const reportData = await this.getReportsData(url)
+        const reportData = await this.getReportsData(url, topic);
 
         // List total number of reports
         // If total report number element is present
@@ -259,22 +273,38 @@ class MyReportsClass {
     }
 
 
-    async getReportsData(url) {
+    async getReportsData(url = '/api/report/', filter = null) {
 
-        // Try to get the data from session storage first
-        let reportData = sessionStorage.getItem('reportData');
+        // // replace æøå with ae oe aa
+        // filter = (null == filter) ? null : filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa');
+
+        // Try to get the data from session storage first - replace æøå with ae oe aa
+        const sessionPointer =  (null == filter) ? 'reportData' : `reportData_${filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')}`;
+
+        let reportData = sessionStorage.getItem(sessionPointer);
 
         if (!reportData) {
             // If not, fetch the data from the endpoint
-            const response = await fetch('/api/report/');
+            const response = await fetch(url + (null == filter ? '' : `?topic=${filter}`));
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            reportData = await response.json();
+
+            
+            try {
+                reportData = await response.json();
+            } catch (error) {
+                console.error('Error occurred while parsing response:', error);
+            }
 
             // Store the data in session storage as a string
-            sessionStorage.setItem('reportData', JSON.stringify(reportData));
+            sessionStorage.setItem(sessionPointer, JSON.stringify(reportData));
+            
+            return reportData;
         }
+
+        // If data exists in storage, parse it from the string and return
+        return JSON.parse(reportData);
 
 
 
@@ -313,8 +343,7 @@ class MyReportsClass {
 
         // hande url topic here
 
-        // If data exists in storage, parse it from the string and return
-        return JSON.parse(reportData);
+
     }
 
 }

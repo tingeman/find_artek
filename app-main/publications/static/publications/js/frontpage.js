@@ -19,11 +19,29 @@ document.addEventListener("DOMContentLoaded", function (event) {
 async function main() {
 
     const myMapClass = new MyMapClass();
+    const myReportsClass = new MyReportsClass();
 
     try {
 
         // load and cache feature data in background
         const featureData = await myMapClass.getFeatureData()
+
+        // load and cache reports data in background
+        const topics = [
+            null, // all
+            'Infrastruktur',
+            'Miljø',
+            'Energi',
+            'Byggeri',
+            'Geoteknik',
+            'Samfund',
+            'Råstoffer',
+        ]
+
+        for (let i = 0; i < topics.length; i++) {
+            const topic = topics[i];
+            myReportsClass.getReportsData('/api/report/', topic);
+        }
 
 
 
