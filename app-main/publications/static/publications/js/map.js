@@ -3,24 +3,11 @@
 // ============
 document.addEventListener("DOMContentLoaded", function (event) {
   // This block will run when the DOM is loaded.
-  main();
+  main().catch(error => {
+    console.error("Error initializing map or fetching feature data: ", error);
+    // handle error, for example by showing an error message to the user
+  });
 });
-
-
-async function getFeatureData() {
-  const jsonString = await fetch('/api/feature/')
-  const featureData = jsonString.json()
-  return featureData
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -46,7 +33,7 @@ async function main() {
     loadingOverlay.style.display = 'flex';
 
     // get feature data
-    const featureData = await getFeatureData()
+    const featureData = await myMapClass.getFeatureData()
 
     // To hide the overlay
     loadingOverlay.style.display = 'none';
