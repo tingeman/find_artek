@@ -3,6 +3,7 @@
 // ============
 document.addEventListener("DOMContentLoaded", function (event) {
     // This block will run when the DOM is loaded.
+    console.log("DOM fully loaded and parsed - frontpage.js");
     main().catch(error => {
         console.error("Error initializing map or fetching feature data: ", error);
         // handle error, for example by showing an error message to the user
