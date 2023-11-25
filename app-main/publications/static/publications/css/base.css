@@ -575,65 +575,32 @@ header .mobile-header-content {
     }
 
     header .mobile-header-content {
-        padding-left: 10vw;
-        padding-right: 10vw;
+        /* padding-left: 10vw; */
+        padding-left: 20px;
+        /* padding-right: 10vw; */
+        padding-right: 20px;
         width: 100%;
         height: 100%;
         display: flex;
-        justify-content: space-between;
+        justify-content: start;
         align-items: center;
         background-color: var(--primary-background-color);
     }
 
 
-    /* this is the hamburger menu starts here */
-    .bar1,
-    .bar2,
-    .bar3 {
-        width: 35px;
-        height: 5px;
-        background-color: #333;
-        margin: 6px 0;
-        transition: 0.4s;
+ 
+    /* sign in icon starts here  */
+    header .outer-sign-in {
+        max-width: 78px;
+        max-height: 31px;
+        overflow: hidden;
     }
-
-    .change .bar1 {
-        transform: translate(0, 11px) rotate(-45deg);
-    }
-
-    .change .bar2 {
-        opacity: 0;
-    }
-
-    .change .bar3 {
-        transform: translate(0, -11px) rotate(45deg);
-    }
-    /* this is the hamburger menu ends here */
-
-
-    .mobile-menu-expanded {
-        border-radius: 10px;
-        width: 200px;
-        height: calc(100vh - var(--header-height) - var(--footer-height) - 500px);
-        background-color: var(--primary-background-color);
-        display: none;
-        position: absolute;
-        top: 80px;
-        right: 4vw;
-
-    }
-
-    .mobile-menu-expanded li {
-        margin-top: 30px;
-        margin-left: 20px;
-    }
-
     
-    header .sign-in {
+    header .inner-sign-in {
         border: 1px solid black;
         border-radius: 5px;
         padding: 5px;
-        width: calc(var(--header-sign-in-icon-width) + var(--header-sign-in-span-width) + 20px);
+        width: calc(var(--header-sign-in-icon-width) + var(--header-sign-in-span-width) + 15px);
     }
     
     header .sign-in-icon {
@@ -642,11 +609,103 @@ header .mobile-header-content {
     }
     
     header .sign-in span {
-        height: 18px;
+        height: 8px;
+        font-size: 1px;
         min-width: var(--header-sign-in-span-width);
     }
-    
+    /* sign in icon ends here  */
+
+
+
+    /* globe icon starts here */
+    header .outer-frontpage-logo {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    /* globe icon ends here */
+
+
+
+
+
+   /* this is the hamburger menu starts here */
+   header .mobile-menu-collapsed {
+        margin-left : auto;
+   }
+
+   .mobile-menu-expanded {
+        border-radius: 10px;
+        width: 200px;
+        height: calc(100vh - var(--header-height) - var(--footer-height) - 500px);
+        background-color: var(--primary-background-color);
+        display: none;
+        position: absolute;
+        top: 80px;
+        right: 4vw;
+    }
+
+    .mobile-menu-expanded li {
+        margin-top: 30px;
+        margin-left: 20px;
+    }
+
+
+
+
+
+   .bar1,
+   .bar2,
+   .bar3 {
+       width: 35px;
+       height: 5px;
+       background-color: #333;
+       margin: 6px 0;
+       transition: 0.4s;
+   }
+
+   .change .bar1 {
+       transform: translate(0, 11px) rotate(-45deg);
+   }
+
+   .change .bar2 {
+       opacity: 0;
+   }
+
+   .change .bar3 {
+       transform: translate(0, -11px) rotate(45deg);
+   }
+   /* this is the hamburger menu ends here */
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* <!-- mobile menu. ends here --> */
 
 

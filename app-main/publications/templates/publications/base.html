@@ -109,24 +109,27 @@
 
 
 
-
-            <div class="outer-sign-in-link">
-                <a class="sign-in nav-link flex-container justify-between" href="{% if user.is_authenticated %}{% url 'cas_ng_logout' %}{% else %}{% url 'cas_ng_login' %}{% endif %}">
+            <!-- sign in -->
+            <div class="outer-sign-in">
+                <a class="inner-sign-in nav-link flex-container justify-between" href="{% if user.is_authenticated %}{% url 'cas_ng_logout' %}{% else %}{% url 'cas_ng_login' %}{% endif %}">
 
                     <img class="sign-in-icon"
                         src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
                         alt="DTU Logo">
 
                     {% if user.is_authenticated %}
-                    <span>{% trans "Sign out" %} ({{ user.username }})</span>
+                    <span>{% trans "Sign out" %}</span>
                     {% else %}
                     <span>{% trans "Sign in" %}</span>
                     {% endif %}
                 </a>
             </div>
 
+
+            
+            <!-- frontpage logo -->
             <div class="outer-frontpage-logo">
-                <!-- frontpage logo -->
+
                 <a class="nav-link frontpage" href="{% url 'frontpage' %}">
                     <img class="frontpage-icon"
                         src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
@@ -136,20 +139,21 @@
 
 
             <!-- mobile menu -->
-            <div class="mobile-menu" id="mobile-menu">
+            <div class="mobile-menu-collapsed" id="mobile-menu">
                 <div class="bar1"></div>
                 <div class="bar2"></div>
                 <div class="bar3"></div>
             </div>
 
 
+
+            <!-- hidden expanded menu -->
             <div class="mobile-menu-expanded" id="mobile-menu-expanded">
                 <ul>
                     <li><a class="nav-link header-nav-map" href="{% url 'map' %}">{% trans "Map" %}</a></li>
                     <li><a class="nav-link header-nav-reports" href="{% url 'reports' %}">{% trans "Reports" %}</a></li>
                     <li><a class="nav-link header-nav-persons" href="{% url 'persons' %}">{% trans "Persons" %}</a></li>
                 </ul>
-
             </div>
 
 
