@@ -15,7 +15,7 @@ class MyMapClass {
 
         // ================= this part is to (attempt) retrive a location, that is passed in the url ================= //
         // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00 ================= //
-        
+
         // if featureData is not null, use it to set the map center and zoom
         var params = this.#_getURLParameters(window.location.href);
         var lat = params.lat;
@@ -44,7 +44,7 @@ class MyMapClass {
         };
         L.tileLayer(url, options).addTo(map);
 
-        
+
         // ================= this part is that sets a location, that is passed in the url             ================= //
         // ================= http://localhost:8080/publications/map/?lat=66.99&lng=-53.22&zoom=14.00  ================= //
         // it sort of a side effect, that is happening here, which i am not pitucularly big fan of. but it is my implementation so fare.
@@ -94,7 +94,7 @@ class MyMapClass {
         type: "FeatureCollection",
         features: []
       };
-  
+
       featureData.forEach(feature => {
         const color = this.#_getColorByType(feature.type);
 
@@ -103,23 +103,61 @@ class MyMapClass {
 
 
         const popupContent = this.#_createPopupContent(feature, featureReportsString);
-  
-        this.#_addGeoJSONLayer(feature.points, map, color, popupContent);
-        this.#_addGeoJSONLayer(feature.lines, map, color, popupContent);
-        this.#_addGeoJSONLayer(feature.polys, map, color, popupContent);
-  
+
+
+
+
+
         // add points, lines, and polys to allFeatures
         if (feature.points) {
+          const options = {
+            pointToLayer: (feature, latlng) => {
+              const marker = L.circleMarker(latlng, {
+                radius: 8,
+                fillColor: color,
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+              });
+              return marker;
+            }
+          };
+
+          this.#_addGeoJSONLayer(feature.points, map, options, popupContent);
           allFeatures.features.push(JSON.parse(feature.points));
         }
+
         if (feature.lines) {
+          const options = {
+            style: {
+              color: color,
+              weight: 2,
+              opacity: 1
+            }
+          };
+
+          this.#_addGeoJSONLayer(feature.lines, map, options, popupContent);
           allFeatures.features.push(JSON.parse(feature.lines));
         }
+
         if (feature.polys) {
+          const options = {
+            style: {
+              color: color,
+              weight: 2,
+              opacity: 1
+            }
+          };
+
+          this.#_addGeoJSONLayer(feature.polys, map, options, popupContent);
           allFeatures.features.push(JSON.parse(feature.polys));
         }
+
+
+
       });
-  
+
       if (relocate) {
         // compute the bounds of allFeatures
         const bounds = L.geoJSON(allFeatures).getBounds();
@@ -130,7 +168,7 @@ class MyMapClass {
 
 
 
-    
+
   }
 
 
@@ -139,7 +177,7 @@ class MyMapClass {
   async getFeatureData() {
     // Try to get the data from session storage first
     let featureData = sessionStorage.getItem('featureData');
-    
+
     if (featureData) {
       // If data exists in storage, parse it from the string and return
       return JSON.parse(featureData);
@@ -150,10 +188,10 @@ class MyMapClass {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       featureData = await response.json();
-      
+
       // Store the data in session storage as a string
       sessionStorage.setItem('featureData', JSON.stringify(featureData));
-      
+
       // Return the fetched data
       return featureData;
     }
@@ -209,26 +247,16 @@ class MyMapClass {
     return colors[type] || "white";
   };
 
-  #_addGeoJSONLayer(geoJSONData, map, color, popupContent) {
+  #_addGeoJSONLayer(geoJSONData, map, options, popupContent) {
     if (!geoJSONData) return;
 
-    const options = {
-      pointToLayer: (feature, latlng) => {
-        const marker = L.circleMarker(latlng, {
-          radius: 8,
-          fillColor: color,
-          color: "#000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8
-        });
-        marker.bindPopup(popupContent);
-        return marker;
-      }
+    options.onEachFeature = function (feature, layer) {
+      // bind popup to each feature in the GeoJSON layer
+      layer.bindPopup(popupContent);
     };
 
     L.geoJSON(JSON.parse(geoJSONData), options).addTo(map);
-  };
+  }
 
 
 
