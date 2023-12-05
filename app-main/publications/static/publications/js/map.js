@@ -27,9 +27,12 @@ async function main() {
   const myMapClass = new MyMapClass();
   
   try {
+    
     map = await myMapClass.initialize();
+
     // Fetch the JSON data from /publications/api/feature/
     const loadingOverlay = document.getElementById('loading-overlay');
+    
     // To show the overlay
     loadingOverlay.style.display = 'flex';
 
