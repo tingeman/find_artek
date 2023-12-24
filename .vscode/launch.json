@@ -54,7 +54,7 @@
             "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runserver",
-                "0.0.0.0:8080",
+                "0.0.0.0:8081",
                 "--settings",
                 "find_artek.development_settings"
             ],
