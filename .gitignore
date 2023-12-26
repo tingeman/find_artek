@@ -21,7 +21,8 @@ __pycache__
 shared-project-data
 
 app-classic
-
+app-datatransfer
 .migrate
 
 debug.log
+datadump.json

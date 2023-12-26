@@ -1,30 +1,30 @@
 {
     "version": "0.2.0",
     "configurations": [
-        // {
-        //     "type": "bashdb",
-        //     "request": "launch",
-        //     "name": "Bash: Datatransfer",
-        //     "cwd": "${workspaceFolder}",
-        //     "program": "${workspaceFolder}/app-main/management/datatransfer_script/datatransfer_script.sh",
-        //     "args": [
-        //         "--skip-data-transfer", 
-        //         "false",
-        //         "--use-sqlite",
-        //         "false"
-        //     ]
-        // },
-        // {
-        //     "name": "Python: Datatransfer",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/app-main/manage.py",
-        //     "args": [
-        //         "runscript",
-        //         "management.datatransfer_script.datatransfer_script"
-        //     ],
-        //     "django": true
-        // },
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash: Datatransfer",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/management/datatransfer_script/datatransfer_script.sh",
+            "args": [
+                "--skip-data-transfer", 
+                "false",
+                "--use-sqlite",
+                "false"
+            ]
+        },
+        {
+            "name": "Python: Datatransfer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+            "args": [
+                "runscript",
+                "management.datatransfer_script.datatransfer_script"
+            ],
+            "django": true
+        },
         // {
         //     "name": "Python: FeatureData",
         //     "type": "python",
@@ -40,7 +40,7 @@
             "name": "Python: Unittest",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app-main/manage.py",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
             "args": [
                 "test",
                 "publications"
@@ -54,7 +54,7 @@
             "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runserver",
-                "0.0.0.0:8081",
+                "0.0.0.0:8099",
                 "--settings",
                 "find_artek.development_settings"
             ],
@@ -79,7 +79,7 @@
             "runtimeExecutable": "C:\\Program Files\\chromium\\chrome-win\\chrome.exe",
             "request": "launch",
             "type": "msedge",
-            "url": "http://localhost:6082",
+            "url": "http://localhost:6000",
             "webRoot": "${workspaceFolder}/app-main/publications",
             "disableNetworkCache": true
         },
