@@ -21,7 +21,11 @@ __pycache__
 shared-project-data
 
 app-classic
-app-datatransfer
+# app-datatransfer
+app-datatransfer/datatransfer/venv
+*.sqlite
+
+
 .migrate
 
 debug.log
