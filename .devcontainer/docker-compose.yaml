@@ -45,10 +45,10 @@ services:
     restart: always
     image: mariadb:11.2
     environment:
-      MYSQL_ROOT_PASSWORD: mariadb
-      MYSQL_DATABASE: find-artek-django
-      MYSQL_USER: mariadb
-      MYSQL_PASSWORD: mariadb
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - find-artek-mariadb:/var/lib/mysql
       - ../mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -64,9 +64,9 @@ services:
         - "6001:80"
       environment:
         PMA_HOST: find-artek-mariadb-service
-        MYSQL_ROOT_PASSWORD: mariadb
-        MYSQL_USER: mariadb
-        MYSQL_PASSWORD: mariadb
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       volumes:
         - ../phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:
