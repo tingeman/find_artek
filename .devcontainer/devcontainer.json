@@ -14,5 +14,5 @@
             ]
         }
     },
-    "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
+    "postCreateCommand": "bash /usr/src/project/.devcontainer/postCreateCommand.sh"
 }
