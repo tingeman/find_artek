@@ -22,7 +22,8 @@ import os
 # Load .env file
 # Import load_dotenv
 from dotenv import load_dotenv
-load_dotenv()
+dotenv_path = '/usr/src/project/.devcontainer/.env'
+load_dotenv(dotenv_path=dotenv_path)
 
 
 
@@ -139,13 +140,16 @@ WSGI_APPLICATION = 'find_artek.wsgi.application'
 #     }
 # }
 
+
+
+
 DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.mysql',
         'ENGINE': 'django.contrib.gis.db.backends.mysql',
-        'NAME': 'find-artek-django',
-        'USER': 'mariadb',
-        'PASSWORD': 'mariadb',
+        'NAME': os.getenv('MYSQL_DATABASE'),
+        'USER': os.getenv('MYSQL_USER'),
+        'PASSWORD': os.getenv('MYSQL_PASSWORD'),
         'HOST': 'find-artek-mariadb-service',
         'PORT': '3306',
     }
