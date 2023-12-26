@@ -162,9 +162,6 @@ class ImageObject(BaseModel):
 
     def filename(self):
         return os.path.basename(self.image.name)
-    
-    def filelocation(self):
-        return os.path.dirname(self.image.name)
 
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes ends here
@@ -202,9 +199,6 @@ class FileObject(BaseModel):
     
     def filename(self):
         return os.path.basename(self.file.name)
-    
-    def filelocation(self):
-        return os.path.dirname(self.file.name)
 
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)
@@ -258,7 +252,8 @@ class Publication(BaseModel):
     ISSN = models.CharField(max_length=255, blank=True)
     note = models.TextField(max_length=255, blank=True)
     series = models.CharField(max_length=255, blank=True)
-    abstract = models.TextField(max_length=255, blank=True)
+    # abstract = models.TextField(max_length=255, blank=True)
+    abstract = models.TextField(blank=True)
     remark = models.CharField(max_length=255, blank=True)
     subject = models.CharField(max_length=255, blank=True)
     howpublished = models.CharField(max_length=255, blank=True)

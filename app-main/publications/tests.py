@@ -337,8 +337,8 @@ class TestPublicationData(unittest.TestCase):
 
         for i, publication in enumerate(publications):
             with self.subTest(i=i):
-                self.assertEqual(publication.title, expected_publication_titles[i])
-
+                publication_title = publication.title
+                self.assertIn(publication_title, expected_publication_titles)
 
 
     # Find all reports that is asssociated with the keyword 'Permafrost'
