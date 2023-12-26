@@ -1,46 +1,67 @@
 {
     "version": "0.2.0",
     "configurations": [
-        {
-            "type": "bashdb",
-            "request": "launch",
-            "name": "Bash: Datatransfer",
-            "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/app-datatransfer/datatransfer/management/datatransfer_script/datatransfer_script.sh",
-            "args": [
-                "--skip-data-transfer", 
-                "false",
-                "--use-sqlite",
-                "false"
-            ]
-        },
-        {
-            "name": "Python: Datatransfer",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
-            "args": [
-                "runscript",
-                "management.datatransfer_script.datatransfer_script"
-            ],
-            "django": true
-        },
+
+
+        // data transfer starts here //
+        // {
+        //     "type": "bashdb",
+        //     "request": "launch",
+        //     "name": "Bash: Datatransfer",
+        //     "cwd": "${workspaceFolder}",
+        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/management/datatransfer_script/datatransfer_script.sh",
+        //     "args": [
+        //         "--skip-data-transfer", 
+        //         "false",
+        //         "--use-sqlite",
+        //         "false"
+        //     ]
+        // },
+        // {
+        //     "name": "Python: Datatransfer",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+        //     "args": [
+        //         "runscript",
+        //         "management.datatransfer_script.datatransfer_script"
+        //     ],
+        //     "django": true
+        // },
         // {
         //     "name": "Python: FeatureData",
         //     "type": "python",
         //     "request": "launch",
-        //     "program": "${workspaceFolder}/app-main/manage.py",
+        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
         //     "args": [
         //         "runscript",
         //         "management.datatransfer_script.datatranser_feature_data"
         //     ],
         //     "django": true
         // },
+        // {
+        //     "name": "Python: Unittest",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+        //     "args": [
+        //         "test",
+        //         "publications"
+        //     ],
+        //     "django": true
+        // },
+        // data transfer ends here //
+
+
+
+
+
+        // main starts here //
         {
             "name": "Python: Unittest",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "test",
                 "publications"
@@ -83,6 +104,7 @@
             "webRoot": "${workspaceFolder}/app-main/publications",
             "disableNetworkCache": true
         },
+        // main ends here //
 
     ]
 }
