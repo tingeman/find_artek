@@ -42,6 +42,8 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN python3 -m venv $VIRTUAL_ENV
 RUN /bin/bash -c "source $VIRTUAL_ENV/bin/activate"
 
+# install mariadb client to be able to run data_transfer
+RUN apt-get update && apt-get install -y default-mysql-client
 
 
 # ENTRY POINT

@@ -128,16 +128,40 @@ WSGI_APPLICATION = 'find_artek.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#         'NAME': 'find-artek-1',
+#         'USER': 'postgres',
+#         'PASSWORD': 'postgres',
+#         'HOST': 'find-artek-db',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'find-artek-1',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'find-artek-db',
-        'PORT': '5432',
+        # 'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'NAME': 'find-artek-django',
+        'USER': 'mariadb',
+        'PASSWORD': 'mariadb',
+        'HOST': 'find-artek-mariadb-service',
+        'PORT': '3306',
     }
 }
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'find-artek-django',
+#         'USER': 'mariadb',
+#         'PASSWORD': 'mariadb',
+#         'HOST': 'find-artek-mariadb-service',
+#         'PORT': '3306',
+#     }
+# }
 
 # DATABASES = {
 #     'default': {

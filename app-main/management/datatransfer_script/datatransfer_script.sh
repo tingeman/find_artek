@@ -80,14 +80,23 @@ if [[ $USING_SQLITE -eq 1 ]]; then
 
 else
     echo "using mysql"
-    # # Drops database
-    # echo 'DROP DATABASE IF EXISTS root_find_artek_v1_0_0;' | mysql -h database-service -u root -pnotSecureChangeMe
-    # echo 'DATABASE HAS BEEN DELETED'
 
-    # # Creates database
-    # echo "CREATE DATABASE root_find_artek_v1_0_0 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" | mysql -h database-service -u root -pnotSecureChangeMe
-    # echo 'DATABASE HAS BEEN CREATED'
+    # Adjust these variables as needed
+    DB_HOST="find-artek-mariadb-service"
+    DB_USER="mariadb"
+    DB_PASSWORD="mariadb"
+    DB_NAME="find-artek-django"
+
+    # Drops the existing database
+    echo "DROP DATABASE IF EXISTS \`${DB_NAME}\`;" | mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD}
+    echo 'DATABASE HAS BEEN DELETED'
+
+    # Creates a new database
+    echo "CREATE DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" | mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD}
+
+    echo 'DATABASE HAS BEEN CREATED'
 fi
+
 
 
 
