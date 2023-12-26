@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # du behøver ikke namespace her, du gør docker for dig, du kan bare kalde den app-main
   find-artek-app-main:
     image: vicmrp/find-artek-app-main
 
@@ -13,15 +12,28 @@ services:
     tty: true
     restart: always    
     
-    # RUN THIS IN PRODUCTION
     command: bash -c 'cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8121'
-    
-
-
+  
     networks:
       - shared_network
 
+  find-artek-httpd-service:
+    image: httpd:2.4
+    stdin_open: true
+    tty: true
+    restart: always
 
+
+    volumes:
+      - ./shared-project-data:/mnt/shared-project-data
+      - ./httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
+      - ./httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
+    networks:
+      - shared_network
+      
+
+
+### postgresql ###
   find-artek-db:
     image: postgis/postgis:15-master
     environment:
@@ -52,6 +64,7 @@ services:
      - find-artek-pgadmin:/var/lib/pgadmin
     networks:
       - shared_network
+### postgresql ###
 
 
 
