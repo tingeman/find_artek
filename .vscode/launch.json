@@ -4,41 +4,41 @@
 
 
         // data transfer starts here //
-        // {
-        //     "type": "bashdb",
-        //     "request": "launch",
-        //     "name": "Bash: Datatransfer",
-        //     "cwd": "${workspaceFolder}",
-        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/management/datatransfer_script/datatransfer_script.sh",
-        //     "args": [
-        //         "--skip-data-transfer", 
-        //         "false",
-        //         "--use-sqlite",
-        //         "false"
-        //     ]
-        // },
-        // {
-        //     "name": "Python: Datatransfer",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
-        //     "args": [
-        //         "runscript",
-        //         "management.datatransfer_script.datatransfer_script"
-        //     ],
-        //     "django": true
-        // },
-        // {
-        //     "name": "Python: FeatureData",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
-        //     "args": [
-        //         "runscript",
-        //         "management.datatransfer_script.datatranser_feature_data"
-        //     ],
-        //     "django": true
-        // },
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash: Datatransfer",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/management/datatransfer_script/datatransfer_script.sh",
+            "args": [
+                "--skip-data-transfer", 
+                "false",
+                "--use-sqlite",
+                "false"
+            ]
+        },
+        {
+            "name": "Python: Datatransfer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+            "args": [
+                "runscript",
+                "management.datatransfer_script.datatransfer_script"
+            ],
+            "django": true
+        },
+        {
+            "name": "Python: FeatureData",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+            "args": [
+                "runscript",
+                "management.datatransfer_script.datatranser_feature_data"
+            ],
+            "django": true
+        },
         // {
         //     "name": "Python: Unittest",
         //     "type": "python",
