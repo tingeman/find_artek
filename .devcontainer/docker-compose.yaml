@@ -46,7 +46,7 @@ services:
     image: mariadb:11.2
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
@@ -63,10 +63,10 @@ services:
       ports:
         - "6001:80"
       environment:
-        PMA_HOST: find-artek-mariadb-service
+        PMA_HOST: ${MYSQL_HOST}
         MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         MYSQL_USER: ${MYSQL_USER}
-        MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       volumes:
         - ../phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:

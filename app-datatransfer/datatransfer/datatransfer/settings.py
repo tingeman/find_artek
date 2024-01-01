@@ -13,9 +13,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 # Load .env file
 # Import load_dotenv
-from dotenv import load_dotenv
 import os
-load_dotenv()
+from dotenv import load_dotenv
+dotenv_path = '/usr/src/project/.devcontainer/.env'
+load_dotenv(dotenv_path=dotenv_path)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,6 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -91,10 +93,10 @@ DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.mysql',
         'ENGINE': 'django.contrib.gis.db.backends.mysql',
-        'NAME': 'find-artek-django',
-        'USER': 'mariadb',
-        'PASSWORD': 'mariadb',
-        'HOST': 'find-artek-mariadb-service',
+        'NAME': os.getenv('MYSQL_DATABASE'),
+        'USER': os.getenv('MYSQL_USER'),
+        'PASSWORD': os.getenv('MYSQL_PASSWORD'),
+        'HOST': os.getenv('MYSQL_HOST'),
         'PORT': '3306',
         'OPTIONS': {
             'charset': 'utf8mb4',
@@ -102,6 +104,10 @@ DATABASES = {
         },
     }
 }
+
+
+
+
 
 
 

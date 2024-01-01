@@ -82,17 +82,22 @@ else
     echo "using mysql"
 
     # Adjust these variables as needed
-    DB_HOST="find-artek-mariadb-service"
-    DB_USER="mariadb"
-    DB_PASSWORD="mariadb"
-    DB_NAME="find-artek-django"
+
+    # i need to import .env file
+    # from dotenv import load_dotenv
+    # dotenv_path = '/usr/src/project/.devcontainer/.env'
+    # load_dotenv(dotenv_path=dotenv_path)
+    # how to do this in bash?
+    source /usr/src/project/.devcontainer/.env
+
+
 
     # Drops the existing database
-    echo "DROP DATABASE IF EXISTS \`${DB_NAME}\`;" | mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD}
+    echo "DROP DATABASE IF EXISTS \`${MYSQL_DATABASE}\`;" | mysql -h ${MYSQL_HOST} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD}
     echo 'DATABASE HAS BEEN DELETED'
 
     # Creates a new database
-    echo "CREATE DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" | mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD}
+    echo "CREATE DATABASE \`${MYSQL_DATABASE}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" | mysql -h ${MYSQL_HOST} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD}
 
     echo 'DATABASE HAS BEEN CREATED'
 fi
