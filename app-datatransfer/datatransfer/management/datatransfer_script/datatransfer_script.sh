@@ -203,6 +203,18 @@ fi
 # ---------------- # PROBLEM 2 STARTS HERE # ---------------- #
 # ---------------- Refactor models starts here ---------------- #
 
+
+# run the script that handes files_not_in_database
+# Echo in green text 'starting files_not_in_database.py', sleep for 1 second, then echo in green text 'finished files_not_in_database.py'
+echo -e "\e[32mstarting files_not_in_database.py\e[0m"
+sleep 1
+
+
+
+
+
+
+
 # in find_artek/publications/models.py
 # replace "created_date = models.DateTimeField() # when done moving data use these parameters: auto_now_add=True" with "created_date = models.DateTimeField(auto_now_add=True)"
 # replace "modified_date = models.DateTimeField() # when done moving data use these parameters: auto_now=True" with "modified_date = models.DateTimeField(auto_now=True)"
