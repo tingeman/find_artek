@@ -79,7 +79,7 @@
             "runtimeExecutable": "C:\\Program Files\\chromium\\chrome-win\\chrome.exe",
             "request": "launch",
             "type": "msedge",
-            "url": "http://localhost:8080",
+            "url": "http://localhost:6082",
             "webRoot": "${workspaceFolder}/app-main/publications",
             "disableNetworkCache": true
         },
