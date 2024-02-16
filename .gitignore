@@ -1,6 +1,7 @@
 app-main/venv/
 temp/
 __pycache__
+httpd-service/ssl/
 
 *.pyc
 
