@@ -18,10 +18,16 @@ httpd-service/ssl/
 
 *.gz
 
+*.json
+
 
 shared-project-data
 
 app-classic
+# app-datatransfer
+app-datatransfer/datatransfer/venv
+app-datatransfer/datatransfer/publications/migrations
+*.sqlite
 
 .migrate
 
