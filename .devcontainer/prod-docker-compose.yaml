@@ -17,13 +17,14 @@ services:
     tty: true
     
     # RUN THIS IN PRODUCTION
-    command: bash -c 'cd /usr/src/project/app-main && source venv/bin/activate && python manage.py runserver 0.0.0.0:8121'
+    # command: bash -c 'cd /usr/src/project/app-main && source venv/bin/activate && python manage.py runserver 0.0.0.0:8121'
+    command: bash -c 'cd /usr/src/project/app-main && rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8121'
     
     # RUN THIS IN DEVELOPMENT
     # command: bash -c 'cd /usr/src/project/app-main && source venv/bin/activate && sleep infinity'
     # Run this if you want data to come from apache-service
     # command: bash -c 'cd /usr/src/project/app-main && source venv/bin/activate && python manage.py runserver 0.0.0.0:8000'
-    command: sleep infinity
+    # command: sleep infinity
     # run this if you want to run directly on the application
     # ports:
     #   - 8080:8080
