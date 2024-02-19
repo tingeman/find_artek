@@ -1,6 +1,6 @@
 {
     "name": "Find Artek Django Dev Container",
-    "dockerComposeFile": "docker-compose.yaml",
+    "dockerComposeFile": "dev-docker-compose.yaml",
     "service": "find-artek-app-main",
     "workspaceFolder": "/usr/src/project",
     "customizations": {
