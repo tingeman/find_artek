@@ -16,7 +16,7 @@
         // },
         // {
         //     "name": "Python: Datatransfer",
-        //     "type": "python",
+        //     "type": "debugpy",
         //     "request": "launch",
         //     "program": "${workspaceFolder}/app-main/manage.py",
         //     "args": [
@@ -27,7 +27,7 @@
         // },
         // {
         //     "name": "Python: FeatureData",
-        //     "type": "python",
+        //     "type": "debugpy",
         //     "request": "launch",
         //     "program": "${workspaceFolder}/app-main/manage.py",
         //     "args": [
@@ -38,7 +38,7 @@
         // },
         {
             "name": "Python: Unittest",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
@@ -49,7 +49,7 @@
         },
         {
             "name": "Python: Runserver Live",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
@@ -63,12 +63,14 @@
         },
         {
             "name": "Runserver Live via Proxy",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runserver",
-                "0.0.0.0:8121"
+                "0.0.0.0:8121",
+                "--settings",
+                "find_artek.debug_on_runserver_live_via_proxy_settings"
 
             ],
             "django": true,

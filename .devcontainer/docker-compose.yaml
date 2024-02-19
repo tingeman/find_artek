@@ -69,11 +69,15 @@ services:
     stdin_open: true
     tty: true
 
+    ports:
+      - 80:80
+      - 443:443
 
     volumes:
       - ../shared-project-data:/mnt/shared-project-data
       - ../httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
       - ../httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ../httpd-service/data/ssl/:/usr/local/apache2/conf/ssl/
     networks:
       - shared_network
 
