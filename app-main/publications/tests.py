@@ -1,15 +1,24 @@
 #
 
 import unittest
-from publications.models import FileObject, Keyword, Person, Publication, Topic, Feature
+from publications.models import Appendenciesship, FileObject, Keyword, Person, Publication, Topic, Feature
 import json
 from django.conf import settings
 import os 
+# from utils.get_all_publications import get_all_publications
+from utils.get_all_publications import get_all_publications
 
 class TestPublicationData(unittest.TestCase):
     def setUp(self):
         pass
 
+
+    def test_get_all_publications_import(self):
+        try:
+            get_all_publications()
+            print("Function has been imported correctly")
+        except Exception as e:
+            print("There was an error:", e)
 
     # ------------------- starts here ------------------- #
     # These unit tests were created to compare data relations in the old v1.6 app and verify that features such as many-to-many relationships are still functioning correctly. 
@@ -231,6 +240,84 @@ class TestPublicationData(unittest.TestCase):
 
         # Compare the file name with the expected file name
         self.assertEqual(file_object.file, expected_file_name)
+
+
+
+
+
+    # Test if yu can get all appendecies associated with a publication (98-14.pdf)
+    def test_get_appendices_on_number_98_14(self):
+        # Get the real data from the database
+        publication = Publication.objects.get(number="98-14")
+        appendices = publication.appendices.all()
+
+        # Define the expected file names
+        expected_file_names = [
+            'reports/1998/98-14/98-01_1-2.pdf',
+            'reports/1998/98-14/98-02_2-2.pdf',
+        ]
+
+        # Iterate through the appendices and compare their file names with the expected file names
+        for i, appendix in enumerate(appendices):
+            with self.subTest(i=i):
+                self.assertEqual(appendix.file, expected_file_names[i])
+
+
+    # Test if yu can get all appendecies associated with a publication (98-14.pdf)
+    def test_get_appendices_on_number_2019_09_02(self):
+        # Get the real data from the database
+        publication = Publication.objects.get(number="09-02")
+        appendices = publication.appendices.all()
+
+        # Define the expected file names
+        expected_file_names = [
+            'reports/2009/09-02/09-02_datagrundlag.zip',
+            'reports/2009/09-02/09-02_Bilagsrapport.pdf',
+        ]
+
+        # Check if each expected file name is present in the appendices
+        for file_name in expected_file_names:
+            self.assertIn(file_name, [appendix.file for appendix in appendices])
+
+
+    # Test if you can get publication associated with an appendix 2009/09-02
+    def test_get_publication_on_appendix_2009_09_02(self):
+        # Get the real data from the database
+        appendix = FileObject.objects.get(file='reports/2009/09-02/09-02_datagrundlag.zip')
+
+        # Get the publication associated with the appendix
+        # Use Appendenciesship to find the publication
+        # class Appendenciesship(models.Model):
+        #     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+        #     fileobject = models.ForeignKey(FileObject, on_delete=models.CASCADE)
+        appendenciesship = Appendenciesship.objects.get(fileobject=appendix)
+        publication = appendenciesship.publication
+
+        # Define the expected number
+        expected_number = '09-02'
+
+        # Compare the number with the expected number
+        self.assertEqual(publication.number, expected_number)
+
+
+    # Test if you can get publication associated with an appendix 2014/14-22/GC-test.xlsx
+    def test_get_publication_on_appendix_2014_14_22_GC_test_xlsx(self):
+        # Get the real data from the database
+        appendix = FileObject.objects.get(file='reports/2014/14-22/GC-test.xlsx')
+
+        # Get the publication associated with the appendix
+        # Use Appendenciesship to find the publication
+        # class Appendenciesship(models.Model):
+        #     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
+        #     fileobject = models.ForeignKey(FileObject, on_delete=models.CASCADE)
+        appendenciesship = Appendenciesship.objects.get(fileobject=appendix)
+        publication = appendenciesship.publication
+
+        # Define the expected number
+        expected_number = '14-22'
+
+        # Compare the number with the expected number
+        self.assertEqual(publication.number, expected_number)
 
 
 
@@ -720,6 +807,47 @@ class TestPublicationData(unittest.TestCase):
                 filename = publication.file.filename()              
                 # assert that that file name are the same
                 self.assertEqual(filename, asserted_filename, "The filename is correct")
+
+
+
+
+
+    # check if each file in the file structure is represented in the database
+    # loop thorugh each file in the file structure and check if it is represented in the database. Then check if potiential associated appendix is correct.
+    def test_check_if_each_file_in_file_structure_is_represented_in_database(self):
+        
+        # get all files in the file structure
+        filestructure_all_publications = get_all_publications()
+
+        # get all publications in the database
+        database_all_publications = Publication.objects.all()
+
+        files_not_in_database = []
+
+        # loop through each file in the file structure
+        for file in filestructure_all_publications:
+            # try to get the publication from the database
+            try:
+                Publication.objects.get(number=file[0])
+            except Publication.DoesNotExist:
+                files_not_in_database.append(file)
+                continue
+
+        if len(files_not_in_database) > 0:
+            # export the files_not_in_database to a json file
+            json_file_path = os.path.join(settings.BASE_DIR, 'temp', 'files_not_in_database.json')
+
+            with open(json_file_path, 'w') as outfile:
+                json.dump(files_not_in_database, outfile, indent=4)
+
+            # assert error if files_not_in_database is not empty
+            assert len(files_not_in_database) == 0, "Some files are not represented in the database."
+        else:
+            assert True, "All files are represented in the database."
+
+            
+
+
 
 
 

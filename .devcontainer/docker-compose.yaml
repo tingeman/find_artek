@@ -57,6 +57,7 @@ services:
 
 
 
+
   find-artek-phpmyadmin-service:
       restart: always
       image: phpmyadmin/phpmyadmin:latest
@@ -72,9 +73,57 @@ services:
       networks:
         - shared_network
 
+  find-artek-elasticsearch-service:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
+    environment:
+      - node.name=find-artek-elasticsearch
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - network.host=0.0.0.0
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false # Only if you're not using SSL/TLS
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - find-artek-elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - shared_network
+
+
+
+  find-artek-kibana-service:
+    image: docker.elastic.co/kibana/kibana:8.2.0
+    environment:
+       - ELASTICSEARCH_URL=http://find-artek-elasticsearch-service:9200
+       - ELASTICSEARCH_HOSTS=http://find-artek-elasticsearch-service:9200
+       - ELASTICSEARCH_SERVICE_ACCOUNT_TOKEN=${ELASTIC_KIBANA_ACCESS_TOKEN}
+       - XPACK_SECURITY_ENCRYPTIONKEY=gRPLsDGZ4dPDWt96jXHfKyBvkBzdbX7h 
+       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=rNqFVVcZka2a9AEc3ptVzfWSGnYbyY5X
+       - XPACK_REPORTING_ENCRYPTIONKEY=4A4VvUSVNbhVCfddsSxCJdnbeFX32czF
+       - SERVER_NAME=find-artek-kibana
+       - SERVER_HOST=0.0.0.0
+    ports:
+      - "6002:5601"
+    volumes:
+      - ../kibana-service/kibana.yml:/usr/share/kibana/config/kibana.yml
+    depends_on:
+      - find-artek-elasticsearch-service
+    networks:
+      - shared_network
+
 
 volumes:
   find-artek-mariadb:
+    external: true
+  find-artek-elasticsearch-data:
     external: true
 
     
