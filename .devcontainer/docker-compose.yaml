@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # du behøver ikke namespace her, du gør docker for dig, du kan bare kalde den app-main
+  find-artek-app-main:
+    restart: always
+    image: vicmrp/find-artek-app-main
+
+    build:
+      context: .
+      dockerfile: Dockerfile-find-artek-app-main
+    volumes:
+      - ..:/usr/src/project
+      - ../shared-project-data:/mnt/shared-project-data
+      
+    stdin_open: true
+    tty: true
+    
+    command: sleep infinity
+
+    networks:
+      - shared_network
+
+
+
+
+
+  find-artek-httpd-service:
+    restart: always
+    image: httpd:2.4
+
+    stdin_open: true
+    tty: true
+
+
+    volumes:
+      - ../shared-project-data:/mnt/shared-project-data
+      - ../httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
+      - ../httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
+    networks:
+      - shared_network
+
+  
+  find-artek-mariadb-service:
+    restart: always
+    image: mariadb:11.2
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - find-artek-mariadb:/var/lib/mysql
+      - ../mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - shared_network
+
+
+
+  find-artek-phpmyadmin-service:
+      restart: always
+      image: phpmyadmin/phpmyadmin:latest
+      ports:
+        - "6001:80"
+      environment:
+        PMA_HOST: ${MYSQL_HOST}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      volumes:
+        - ../phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+      networks:
+        - shared_network
+
+
+volumes:
+  find-artek-mariadb:
+    external: true
+
+    
+networks:
+  shared_network:
+    external: true
+

@@ -1,0 +1,95 @@
+{% extends base_template %}
+
+<!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
+<!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
+{% load i18n static %}
+
+{# title #}
+{% block title %}Report{% endblock %}
+
+
+{% block dynamic_head_content %}
+<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/person.css" />
+<script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
+<script src="{% static 'publications/js/person.js' %}" defer></script>
+{% endblock %}
+
+
+<!-- headline for the page -->
+{% block headline %}Person{% endblock %}
+
+
+{% block main-content %}
+
+<div class="info-box">
+    <div class="details-box">
+        <div class="row">
+            <span class="property">Name</span>
+            <span class="value">{{person.first}} {{person.last}}</span>
+        </div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>pdf</th>
+                <th>Type</th>
+                <th>Features</th>
+            </tr>
+        </thead>
+        <tbody id="reports-table-list">
+            <!-- <tr>
+                <td>17-02</td>
+                <td>
+                    <div class="report-title">
+                        <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
+                    </div>
+                    <div class="report-authors">
+                        <a href="#" >Andersen, N. P.</a>
+                        <a href="#">Christensen, M. T.</a>
+                    </div>  
+                </td>
+                <td>
+                    <a href="#">
+                        <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
+                    </a>
+                </td>
+                <td>DIPLOMPROJEKT</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>17-02</td>
+                <td>	
+                    <div class="report-title">
+                        <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
+                    </div>
+                    <div class="report-authors">
+                        <a href="#" >Andersen, N. P.</a>
+                        &amp;
+                        <a href="#">Christensen, M. T.</a>
+                    </div>  
+                </td>
+                <td>
+                    <a href="#">
+                        <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
+                    </a>
+                </td>
+                <td>DIPLOMPROJEKT</td>
+                <td>0</td>
+            </tr> -->
+        </tbody>
+    </table>
+
+    <div id="loading-overlay">
+        <div id="loading-icon"></div>
+    </div>
+</div>
+
+
+
+
+{% endblock %}

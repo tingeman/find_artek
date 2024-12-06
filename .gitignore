@@ -1,24 +1,33 @@
-# ignore __pycache__
-__pycache__/
+app-main/venv/
+temp/
+__pycache__
 
-# ignore .sqlite
+*.pyc
+
+*.old
+
+
+# ignore .env files
+**/.env
+
 
 *.bak
 
-# ignore thins in a folder called 'old'
-old/
+*.zip
 
-# ignore things in a folder called 'temp'
-temp/
+*.gz
 
-# ignore things in a folder called 'migrations'
-migrations/
 
-secret/
+shared-project-data
 
-staticfiles/
+app-classic
+# app-datatransfer
+app-datatransfer/datatransfer/venv
+app-datatransfer/datatransfer/publications/migrations
+*.sqlite
 
-publications/active_directory_authetication_test.py
 
-# ignore files in __pycache__ folders
-**/__pycache__/*
+.migrate
+
+debug.log
+datadump.json

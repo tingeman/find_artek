@@ -1,11 +1,67 @@
 {
     "version": "0.2.0",
     "configurations": [
+
+
+        // data transfer starts here //
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash: Datatransfer",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/management/datatransfer_script/datatransfer_script.sh",
+            "args": [
+                "--skip-data-transfer", 
+                "false",
+                "--use-sqlite",
+                "false"
+            ]
+        },
+        {
+            "name": "Python: Datatransfer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+            "args": [
+                "runscript",
+                "management.datatransfer_script.datatransfer_script"
+            ],
+            "django": true
+        },
+        {
+            "name": "Python: FeatureData",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+            "args": [
+                "runscript",
+                "management.datatransfer_script.datatranser_feature_data"
+            ],
+            "django": true
+        },
+        // {
+        //     "name": "Python: Unittest",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/app-datatransfer/datatransfer/manage.py",
+        //     "args": [
+        //         "test",
+        //         "publications"
+        //     ],
+        //     "django": true
+        // },
+        // data transfer ends here //
+
+
+
+
+
+        // main starts here //
         {
             "name": "Python: Unittest",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "test",
                 "publications"
@@ -16,29 +72,39 @@
             "name": "Python: Runserver Live",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/app-main/manage.py",
             "args": [
                 "runserver",
-                "0.0.0.0:80",
-                "--noreload",
+                "0.0.0.0:8099",
                 "--settings",
-                "myproject.settings",
-                "--debug"
+                "find_artek.development_settings"
             ],
             "django": true,
-            "justMyCode": true
+            "justMyCode": false
         },
+        {
+            "name": "Runserver Live via Proxy",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app-main/manage.py",
+            "args": [
+                "runserver",
+                "0.0.0.0:8121"
 
+            ],
+            "django": true,
+            "justMyCode": false
+        },
         {
             "name": "ChromiumDev: Home",
-            "version": "stable",
             "runtimeExecutable": "C:\\Program Files\\chromium\\chrome-win\\chrome.exe",
-
             "request": "launch",
             "type": "msedge",
-            "url": "http://localhost",
-            "webRoot": "${workspaceFolder}/publications",
+            "url": "http://localhost:6000",
+            "webRoot": "${workspaceFolder}/app-main/publications",
             "disableNetworkCache": true
         },
+        // main ends here //
+
     ]
 }

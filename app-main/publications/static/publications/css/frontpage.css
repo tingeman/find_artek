@@ -1,0 +1,102 @@
+
+
+
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    justify-content: center;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 1200px) { /* Adjust 800px to the point where you want the layout to change */
+    .grid-container {
+      grid-template-columns: repeat(2, 1fr); /* Change to 2 columns */
+      gap: 0;
+      justify-content: center;
+    }
+
+    main {
+        max-width: calc(280px + 280px);
+    }
+  }
+
+/* Media query for smaller screens */
+@media (max-width: 725px) { /* Adjust 800px to the point where you want the layout to change */
+    .grid-container {
+      grid-template-columns: repeat(1, 1fr); /* Change to 2 columns */
+      gap: 0;
+      justify-content: center;
+    }
+
+    main {
+        max-width: calc(280px);
+    }
+  }
+
+
+
+
+.fmitem {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.fmitem form button {
+    background-color: var(--primary-background-color);
+    height:218px;
+    display: flex;
+    flex-direction: column;
+    flex-direction: column;
+    flex-grow: 1; 
+    align-items: center;
+    justify-content: flex-start;
+    padding: 1px;
+    border: none;
+    /* border-radius: 20px; */
+}
+
+
+.fmitem form button:hover {
+    color:#777777;
+    cursor: pointer;
+}
+
+.fmitem form button .fmimage img {
+    width: 190px; 
+    height: 150px; 
+    object-fit: cover;
+    object-position: bottom;
+}
+
+.fmitem form button .fmtext {
+    text-align: left;
+    width: 190px;
+}
+
+/* 
+.fmitem form button .fmtext {
+    flex-grow: 1; 
+    display: flex; 
+
+    flex-direction: column; 
+    justify-content: center; 
+    text-align: left; 
+}
+
+.fmitem form button .fmtext span {
+    display: block; 
+    padding: 0px;
+}
+
+.fmitem form button .fmtext .topic {
+    font-size: medium;
+    font-weight: bold;
+    text-align: left; 
+    padding: 0.5em;
+    margin: 0; 
+} */
+
+
+
