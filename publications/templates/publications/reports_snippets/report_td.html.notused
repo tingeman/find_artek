@@ -1,6 +1,0 @@
-<td class='report-number' style="vertical-align: top; min-width: 40px; font-weight:normal;">{{publication.number}}</td>
-<td><div class='report-title'>
-    <a href="/publications/report/{{ publication.id }}/" style="text-decoration: none;" target="_blank">{{ publication.title }}</a>
-    </div>
-    <div class='report-authors'>{% include "publications/shared_snippets/authorlist_short.html" %}</div>
-</td>
