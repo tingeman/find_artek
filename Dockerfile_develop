@@ -1,31 +1,17 @@
-FROM python:3.10-bullseye
+FROM python:3.12-slim
 
 # Default arguments for user creation
 ARG USERNAME=dockeruser
-ARG PASSWORD=dockerpass
-ARG USER_UID=65000
+ARG USER_UID=30000
 ARG USER_GID=$USER_UID
 
-# Create the non-root user and home directory
-RUN useradd -u $USER_UID -U -d /home/$USERNAME -s /bin/bash $USERNAME && \
-    echo "$USERNAME:$PASSWORD" | chpasswd && \
-    mkdir -p /home/$USERNAME && \
-    chown $USER_UID:$USER_GID /home/$USERNAME
+# Create the plotly user with UID 30000
+RUN adduser --disabled-password --home /home/$USERNAME --uid $USER_UID $USERNAME
 
-# Create project directories and set permissions
-RUN mkdir -p /usr/src/project && chown $USER_UID:$USER_GID /usr/src/project
-RUN mkdir -p /usr/src/venvs && chown $USER_UID:$USER_GID /usr/src/venvs
-RUN chown $USER_UID:$USER_GID /usr/src/
-
-RUN apt-get update && \
-    apt-get install -y gdal-bin libgdal-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set the working directory to the project directory
-WORKDIR /usr/src/project
-
-# Install system packages as root
+# Set the default user
 USER root
+
+# Install packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unixodbc \
     locales \
@@ -33,11 +19,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg2 \
     iputils-ping \
     tree \
-    mariadb-client \
     gosu \
     sudo \
     bash \
     nano \
+    mariadb-client \
+    libmariadb-dev \
+    pkg-config \
+    gdal-bin libgdal-dev \
+    build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure and generate the en_US.UTF-8 locale
@@ -49,31 +40,40 @@ ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 
-# ##### Microsoft SCCM endpoint setup (optional if needed) #####
-# RUN echo "deb [arch=amd64] https://packages.microsoft.com/debian/10/prod buster main" > /etc/apt/sources.list.d/microsoft-prod.list && \
-#     wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
-#     mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg && \
-#     apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
-#     rm -rf /var/lib/apt/lists/*
-# ##### Microsoft SCCM endpoint setup #####
-
 # Allow the non-root user to use sudo without password
 RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+# Create project directories and set permissions
+RUN mkdir -p /app \
+    && chown $USER_UID:$USER_GID /app \
+    && chmod -R 755 /app 
+
 # Switch to the non-root user
 USER $USERNAME
+    
+# Set the working directory to the project directory
+WORKDIR /app
 
-# Create and activate the virtual environment
-RUN python -m venv /usr/src/venvs/app-main
+# We have to use a virtual environment in this particular case
+# installing gunicorn and django using pip directly did not work
+
+# Create a virtual environment
+RUN python -m venv venv
 
 # Copy requirements file and install
-COPY --chown=$USERNAME:$USERNAME ./app-main/requirements.txt /usr/src/
-RUN /usr/src/venvs/app-main/bin/pip install --upgrade pip && \
-    /usr/src/venvs/app-main/bin/pip install -r /usr/src/requirements.txt
+COPY --chown=$USERNAME:$USERNAME ./app-main/requirements.txt .
 
-# Optional: Export a new requirements file from the installed environment
-RUN mkdir -p /usr/src/project/app-main && \
-    /usr/src/venvs/app-main/bin/pip freeze > /usr/src/project/app-main/requirements.txt
+# Install the dependencies
+RUN set -ex && \
+    . /app/venv/bin/activate && \
+    python -m pip install --no-cache-dir -r /app/requirements.txt
 
-# Set default command
-CMD ["/bin/bash"]
+# Add the virtual environment to PATH
+ENV PATH="/app/venv/bin:$PATH"
+
+# Copy the project files
+COPY --chown=$USERNAME:$USERNAME ./app-main /app
+
+EXPOSE 8099
+# Start Gunicorn to serve the Django app
+CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application"]

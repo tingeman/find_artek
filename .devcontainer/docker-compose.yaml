@@ -1,20 +1,22 @@
 services:
-  # du behøver ikke namespace her, du gør docker for dig, du kan bare kalde den app-main
   find-artek-app-main:
     restart: always
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_HOST: ${MYSQL_HOST}
+      SECRET_KEY: ${SECRET_KEY}
     volumes:
-      - ..:/usr/src/project
       - ../../00_static_data:/mnt/shared-project-data
     ports:
       - "8099:8099"
     stdin_open: true
     tty: true
-    
-    command: bash -c 'cd /usr/src/project/app-main && source /usr/src/venvs/app-main/bin/activate && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
-    
+    #command: bash -c 'cd /app && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
     networks:
       - shared_network
 
@@ -22,18 +24,17 @@ services:
   find-artek-httpd-service:
     restart: always
     image: httpd:2.4
-
     stdin_open: true
     tty: true
-
     volumes:
       - ../../00_static_data:/mnt/shared-project-data
-      - ../httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
-      - ../httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ../docker/httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
+      - ../docker/httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
     networks:
       - shared_network
 
   
+  # CONSIDER HOW TO INSTANTIATE DATABASE!!!
   find-artek-mariadb-service:
     restart: always
     image: mariadb:11.2
@@ -44,7 +45,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - find-artek-mariadb:/var/lib/mysql
-      - ../mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - shared_network
 
@@ -60,7 +61,7 @@ services:
         MYSQL_USER: ${MYSQL_USER}
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       volumes:
-        - ../phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+        - ../docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:
         - shared_network
  

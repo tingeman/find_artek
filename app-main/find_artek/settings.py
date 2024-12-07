@@ -21,11 +21,9 @@ import os
 
 # Load .env file
 # Import load_dotenv
-from dotenv import load_dotenv
-dotenv_path = '/usr/src/project/.devcontainer/.env'
-load_dotenv(dotenv_path=dotenv_path)
-
-
+# from dotenv import load_dotenv
+# dotenv_path = '/app/.devcontainer/.env'
+# load_dotenv(dotenv_path=dotenv_path)
 
 
 # from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
@@ -155,7 +153,6 @@ DATABASES = {
         'PORT': '3306',
     }
 }
-
 
 # DATABASES = {
 #     'default': {
