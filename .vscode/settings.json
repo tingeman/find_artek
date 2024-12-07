@@ -1,0 +1,17 @@
+{
+    // make colortheme light
+    // "workbench.colorTheme": "Tokyo Night",
+    "workbench.colorTheme": "Default Light+",
+    // hide .git folder
+    "files.exclude": {
+        "**/.git": true
+      },
+      "files.associations": {
+        "publications/templates/**/*.*": "django-html"
+      },
+      "git.ignoreLimitWarning": true,
+      
+      "editor.hover.enabled": false,
+      
+      // "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+}

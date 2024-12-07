@@ -1,0 +1,16 @@
+{% extends "publications/base.html" %}{% load i18n %}
+{% block title %}Login{% endblock %}
+
+{% block head %}
+<!-- <link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/login.css" /> -->
+{% endblock %}
+
+{% block headline %}<div class='contents'><h1>Login</h1></div>{% endblock %}
+
+{% block main-content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Login</button>
+</form>
+{% endblock %}
