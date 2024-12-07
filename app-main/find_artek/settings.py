@@ -59,7 +59,7 @@ ALLOWED_HOSTS = [
     'find.artek.byg.dtu.dk',
     'find-artek-httpd-service',
     'localhost',
-    
+    '127.0.0.1'
 ]
 
 # Media url

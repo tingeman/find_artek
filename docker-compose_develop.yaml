@@ -4,17 +4,15 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile_develop
     volumes:
-      - ..:/usr/src/project
-      - ../../00_static_data:/mnt/shared-project-data
+      - .:/usr/src/project
+      - ../00_static_data:/mnt/shared-project-data
     ports:
       - "8099:8099"
     stdin_open: true
     tty: true
-    
     command: bash -c 'cd /usr/src/project/app-main && source /usr/src/venvs/app-main/bin/activate && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
-    
     networks:
       - shared_network
 
@@ -22,18 +20,17 @@ services:
   find-artek-httpd-service:
     restart: always
     image: httpd:2.4
-
     stdin_open: true
     tty: true
-
     volumes:
-      - ../../00_static_data:/mnt/shared-project-data
-      - ../httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
-      - ../httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ../00_static_data:/mnt/shared-project-data
+      - ./httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
+      - ./httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
     networks:
       - shared_network
 
-  
+
+  # CONSIDER HOW TO INSTANTIATE DATABASE!!!
   find-artek-mariadb-service:
     restart: always
     image: mariadb:11.2
@@ -60,7 +57,7 @@ services:
         MYSQL_USER: ${MYSQL_USER}
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       volumes:
-        - ../phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+        - ./phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:
         - shared_network
  
@@ -73,4 +70,3 @@ volumes:
 networks:
   shared_network:
     external: true
-
