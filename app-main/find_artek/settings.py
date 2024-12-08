@@ -25,6 +25,15 @@ import os
 # dotenv_path = '/app/.devcontainer/.env'
 # load_dotenv(dotenv_path=dotenv_path)
 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True  # Ensures CSRF cookies are sent only over HTTPS
+
+SESSION_COOKIE_SAMESITE = 'Lax'  # Or 'None' if cross-site usage is required
+CSRF_COOKIE_SAMESITE = 'Lax'    # Or 'None' if cross-site usage is required
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookies
+CSRF_COOKIE_HTTPONLY = False    # CSRF cookies need to be accessible by JavaScript
+
+
 
 # from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
 from pathlib import Path
@@ -61,7 +70,7 @@ ALLOWED_HOSTS = [
 ]
 
 # Media url
-MEDIA_ROOT = os.path.join('/mnt/shared-project-data/find_artek_static/media')
+MEDIA_ROOT = os.path.join('/mnt/shared-project-data/media')
 MEDIA_URL = '/media/'
 
 # Application definition
@@ -215,7 +224,7 @@ STATIC_URL = '/static/'
 # python manage.py collectstatic
 # sets up the static files for the webserver
 # BASE_DIR = '/usr/src/find_artek/app'
-STATIC_ROOT = os.path.join('/mnt/shared-project-data/find_artek_static/staticfiles')
+STATIC_ROOT = os.path.join('/mnt/shared-project-data/staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

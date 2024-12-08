@@ -74,6 +74,6 @@ ENV PATH="/app/venv/bin:$PATH"
 # Copy the project files
 COPY --chown=$USERNAME:$USERNAME ./app-main /app
 
-EXPOSE 8099
+#EXPOSE 8099
 # Start Gunicorn to serve the Django app
 CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application"]
