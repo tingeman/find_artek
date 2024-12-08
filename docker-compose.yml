@@ -18,6 +18,8 @@ services:
     stdin_open: true
     tty: true
     #command: bash -c 'cd /app && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
+    networks:
+      - docker_default
 
 
   # CONSIDER HOW TO INSTANTIATE DATABASE!!!
@@ -32,23 +34,30 @@ services:
     volumes:
       - find-artek-mariadb:/var/lib/mysql
       - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - docker_default
 
 
   find-artek-phpmyadmin-service:
-      restart: always
-      image: phpmyadmin/phpmyadmin:latest
-      ports:
-        - "6001:80"
-      environment:
-        PMA_HOST: ${MYSQL_HOST}
-        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-        MYSQL_USER: ${MYSQL_USER}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      volumes:
-        - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
- 
+    restart: always
+    image: phpmyadmin/phpmyadmin:latest
+    ports:
+      - "6001:80"
+    environment:
+      PMA_HOST: ${MYSQL_HOST}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+    networks:
+      - docker_default
 
 volumes:
   find-artek-mariadb:
     external: true
 
+# Ensure that we attach to network used by the nginx reverse proxy
+networks:
+  docker_default:
+    external: true
