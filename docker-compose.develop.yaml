@@ -4,7 +4,7 @@ services:
     container_name: find-artek-app-main
     build:
       context: .
-      dockerfile: Dockerfile_develop
+      dockerfile: Dockerfile
     environment:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -35,21 +35,6 @@ services:
       - ../00_static_data/find_artek_static:/mnt/shared-project-data
     networks:
       - shared_network
-
-
-  # find-artek-httpd-service:
-  #   restart: always
-  #   image: httpd:2.4
-  #   stdin_open: true
-  #   tty: true
-  #   ports: 
-  #     - "80:80"
-  #   volumes:
-  #     - ../00_static_data/find_artek_static:/mnt/shared-project-data
-  #     - ./docker/httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
-  #     - ./docker/httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
-  #   networks:
-  #     - shared_network
 
 
   # CONSIDER HOW TO INSTANTIATE DATABASE!!!

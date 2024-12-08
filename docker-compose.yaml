@@ -1,9 +1,10 @@
 services:
-  find-artek-app-main:
+  webapp_find-artek:
     restart: always
+    container_name: webapp_find_artek
     build:
       context: .
-      dockerfile: Dockerfile_develop
+      dockerfile: Dockerfile
     environment:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -11,14 +12,12 @@ services:
       MYSQL_HOST: ${MYSQL_HOST}
       SECRET_KEY: ${SECRET_KEY}
     volumes:
-      - /mnt/Qdrev-arctic-web-data/find_artek_static:/mnt/shared-project-data
+      - /mnt/Qdrev-arctic-web-data/staticfiles/find_artek_static:/mnt/shared-project-data
     ports:
       - "8099:8099"
     stdin_open: true
     tty: true
     #command: bash -c 'cd /app && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
-    networks:
-      - shared_network
 
 
   # CONSIDER HOW TO INSTANTIATE DATABASE!!!
@@ -33,8 +32,6 @@ services:
     volumes:
       - find-artek-mariadb:/var/lib/mysql
       - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - shared_network
 
 
   find-artek-phpmyadmin-service:
@@ -49,13 +46,9 @@ services:
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       volumes:
         - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
-      networks:
-        - shared_network
  
 
 volumes:
   find-artek-mariadb:
+    external: true
 
-    
-networks:
-  shared_network:
