@@ -1,0 +1,80 @@
+services:
+  webapp-find-artek:
+    restart: always
+    container_name: webapp-find-artek
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_HOST: ${MYSQL_HOST}
+      SECRET_KEY: ${SECRET_KEY}
+    volumes:
+      - ../00_static_data/find_artek_static:/mnt/shared-project-data
+    ports:
+      - "8099:8099"
+    stdin_open: true
+    tty: true
+    #command: bash -c 'cd /app && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
+    networks:
+      - shared_network
+
+
+  nginx:
+    # build:
+    #   context: ./docker/nginx
+    image: nginx:latest
+    container_name: fa-nginx-service
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../00_static_data/find_artek_static/staticfiles:/usr/share/nginx/staticfiles
+    networks:
+      - shared_network
+
+
+  # CONSIDER HOW TO INSTANTIATE DATABASE!!!
+  find-artek-mariadb-service:
+    restart: always
+    image: mariadb:11.2
+    container_name: fa-mariadb-service
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - find-artek-mariadb:/var/lib/mysql
+      - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - shared_network
+
+
+  find-artek-phpmyadmin-service:
+      restart: always
+      image: phpmyadmin/phpmyadmin:latest
+      container_name: fa-phpmyadmin-service
+      ports:
+        - "6001:80"
+      environment:
+        PMA_HOST: ${MYSQL_HOST}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      volumes:
+        - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+      networks:
+        - shared_network
+ 
+
+volumes:
+  find-artek-mariadb:
+    external: true
+
+    
+networks:
+  shared_network:
+    external: true
