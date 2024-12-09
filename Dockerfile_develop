@@ -77,3 +77,4 @@ RUN mkdir -p /usr/src/project/app-main && \
 
 # Set default command
 CMD ["/bin/bash"]
+#CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-"]
