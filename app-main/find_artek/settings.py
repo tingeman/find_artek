@@ -62,6 +62,8 @@ CAS_VERSION = '2'
 
 
 ALLOWED_HOSTS = [
+    'arctic.sustain.dtu.dk',
+    'webapp-find-artek',
     'find-artek.vezit.net',
     'find.artek.byg.dtu.dk',
     'find-artek-httpd-service',
