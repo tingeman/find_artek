@@ -73,7 +73,7 @@ ALLOWED_HOSTS = [
 
 # Media url
 MEDIA_ROOT = os.path.join('/mnt/shared-project-data/media')
-MEDIA_URL = '/media/'
+MEDIA_URL = '/static/find_artek_static/media/'
 
 # Application definition
 INSTALLED_APPS = [
@@ -220,7 +220,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = '/static/find_artek_static/staticfiles/'
 
 # the docker volume dedicated to apache server is also secretly mounted here to conviently overwrite create the static files
 # python manage.py collectstatic
