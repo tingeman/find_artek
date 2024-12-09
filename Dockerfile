@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     bash \
     nano \
+    net-tools \
+    mc \
+    curl \
     mariadb-client \
     libmariadb-dev \
     pkg-config \
