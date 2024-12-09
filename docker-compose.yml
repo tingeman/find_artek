@@ -1,5 +1,5 @@
 services:
-  webapp_find-artek:
+  webapp-find-artek:
     restart: always
     container_name: webapp_find_artek
     build:
