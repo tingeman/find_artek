@@ -76,4 +76,5 @@ COPY --chown=$USERNAME:$USERNAME ./app-main /app
 
 #EXPOSE 8099
 # Start Gunicorn to serve the Django app
-CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application"]
+#CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-"]
