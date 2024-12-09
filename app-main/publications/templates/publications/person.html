@@ -9,7 +9,7 @@
 
 
 {% block dynamic_head_content %}
-<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/person.css" />
+<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/person.css' %}" />
 <script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
 <script src="{% static 'publications/js/person.js' %}" defer></script>
 {% endblock %}
