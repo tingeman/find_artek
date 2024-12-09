@@ -28,7 +28,7 @@ class MyReportsClass {
         //     </td>
         //     <td>
         //         <a href="#">
-        //             <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
+        //             <img src="/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png" alt="pdf-logo">
         //         </a>
         //     </td>
         //     <td>DIPLOMPROJEKT</td>
@@ -213,13 +213,13 @@ class MyReportsClass {
 
             // Creates:
             //         <a href="#">
-            //             <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
+            //             <img src="/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png" alt="pdf-logo">
             //         </a>
             const pdfLogoLink = document.createElement('a');
             pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
             pdfLogoLink.download = ''
             const pdfLogo = document.createElement('img');
-            pdfLogo.src = '/static/publications/img/pdf_16x16.png';
+            pdfLogo.src = '/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png';
             pdfLogo.alt = 'pdf-logo';
             pdfLogoLink.appendChild(pdfLogo);
 

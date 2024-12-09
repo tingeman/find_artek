@@ -75,6 +75,15 @@ RUN /usr/src/venvs/app-main/bin/pip install --upgrade pip && \
 RUN mkdir -p /usr/src/project/app-main && \
     /usr/src/venvs/app-main/bin/pip freeze > /usr/src/project/app-main/requirements.txt
 
+# Add the virtual environment to PATH
+ENV PATH="/usr/src/venvs/app-main/bin:$PATH"
+
+# Copy the project files
+COPY --chown=$USERNAME:$USERNAME --chmod=755 ./app-main /usr/src/project/app-main
+
+WORKDIR /usr/src/project/app-main
+
 # Set default command
 CMD ["/bin/bash"]
 #CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-"]
+#CMD ["/bin/bash", "-c", "source /usr/src/venvs/app-main/bin/activate && /usr/src/venvs/app-main/bin/gunicorn --bind 0.0.0.0:8099 find_artek.wsgi:application --log-level debug --access-logfile - --error-logfile -"]
