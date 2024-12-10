@@ -34,7 +34,7 @@ services:
       MYSQL_HOST: ${MYSQL_HOST}
       SECRET_KEY: ${SECRET_KEY}
     volumes:
-      - ../00_static_data/find_artek_static:/mnt/shared-project-data
+      - /mnt/Qdrev-arctic-web-data/staticfiles/find_artek_static:/mnt/shared-project-data
     ports:
       - "8099:8099"
     stdin_open: true
