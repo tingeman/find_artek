@@ -2,14 +2,14 @@
 @font-face {
     font-family: 'Roboto';
     /* Replace with your preferred font name */
-    src: url('/static/find_artek_static/staticfiles/publications/font/roboto/Roboto-Light.ttf') format('truetype');
+    src: url('/find/static/publications/font/roboto/Roboto-Light.ttf') format('truetype');
     font-weight: 600;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'Mona Sans';
-    src: url('/static/find_artek_static/staticfiles/publications/font/Mona_Sans/Mona-Sans.ttf') format('truetype');
+    src: url('/find/static/publications/font/Mona_Sans/Mona-Sans.ttf') format('truetype');
 
     font-weight: 200 900;
     font-stretch: 75% 125%;
