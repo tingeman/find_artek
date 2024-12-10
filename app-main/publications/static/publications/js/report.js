@@ -27,7 +27,7 @@ async function main() {
         });
 
 
-        const response = await fetch(`/publications/api/feature/?${params}`);
+        const response = await fetch(JS_URL_PREFIX + `/api/feature/?${params}`);
         const featureData = await response.json();
 
         myMapClass.addFeatureDataToMap(map, featureData, true);
