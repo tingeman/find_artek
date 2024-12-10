@@ -1,37 +1,33 @@
+app-main/venv/
+temp/
+__pycache__
 
-#ignore thumbnails created by windows
-Thumbs.db
-#Ignore files build by Visual Studio
-*.obj
-*.exe
-*.pdb
-*.user
-*.aps
-*.pch
-*.vspscc
-*_i.c
-*_p.c
-*.ncb
-*.suo
-*.tlb
-*.tlh
-*.bak
-*.cache
-*.ilk
-*.log
-[Bb]in
-[Dd]ebug*/
-*.lib
-*.sbr
-obj/
-[Rr]elease*/
-_ReSharper*/
-[Tt]est[Rr]esult*
 *.pyc
-*.sqlite
-[Mm]igrations/
 
-find_artek.sublime-workspace
-*.sublime-workspace
-logs/find_artek.log.1
-logs/find_artek.log.5
+*.old
+
+
+# ignore .env files
+**/.env
+
+
+*.bak
+
+*.zip
+
+*.gz
+
+
+shared-project-data
+
+app-classic
+# app-datatransfer
+app-datatransfer/datatransfer/venv
+app-datatransfer/datatransfer/publications/migrations
+*.sqlite
+
+.env
+.migrate
+
+debug.log
+datadump.json

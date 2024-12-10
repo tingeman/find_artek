@@ -1,0 +1,12 @@
+django==4.2
+django-extensions
+Pillow
+django-cas-ng
+psycopg
+python-dotenv
+djangorestframework==3.14.0
+drf-yasg
+mysqlclient
+ping3
+PyPDF2
+gunicorn

@@ -1,0 +1,3 @@
+
+Copy a volume to a tar archive
+docker run --rm -v find-artek-httpd-server:/volume -v $(pwd):/backup alpine tar xzf /backup/find-artek-httpd-server.tar.gz -C /volume

@@ -1,0 +1,173 @@
+{% extends base_template %}
+
+<!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
+<!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
+{% load i18n static %}
+
+{# title #}
+{% block title %}Front page{% endblock %}
+
+
+{% block dynamic_head_content %}
+<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/frontpage.css' %}" />
+{% endblock %}
+
+
+<!-- headline for the page -->
+{% block headline %}find.artek{% endblock %}
+
+
+{% block main-content %}
+
+<p class="headline-description">{% trans "Access ARTEKs student reports. Please choose below: topic based access, geographical access, or search in title/abstract." %}</p>
+
+<div class="grid-container">
+
+    <div class="fmitem">
+        <form id="Infrastruktur" action="{{ URL_PREFIX }}/publications/reports/?topic=Infrastruktur" method="get">
+            <input type="hidden" name="topic" value="Infrastruktur">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/infrastruktur_fly_190x150.jpg' %}" alt="Infrastruktur">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Infrastructure" %}</h3>
+                    <p class='text'>{% trans "roads, harbours, airports" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Byggeri" action="{{ URL_PREFIX }}/publications/reports/?topic=Byggeri" method="get">
+            <input type="hidden" name="topic" value="Byggeri">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/byggeri_190x150.jpg' %}" alt="Byggeri">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Buildings" %}</h3>
+                    <p class='text'>{% trans "isolation, indoor climate, materials" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Miljø" action="{{ URL_PREFIX }}/publications/reports/?topic=Miljø" method="get">
+            <input type="hidden" name="topic" value="Miljø">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/whale_190x150.jpg' %}" 
+                        alt="Miljø">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Environment" %}</h3>
+                    <p class='text'>{% trans "water quality, nature, pollution, waste" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+
+    <div class="fmitem">
+        <form id="Energi" action="{{ URL_PREFIX }}/publications/reports/?topic=Energi" method="get">
+            <input type="hidden" name="topic" value="Energi">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/vindmølle_190x150.jpg' %}" alt="Energi">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Energy" %}</h3>
+                    <p class='text'>{% trans "windmills, hydropower, solar power" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Geoteknik" action="{{ URL_PREFIX }}/publications/reports/?topic=Geoteknik" method="get">
+            <input type="hidden" name="topic" value="Geoteknik">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/Geoteknik_190x150.jpg' %}" alt="Geoteknik">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Geotechnics" %}</h3>
+                    <p class='text'>{% trans "engineering geology, geophysics, foundations, permafrost" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+    <div class="fmitem">
+        <form id="Råstoffer" action="{{ URL_PREFIX }}/publications/reports/?topic=Råstoffer" method="get">
+            <input type="hidden" name="topic" value="Råstoffer">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/Vandkraft_190x150.jpg' %}" alt="Råstoffer">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Raw materials" %}</h3>
+                    <p class='text'>{% trans "resource geology, mapping, mining, oil" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+
+
+    <div class="fmitem">
+        <form id="Samfund" action="{{ URL_PREFIX }}/publications/reports/?topic=Samfund" method="get">
+            <input type="hidden" name="topic" value="Samfund">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/Samfund_190x150.jpg' %}" "
+                        alt="Samfund">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "Society" %}</h3>
+                    <p class='text'>{% trans "societal issues, planning, education" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+
+    <!-- all reports -->
+
+    <div class="fmitem">
+        <form id="all-reports" action="{{ URL_PREFIX }}/publications/reports/?topic=All" method="get">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/reports_3_190x150.jpg' %}" "
+                        alt="all reports">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "All reports" %}</h3>
+                    <p class='text'>{% trans "the complete list" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+
+
+    <!-- all greenland -->
+    <!-- 70.44, -47.82, 3 -->
+
+    <div class="fmitem">
+        <form id="all-greenland" action="{{ URL_PREFIX }}/publications/map/" method="get">
+            <input type="hidden" name="lat" value="70.44">
+            <input type="hidden" name="lon" value="-47.82">
+            <input type="hidden" name="zoom" value="3">
+            <button type="submit" class="link-button">
+                <div class="fmimage">
+                    <img src="{% static 'publications/img/kort.jpg' %}" "
+                        alt="picture of greenland">
+                </div>
+                <div class="fmtext">
+                    <h3 class="topic">{% trans "All Greenland" %}</h3>
+                    <p class='text'>{% trans "geographical access" %} ...</p>
+                </div>
+            </button>
+        </form>
+    </div>
+
+
+</div>
+
+<script src="{% static 'publications/js/frontpage.js' %}" defer></script>
+{% endblock %}

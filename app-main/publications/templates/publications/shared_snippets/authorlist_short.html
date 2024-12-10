@@ -1,0 +1,21 @@
+{# In the list of reports (pubs/publist/), this code displays link to authors  #}
+
+<div class="author-list">
+
+    {% for auth in pub.sorted_authorships %}
+        <a target="_blank">
+            {{ auth.person.last }}
+            {% if auth.person.first or auth.person.middle %}, {% endif %}
+            {% if auth.person.first %}{{ auth.person.first|slice:"0:1" }}.{% endif %}
+            {% if auth.person.middle %} {{ auth.person.middle|slice:"0:1" }}.{% endif %}
+        </a>
+        
+        {# Display & or semicolong #}
+        {% if forloop.revcounter0 == 1 %}
+            &amp;
+        {% elif not forloop.last %}
+            ;
+        {% endif %}
+    {% endfor %}
+</div>
+
