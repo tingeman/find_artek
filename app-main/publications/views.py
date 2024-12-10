@@ -134,13 +134,17 @@ class ReportsView(BaseView):
     template_name = 'publications/reports.html'
 
     def get(self, request, **kwargs):
-
+        # Extract the 'topic' query parameter from the request
+        topic = request.GET.get('topic', None)
 
         context = {
+            'topic': topic,  # Add the topic to the context
         }
 
+        # Update the context with additional data
         context.update(self.get_context_data(**kwargs))
 
+        # Render the template with the context
         return render(request, self.template_name, context)
 
 

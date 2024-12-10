@@ -96,6 +96,8 @@ class MyReportsClass {
 
             // Create cells for the row
             const reportNumber = document.createElement('td');
+            reportNumber.classList.add('no-wrap');  // Add a class to the table cell
+
             const reportTitleCell = document.createElement('td');
             const reportDownloadLink = document.createElement('td');
             const reportType = document.createElement('td');
