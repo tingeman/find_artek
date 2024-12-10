@@ -132,7 +132,7 @@ class MyReportsClass {
 
             // create <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
             const reportTitleLink = document.createElement('a');
-            reportTitleLink.href = `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
+            reportTitleLink.href = JS_URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
             reportTitleLink.innerText = report.title;
             reportTitleDiv.appendChild(reportTitleLink);
 
@@ -164,7 +164,7 @@ class MyReportsClass {
 
             let authorNames = report.authors.map((author) => {
                 const authorLink = document.createElement('a');
-                authorLink.href = `/publications/author/#/`;
+                authorLink.href = JS_URL_PREFIX + `/publications/author/#/`;
                 authorLink.innerText = `${author.first} ${author.last}`;
                 return authorLink.outerHTML;
             });
