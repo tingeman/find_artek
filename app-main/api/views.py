@@ -8,11 +8,16 @@ from publications.models import Publication, Topic, Feature, Person
 from rest_framework.exceptions import NotFound
 # limit to only GET /report/ and GET /report/{id}/
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
+from django.db.models import Case, When, IntegerField
 
 import http.client
 import json
 
+import logging
 
+# Get a logger instance for your app
+logger = logging.getLogger('api')
+logger.warning("views.py is loaded")
 
 class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
 
@@ -41,6 +46,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         }
     )
     def list(self, request, *args, **kwargs):
+        logger.warning("GetReportViewSet.list was called")
         queryset = self.get_queryset()
 
         serializer = self.get_serializer(queryset, many=True)
@@ -62,7 +68,17 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
 
             queryset = queryset.filter(publication_topics=topic)
 
-            
+        # Create a custom ordering field
+        queryset = queryset.annotate(
+            custom_order=Case(
+                When(number__regex=r'^9[0-9]-', then=1),
+                default=2,
+                output_field=IntegerField(),
+            )
+        ).order_by('custom_order', 'number')
+    
+        logger.warning("GetReportViewSet.get_queryset was called")
+
         return queryset
     
 

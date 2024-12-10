@@ -21,10 +21,17 @@ import os
 
 # Load .env file
 # Import load_dotenv
-from dotenv import load_dotenv
-dotenv_path = '/usr/src/project/.devcontainer/.env'
-load_dotenv(dotenv_path=dotenv_path)
+# from dotenv import load_dotenv
+# dotenv_path = '/app/.devcontainer/.env'
+# load_dotenv(dotenv_path=dotenv_path)
 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True  # Ensures CSRF cookies are sent only over HTTPS
+
+SESSION_COOKIE_SAMESITE = 'Lax'  # Or 'None' if cross-site usage is required
+CSRF_COOKIE_SAMESITE = 'Lax'    # Or 'None' if cross-site usage is required
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookies
+CSRF_COOKIE_HTTPONLY = False    # CSRF cookies need to be accessible by JavaScript
 
 
 
@@ -45,7 +52,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # if 
-DEBUG = False
+DEBUG = True
 
 
 # CAS_SERVER_URL = 'https://auth.dtu.dk/dtu/' # no multifactor
@@ -55,16 +62,18 @@ CAS_VERSION = '2'
 
 
 ALLOWED_HOSTS = [
+    'arctic.sustain.dtu.dk',
+    'webapp-find-artek',
     'find-artek.vezit.net',
     'find.artek.byg.dtu.dk',
     'find-artek-httpd-service',
     'localhost',
-    
+    '127.0.0.1'
 ]
 
 # Media url
-MEDIA_ROOT = os.path.join('/mnt/shared-project-data/find_artek_static/media')
-MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join('/mnt/shared-project-data/media')
+MEDIA_URL = '/find/media/'
 
 # Application definition
 INSTALLED_APPS = [
@@ -106,6 +115,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'publications.context_processors.URL_PREFIX',  #   # provides URL_PREFIX to any template
             ],
         },
     },
@@ -155,7 +165,6 @@ DATABASES = {
         'PORT': '3306',
     }
 }
-
 
 # DATABASES = {
 #     'default': {
@@ -209,16 +218,19 @@ USE_I18N = True
 USE_TZ = True
 
 
+FORCE_SCRIPT_NAME = '/find'
+URL_PREFIX = '/find'          # Custom settings to provide URL_PREFIX to any template
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = '/find/static/'
 
 # the docker volume dedicated to apache server is also secretly mounted here to conviently overwrite create the static files
 # python manage.py collectstatic
 # sets up the static files for the webserver
 # BASE_DIR = '/usr/src/find_artek/app'
-STATIC_ROOT = os.path.join('/mnt/shared-project-data/find_artek_static/staticfiles')
+STATIC_ROOT = os.path.join('/mnt/shared-project-data/staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -267,11 +279,33 @@ AUTHENTICATION_BACKENDS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': 'debug.log',
+            'formatter': 'simple',
+        },
+        'api_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'api.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
     'loggers': {
@@ -280,5 +314,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'api': {
+            'handlers': ['console', 'api_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+
     },
 }

@@ -1,46 +1,40 @@
-version: '3.8'
-
 services:
-  # du behøver ikke namespace her, du gør docker for dig, du kan bare kalde den app-main
   find-artek-app-main:
     restart: always
-    image: vicmrp/find-artek-app-main
-
     build:
-      context: .
-      dockerfile: Dockerfile-find-artek-app-main
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_HOST: ${MYSQL_HOST}
+      SECRET_KEY: ${SECRET_KEY}
     volumes:
-      - ..:/usr/src/project
-      - ../shared-project-data:/mnt/shared-project-data
-      
+      - ../../00_static_data:/mnt/shared-project-data
+    ports:
+      - "8099:8099"
     stdin_open: true
     tty: true
-    
-    command: sleep infinity
-
+    #command: bash -c 'cd /app && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
     networks:
       - shared_network
-
-
-
 
 
   find-artek-httpd-service:
     restart: always
     image: httpd:2.4
-
     stdin_open: true
     tty: true
-
-
     volumes:
-      - ../shared-project-data:/mnt/shared-project-data
-      - ../httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
-      - ../httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ../../00_static_data:/mnt/shared-project-data
+      - ../docker/httpd-service/data/virtualhosts:/usr/local/apache2/conf/virtualhosts
+      - ../docker/httpd-service/data/httpd.conf:/usr/local/apache2/conf/httpd.conf
     networks:
       - shared_network
 
   
+  # CONSIDER HOW TO INSTANTIATE DATABASE!!!
   find-artek-mariadb-service:
     restart: always
     image: mariadb:11.2
@@ -51,11 +45,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - find-artek-mariadb:/var/lib/mysql
-      - ../mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - shared_network
-
-
 
 
   find-artek-phpmyadmin-service:
@@ -69,61 +61,13 @@ services:
         MYSQL_USER: ${MYSQL_USER}
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       volumes:
-        - ../phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+        - ../docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:
         - shared_network
-
-  find-artek-elasticsearch-service:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
-    environment:
-      - node.name=find-artek-elasticsearch
-      - cluster.name=es-docker-cluster
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - network.host=0.0.0.0
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-      - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=false # Only if you're not using SSL/TLS
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - find-artek-elasticsearch-data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    networks:
-      - shared_network
-
-
-
-  find-artek-kibana-service:
-    image: docker.elastic.co/kibana/kibana:8.2.0
-    environment:
-       - ELASTICSEARCH_URL=http://find-artek-elasticsearch-service:9200
-       - ELASTICSEARCH_HOSTS=http://find-artek-elasticsearch-service:9200
-       - ELASTICSEARCH_SERVICE_ACCOUNT_TOKEN=${ELASTIC_KIBANA_ACCESS_TOKEN}
-       - XPACK_SECURITY_ENCRYPTIONKEY=gRPLsDGZ4dPDWt96jXHfKyBvkBzdbX7h 
-       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=rNqFVVcZka2a9AEc3ptVzfWSGnYbyY5X
-       - XPACK_REPORTING_ENCRYPTIONKEY=4A4VvUSVNbhVCfddsSxCJdnbeFX32czF
-       - SERVER_NAME=find-artek-kibana
-       - SERVER_HOST=0.0.0.0
-    ports:
-      - "6002:5601"
-    volumes:
-      - ../kibana-service/kibana.yml:/usr/share/kibana/config/kibana.yml
-    depends_on:
-      - find-artek-elasticsearch-service
-    networks:
-      - shared_network
-
+ 
 
 volumes:
   find-artek-mariadb:
-    external: true
-  find-artek-elasticsearch-data:
     external: true
 
     

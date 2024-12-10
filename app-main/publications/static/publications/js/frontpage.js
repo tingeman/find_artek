@@ -41,7 +41,7 @@ async function main() {
 
         for (let i = 0; i < topics.length; i++) {
             const topic = topics[i];
-            await myReportsClass.getReportsData('/api/report/', topic);
+            await myReportsClass.getReportsData(URL_PREFIX + '/api/report/', topic);
         }
 
 

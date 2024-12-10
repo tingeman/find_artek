@@ -36,7 +36,7 @@ async function main() {
     const myReportsClass = new MyReportsClass(
         reportsTableList,
         totalReportsNumber,
-        url = '/api/report/'
+        url = URL_PREFIX + '/api/report/'
         );
 
 

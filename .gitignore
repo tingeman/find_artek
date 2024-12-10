@@ -26,7 +26,7 @@ app-datatransfer/datatransfer/venv
 app-datatransfer/datatransfer/publications/migrations
 *.sqlite
 
-
+.env
 .migrate
 
 debug.log
