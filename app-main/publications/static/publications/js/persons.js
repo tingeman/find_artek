@@ -53,7 +53,7 @@ personData.forEach((person) => {
 
     // Create a link for the person
     const personLink = document.createElement('a');
-    personLink.href = `/publications/person/${person.id}/`; // replace with the actual link
+    personLink.href = JS_URL_PREFIX + `/publications/person/${person.id}/`; // replace with the actual link
     personLink.innerText = `${person.first} ${person.last}`;
 
     // Append the link to the cell
