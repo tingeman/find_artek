@@ -63,7 +63,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
             queryset = queryset.filter(publication_topics=topic)
 
             
-        return queryset
+        return queryset.order_by('number')
     
 
 
