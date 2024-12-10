@@ -115,7 +115,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'publications.context_processors.js_url_prefix',  #   # provides JS_URL_PREFIX to any template
+                'publications.context_processors.URL_PREFIX',  #   # provides URL_PREFIX to any template
             ],
         },
     },
@@ -219,7 +219,7 @@ USE_TZ = True
 
 
 FORCE_SCRIPT_NAME = '/find'
-JS_URL_PREFIX = '/find'
+URL_PREFIX = '/find'          # Custom settings to provide URL_PREFIX to any template
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/

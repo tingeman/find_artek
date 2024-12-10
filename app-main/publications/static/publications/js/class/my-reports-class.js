@@ -132,7 +132,7 @@ class MyReportsClass {
 
             // create <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
             const reportTitleLink = document.createElement('a');
-            reportTitleLink.href = JS_URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
+            reportTitleLink.href = URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
             reportTitleLink.innerText = report.title;
             reportTitleDiv.appendChild(reportTitleLink);
 
@@ -164,7 +164,7 @@ class MyReportsClass {
 
             let authorNames = report.authors.map((author) => {
                 const authorLink = document.createElement('a');
-                authorLink.href = JS_URL_PREFIX + `/publications/author/#/`;
+                authorLink.href = URL_PREFIX + `/publications/author/#/`;
                 authorLink.innerText = `${author.first} ${author.last}`;
                 return authorLink.outerHTML;
             });
@@ -219,7 +219,7 @@ class MyReportsClass {
             pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
             pdfLogoLink.download = ''
             const pdfLogo = document.createElement('img');
-            pdfLogo.src = JS_URL_PREFIX + '/static/publications/img/pdf_16x16.png';
+            pdfLogo.src = URL_PREFIX + '/static/publications/img/pdf_16x16.png';
             pdfLogo.alt = 'pdf-logo';
             pdfLogoLink.appendChild(pdfLogo);
 
@@ -273,7 +273,7 @@ class MyReportsClass {
     }
 
 
-    async getReportsData(url = JS_URL_PREFIX + '/api/report/', filter = null) {
+    async getReportsData(url = URL_PREFIX + '/api/report/', filter = null) {
 
         // // replace æøå with ae oe aa
         // filter = (null == filter) ? null : filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa');

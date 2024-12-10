@@ -24,7 +24,7 @@
 <div class="grid-container">
 
     <div class="fmitem">
-        <form id="Infrastruktur" action="/publications/reports/?topic=Infrastruktur" method="get">
+        <form id="Infrastruktur" action="{{ URL_PREFIX }}/publications/reports/?topic=Infrastruktur" method="get">
             <input type="hidden" name="topic" value="Infrastruktur">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -38,7 +38,7 @@
         </form>
     </div>
     <div class="fmitem">
-        <form id="Byggeri" action="/publications/reports/?topic=Byggeri" method="get">
+        <form id="Byggeri" action="{{ URL_PREFIX }}/publications/reports/?topic=Byggeri" method="get">
             <input type="hidden" name="topic" value="Byggeri">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -52,7 +52,7 @@
         </form>
     </div>
     <div class="fmitem">
-        <form id="Miljø" action="/publications/reports/?topic=Miljø" method="get">
+        <form id="Miljø" action="{{ URL_PREFIX }}/publications/reports/?topic=Miljø" method="get">
             <input type="hidden" name="topic" value="Miljø">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -68,7 +68,7 @@
     </div>
 
     <div class="fmitem">
-        <form id="Energi" action="/publications/reports/?topic=Energi" method="get">
+        <form id="Energi" action="{{ URL_PREFIX }}/publications/reports/?topic=Energi" method="get">
             <input type="hidden" name="topic" value="Energi">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -82,7 +82,7 @@
         </form>
     </div>
     <div class="fmitem">
-        <form id="Geoteknik" action="/publications/reports/?topic=Geoteknik" method="get">
+        <form id="Geoteknik" action="{{ URL_PREFIX }}/publications/reports/?topic=Geoteknik" method="get">
             <input type="hidden" name="topic" value="Geoteknik">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -96,7 +96,7 @@
         </form>
     </div>
     <div class="fmitem">
-        <form id="Råstoffer" action="/publications/reports/?topic=Råstoffer" method="get">
+        <form id="Råstoffer" action="{{ URL_PREFIX }}/publications/reports/?topic=Råstoffer" method="get">
             <input type="hidden" name="topic" value="Råstoffer">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -112,7 +112,7 @@
 
 
     <div class="fmitem">
-        <form id="Samfund" action="/publications/reports/?topic=Samfund" method="get">
+        <form id="Samfund" action="{{ URL_PREFIX }}/publications/reports/?topic=Samfund" method="get">
             <input type="hidden" name="topic" value="Samfund">
             <button type="submit" class="link-button">
                 <div class="fmimage">
@@ -130,7 +130,7 @@
     <!-- all reports -->
 
     <div class="fmitem">
-        <form id="all-reports" action="/publications/reports/?topic=All" method="get">
+        <form id="all-reports" action="{{ URL_PREFIX }}/publications/reports/?topic=All" method="get">
             <button type="submit" class="link-button">
                 <div class="fmimage">
                     <img src="{% static 'publications/img/reports_3_190x150.jpg' %}" "
@@ -149,7 +149,7 @@
     <!-- 70.44, -47.82, 3 -->
 
     <div class="fmitem">
-        <form id="all-greenland" action="/publications/map/" method="get">
+        <form id="all-greenland" action="{{ URL_PREFIX }}/publications/map/" method="get">
             <input type="hidden" name="lat" value="70.44">
             <input type="hidden" name="lon" value="-47.82">
             <input type="hidden" name="zoom" value="3">
