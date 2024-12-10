@@ -59,3 +59,7 @@ img:hover {
     cursor: pointer;
 }
 
+.no-wrap {
+    white-space: nowrap;  /* Prevent text from wrapping */
+    word-break: keep-all;  /* Prevent wrapping at hyphens */
+}

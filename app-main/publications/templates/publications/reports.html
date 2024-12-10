@@ -28,7 +28,7 @@
 
 
 {% block headline %}
-    {% trans "List of reports" %}
+    {% trans "List of reports " %}{% if topic and topic|lower != "all" %}with topic: {{ topic }}{% endif %}
 {% endblock %}
 
 
