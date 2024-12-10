@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     const $ = {
         loadingOverlay: loadingOverlay,
         personsTableList: personsTableList,
-        apiPersonEndpoint: '/publications/api/persons/',   
+        apiPersonEndpoint: JS_URL_PREFIX + '/api/persons/',   
     }
 
 

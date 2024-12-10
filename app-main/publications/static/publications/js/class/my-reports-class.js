@@ -219,7 +219,7 @@ class MyReportsClass {
             pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
             pdfLogoLink.download = ''
             const pdfLogo = document.createElement('img');
-            pdfLogo.src = '/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png';
+            pdfLogo.src = JS_URL_PREFIX + '/static/publications/img/pdf_16x16.png';
             pdfLogo.alt = 'pdf-logo';
             pdfLogoLink.appendChild(pdfLogo);
 
@@ -273,7 +273,7 @@ class MyReportsClass {
     }
 
 
-    async getReportsData(url = '/api/report/', filter = null) {
+    async getReportsData(url = JS_URL_PREFIX + '/api/report/', filter = null) {
 
         // // replace æøå with ae oe aa
         // filter = (null == filter) ? null : filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa');

@@ -54,11 +54,11 @@ async function main() {
     const urlParams = new URLSearchParams(window.location.search);
     let topic = urlParams.get('topic');
 
-    let url = `/publications/api/reports/?topic=${topic}`
+    let url = JS_URL_PREFIX + `/api/reports/?topic=${topic}`
 
     // if topic is null or undefined, set it to 'all'
     if (topic === null || topic === undefined) {
-        url = `/publications/api/reports/`
+        url = JS_URL_PREFIX + `/api/reports/`
     }
 
     // Fetch the data from the api
