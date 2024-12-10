@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     const $ = {
         loadingOverlay: loadingOverlay,
         personsTableList: personsTableList,
-        apiPersonEndpoint: '/publications/api/persons/',   
+        apiPersonsEndpoint: URL_PREFIX + '/api/persons/',   
     }
 
 
@@ -36,7 +36,7 @@ async function main($) {
     $.loadingOverlay.style.display = 'flex';
 
     // Fetch the data from the api
-    const response =  await fetch($.apiPersonEndpoint);
+    const response =  await fetch($.apiPersonsEndpoint);
 
     // Convert the response to json
     const personData = await response.json();
@@ -53,7 +53,7 @@ personData.forEach((person) => {
 
     // Create a link for the person
     const personLink = document.createElement('a');
-    personLink.href = `/publications/person/${person.id}/`; // replace with the actual link
+    personLink.href = URL_PREFIX + `/publications/person/${person.id}/`; // replace with the actual link
     personLink.innerText = `${person.first} ${person.last}`;
 
     // Append the link to the cell

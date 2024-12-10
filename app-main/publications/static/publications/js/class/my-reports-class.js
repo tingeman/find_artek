@@ -28,7 +28,7 @@ class MyReportsClass {
         //     </td>
         //     <td>
         //         <a href="#">
-        //             <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
+        //             <img src="/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png" alt="pdf-logo">
         //         </a>
         //     </td>
         //     <td>DIPLOMPROJEKT</td>
@@ -96,6 +96,8 @@ class MyReportsClass {
 
             // Create cells for the row
             const reportNumber = document.createElement('td');
+            reportNumber.classList.add('no-wrap');  // Add a class to the table cell
+
             const reportTitleCell = document.createElement('td');
             const reportDownloadLink = document.createElement('td');
             const reportType = document.createElement('td');
@@ -132,7 +134,7 @@ class MyReportsClass {
 
             // create <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
             const reportTitleLink = document.createElement('a');
-            reportTitleLink.href = `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
+            reportTitleLink.href = URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
             reportTitleLink.innerText = report.title;
             reportTitleDiv.appendChild(reportTitleLink);
 
@@ -164,7 +166,7 @@ class MyReportsClass {
 
             let authorNames = report.authors.map((author) => {
                 const authorLink = document.createElement('a');
-                authorLink.href = `/publications/author/#/`;
+                authorLink.href = URL_PREFIX + `/publications/author/#/`;
                 authorLink.innerText = `${author.first} ${author.last}`;
                 return authorLink.outerHTML;
             });
@@ -213,13 +215,13 @@ class MyReportsClass {
 
             // Creates:
             //         <a href="#">
-            //             <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
+            //             <img src="/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png" alt="pdf-logo">
             //         </a>
             const pdfLogoLink = document.createElement('a');
             pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
             pdfLogoLink.download = ''
             const pdfLogo = document.createElement('img');
-            pdfLogo.src = '/static/publications/img/pdf_16x16.png';
+            pdfLogo.src = URL_PREFIX + '/static/publications/img/pdf_16x16.png';
             pdfLogo.alt = 'pdf-logo';
             pdfLogoLink.appendChild(pdfLogo);
 
@@ -273,7 +275,7 @@ class MyReportsClass {
     }
 
 
-    async getReportsData(url = '/api/report/', filter = null) {
+    async getReportsData(url = URL_PREFIX + '/api/report/', filter = null) {
 
         // // replace æøå with ae oe aa
         // filter = (null == filter) ? null : filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa');

@@ -21,14 +21,14 @@
 {% endblock %}
 
 {% block dynamic_head_content %}
-<link rel="stylesheet" type="text/css" media="all" href="{{STATIC_URL}}/static/publications/css/reports.css" />
+<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/reports.css' %}" />
 <script src="{% static 'publications/js/reports.js' %}" defer></script>
 {% endblock %}
 
 
 
 {% block headline %}
-    {% trans "List of reports" %}
+    {% trans "List of reports " %}{% if topic and topic|lower != "all" %}with topic: {{ topic }}{% endif %}
 {% endblock %}
 
 

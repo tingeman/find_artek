@@ -10,11 +10,19 @@
     <!-- static head content starts here -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Base Title{% endblock %}</title>
+
+    <!-- Inject URL_PREFIX as a JavaScript variable -->
+    <script>
+        var URL_PREFIX = "{{ URL_PREFIX }}";
+    </script>
+
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
     <link rel="icon" href="{% static 'publications/img/artek_logo_absract_transparent_resized_favicon.ico' %}"
         type="image/x-icon" />
+
     <script src="{% static 'publications/js/base.js' %}" defer></script>
-    <title>{% block title %}Base Title{% endblock %}</title>
+    
     <!-- static head content ends here -->
 
     <!-- dynamic head content starts here -->
