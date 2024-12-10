@@ -12,9 +12,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Base Title{% endblock %}</title>
 
-    <!-- Inject JS_URL_PREFIX as a JavaScript variable -->
+    <!-- Inject URL_PREFIX as a JavaScript variable -->
     <script>
-        var JS_URL_PREFIX = "{{ JS_URL_PREFIX }}";
+        var URL_PREFIX = "{{ URL_PREFIX }}";
     </script>
 
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />

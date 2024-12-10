@@ -54,11 +54,11 @@ async function main() {
     const urlParams = new URLSearchParams(window.location.search);
     let topic = urlParams.get('topic');
 
-    let url = JS_URL_PREFIX + `/api/reports/?topic=${topic}`
+    let url = URL_PREFIX + `/api/reports/?topic=${topic}`
 
     // if topic is null or undefined, set it to 'all'
     if (topic === null || topic === undefined) {
-        url = JS_URL_PREFIX + `/api/reports/`
+        url = URL_PREFIX + `/api/reports/`
     }
 
     // Fetch the data from the api
@@ -166,7 +166,7 @@ async function main() {
 
         // create <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
         const reportTitleLink = document.createElement('a');
-        reportTitleLink.href = JS_URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
+        reportTitleLink.href = URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
         reportTitleLink.innerText = report.title;
         reportTitleDiv.appendChild(reportTitleLink);
 
@@ -198,7 +198,7 @@ async function main() {
         
         let authorNames = report.authors.map((author) => {
             const authorLink = document.createElement('a');
-            authorLink.href = JS_URL_PREFIX + `/publications/author/#/`;
+            authorLink.href = URL_PREFIX + `/publications/author/#/`;
             authorLink.innerText = `${author.first} ${author.last}`;
             return authorLink.outerHTML;
         });
@@ -275,7 +275,7 @@ async function main() {
         pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
         pdfLogoLink.download = ''
         const pdfLogo = document.createElement('img');
-        pdfLogo.src = JS_URL_PREFIX + '/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png';
+        pdfLogo.src = URL_PREFIX + '/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png';
         pdfLogo.alt = 'pdf-logo';
         pdfLogoLink.appendChild(pdfLogo);
 

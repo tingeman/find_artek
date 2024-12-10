@@ -1,6 +1,6 @@
 from django.conf import settings
 
-def js_url_prefix(request):
+def URL_PREFIX(request):
     return {
-        'JS_URL_PREFIX': settings.JS_URL_PREFIX
+        'URL_PREFIX': settings.URL_PREFIX
     }

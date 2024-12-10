@@ -183,7 +183,7 @@ class MyMapClass {
       return JSON.parse(featureData);
     } else {
       // If not, fetch the data from the endpoint
-      const response = await fetch(JS_URL_PREFIX + '/api/feature/');
+      const response = await fetch(URL_PREFIX + '/api/feature/');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
