@@ -55,13 +55,10 @@ personData.forEach((person) => {
     const personLink = document.createElement('a');
     personLink.href = URL_PREFIX + `/publications/person/${person.id}/`; // replace with the actual link
 
-    // If prelast is not empty, add it before the last name
-    if (person.prelast) {
-        personLink.innerText = `${person.prelast} ${person.last}, ${person.first} ${person.middle}`;
-    } else {
-        personLink.innerText = `${person.last}, ${person.first} ${person.middle}`;
-    }
-
+    // Construct the full name of the person
+    // trim will remove leading and trailing spaces, occurring if prelast or middle are not present
+    personLink.innerText = `${person.prelast || ''} ${person.last}, ${person.first} ${person.middle || ''}`.trim();
+    
     // Append the link to the cell
     personCell.appendChild(personLink);
 

@@ -10,6 +10,7 @@
 
 
 ### Completed
+- [x] Fix null issue for person list!
 - [x] implement persons api
 - [x] implement persons view (list of all persons)
 - [x] Ensure confidential and unvalidate entries are filtered out! (This happens in the api serializer)
