@@ -60,7 +60,6 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
 
 
         if filter_param is not None:
-
             try:
                 topic = Topic.objects.get(topic=filter_param)
             except Topic.DoesNotExist:
@@ -75,9 +74,29 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
                 default=2,
                 output_field=IntegerField(),
             )
-        ).order_by('custom_order', 'number')
-    
-        logger.warning("GetReportViewSet.get_queryset was called")
+        ).order_by('-custom_order', '-number')
+
+        logger.warning("GetReportViewSet.get_queryset: Queryset was ordered in reverse order")
+
+        # Get the length of the queryset
+        queryset_length_1 = len(queryset)
+
+        # Remove any entries that have the word "confidential" in the field "comment"
+        queryset = queryset.exclude(comment__icontains='confidential')
+
+        queryset_length_2 = len(queryset)
+
+        if queryset_length_1 != queryset_length_2:
+            logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential entries")
+
+        # Remove any entries where the field validated is False
+        queryset = queryset.filter(verified=True)
+
+        queryset_length_3 = len(queryset)
+
+        if queryset_length_3 != queryset_length_2:
+            logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
+
 
         return queryset
     
