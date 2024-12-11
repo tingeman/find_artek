@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     const $ = {
         loadingOverlay: loadingOverlay,
         personsTableList: personsTableList,
-        apiPersonsEndpoint: URL_PREFIX + '/api/persons/',   
+        apiPersonEndpoint: URL_PREFIX + '/api/person/',   
     }
 
 
@@ -36,7 +36,7 @@ async function main($) {
     $.loadingOverlay.style.display = 'flex';
 
     // Fetch the data from the api
-    const response =  await fetch($.apiPersonsEndpoint);
+    const response =  await fetch($.apiPersonEndpoint);
 
     // Convert the response to json
     const personData = await response.json();
@@ -54,13 +54,29 @@ personData.forEach((person) => {
     // Create a link for the person
     const personLink = document.createElement('a');
     personLink.href = URL_PREFIX + `/publications/person/${person.id}/`; // replace with the actual link
-    personLink.innerText = `${person.first} ${person.last}`;
+
+    // If prelast is not empty, add it before the last name
+    if (person.prelast) {
+        personLink.innerText = `${person.prelast} ${person.last}, ${person.first} ${person.middle}`;
+    } else {
+        personLink.innerText = `${person.last}, ${person.first} ${person.middle}`;
+    }
 
     // Append the link to the cell
     personCell.appendChild(personLink);
 
     // Append the cell to the row
     personRow.appendChild(personCell);
+
+    // Create cell for the row
+    const idCell = document.createElement('td');
+    idCell.innerText = person.id_number;
+    personRow.appendChild(idCell);
+
+    // Create cell for the row
+    positionCell = document.createElement('td');
+    positionCell.innerText = person.position;
+    personRow.appendChild(positionCell);
 
     // Append the row to the table
     $.personsTableList.appendChild(personRow);
