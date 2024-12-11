@@ -94,6 +94,14 @@ class Person(BaseModel):
             ("delete_own_person", "Can delete own person"),
         )
 
+    def __str__(self):
+        # First Middle von Last, Jr
+        full_name = ' '.join(part for part in (self.first, self.middle,
+                                               self.prelast, self.last) if part)
+        return ', '.join(part for part in (full_name, self.lineage) if part)
+
+
+
 # ********************************************************************
 # * PUBLICATIONTYPE, JOURNAL and KEYWORD classes starts here
 # ********************************************************************
@@ -102,7 +110,7 @@ class Person(BaseModel):
 class Journal(models.Model):
     journal = models.CharField(max_length=100)   # f.ex. Geophysics, Near Surface Geophysics, Journal of Geophysical Exploration
 
-    def __unicode__(self):
+    def __str__(self):
         return self.journal
     
 
@@ -113,21 +121,21 @@ class PubType(models.Model):
     opt_fields  = models.CharField(max_length=200, blank=True)    # from bibtex definition (in practice all
                                                                    # non-required fields will be optional
 
-    def __unicode__(self):
+    def __str__(self):
         return self.type
 
 
 class Topic(models.Model):
     topic = models.CharField(max_length=100)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.topic
 
 
 class Keyword(models.Model):
     keyword = models.CharField(max_length=100)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.keyword
 
 
@@ -324,7 +332,7 @@ class Feature(BaseModel):
             ("delete_own_feature", "Can delete own features"),
         )
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %s' % (self.name, 'Geometry')
 
     @classmethod

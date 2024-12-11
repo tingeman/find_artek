@@ -128,3 +128,31 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
         queryset = Feature.objects.all()
     
         return queryset
+
+
+
+class GetPersonViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = PersonSerializer
+
+
+    @swagger_auto_schema(
+        manual_parameters=[
+
+        ],
+        responses={
+            200: 'List of persons and associated reports.',
+            404: 'Ressource not found'
+        }
+    )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    
+    def get_queryset(self):
+        queryset = Person.objects.all().order_by('last', 'first')
+    
+        return queryset

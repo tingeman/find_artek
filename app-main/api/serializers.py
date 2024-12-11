@@ -75,13 +75,59 @@ class FeatureSerializer(serializers.ModelSerializer):
 
 class PersonSerializer(serializers.ModelSerializer):
 
-    id = serializers.SerializerMethodField()
+    id_number = serializers.SerializerMethodField()
+    fullname = serializers.SerializerMethodField()
+    first = serializers.SerializerMethodField()  
+    middle = serializers.SerializerMethodField()
+    prelast = serializers.SerializerMethodField()
+    last = serializers.SerializerMethodField()
+    lineage = serializers.SerializerMethodField()
+    position = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    authorships = serializers.SerializerMethodField()
+    supervisorships = serializers.SerializerMethodField()
 
     class Meta: 
         model = Person
-        fields = ['id', 'first', 'last']
+        fields = ['id_number', 'fullname', 'first', 'middle', 'prelast', 'last', 'lineage', 'position', 'email', 'authorships', 'supervisorships']
 
+    def get_id_number(self, obj):
+        return obj.id_number if obj.id_number else None
+    
+    def get_fullname(self, obj):
+        return str(obj) if obj else None
+    
+    def get_first(self, obj):
+        return obj.first if obj.first else None
+    
+    def get_middle(self, obj):
+        return obj.middle if obj.middle else None
+    
+    def get_prelast(self, obj):
+        return obj.prelast if obj.prelast else None
+    
+    def get_last(self, obj):
+        return obj.last if obj.last else None
+    
+    def get_lineage(self, obj):
+        return obj.lineage if obj.lineage else None
+    
+    def get_position(self, obj):
+        return obj.position if obj.position else None
+    
+    def get_email(self, obj):
+        return obj.email if obj.email else None
+    
+    def get_authorships(self, obj):
+        # The model Authorship defines a many-to-many relationship between Person and Publication
+        # Find all publications where this person is an author
+        publications = Publication.objects.filter(authorship__person=obj)
+        return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in publications]
 
-    def get_id(self, obj):
-        return obj.pk
+    def get_supervisorships(self, obj):
+        # The model Supervisorship defines a many-to-many relationship between Person and Publication
+        # Find all publications where this person is a supervisor
+        publications = Publication.objects.filter(supervisorship__person=obj)
+        return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in publications]
+
     

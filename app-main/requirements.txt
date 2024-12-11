@@ -10,3 +10,4 @@ mysqlclient
 ping3
 PyPDF2
 gunicorn
+pybtex
