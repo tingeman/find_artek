@@ -52,7 +52,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # if 
-DEBUG = True
+DEBUG = False
 
 
 # CAS_SERVER_URL = 'https://auth.dtu.dk/dtu/' # no multifactor
