@@ -1,4 +1,4 @@
-FROM python:3.10-bullseye
+FROM python:3.12-slim
 
 # Default arguments for user creation
 ARG USERNAME=dockeruser
@@ -23,6 +23,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     bash \
     nano \
+    net-tools \
+    mc \
+    curl \
+    git \
     mariadb-client \
     libmariadb-dev \
     pkg-config \
@@ -44,15 +48,15 @@ ENV LANGUAGE=en_US.UTF-8
 RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Create project directories and set permissions
-RUN mkdir -p /app \
-    && chown $USER_UID:$USER_GID /app \
-    && chmod -R 755 /app 
+RUN mkdir -p /usr/src/project/ \
+    && chown -R $USER_UID:$USER_GID /usr/src/ \
+    && chmod -R 755 /usr/src/
 
 # Switch to the non-root user
 USER $USERNAME
     
 # Set the working directory to the project directory
-WORKDIR /app
+WORKDIR /usr/src/
 
 # We have to use a virtual environment in this particular case
 # installing gunicorn and django using pip directly did not work
@@ -61,20 +65,23 @@ WORKDIR /app
 RUN python -m venv venv
 
 # Copy requirements file and install
-COPY --chown=$USERNAME:$USERNAME ../app-main/requirements.txt .
+# COPY --chown=$USERNAME:$USERNAME ../app-main/requirements.txt .
 
 # Install the dependencies
-RUN set -ex && \
-    . /app/venv/bin/activate && \
-    python -m pip install --no-cache-dir -r /app/requirements.txt
+COPY --chown=$USERNAME:$USERNAME ../app-main/requirements.txt /usr/src/requirements.txt
+RUN set -ex \
+    && . /usr/src/venv/bin/activate \
+    && python -m pip install --no-cache-dir -r /usr/src/requirements.txt
 
 # Add the virtual environment to PATH
-ENV PATH="/app/venv/bin:$PATH"
+ENV PATH="/usr/src/venv/bin:$PATH"
+
+WORKDIR /usr/src/project/
 
 # Copy the project files
-COPY --chown=$USERNAME:$USERNAME ../app-main /app
+#COPY --chown=$USERNAME:$USERNAME ../app-main /app
 
-EXPOSE 8099
+#EXPOSE 8099
 # Start Gunicorn to serve the Django app
-CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application"]
+CMD ["/bin/bash"]
 
