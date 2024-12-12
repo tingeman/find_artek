@@ -7,6 +7,7 @@ class MyReportsClass {
         this.reportsTableList = reportsTableList
         this.totalReportsNumber = totalReportsNumber;
         this.defaultUrl = defaultUrl;
+        this.reportsCount = 0; 
     }
 
 
@@ -79,6 +80,9 @@ class MyReportsClass {
 
         // Fetch the data from the api
         const reportData = await this.getReportsData(url, filter);
+        
+        // Update the reportsCount instance variable
+        this.reportsCount = reportData.length;
 
         // List total number of reports
         // If total report number element is present
@@ -160,8 +164,9 @@ class MyReportsClass {
             authorTitleDiv.classList.add('report-authors');
 
             let authorNames = report.authors.map((author) => {
+                console.log('author:', author);
                 const authorLink = document.createElement('a');
-                authorLink.href = URL_PREFIX + `/publications/author/#/`;
+                authorLink.href = URL_PREFIX + `/publications/person/${author.pk}/`;
                 authorLink.innerText = `${author.first} ${author.last}`;
                 return authorLink.outerHTML;
             });

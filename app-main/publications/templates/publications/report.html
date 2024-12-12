@@ -43,7 +43,7 @@
             <span class="value">
                 {% for author in publication.authors.all %}
 
-                    <a href="#">{{ author.first }} {{ author.last }}</a>
+                    <a href="/publications/person/{{ author.pk}}/">{{ author.first }} {{ author.last }}</a>
 
                     {% if forloop.counter == 1 and publication.authors.count == 2 %}
 
@@ -107,9 +107,25 @@
     
         <div class="row">
             <span class="property">Supervisors</span>
-            <span class="value"><a>Ingeman-Nielsen, T.</a></span>
+            <span class="value">
+                {% for supervisor in publication.supervisors.all %}
+
+                    <a href="/publications/person/{{ supervisor.pk}}/">{{ supervisor.first }} {{ supervisor.last }}</a>
+
+                    {% if forloop.counter == 1 and publication.supervisors.count == 2 %}
+
+                        &amp;
+
+                    {% elif not forloop.last %}
+
+                        ,
+
+                    {% endif %}
+
+                {% endfor %}
+            </span>
         </div>
-    
+
         <div class="row">
             <span class="property">Abstract</span>
             <span class="visible" id="abstract-collapsed">{{publication.abstract | slice:":280"}}.... <p id="abstract-expand-btn" class="abstract-btn" >[Expand]</p></span>
