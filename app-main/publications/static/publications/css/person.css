@@ -35,7 +35,7 @@
 
 .table-container {
     position: relative;
-    min-height: 50vh;
+    /* min-height: 50vh; */
     width: 100%;
 }
 
@@ -82,10 +82,14 @@ tr:hover {
 }
 
 
-
+.report-authors {
+    font-size: small ;
+    color: grey;
+    text-decoration: none 
+}
 
 .report-authors a:link {
-    font-size: x-small ;
+    font-size: small ;
     color: grey;
     text-decoration: none 
 }
@@ -99,4 +103,25 @@ tr:hover {
 
 img:hover {
     cursor: pointer;
+}
+
+.no-border {
+    border: none;
+}
+
+.bold-text {
+    font-weight: bold;
+}
+
+.narrow {
+    width: 50px;
+    padding-right: 3ex;
+}
+
+#total-supervisorship-number {
+    display: inline;
+}
+
+#total-authorship-number {
+    display: inline;
 }
