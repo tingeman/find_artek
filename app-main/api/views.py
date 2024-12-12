@@ -38,10 +38,22 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
                 in_=openapi.IN_QUERY,
                 description=f"Filter publications by topic name. Available topics are:\n\n {get_available_topics()} \n if no topic is provided, all reports are returned.",
                 type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                name='author_id',
+                in_=openapi.IN_QUERY,
+                description="Filter publications by author ID.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                name='supervisor_id',
+                in_=openapi.IN_QUERY,
+                description="Filter publications by supervisor ID.",
+                type=openapi.TYPE_INTEGER,
             )
         ],
         responses={
-            200: 'List of reports based on the given topic or all reports if no topic is provided.',
+            200: 'List of reports based on the given filters or all reports if no filters are provided.',
             404: 'Topic not found'
         }
     )
@@ -52,20 +64,27 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-
-    # This functions returns the values to the client
     def get_queryset(self):
         queryset = Publication.objects.all()
-        filter_param = self.request.query_params.get('topic', None)
+        
+        # Obtain query parameters
+        topic = self.request.query_params.get('topic', None)
+        author_id = self.request.query_params.get('author_id', None)
+        supervisor_id = self.request.query_params.get('supervisor_id', None)
 
-
-        if filter_param is not None:
+        # Filter the queryset based on the query parameters
+        if topic:
             try:
-                topic = Topic.objects.get(topic=filter_param)
+                topic_obj = Topic.objects.get(topic=topic)
             except Topic.DoesNotExist:
                 raise NotFound('Topic not found')
-
-            queryset = queryset.filter(publication_topics=topic)
+            queryset = queryset.filter(publication_topics=topic_obj)
+        
+        if author_id:
+            queryset = queryset.filter(authors__id=author_id)
+        
+        if supervisor_id:
+            queryset = queryset.filter(supervisors__id=supervisor_id)
 
         # Create a custom ordering field
         queryset = queryset.annotate(
@@ -77,28 +96,57 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         ).order_by('-custom_order', '-number')
 
         logger.warning("GetReportViewSet.get_queryset: Queryset was ordered in reverse order")
-
-        # Get the length of the queryset
-        queryset_length_1 = len(queryset)
-
-        # Remove any entries that have the word "confidential" in the field "comment"
-        queryset = queryset.exclude(comment__icontains='confidential')
-
-        queryset_length_2 = len(queryset)
-
-        if queryset_length_1 != queryset_length_2:
-            logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential entries")
-
-        # Remove any entries where the field validated is False
-        queryset = queryset.filter(verified=True)
-
-        queryset_length_3 = len(queryset)
-
-        if queryset_length_3 != queryset_length_2:
-            logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
-
-
         return queryset
+
+
+
+
+    # # This functions returns the values to the client
+    # def get_queryset(self):
+    #     queryset = Publication.objects.all()
+    #     filter_param = self.request.query_params.get('topic', None)
+
+
+    #     if filter_param is not None:
+    #         try:
+    #             topic = Topic.objects.get(topic=filter_param)
+    #         except Topic.DoesNotExist:
+    #             raise NotFound('Topic not found')
+
+    #         queryset = queryset.filter(publication_topics=topic)
+
+    #     # Create a custom ordering field
+    #     queryset = queryset.annotate(
+    #         custom_order=Case(
+    #             When(number__regex=r'^9[0-9]-', then=1),
+    #             default=2,
+    #             output_field=IntegerField(),
+    #         )
+    #     ).order_by('-custom_order', '-number')
+
+    #     logger.warning("GetReportViewSet.get_queryset: Queryset was ordered in reverse order")
+
+    #     # Get the length of the queryset
+    #     queryset_length_1 = len(queryset)
+
+    #     # Remove any entries that have the word "confidential" in the field "comment"
+    #     queryset = queryset.exclude(comment__icontains='confidential')
+
+    #     queryset_length_2 = len(queryset)
+
+    #     if queryset_length_1 != queryset_length_2:
+    #         logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential entries")
+
+    #     # Remove any entries where the field validated is False
+    #     queryset = queryset.filter(verified=True)
+
+    #     queryset_length_3 = len(queryset)
+
+    #     if queryset_length_3 != queryset_length_2:
+    #         logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
+
+
+    #     return queryset
     
 
 
