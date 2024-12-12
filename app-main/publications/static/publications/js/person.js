@@ -36,11 +36,12 @@ async function main() {
         url = URL_PREFIX + '/api/report/'
     );
 
-    const mySupervisorshipsClass = new MyReportsClass(
+        const mySupervisorshipsClass = new MyReportsClass(
         supervisorshipTableList,
         totalSupervisorshipsNumber,
         url = URL_PREFIX + '/api/report/'
     );
+
 
     // To show the overlay
     loadingOverlayAuthorships.style.display = 'flex';
@@ -49,8 +50,16 @@ async function main() {
     await myAuthorshipsClass.getReports({ author: personId });
     loadingOverlayAuthorships.style.display = 'none';
 
+    if (myAuthorshipsClass.reportsCount === 0) {  
+      document.getElementById('authorships').innerHTML = 'This person is not registered as author of any publications.';
+    }
+
     await mySupervisorshipsClass.getReports({ supervisor: personId });
     loadingOverlaySupervisorships.style.display = 'none';
+
+    if (mySupervisorshipsClass.reportsCount === 0) {  
+      document.getElementById('supervisorships').innerHTML = 'This person is not registered as supervisor of any publications.';
+    }
 
 };
 

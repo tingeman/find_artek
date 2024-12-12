@@ -57,53 +57,58 @@
 
 </br>
 
-<div class="total-authorships">Publication list for {{ person }} (<div id="total-authorship-number">xxx</div>)</div>
-</br>
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>pdf</th>
-                <th>Type</th>
-                <th>Features</th>
-            </tr>
-        </thead>
-        <tbody id="authorship-table-list">
+<div id="authorships">
+    <div class="total-authorships">Publication list for {{ person }} (<div id="total-authorship-number">xxx</div>)</div>
+    </br>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>pdf</th>
+                    <th>Type</th>
+                    <th>Features</th>
+                </tr>
+            </thead>
+            <tbody id="authorship-table-list">
 
-        </tbody>
-    </table>
+            </tbody>
+        </table>
 
-    <div id="loading-overlay-authorships">
-        <div id="loading-icon"></div>
-    </div>
-</div>
-</br>
-</br>
-<div class="total-supervisorships">{{ person }} has supervised the following publications (<div id="total-supervisorship-number">xxx</div>)</div>
-</br>
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>pdf</th>
-                <th>Type</th>
-                <th>Features</th>
-            </tr>
-        </thead>
-        <tbody id="supervisorship-table-list">
-
-        </tbody>
-    </table>
-
-    <div id="loading-overlay-supervisorships">
-        <div id="loading-icon"></div>
+        <div id="loading-overlay-authorships">
+            <div id="loading-icon"></div>
+        </div>
     </div>
 </div>
 
+</br>
+</br>
+
+<div id="authorships">
+    <div class="total-supervisorships">{{ person }} has supervised the following publications (<div id="total-supervisorship-number">xxx</div>)</div>
+    </br>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>pdf</th>
+                    <th>Type</th>
+                    <th>Features</th>
+                </tr>
+            </thead>
+            <tbody id="supervisorship-table-list">
+
+            </tbody>
+        </table>
+
+        <div id="loading-overlay-supervisorships">
+            <div id="loading-icon"></div>
+        </div>
+    </div>
+</div>
 
 
 {% endblock %}

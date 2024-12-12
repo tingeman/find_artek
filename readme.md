@@ -2,7 +2,6 @@
 
 ### To do...
 - [] fix map view on report page (and limit features to those from the report)
-- [] fix author links, etc...
 - [] implement feature view
 - [] check data in database against old find-artek
 - [] check model setup against old find-artek
@@ -10,6 +9,8 @@
 
 
 ### Completed
+- [x] fix author links, etc...
+- [x] implement simple search from front page
 - [x] implement individual person view
 - [x] Fix null issue for person list!
 - [x] implement persons api
