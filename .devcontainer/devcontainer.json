@@ -1,12 +1,12 @@
 {
     "name": "Find Artek Django Dev Container",
-    "dockerComposeFile": "docker-compose.yaml",
-    "service": "find-artek-app-main",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "webapp-find-artek-devcon",
     "workspaceFolder": "/usr/src/project",
     "customizations": {
         "vscode": {
             "settings": {
-                "python.defaultInterpreterPath": "/usr/src/project/app-main/venv/bin/python"
+                "python.defaultInterpreterPath": "/usr/src/venv/bin/python"
             },
             "extensions": [
                 "ms-python.python",
@@ -14,5 +14,6 @@
             ]
         }
     },
+    
     "postCreateCommand": "bash /usr/src/project/.devcontainer/postCreateCommand.sh"
 }
