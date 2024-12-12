@@ -75,7 +75,8 @@ class MyReportsClass {
         //     url = url;
         // }
 
-        
+        console.log(filter);
+
         // Fetch the data from the api
         const reportData = await this.getReportsData(url, filter);
 
@@ -270,12 +271,29 @@ class MyReportsClass {
         // Construct query parameters from filters
         const queryParams = new URLSearchParams();
         
+
+
         // Try to get the data from session storage first - handle special characters
+        
+        // Victors original sessionPointer, slightly modified here to handle the filters mapping only for topic (as in original, where only topic was given)
+        // included here for reference and comparison (when uncommented)
+        // const filter = filters.topic;
+        // const sessionPointerVictor =  (null == filter) ? 'reportData' : `reportData_${filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')}`;
+
+        // Drop the filter keys that are not set
+        filters = Object.fromEntries(
+            Object.entries(filters).filter(([key, value]) => value != null)
+        );
 
         // Create a unique session pointer based on the filters
-        const sessionPointer = Object.keys(filters).map(key => `${key}_${filters[key]}`.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')).join('_');
+        let sessionPointer = Object.keys(filters).map(key => `${key}_${filters[key]}`.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')).join('_');
 
-        console.log(sessionPointer);
+        if (sessionPointer === '') {
+            sessionPointer = 'reportData';
+        }
+
+        console.log('mySessionPointer: ', sessionPointer);
+        // console.log('victorsSessionPointer: ', sessionPointerVictor);
 
         // Get the data from session storage
         let reportData = sessionStorage.getItem(sessionPointer);
@@ -291,6 +309,9 @@ class MyReportsClass {
             }
             if (filters.supervisor) {
                 queryParams.append('supervisor_id', filters.supervisor);
+            }
+            if (filters.q) {
+                queryParams.append('q', filters.q);
             }
             
             console.log('queryParams:', queryParams.toString());

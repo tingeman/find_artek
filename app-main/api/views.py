@@ -12,8 +12,9 @@ from django.db.models import Case, When, IntegerField
 
 import http.client
 import json
-
 import logging
+
+from find_artek.search import get_query
 
 # Get a logger instance for your app
 logger = logging.getLogger('api')
@@ -65,12 +66,30 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         return Response(serializer.data)
 
     def get_queryset(self):
+        """Filters the queryset based on the query parameters and returns the filtered queryset.
+
+        Also filters out any entries that have the word "confidential" in the field "comment" 
+        and any entries where the field validated is False.
+
+        TODO: unvalidated entries should be shown when user is validated
+        TODO: confidential entries should be shown when user is validated with admin rights
+        
+        Available filters:
+        - topic: Filter by topic name
+        - author_id: Filter by author ID
+        - supervisor_id: Filter by supervisor ID
+        - q: Filter by searching title and abstract for the query string(s)
+        
+        Returns:
+            queryset: The filtered queryset ordered by year and number in descending order
+        """
         queryset = Publication.objects.all()
         
         # Obtain query parameters
         topic = self.request.query_params.get('topic', None)
         author_id = self.request.query_params.get('author_id', None)
         supervisor_id = self.request.query_params.get('supervisor_id', None)
+        q = self.request.query_params.get('q', None)
 
         # Filter the queryset based on the query parameters
         if topic:
@@ -86,6 +105,17 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         if supervisor_id:
             queryset = queryset.filter(supervisors__id=supervisor_id)
 
+        if q:
+            try:
+                queryset = queryset.filter(get_query(q, ['title', 'abstract', 'publication_keywords__keyword']))
+            except Exception as e:
+                logger.error(f"Error while filtering queryset: {e}")
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            
+        # ========== Order the queryset ==========
+        # keep only unique entries
+        queryset = queryset.distinct()
+
         # Create a custom ordering field
         queryset = queryset.annotate(
             custom_order=Case(
@@ -95,6 +125,8 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
             )
         ).order_by('-custom_order', '-number')
 
+
+        # ============ Remove confidential entries ============
         logger.warning("GetReportViewSet.get_queryset: Queryset was ordered in reverse order")
 
         # Get the length of the queryset
@@ -108,7 +140,8 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         if queryset_length_1 != queryset_length_2:
             logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential entries")
 
-        # Remove any entries where the field validated is False
+
+        # ============ Remove unvalidated entries ============
         queryset = queryset.filter(verified=True)
 
         queryset_length_3 = len(queryset)
