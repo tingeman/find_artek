@@ -4,7 +4,7 @@
 
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0;
     justify-content: center;
 }
@@ -45,7 +45,7 @@
 
 .fmitem form button {
     background-color: var(--primary-background-color);
-    height:218px;
+    height: 230px;
     display: flex;
     flex-direction: column;
     flex-direction: column;
@@ -64,7 +64,7 @@
 }
 
 .fmitem form button .fmimage img {
-    width: 190px; 
+    width: 200px; 
     height: 150px; 
     object-fit: cover;
     object-position: bottom;
@@ -72,8 +72,31 @@
 
 .fmitem form button .fmtext {
     text-align: left;
-    width: 190px;
+    width: 200px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
+
+.fminfobox  {
+    background-color: var(--primary-background-color);
+    height: 230px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    flex-direction: column;
+    flex-grow: 1; 
+    align-items: left;
+    justify-content: flex-start;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 10px;
+    padding-bottom: 5px;
+    border: none;
+    /* border-radius: 20px; */
+}
+
 
 /* 
 .fmitem form button .fmtext {

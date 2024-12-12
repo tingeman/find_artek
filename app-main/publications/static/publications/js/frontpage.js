@@ -24,12 +24,8 @@ async function main() {
 
     try {
 
-        // load and cache feature data in background
-        await myMapClass.getFeatureData()
-
         // load and cache reports data in background
         const topics = [
-            null, // all
             'Infrastruktur',
             'Miljø',
             'Energi',
@@ -37,14 +33,15 @@ async function main() {
             'Geoteknik',
             'Samfund',
             'Råstoffer',
+            null, // all
         ]
 
         for (let i = 0; i < topics.length; i++) {
-            const topic = topics[i];
-            await myReportsClass.getReportsData(URL_PREFIX + '/api/report/', topic);
+            await myReportsClass.getReportsData(URL_PREFIX + '/api/report/', {topic: topics[i]});
         }
 
-
+        // load and cache feature data in background
+        await myMapClass.getFeatureData()
 
     } catch (error) {
         console.error("Error: ", error);
