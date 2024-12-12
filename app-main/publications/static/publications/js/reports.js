@@ -13,9 +13,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-// // ============
-// // Main
-// // ============
+// ============
+// Main
+// ============
 async function main() {
     // Here we are getting the elements from the DOM
     const loadingOverlay = document.getElementById('loading-overlay');
@@ -27,11 +27,22 @@ async function main() {
 
     // check if get paramete 'topic' is present
     const urlParams = new URLSearchParams(window.location.search);
-    let topic = urlParams.get('topic');
-    // if topic is null or undefined, set it to 'all'
-    if (topic === null || topic === undefined || topic.toLowerCase() === 'all') {
-        topic = null;
+
+    // parse urlparams to a dictionary
+    filters = {};
+    for (const [key, value] of urlParams) {
+        filters[key] = value;
     }
+
+    if (filters['topic'] === 'all') {
+        delete filters['topic'];
+    }
+
+    // let topic = urlParams.get('topic');
+    // // if topic is null or undefined, set it to 'all'
+    // if (topic === null || topic === undefined || topic.toLowerCase() === 'all') {
+    //     topic = null;
+    // }
 
     const myReportsClass = new MyReportsClass(
         reportsTableList,
@@ -39,11 +50,10 @@ async function main() {
         url = URL_PREFIX + '/api/report/'
         );
 
-
     // To show the overlay
     loadingOverlay.style.display = 'flex';
 
-    await myReportsClass.getReports({topic: topic});
+    await myReportsClass.getReports(filters);
 
     // To hide the overlay
     loadingOverlay.style.display = 'none';

@@ -10,8 +10,8 @@ class MyReportsClass {
     }
 
 
-    async getReports(filter = { topic: null, personId: null }) {
-
+    async getReports(filter = { topic: null, authorId: null, supervisorId: null }) {
+        // Populate the reportsTableList with the reports data
 
 
         // Complete structure that needs to be build
@@ -36,52 +36,48 @@ class MyReportsClass {
         // </tr>
 
 
-
-        // Show the loading overlay, until tha data is present
-        // this.loadingOverlay.style.display = 'flex';
-
-
         let url = this.defaultUrl;
         let topic = null;
 
-        // Check if a filter was provided
-        if (filter) {
-            // If 'topic' is in filter, append it to the url
-            if (filter.topic) {
+        // // Check if a filter was provided
+        // if (filter) {
+        //     // Construct query parameters from filters
+        //     const queryParams = new URLSearchParams();
 
-                if (filter.topic === null) {
-                    url = `${this.defaultUrl}`;
-                }
-                else {
-                    url = `${this.defaultUrl}?topic=${filter.topic}`;
-                }
-                
-            }
+        //     if (filter.topic) {
+        //         queryParams.append('topic', filter.topic);
+        //     }
+        //     if (filter.authorId) {
+        //         queryParams.append('authorId', filter.authorId);
+        //     }
+        //     if (filter.supervisorId) {
+        //         queryParams.append('supervisorId', filter.supervisorId);
+        //     }
 
-            // If 'personID' is in filter, append it to the url
-            if (filter.personId) {
-                url = `${this.defaultUrl}?person_id=${filter.personId}`;
-            }
-        }
+        //     // Append query parameters to the URL if there are any
+        //     if (queryParams.toString()) {
+        //         url = `${this.defaultUrl}?${queryParams.toString()}`;
+        //     }
+        // }
 
         // Fetch the data from the api
         // const response = await fetch(url);
 
-
-        // check of ?topic exist in url
-        if (url.includes('?topic=')) {
-            // get the topic from the url
-            topic = url.split('?topic=')[1];
-            url = url.split('?topic=')[0];
-        } else {
-            topic = null;
-            url = url;
-        }
+        
+        // THIS SHOULD NOT BE NEEDED; LET US SEE; THIN 2024-12-12
+        // // check of ?topic exist in url
+        // if (url.includes('?topic=')) {
+        //     // get the topic from the url
+        //     topic = url.split('?topic=')[1];
+        //     url = url.split('?topic=')[0];
+        // } else {
+        //     topic = null;
+        //     url = url;
+        // }
 
         
-
-        // Convert the response to json
-        const reportData = await this.getReportsData(url, topic);
+        // Fetch the data from the api
+        const reportData = await this.getReportsData(url, filter);
 
         // List total number of reports
         // If total report number element is present
@@ -111,8 +107,6 @@ class MyReportsClass {
             // Report number is ready to be appended to the reportRow
             reportRow.appendChild(reportNumber);
             // ----------------- Handle reportNumber ends here ----------------- //
-
-
 
 
             // ----------------- Handle reportTitleCell starts here ----------------- //
@@ -270,43 +264,96 @@ class MyReportsClass {
         });
 
 
-
-
     }
 
+    async getReportsData(url = URL_PREFIX + '/api/report/', filters = {}) {
+        // Construct query parameters from filters
+        const queryParams = new URLSearchParams();
+        
+        // Try to get the data from session storage first - handle special characters
 
-    async getReportsData(url = URL_PREFIX + '/api/report/', filter = null) {
+        // Create a unique session pointer based on the filters
+        const sessionPointer = Object.keys(filters).map(key => `${key}_${filters[key]}`.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')).join('_');
 
-        // // replace æøå with ae oe aa
-        // filter = (null == filter) ? null : filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa');
+        console.log(sessionPointer);
 
-        // Try to get the data from session storage first - replace æøå with ae oe aa
-        const sessionPointer =  (null == filter) ? 'reportData' : `reportData_${filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')}`;
-
+        // Get the data from session storage
         let reportData = sessionStorage.getItem(sessionPointer);
 
+        // If data is not in session storage, fetch it from the endpoint
         if (!reportData) {
-            // If not, fetch the data from the endpoint
-            const response = await fetch(url + (null == filter ? '' : `?topic=${filter}`));
+            // Construct query parameters from filters
+            if (filters.topic) {
+                queryParams.append('topic', filters.topic);
+            }
+            if (filters.author) {
+                queryParams.append('author_id', filters.author);
+            }
+            if (filters.supervisor) {
+                queryParams.append('supervisor_id', filters.supervisor);
+            }
+            
+            console.log('queryParams:', queryParams.toString());
+
+            // Construct the full URL
+            const fullUrl = `${url}?${queryParams.toString()}`;
+
+            // Fetch data from the constructed URL
+            const response = await fetch(fullUrl);
+
+            // If the response is not ok, throw an error
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            
+            // Parse the response to JSON
             try {
                 reportData = await response.json();
             } catch (error) {
                 console.error('Error occurred while parsing response:', error);
             }
-
             // Store the data in session storage as a string
             sessionStorage.setItem(sessionPointer, JSON.stringify(reportData));
-            
-            return reportData;
+        } else {
+            // Parse the data from the string
+            reportData = JSON.parse(reportData);
         }
+        
+        return reportData;
+    };
 
-        // If data exists in storage, parse it from the string and return
-        return JSON.parse(reportData);
+    // async getReportsData(url = URL_PREFIX + '/api/report/', filter = null) {
+
+    //     // // replace æøå with ae oe aa
+    //     // filter = (null == filter) ? null : filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa');
+
+    //     // Try to get the data from session storage first - replace æøå with ae oe aa
+    //     const sessionPointer =  (null == filter) ? 'reportData' : `reportData_${filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')}`;
+
+    //     let reportData = sessionStorage.getItem(sessionPointer);
+
+    //     if (!reportData) {
+    //         // If not, fetch the data from the endpoint
+    //         const response = await fetch(url + (null == filter ? '' : `?topic=${filter}`));
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP error! status: ${response.status}`);
+    //         }
+
+            
+    //         try {
+    //             reportData = await response.json();
+    //         } catch (error) {
+    //             console.error('Error occurred while parsing response:', error);
+    //         }
+
+    //         // Store the data in session storage as a string
+    //         sessionStorage.setItem(sessionPointer, JSON.stringify(reportData));
+            
+    //         return reportData;
+    //     }
+
+    //     // If data exists in storage, parse it from the string and return
+    //     return JSON.parse(reportData);
 
 
 
@@ -346,6 +393,6 @@ class MyReportsClass {
         // hande url topic here
 
 
-    }
+    // }
 
 }
