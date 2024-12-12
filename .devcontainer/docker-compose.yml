@@ -14,6 +14,7 @@ services:
     volumes:
       - ../../00_static_data/find_artek_static:/mnt/shared-project-data
       - ../:/usr/src/project/
+      - ./up.sh:/usr/src/project/up.sh
     ports:
       - "8100:8100"
     stdin_open: true
