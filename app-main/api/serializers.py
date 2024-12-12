@@ -89,7 +89,7 @@ class PersonSerializer(serializers.ModelSerializer):
 
     class Meta: 
         model = Person
-        fields = ['id_number', 'fullname', 'first', 'middle', 'prelast', 'last', 'lineage', 'position', 'email', 'authorships', 'supervisorships']
+        fields = ['id', 'id_number', 'fullname', 'first', 'middle', 'prelast', 'last', 'lineage', 'position', 'email', 'authorships', 'supervisorships']
 
     def get_id_number(self, obj):
         return obj.id_number if obj.id_number else None
