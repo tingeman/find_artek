@@ -294,7 +294,7 @@ class MyMapClass {
     }
 
     #_createPopupContent(feature, featureReportsString) {
-        const newUrlFeatureName = new URL(`/publications/feature/${feature.feature_pk}`, window.location.href);
+        const newUrlFeatureName = new URL(`${URL_PREFIX}/publications/feature/${feature.feature_pk}`, window.location.href);
         return `<b>Name:</b> <a style="text-decoration:underline" href=${newUrlFeatureName}>${feature.name}</a><br>
         <b>Type:</b> ${feature.type}<br>
         <b>Date:</b> ${feature.date}<br>
@@ -302,7 +302,7 @@ class MyMapClass {
     };
 
     #_createFeatureReportsString(publications) {
-        return publications.map(pub => `<a style="text-decoration:underline" href="/publications/report/${pub.id}/">${pub.number}</a>`).join(', ');
+        return publications.map(pub => `<a style="text-decoration:underline" href="${URL_PREFIX}/publications/report/${pub.id}/">${pub.number}</a>`).join(', ');
     };
 
     #_getColorByType(type) {
