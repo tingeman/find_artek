@@ -4,9 +4,10 @@
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
 {% load i18n static %}
 
-{# title #}
-{% block title %}Report{% endblock %}
 
+{% block title %}
+    {% trans "Person" %}
+{% endblock %}
 
 {% block dynamic_head_content %}
 <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/person.css' %}" />
@@ -15,81 +16,99 @@
 {% endblock %}
 
 
-<!-- headline for the page -->
-{% block headline %}Person{% endblock %}
+{% block headline %}
+    {% trans "Person detail" %} 
+{% endblock %}
 
 
 {% block main-content %}
+<table class="no-border" >
+    <tr class="no-border"><td class="bold-text narrow">Name</td><td>{{ person }}</td></tr>
+    <tr class="no-border"><td class="bold-text narrow">Position</td><td>{{ person.position }}</td></tr>
+    <tr class="no-border"><td class="bold-text narrow">E-mail</td><td>{{ person.email }}</td></tr>
+    <tr class="no-border"><td class="bold-text narrow">ID</td><td>{{ person.id_number }}</td></tr>
+    <tr class="no-border"></tr>
+</table>
 
-<div class="info-box">
+<!-- <div class="info-box">
     <div class="details-box">
         <div class="row">
             <span class="property">Name</span>
             <span class="value">{{person.first}} {{person.last}}</span>
         </div>
+        <div class="row">
+            <span class="property">Position</span>
+            <span class="value">{{person.position}}</span>
+        </div>
+        {% if person.email %}
+        <div class="row">
+            <span class="property">E-mail</span>
+            <span class="value">{{person.email}}</span>
+        </div>
+        {% endif %}
+        {% if person.id_number %}
+        <div class="row">
+            <span class="property">ID</span>
+            <span class="value">{{person.id_number}}</span>
+        </div>
+        {% endif %}
+    </div>
+</div> -->
+
+</br>
+
+<div id="authorships">
+    <div class="total-authorships">Publication list for {{ person }} (<div id="total-authorship-number">xxx</div>)</div>
+    </br>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>pdf</th>
+                    <th>Type</th>
+                    <th>Features</th>
+                </tr>
+            </thead>
+            <tbody id="authorship-table-list">
+
+            </tbody>
+        </table>
+
+        <div id="loading-overlay-authorships">
+            <div id="loading-icon"></div>
+        </div>
     </div>
 </div>
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>pdf</th>
-                <th>Type</th>
-                <th>Features</th>
-            </tr>
-        </thead>
-        <tbody id="reports-table-list">
-            <!-- <tr>
-                <td>17-02</td>
-                <td>
-                    <div class="report-title">
-                        <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
-                    </div>
-                    <div class="report-authors">
-                        <a href="#" >Andersen, N. P.</a>
-                        <a href="#">Christensen, M. T.</a>
-                    </div>  
-                </td>
-                <td>
-                    <a href="#">
-                        <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
-                    </a>
-                </td>
-                <td>DIPLOMPROJEKT</td>
-                <td>0</td>
-            </tr>
-            <tr>
-                <td>17-02</td>
-                <td>	
-                    <div class="report-title">
-                        <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
-                    </div>
-                    <div class="report-authors">
-                        <a href="#" >Andersen, N. P.</a>
-                        &amp;
-                        <a href="#">Christensen, M. T.</a>
-                    </div>  
-                </td>
-                <td>
-                    <a href="#">
-                        <img src="/static/publications/img/pdf_16x16.png" alt="pdf-logo">
-                    </a>
-                </td>
-                <td>DIPLOMPROJEKT</td>
-                <td>0</td>
-            </tr> -->
-        </tbody>
-    </table>
+</br>
+</br>
 
-    <div id="loading-overlay">
-        <div id="loading-icon"></div>
+<div id="supervisorships">
+    <div class="total-supervisorships">{{ person }} has supervised the following publications (<div id="total-supervisorship-number">xxx</div>)</div>
+    </br>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>pdf</th>
+                    <th>Type</th>
+                    <th>Features</th>
+                </tr>
+            </thead>
+            <tbody id="supervisorship-table-list">
+
+            </tbody>
+        </table>
+
+        <div id="loading-overlay-supervisorships">
+            <div id="loading-icon"></div>
+        </div>
     </div>
 </div>
-
-
 
 
 {% endblock %}

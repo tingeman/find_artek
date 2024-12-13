@@ -171,15 +171,15 @@ class ReportsView(BaseView):
 
 
 
-
-
 class PersonsView(BaseView):
     template_name = 'publications/persons.html'
 
     def get(self, request, **kwargs):
-
+        
+        person_list = Person.objects.all().order_by('last', 'first')  # .order_by('-year').order_by('number')
 
         context = {
+            'pers_list': person_list,
         }
 
         context.update(self.get_context_data(**kwargs))
@@ -229,7 +229,10 @@ class ReportView(BaseView):
         if not publication.verified and not request.user.is_authenticated:
             error = "You do not have permissions to access this publication!"
 
-            return render(request, 'publications/access_denied.html', context = {'publication': publication, 'error': error})
+            context = {'publication': publication, 'error': error}
+            context.update(self.get_context_data(**kwargs))
+
+            return render(request, 'publications/access_denied.html', context=context)
 
 
         context = {

@@ -10,6 +10,8 @@
 
 {% block dynamic_head_content %}
 <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/frontpage.css' %}" />
+<script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
+<script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
 {% endblock %}
 
 
@@ -166,7 +168,18 @@
         </form>
     </div>
 
-
+	<div class="fmitem">
+        <form action="{{ URL_PREFIX }}/publications/reports/" method="get">
+            <div class='fminfobox'>
+                <h3 class="topic">{% trans "Search in reports" %}:</h3><br>
+                <input id="q" type="text" name="q"><br>
+                {% comment %}Translators: Label of a button that triggers search {% endcomment %}
+                <input type="submit" value="{% trans "Search" %}" class="button white">
+                <br>
+                <div>{% trans "The search will show reports that include all the search terms in title, abstract and/or keywords" %}</div>
+            </div>
+        </form>
+	</div>
 </div>
 
 <script src="{% static 'publications/js/frontpage.js' %}" defer></script>

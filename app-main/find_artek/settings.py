@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 import os
 
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False
+
 #### LPAP ####
 # import ldap
 # from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
@@ -49,10 +53,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 # get secret key from .env file
 SECRET_KEY = os.getenv('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# if 
-DEBUG = True
 
 
 # CAS_SERVER_URL = 'https://auth.dtu.dk/dtu/' # no multifactor

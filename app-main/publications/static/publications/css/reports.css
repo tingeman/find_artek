@@ -11,7 +11,6 @@ thead {
 
 tr {
     border: 1px solid;
-
 }
 
 table {
@@ -28,10 +27,15 @@ table > * {
 
 th {
     padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
 
 td {
     padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+
 }
 
 tr:hover {
@@ -44,8 +48,8 @@ tr:hover {
 }
 
 .report-authors a:link {
-    font-size: x-small ;
-    color: grey;
+    font-size: small ;
+    color: rgb(0, 0, 0);
     text-decoration: none 
 }
 

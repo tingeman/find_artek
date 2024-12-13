@@ -9,11 +9,18 @@
 
 
 {% block dynamic_head_content %}
-<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-     integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
-     crossorigin=""/>
-
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js" defer></script>
+    <script src="{% static 'publications/js/proj4leaflet.js' %}" defer></script>
+    
+    <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js" defer></script>
+    
+    <script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
+    <script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
+    <script src="{% static 'publications/js/report.js' %}" defer></script>
 {% endblock %}
 
 
@@ -36,7 +43,7 @@
             <span class="value">
                 {% for author in publication.authors.all %}
 
-                    <a href="#">{{ author.first }} {{ author.last }}</a>
+                    <a href="{{ URL_PREFIX }}/publications/person/{{ author.pk}}/">{{ author.first }} {{ author.last }}</a>
 
                     {% if forloop.counter == 1 and publication.authors.count == 2 %}
 
@@ -100,9 +107,25 @@
     
         <div class="row">
             <span class="property">Supervisors</span>
-            <span class="value"><a>Ingeman-Nielsen, T.</a></span>
+            <span class="value">
+                {% for supervisor in publication.supervisors.all %}
+
+                    <a href="{{ URL_PREFIX }}/publications/person/{{ supervisor.pk}}/">{{ supervisor.first }} {{ supervisor.last }}</a>
+
+                    {% if forloop.counter == 1 and publication.supervisors.count == 2 %}
+
+                        &amp;
+
+                    {% elif not forloop.last %}
+
+                        ,
+
+                    {% endif %}
+
+                {% endfor %}
+            </span>
         </div>
-    
+
         <div class="row">
             <span class="property">Abstract</span>
             <span class="visible" id="abstract-collapsed">{{publication.abstract | slice:":280"}}.... <p id="abstract-expand-btn" class="abstract-btn" >[Expand]</p></span>
@@ -193,8 +216,6 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
-<script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
-<script src="{% static 'publications/js/report.js' %}" defer></script>
+
 
 {% endblock %}

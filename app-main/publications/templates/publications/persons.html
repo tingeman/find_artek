@@ -10,7 +10,7 @@
 
 
 {% block title %}
-    {% trans "Publication list" %}
+    {% trans "Person list" %}
 {% endblock %}
 
 {% block dynamic_head_content %}
@@ -28,11 +28,14 @@
 
 {% block main-content %}
 
+
 <div class="table-container">
     <table>
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Id</th>
+                <th>Position</th>
             </tr>
         </thead>
         <tbody id="persons-table-list">
