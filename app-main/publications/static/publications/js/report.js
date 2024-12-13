@@ -1,6 +1,13 @@
+// =============================================================================
+// Initialization
+// =============================================================================
 document.addEventListener("DOMContentLoaded", function (event) {
     // This block will run when the DOM is loaded.
-    main();
+    console.log('Testing console log from report.js');
+    main().catch(error => {
+        console.error("Error: ", error);
+        // handle error, for example by showing an error message to the user
+    });
 });
 
 
@@ -9,32 +16,49 @@ document.addEventListener("DOMContentLoaded", function (event) {
 // // Main
 // // ============
 async function main() {
+    const mapDiv = document.getElementById('map');
 
-    const myMapClass = new MyMapClass();
-
-    try {
-        map = await myMapClass.initialize();
-        // Fetch the JSON data from /publications/api/feature/
-
-        // q: get the url the path from the url without the domain name or parameters or protocol
-        // a: window.location.pathname
-        const path = window.location.pathname;
-        const parts = path.split('/');
-        const id = parts[parts.length - 2]; // -1 for the last element (which is an empty string after the trailing slash), -2 for the second to last element
-
-        const params = new URLSearchParams({
-            publication_id: id // Replace with actual value or variable
-        });
+    // from https://arctic.sustain.dtu.dk/find/publications/report/274/ extract 274 after removing any trailing slashes
+    const path = window.location.pathname.replace(/\/$/, ''); // remove any trailing slashes
+    const parts = path.split('/');
+    const reportId = parts[parts.length - 1]; 
+    
+    console.log('reportId:', reportId);
 
 
-        const response = await fetch(URL_PREFIX + `/api/feature/?${params}`);
-        const featureData = await response.json();
+    const myMapClass = new MyMapClass(mapDiv);
 
-        myMapClass.addFeatureDataToMap(map, featureData, true);
+    
+    // try {
+    map = await myMapClass.initialize();
+    
+    // Fetch the JSON data from /publications/api/feature/
+    const featureData = await myMapClass.getFeatures({report: reportId});
 
-    } catch (error) {
-        console.error("Error initializing map or fetching feature data: ", error);
-    }
+    // console.log('featureData:', featureData); 
+
+    // add the feature data to the map
+    myMapClass.addFeatureDataToMap(featureData, true);
+
+    // q: get the url the path from the url without the domain name or parameters or protocol
+    // a: window.location.pathname
+    // const path = window.location.pathname;
+    // const parts = path.split('/');
+    // const id = parts[parts.length - 2]; // -1 for the last element (which is an empty string after the trailing slash), -2 for the second to last element
+
+    // const params = new URLSearchParams({
+    //     publication_id: id // Replace with actual value or variable
+    // });
+
+
+    // const response = await fetch(URL_PREFIX + `/api/feature/?${params}`);
+    // const featureData = await response.json();
+
+    // myMapClass.addFeatureDataToMap(map, featureData, true);
+
+    // // } catch (error) {
+    // //     console.error("Error initializing map or fetching feature data: ", error);
+    // // }
 
 }
 
