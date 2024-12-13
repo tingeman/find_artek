@@ -43,7 +43,7 @@
             <span class="value">
                 {% for author in publication.authors.all %}
 
-                    <a href="/publications/person/{{ author.pk}}/">{{ author.first }} {{ author.last }}</a>
+                    <a href="{{ URL_PREFIX }}/publications/person/{{ author.pk}}/">{{ author.first }} {{ author.last }}</a>
 
                     {% if forloop.counter == 1 and publication.authors.count == 2 %}
 
@@ -110,7 +110,7 @@
             <span class="value">
                 {% for supervisor in publication.supervisors.all %}
 
-                    <a href="/publications/person/{{ supervisor.pk}}/">{{ supervisor.first }} {{ supervisor.last }}</a>
+                    <a href="{{ URL_PREFIX }}/publications/person/{{ supervisor.pk}}/">{{ supervisor.first }} {{ supervisor.last }}</a>
 
                     {% if forloop.counter == 1 and publication.supervisors.count == 2 %}
 

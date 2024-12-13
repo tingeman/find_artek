@@ -1,0 +1,412 @@
+2024-12-12 00:27:18,682 WARNING api views.py is loaded
+2024-12-12 00:27:49,770 WARNING api views.py is loaded
+2024-12-12 00:27:59,474 WARNING api views.py is loaded
+2024-12-12 00:28:51,424 WARNING api GetReportViewSet.list was called
+2024-12-12 00:28:51,427 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 00:28:51,503 WARNING api Removed 2 confidential entries
+2024-12-12 00:28:51,528 WARNING api Removed 13 unverified entries
+2024-12-12 00:29:12,080 WARNING api GetReportViewSet.list was called
+2024-12-12 00:29:12,082 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 00:29:12,097 WARNING api Removed 1 unverified entries
+2024-12-12 00:29:12,222 WARNING api GetReportViewSet.list was called
+2024-12-12 00:29:12,225 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 00:29:12,262 WARNING api Removed 6 unverified entries
+2024-12-12 18:17:55,038 WARNING api views.py is loaded
+2024-12-12 18:23:37,927 WARNING api views.py is loaded
+2024-12-12 18:23:53,739 WARNING api views.py is loaded
+2024-12-12 18:26:45,085 WARNING api GetReportViewSet.list was called
+2024-12-12 18:26:45,088 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 18:26:45,129 WARNING api Removed 1 unverified entries
+2024-12-12 18:26:45,226 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 18:26:45,247 WARNING api Removed 1 unverified entries
+2024-12-12 18:41:21,791 WARNING api GetReportViewSet.list was called
+2024-12-12 18:41:21,792 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 18:41:21,852 WARNING api Removed 2 confidential entries
+2024-12-12 18:41:21,903 WARNING api Removed 13 unverified entries
+2024-12-12 18:45:59,329 WARNING api GetReportViewSet.list was called
+2024-12-12 18:45:59,337 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 18:45:59,532 WARNING api Removed 2 confidential entries
+2024-12-12 18:45:59,588 WARNING api Removed 13 unverified entries
+2024-12-12 19:59:45,067 WARNING api views.py is loaded
+2024-12-12 19:59:45,071 WARNING api views.py is loaded
+2024-12-12 20:00:17,157 WARNING api views.py is loaded
+2024-12-12 20:00:17,175 WARNING api views.py is loaded
+2024-12-12 20:01:47,918 WARNING api views.py is loaded
+2024-12-12 20:01:47,966 WARNING api views.py is loaded
+2024-12-12 20:02:17,003 WARNING api GetReportViewSet.list was called
+2024-12-12 20:03:10,229 WARNING api views.py is loaded
+2024-12-12 20:03:10,793 WARNING api views.py is loaded
+2024-12-12 20:03:15,159 WARNING api GetReportViewSet.list was called
+2024-12-12 20:03:15,165 ERROR api Error while filtering queryset: Cannot resolve keyword 'keywords' into field. Choices are: DOI, ISBN, ISBN13, ISSN, URLs, abstract, addpubfields, address, appendenciesship, appendices, authors, authorship, booktitle, chapter, comment, created_by, created_by_id, created_date, crossref, edition, editors, editorship, feature, file, file_id, grade, howpublished, id, institution, journal, journal_id, key, keywordship, modified_by, modified_by_id, modified_date, month, note, number, organization, pages, publication_keywords, publication_topics, publicationurlobjectship, publisher, quality, remark, school, series, subject, supervisors, supervisorship, timestamp, title, topicship, type, type_id, verified, volume, year
+2024-12-12 20:05:42,700 WARNING api views.py is loaded
+2024-12-12 20:05:42,700 WARNING api views.py is loaded
+2024-12-12 20:05:44,643 WARNING api GetReportViewSet.list was called
+2024-12-12 20:05:44,646 ERROR api Error while filtering queryset: Unsupported lookup 'icontains' for ForeignKey or join on the field not permitted.
+2024-12-12 20:10:39,746 WARNING api views.py is loaded
+2024-12-12 20:10:39,773 WARNING api views.py is loaded
+2024-12-12 20:10:43,840 WARNING api GetReportViewSet.list was called
+2024-12-12 20:10:43,849 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:10:44,049 WARNING api Removed 1 confidential entries
+2024-12-12 20:10:44,102 WARNING api Removed 2 unverified entries
+2024-12-12 20:11:37,483 WARNING api views.py is loaded
+2024-12-12 20:11:38,461 WARNING api views.py is loaded
+2024-12-12 20:14:35,407 WARNING api views.py is loaded
+2024-12-12 20:14:35,447 WARNING api views.py is loaded
+2024-12-12 20:14:57,545 WARNING api GetReportViewSet.list was called
+2024-12-12 20:14:57,548 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:14:57,669 WARNING api Removed 1 confidential entries
+2024-12-12 20:14:57,715 WARNING api Removed 2 unverified entries
+2024-12-12 20:15:56,972 WARNING api GetReportViewSet.list was called
+2024-12-12 20:15:56,973 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:16:09,977 WARNING api GetReportViewSet.list was called
+2024-12-12 20:16:09,979 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:16:10,054 WARNING api Removed 1 unverified entries
+2024-12-12 20:28:58,858 WARNING api GetReportViewSet.list was called
+2024-12-12 20:28:58,885 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:28:59,046 WARNING api Removed 2 confidential entries
+2024-12-12 20:28:59,112 WARNING api Removed 13 unverified entries
+2024-12-12 20:29:02,765 WARNING api GetReportViewSet.list was called
+2024-12-12 20:29:02,766 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:29:02,893 WARNING api Removed 2 confidential entries
+2024-12-12 20:29:02,928 WARNING api Removed 13 unverified entries
+2024-12-12 20:29:05,924 WARNING api GetReportViewSet.list was called
+2024-12-12 20:29:05,925 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:29:06,026 WARNING api Removed 2 confidential entries
+2024-12-12 20:29:06,064 WARNING api Removed 13 unverified entries
+2024-12-12 20:29:08,884 WARNING api GetReportViewSet.list was called
+2024-12-12 20:29:08,885 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:29:09,013 WARNING api Removed 2 confidential entries
+2024-12-12 20:29:09,081 WARNING api Removed 13 unverified entries
+2024-12-12 20:29:12,014 WARNING api GetReportViewSet.list was called
+2024-12-12 20:29:12,015 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:29:12,093 WARNING api Removed 2 confidential entries
+2024-12-12 20:29:12,134 WARNING api Removed 13 unverified entries
+2024-12-12 20:29:15,381 WARNING api GetReportViewSet.list was called
+2024-12-12 20:29:15,381 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:29:15,449 WARNING api Removed 2 confidential entries
+2024-12-12 20:29:15,489 WARNING api Removed 13 unverified entries
+2024-12-12 20:29:18,326 WARNING api GetReportViewSet.list was called
+2024-12-12 20:29:18,327 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:29:18,394 WARNING api Removed 2 confidential entries
+2024-12-12 20:29:18,427 WARNING api Removed 13 unverified entries
+2024-12-12 20:35:47,897 WARNING api GetReportViewSet.list was called
+2024-12-12 20:35:47,919 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:35:47,970 WARNING api Removed 3 unverified entries
+2024-12-12 20:37:23,565 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:23,583 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:23,659 WARNING api Removed 5 unverified entries
+2024-12-12 20:37:24,871 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:24,879 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:24,930 WARNING api Removed 1 confidential entries
+2024-12-12 20:37:24,947 WARNING api Removed 2 unverified entries
+2024-12-12 20:37:25,819 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:25,825 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:25,854 WARNING api Removed 2 unverified entries
+2024-12-12 20:37:26,474 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:26,480 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:27,080 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:27,084 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:27,243 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:27,248 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:27,260 WARNING api Removed 1 confidential entries
+2024-12-12 20:37:27,268 WARNING api Removed 1 unverified entries
+2024-12-12 20:37:27,410 WARNING api GetReportViewSet.list was called
+2024-12-12 20:37:27,412 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:37:27,466 WARNING api Removed 2 confidential entries
+2024-12-12 20:37:27,492 WARNING api Removed 13 unverified entries
+2024-12-12 20:43:25,085 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:25,102 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:25,238 WARNING api Removed 5 unverified entries
+2024-12-12 20:43:26,326 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:26,332 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:26,389 WARNING api Removed 1 confidential entries
+2024-12-12 20:43:26,409 WARNING api Removed 2 unverified entries
+2024-12-12 20:43:27,460 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:27,465 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:27,493 WARNING api Removed 2 unverified entries
+2024-12-12 20:43:27,996 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:27,999 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:28,684 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:28,690 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:28,715 WARNING api Removed 3 unverified entries
+2024-12-12 20:43:29,234 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:29,239 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:29,395 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:29,399 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:29,411 WARNING api Removed 1 confidential entries
+2024-12-12 20:43:29,417 WARNING api Removed 1 unverified entries
+2024-12-12 20:43:29,554 WARNING api GetReportViewSet.list was called
+2024-12-12 20:43:29,555 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:43:29,610 WARNING api Removed 2 confidential entries
+2024-12-12 20:43:29,640 WARNING api Removed 13 unverified entries
+2024-12-12 20:45:15,000 WARNING api GetReportViewSet.list was called
+2024-12-12 20:45:15,009 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:45:15,424 WARNING api Removed 2 confidential entries
+2024-12-12 20:45:15,487 WARNING api Removed 13 unverified entries
+2024-12-12 20:54:33,557 WARNING api GetReportViewSet.list was called
+2024-12-12 20:54:33,559 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 20:54:33,730 WARNING api Removed 2 confidential entries
+2024-12-12 20:54:33,782 WARNING api Removed 13 unverified entries
+2024-12-12 21:03:40,710 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:40,724 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:40,808 WARNING api Removed 5 unverified entries
+2024-12-12 21:03:41,960 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:41,964 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:41,999 WARNING api Removed 1 confidential entries
+2024-12-12 21:03:42,016 WARNING api Removed 2 unverified entries
+2024-12-12 21:03:43,109 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:43,141 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:43,223 WARNING api Removed 1 confidential entries
+2024-12-12 21:03:43,262 WARNING api Removed 2 unverified entries
+2024-12-12 21:03:45,462 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:45,467 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:45,504 WARNING api Removed 2 unverified entries
+2024-12-12 21:03:46,198 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:46,204 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:46,931 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:46,936 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:46,968 WARNING api Removed 3 unverified entries
+2024-12-12 21:03:47,697 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:47,702 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:47,884 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:47,889 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:47,901 WARNING api Removed 1 confidential entries
+2024-12-12 21:03:47,907 WARNING api Removed 1 unverified entries
+2024-12-12 21:03:48,044 WARNING api GetReportViewSet.list was called
+2024-12-12 21:03:48,045 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:03:48,183 WARNING api Removed 2 confidential entries
+2024-12-12 21:03:48,210 WARNING api Removed 13 unverified entries
+2024-12-12 21:05:00,153 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:00,166 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:00,227 WARNING api Removed 5 unverified entries
+2024-12-12 21:05:01,305 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:01,319 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:01,390 WARNING api Removed 1 confidential entries
+2024-12-12 21:05:01,420 WARNING api Removed 2 unverified entries
+2024-12-12 21:05:02,604 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:02,609 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:02,639 WARNING api Removed 2 unverified entries
+2024-12-12 21:05:03,260 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:03,268 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:03,946 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:03,950 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:03,978 WARNING api Removed 3 unverified entries
+2024-12-12 21:05:04,832 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:04,840 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:05,054 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:05,061 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:05,078 WARNING api Removed 1 confidential entries
+2024-12-12 21:05:05,085 WARNING api Removed 1 unverified entries
+2024-12-12 21:05:05,220 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:05,222 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:05,296 WARNING api Removed 2 confidential entries
+2024-12-12 21:05:05,330 WARNING api Removed 13 unverified entries
+2024-12-12 21:05:47,854 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:48,165 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:48,211 WARNING api Removed 5 unverified entries
+2024-12-12 21:05:49,310 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:49,316 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:49,359 WARNING api Removed 1 confidential entries
+2024-12-12 21:05:49,377 WARNING api Removed 2 unverified entries
+2024-12-12 21:05:50,291 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:50,296 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:50,323 WARNING api Removed 2 unverified entries
+2024-12-12 21:05:50,852 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:50,861 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:51,437 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:51,444 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:51,472 WARNING api Removed 3 unverified entries
+2024-12-12 21:05:52,011 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:52,016 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:52,158 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:52,163 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:52,176 WARNING api Removed 1 confidential entries
+2024-12-12 21:05:52,181 WARNING api Removed 1 unverified entries
+2024-12-12 21:05:52,306 WARNING api GetReportViewSet.list was called
+2024-12-12 21:05:52,307 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:05:52,364 WARNING api Removed 2 confidential entries
+2024-12-12 21:05:52,392 WARNING api Removed 13 unverified entries
+2024-12-12 21:14:27,125 WARNING api GetReportViewSet.list was called
+2024-12-12 21:14:27,130 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:14:27,246 WARNING api Removed 1 confidential entries
+2024-12-12 21:14:27,286 WARNING api Removed 2 unverified entries
+2024-12-12 21:32:15,610 WARNING api GetReportViewSet.list was called
+2024-12-12 21:32:15,621 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:32:15,695 WARNING api Removed 5 unverified entries
+2024-12-12 21:33:00,511 WARNING api GetReportViewSet.list was called
+2024-12-12 21:33:00,513 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:33:00,653 WARNING api GetReportViewSet.list was called
+2024-12-12 21:33:00,657 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:37:16,496 WARNING api GetReportViewSet.list was called
+2024-12-12 21:37:16,504 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:37:16,569 WARNING api GetReportViewSet.list was called
+2024-12-12 21:37:16,572 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:38:11,326 WARNING api GetReportViewSet.list was called
+2024-12-12 21:38:11,327 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:38:11,421 WARNING api Removed 2 confidential entries
+2024-12-12 21:38:11,475 WARNING api Removed 13 unverified entries
+2024-12-12 21:40:01,279 WARNING api GetReportViewSet.list was called
+2024-12-12 21:40:01,281 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:40:01,387 WARNING api Removed 2 confidential entries
+2024-12-12 21:40:01,448 WARNING api Removed 13 unverified entries
+2024-12-12 21:47:06,119 WARNING api GetReportViewSet.list was called
+2024-12-12 21:47:06,133 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:47:06,228 WARNING api Removed 5 unverified entries
+2024-12-12 21:47:07,036 WARNING api GetReportViewSet.list was called
+2024-12-12 21:47:07,041 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:47:07,076 WARNING api Removed 1 confidential entries
+2024-12-12 21:47:07,095 WARNING api Removed 2 unverified entries
+2024-12-12 21:47:08,324 WARNING api GetReportViewSet.list was called
+2024-12-12 21:47:08,328 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:47:08,354 WARNING api Removed 2 unverified entries
+2024-12-12 21:47:14,447 WARNING api GetReportViewSet.list was called
+2024-12-12 21:47:14,500 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:47:14,592 WARNING api Removed 2 unverified entries
+2024-12-12 21:47:23,979 WARNING api GetReportViewSet.list was called
+2024-12-12 21:47:23,984 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:47:24,119 WARNING api Removed 2 confidential entries
+2024-12-12 21:47:24,180 WARNING api Removed 13 unverified entries
+2024-12-12 21:48:22,170 WARNING api GetReportViewSet.list was called
+2024-12-12 21:48:22,172 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:48:22,288 WARNING api GetReportViewSet.list was called
+2024-12-12 21:48:22,290 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:51:35,750 WARNING api GetReportViewSet.list was called
+2024-12-12 21:51:35,752 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:51:35,905 WARNING api GetReportViewSet.list was called
+2024-12-12 21:51:35,909 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:56:20,507 WARNING api GetReportViewSet.list was called
+2024-12-12 21:56:20,508 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 21:56:20,614 WARNING api GetReportViewSet.list was called
+2024-12-12 21:56:20,621 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:18,972 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:18,985 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:19,124 WARNING api Removed 2 unverified entries
+2024-12-12 22:09:20,110 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:20,120 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:20,473 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:20,474 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:20,717 WARNING api Removed 2 confidential entries
+2024-12-12 22:09:20,770 WARNING api Removed 13 unverified entries
+2024-12-12 22:09:29,691 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:29,696 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:29,838 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:29,845 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:34,468 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:34,479 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:09:34,529 WARNING api GetReportViewSet.list was called
+2024-12-12 22:09:34,536 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-12 22:55:52,793 WARNING api views.py is loaded
+2024-12-12 22:55:52,795 WARNING api views.py is loaded
+2024-12-12 23:57:33,870 WARNING api views.py is loaded
+2024-12-12 23:57:34,896 WARNING api views.py is loaded
+2024-12-12 23:59:00,521 WARNING api views.py is loaded
+2024-12-12 23:59:01,805 WARNING api views.py is loaded
+2024-12-13 00:00:20,688 WARNING api views.py is loaded
+2024-12-13 00:00:20,787 WARNING api views.py is loaded
+2024-12-13 00:02:50,824 WARNING api views.py is loaded
+2024-12-13 00:02:50,824 WARNING api views.py is loaded
+2024-12-13 00:03:19,044 WARNING api GetReportViewSet.list was called
+2024-12-13 00:03:19,045 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:03:19,174 WARNING api Removed 2 confidential entries
+2024-12-13 00:03:19,249 WARNING api Removed 13 unverified entries
+2024-12-13 00:08:16,335 WARNING api GetReportViewSet.list was called
+2024-12-13 00:08:16,352 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:08:16,487 WARNING api Removed 5 unverified entries
+2024-12-13 00:08:17,271 WARNING api GetReportViewSet.list was called
+2024-12-13 00:08:17,276 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:08:17,304 WARNING api Removed 1 confidential entries
+2024-12-13 00:08:17,322 WARNING api Removed 2 unverified entries
+2024-12-13 00:08:18,224 WARNING api GetReportViewSet.list was called
+2024-12-13 00:08:18,229 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:08:18,255 WARNING api Removed 2 unverified entries
+2024-12-13 00:08:33,310 WARNING api GetReportViewSet.list was called
+2024-12-13 00:08:33,311 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:08:33,440 WARNING api GetReportViewSet.list was called
+2024-12-13 00:08:33,489 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:19,166 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:19,168 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:19,303 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:19,307 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:23,912 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:23,916 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:24,039 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:24,043 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:26,738 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:26,740 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:26,933 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:26,935 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:36,825 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:36,827 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:10:37,038 WARNING api GetReportViewSet.list was called
+2024-12-13 00:10:37,045 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:13:51,192 WARNING api GetReportViewSet.list was called
+2024-12-13 00:13:51,205 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:13:51,551 WARNING api Removed 2 unverified entries
+2024-12-13 00:13:52,349 WARNING api GetReportViewSet.list was called
+2024-12-13 00:13:52,381 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:13:53,275 WARNING api GetReportViewSet.list was called
+2024-12-13 00:13:53,280 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:13:53,300 WARNING api Removed 3 unverified entries
+2024-12-13 00:13:53,712 WARNING api GetReportViewSet.list was called
+2024-12-13 00:13:53,716 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:13:53,872 WARNING api GetReportViewSet.list was called
+2024-12-13 00:13:53,878 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:13:53,887 WARNING api Removed 1 confidential entries
+2024-12-13 00:13:53,895 WARNING api Removed 1 unverified entries
+2024-12-13 00:13:55,411 WARNING api GetReportViewSet.list was called
+2024-12-13 00:13:55,413 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:15:20,266 WARNING api GetReportViewSet.list was called
+2024-12-13 00:15:20,267 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:15:20,412 WARNING api GetReportViewSet.list was called
+2024-12-13 00:15:20,416 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:14,324 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:14,327 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:14,476 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:14,482 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:19,517 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:19,531 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:19,660 WARNING api Removed 5 unverified entries
+2024-12-13 00:19:20,747 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:20,753 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:20,798 WARNING api Removed 1 confidential entries
+2024-12-13 00:19:20,815 WARNING api Removed 2 unverified entries
+2024-12-13 00:19:22,293 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:22,326 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:22,426 WARNING api Removed 1 confidential entries
+2024-12-13 00:19:22,453 WARNING api Removed 2 unverified entries
+2024-12-13 00:19:24,076 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:24,081 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:24,124 WARNING api Removed 2 unverified entries
+2024-12-13 00:19:24,666 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:24,672 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:25,329 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:25,334 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:25,503 WARNING api Removed 3 unverified entries
+2024-12-13 00:19:26,255 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:26,262 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:26,413 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:26,418 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:26,428 WARNING api Removed 1 confidential entries
+2024-12-13 00:19:26,432 WARNING api Removed 1 unverified entries
+2024-12-13 00:19:26,560 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:26,561 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:26,618 WARNING api Removed 2 confidential entries
+2024-12-13 00:19:26,653 WARNING api Removed 13 unverified entries
+2024-12-13 00:19:28,354 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:28,372 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:28,500 WARNING api Removed 1 confidential entries
+2024-12-13 00:19:28,552 WARNING api Removed 2 unverified entries
+2024-12-13 00:19:32,991 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:32,993 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:19:33,137 WARNING api Removed 2 confidential entries
+2024-12-13 00:19:33,201 WARNING api Removed 13 unverified entries
+2024-12-13 00:19:38,230 WARNING api GetReportViewSet.list was called
+2024-12-13 00:19:38,232 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:20:08,033 WARNING api GetReportViewSet.list was called
+2024-12-13 00:20:08,037 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:20:08,160 WARNING api GetReportViewSet.list was called
+2024-12-13 00:20:08,179 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:30:12,688 WARNING api GetReportViewSet.list was called
+2024-12-13 00:30:12,695 WARNING api GetReportViewSet.get_queryset: Queryset was ordered in reverse order
+2024-12-13 00:30:12,827 WARNING api Removed 2 confidential entries
+2024-12-13 00:30:12,893 WARNING api Removed 13 unverified entries
