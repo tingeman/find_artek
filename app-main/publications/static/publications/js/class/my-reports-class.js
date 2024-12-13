@@ -164,7 +164,7 @@ class MyReportsClass {
             authorTitleDiv.classList.add('report-authors');
 
             let authorNames = report.authors.map((author) => {
-                console.log('author:', author);
+                // console.log('author:', author);
                 const authorLink = document.createElement('a');
                 authorLink.href = URL_PREFIX + `/publications/person/${author.pk}/`;
                 authorLink.innerText = `${author.first} ${author.last}`;
@@ -295,6 +295,8 @@ class MyReportsClass {
 
         if (sessionPointer === '') {
             sessionPointer = 'reportData';
+        } else {
+            sessionPointer = `reportData_${sessionPointer}`;
         }
 
         console.log('mySessionPointer: ', sessionPointer);

@@ -2,12 +2,12 @@
 // Initialization
 // =============================================================================
 document.addEventListener("DOMContentLoaded", function (event) {
-  // This block will run when the DOM is loaded.
-  console.log('Testing console log from person.js');
-  main().catch(error => {
-    console.error("Error: ", error);
-    // handle error, for example by showing an error message to the user
-  });
+    // This block will run when the DOM is loaded.
+    console.log('Testing console log from person.js');
+    main().catch(error => {
+        console.error("Error: ", error);
+        // handle error, for example by showing an error message to the user
+    });
 });
 
 
@@ -26,17 +26,17 @@ async function main() {
     // from https://arctic.sustain.dtu.dk/find/publications/person/274/ extract 274 after removing any trailing slashes
     const path = window.location.pathname.replace(/\/$/, ''); // remove any trailing slashes
     const parts = path.split('/');
-    const personId = parts[parts.length - 1]; 
-    
+    const personId = parts[parts.length - 1];
+
     console.log('personId:', personId);
-   
+
     const myAuthorshipsClass = new MyReportsClass(
         authorshipTableList,
         totalAuthorshipsNumber,
         url = URL_PREFIX + '/api/report/'
     );
 
-        const mySupervisorshipsClass = new MyReportsClass(
+    const mySupervisorshipsClass = new MyReportsClass(
         supervisorshipTableList,
         totalSupervisorshipsNumber,
         url = URL_PREFIX + '/api/report/'
@@ -46,19 +46,20 @@ async function main() {
     // To show the overlay
     loadingOverlayAuthorships.style.display = 'flex';
     loadingOverlaySupervisorships.style.display = 'flex';
-    
+
     await myAuthorshipsClass.getReports({ author: personId });
     loadingOverlayAuthorships.style.display = 'none';
 
-    if (myAuthorshipsClass.reportsCount === 0) {  
-      document.getElementById('authorships').innerHTML = 'This person is not registered as author of any publications.';
+    if (myAuthorshipsClass.reportsCount === 0) {
+        document.getElementById('authorships').innerHTML = 'This person is not registered as author of any publications.';
     }
 
     await mySupervisorshipsClass.getReports({ supervisor: personId });
     loadingOverlaySupervisorships.style.display = 'none';
 
-    if (mySupervisorshipsClass.reportsCount === 0) {  
-      document.getElementById('supervisorships').innerHTML = 'This person is not registered as supervisor of any publications.';
+    if (mySupervisorshipsClass.reportsCount === 0) {
+        // document.getElementById('supervisorships').innerHTML = 'This person is not registered as supervisor of any publications.';
+        document.getElementById('supervisorships').innerHTML = '';
     }
 
 };

@@ -154,53 +154,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
 
 
 
-    # # This functions returns the values to the client
-    # def get_queryset(self):
-    #     queryset = Publication.objects.all()
-    #     filter_param = self.request.query_params.get('topic', None)
-
-
-    #     if filter_param is not None:
-    #         try:
-    #             topic = Topic.objects.get(topic=filter_param)
-    #         except Topic.DoesNotExist:
-    #             raise NotFound('Topic not found')
-
-    #         queryset = queryset.filter(publication_topics=topic)
-
-    #     # Create a custom ordering field
-    #     queryset = queryset.annotate(
-    #         custom_order=Case(
-    #             When(number__regex=r'^9[0-9]-', then=1),
-    #             default=2,
-    #             output_field=IntegerField(),
-    #         )
-    #     ).order_by('-custom_order', '-number')
-
-    #     logger.warning("GetReportViewSet.get_queryset: Queryset was ordered in reverse order")
-
-    #     # Get the length of the queryset
-    #     queryset_length_1 = len(queryset)
-
-    #     # Remove any entries that have the word "confidential" in the field "comment"
-    #     queryset = queryset.exclude(comment__icontains='confidential')
-
-    #     queryset_length_2 = len(queryset)
-
-    #     if queryset_length_1 != queryset_length_2:
-    #         logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential entries")
-
-    #     # Remove any entries where the field validated is False
-    #     queryset = queryset.filter(verified=True)
-
-    #     queryset_length_3 = len(queryset)
-
-    #     if queryset_length_3 != queryset_length_2:
-    #         logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
-
-
-    #     return queryset
-    
+ 
 
 
 
@@ -211,10 +165,15 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
 
     @swagger_auto_schema(
         manual_parameters=[
-
+            openapi.Parameter(
+                name='publication_id',
+                in_=openapi.IN_QUERY,
+                description="Filter publications by publication ID.",
+                type=openapi.TYPE_INTEGER,
+            )
         ],
         responses={
-            200: 'List of geograhic associated data.',
+            200: 'List of features based on the given filters or all features if no filters are provided.',
             404: 'Ressource not found'
         }
     )
@@ -228,6 +187,17 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
     def get_queryset(self):
         queryset = Feature.objects.all()
     
+        # Obtain query parameters
+        publication_id = self.request.query_params.get('publication_id', None)
+
+        # Filter the queryset based on the query parameters
+        if publication_id:
+            queryset = queryset.filter(publications__id=publication_id)
+
+        # ========== Order the queryset ==========
+        # keep only unique entries
+        queryset = queryset.distinct()
+        
         return queryset
 
 
