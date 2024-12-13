@@ -29,5 +29,6 @@ app-datatransfer/datatransfer/publications/migrations
 .env
 .migrate
 
+*.log
 debug.log
 datadump.json
