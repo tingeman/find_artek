@@ -63,13 +63,11 @@ urlpatterns = [
     
     # include the primary publication
     path("publications/", include("publications.urls")),
-    
-    
+        
     # cas login and logout
     path("login", django_cas_ng.views.LoginView.as_view(), name="cas_ng_login"),
     path("logout", django_cas_ng.views.LogoutView.as_view(), name="cas_ng_logout"),
 ]
-
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
