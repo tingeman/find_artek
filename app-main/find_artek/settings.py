@@ -11,23 +11,11 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
+from pathlib import Path
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-
-#### LPAP ####
-# import ldap
-# from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
-# ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
-#### LPAP ####
-
-
-# Load .env file
-# Import load_dotenv
-# from dotenv import load_dotenv
-# dotenv_path = '/app/.devcontainer/.env'
-# load_dotenv(dotenv_path=dotenv_path)
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True  # Ensures CSRF cookies are sent only over HTTPS
@@ -39,26 +27,16 @@ CSRF_COOKIE_HTTPONLY = False    # CSRF cookies need to be accessible by JavaScri
 
 
 
-# from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
-from pathlib import Path
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-# BASE_DIR = Path(__file__).resolve().parent.parent
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# get secret key from .env file
+# get secret key from environment variable
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-
-# CAS_SERVER_URL = 'https://auth.dtu.dk/dtu/' # no multifactor
 CAS_SERVER_URL = 'https://auth2.dtu.dk/dtu/' # with multifactor
 CAS_VERSION = '2'
-# Application definition
+
 
 
 ALLOWED_HOSTS = [
@@ -70,10 +48,6 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1'
 ]
-
-# Media url
-MEDIA_ROOT = os.path.join('/mnt/shared-project-data/media')
-MEDIA_URL = '/find/media/'
 
 # Application definition
 INSTALLED_APPS = [
@@ -103,10 +77,22 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'find_artek.urls'
 
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+FORCE_SCRIPT_NAME = '/find'
+URL_PREFIX = '/find'          # Custom settings to provide URL_PREFIX to any template
+
+# Media url
+MEDIA_ROOT = '/mnt/shared-project-data/media'
+MEDIA_URL = '/find/media/'
+
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [str(BASE_DIR / 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,35 +110,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'find_artek.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-#         'NAME': BASE_DIR / 'find_artek_new.sqlite',
-#     },
-#     'OPTIONS': {
-#         'spatialite': {
-#             'library_path': '/usr/lib/x86_64-linux-gnu/mod_spatialite.so',
-#         }
-#     }
-# }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-#         'NAME': 'find-artek-1',
-#         'USER': 'postgres',
-#         'PASSWORD': 'postgres',
-#         'HOST': 'find-artek-db',
-#         'PORT': '5432',
-#     }
-# }
-
-
-
-
 DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.mysql',
@@ -166,43 +123,11 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'find-artek-django',
-#         'USER': 'mariadb',
-#         'PASSWORD': 'mariadb',
-#         'HOST': 'find-artek-mariadb-service',
-#         'PORT': '3306',
-#     }
-# }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'find-artek-1',
-#         'USER': 'postgres',
-#         'PASSWORD': 'postgres',
-#         'HOST': 'find-artek-db',
-#         'PORT': '5432',
-#     }
-# }
-# Password validation
-# https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 
@@ -210,27 +135,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
-
-
-FORCE_SCRIPT_NAME = '/find'
-URL_PREFIX = '/find'          # Custom settings to provide URL_PREFIX to any template
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = '/find/static/'
-
-# the docker volume dedicated to apache server is also secretly mounted here to conviently overwrite create the static files
-# python manage.py collectstatic
-# sets up the static files for the webserver
-# BASE_DIR = '/usr/src/find_artek/app'
-STATIC_ROOT = os.path.join('/mnt/shared-project-data/staticfiles')
+STATIC_ROOT = '/mnt/shared-project-data/staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -242,38 +155,6 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'django_cas_ng.backends.CASBackend',
 )
-
-
-#### LPAP ####
-# AUTHENTICATION_BACKENDS = (
-#     'django_auth_ldap.backend.LDAPBackend',
-#     'django.contrib.auth.backends.ModelBackend',
-# )
-
-# AUTH_LDAP_SERVER_URI = "ldaps://win.dtu.dk"
-
-# AUTH_LDAP_BIND_DN = "CN=sus-pit-artek-ad-read,OU=Funktionskonti,OU=BYG,OU=Institutter,DC=win,DC=dtu,DC=dk"
-
-# # Read the LDAP bind password from the file
-# with open('secret/AUTH_LDAP_BIND_PASSWORD.txt', 'r') as f:
-#     AUTH_LDAP_BIND_PASSWORD = f.read().strip()
-
-# AUTH_LDAP_USER_SEARCH = LDAPSearch("OU=DTUBaseUsers,DC=win,DC=dtu,DC=dk",
-#                                    ldap.SCOPE_SUBTREE,
-#                                    "(sAMAccountName=%(user)s)")
-
-# AUTH_LDAP_GROUP_SEARCH = LDAPSearch("DC=win,DC=dtu,DC=dk",
-#                                     ldap.SCOPE_SUBTREE,
-#                                     "(objectClass=group)")
-
-# AUTH_LDAP_GROUP_TYPE = GroupOfNamesType()
-
-# AUTH_LDAP_USER_ATTR_MAP = {
-#     "first_name": "givenName",
-#     "last_name": "sn",
-#     "email": "mail"
-# }
-#### LPAP ####
 
 
 LOGGING = {
