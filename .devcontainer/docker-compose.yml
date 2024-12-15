@@ -15,11 +15,10 @@ services:
       - ../../00_static_data/find_artek_static:/mnt/shared-project-data
       - ../:/usr/src/project/
       - ./up.sh:/usr/src/project/up.sh
-    ports:
-      - "8100:8100"
     stdin_open: true
     tty: true
-    command: bash -c 'source /usr/src/venv/bin/activate && cd /usr/src/project/app-main && python manage.py runserver 0.0.0.0:8100 --settings find_artek.development_settings'
+    #command: bash -c 'source /usr/src/venv/bin/activate && cd /usr/src/project/app-main && python manage.py runserver 0.0.0.0:8100 --settings find_artek.development_settings'
+    command: ["/bin/bash"]
     networks:
       - shared_network
 
@@ -54,21 +53,21 @@ services:
       - shared_network
 
 
-  # find-artek-phpmyadmin-service-devcon:
-  #     restart: always
-  #     image: phpmyadmin/phpmyadmin:latest
-  #     container_name: fa-phpmyadmin-service-devcon
-  #     ports:
-  #       - "6001:80"
-  #     environment:
-  #       PMA_HOST: ${MYSQL_HOST}
-  #       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-  #       MYSQL_USER: ${MYSQL_USER}
-  #       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-  #     volumes:
-  #       - ../docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
-  #     networks:
-  #       - shared_network
+  find-artek-phpmyadmin-service-devcon:
+      restart: always
+      image: phpmyadmin/phpmyadmin:latest
+      container_name: fa-phpmyadmin-service-devcon
+      ports:
+        - "6001:80"
+      environment:
+        PMA_HOST: ${MYSQL_HOST}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      volumes:
+        - ../docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
+      networks:
+        - shared_network
  
 
 volumes:
