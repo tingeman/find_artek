@@ -9,12 +9,12 @@ urlpatterns = [
     path('reports/', views.ReportsView.as_view(), name='reports'),
     path('persons/', views.PersonsView.as_view(), name='persons'),
 
-    path('report/<int:publication_id>/', views.ReportView.as_view(), name='report'),
-    path('person/<int:person_id>/', views.PersonView.as_view(), name='person'),
-    path('feature/<int:feature_id>/', views.FeatureView.as_view(), name='feature'),
+    path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
+    path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
+    path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
     # path('login/', views.LoginView.as_view(), name='login'),
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
-
+    #path('^pubs/edit/report/(?P<pub_id>\d+)/$', views.AddEditReportView.as_view(), name='add_edit_report'),
 ]

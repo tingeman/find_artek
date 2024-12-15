@@ -5,26 +5,37 @@ from django.core import serializers
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.views import View
+from django.urls import reverse
+
+from django.views.generic import TemplateView
+from django.views.generic.detail import DetailView
+from django.views.generic.edit import CreateView, UpdateView
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 
 from publications.library import get_client_ip, is_private
-
-
-
 from publications.forms import LoginForm
-
 from publications.models import Publication, Topic, Feature, Person
+#from .forms import PublicationForm
+
 
 # Create your views here.
+
+
 
 
 class BaseView(View):
     base_template = "publications/base.html"
 
     def get_context_data(self, **kwargs):
+        # context = super().get_context_data(**kwargs)    # View class has no method get_context_data
         context = {
             'base_template': self.base_template,
             # Other common context variables...
         }
+        print('In BaseView')
+        print(context.keys())
         return context
     
     def get(self, request, **kwargs):
@@ -32,6 +43,18 @@ class BaseView(View):
         return render(request, self.base_template, context)
 
 
+class BaseDetailView(DetailView, BaseView):
+    def get_context_data(self, **kwargs):
+        # Get the context from BaseView
+        context = super().get_context_data(**kwargs)
+
+        # Get the context from BaseView
+        base_context = BaseView.get_context_data(self, **kwargs)
+        
+        # Combine the contexts
+        context.update(base_context)
+        
+        return context
 
 
 
@@ -217,161 +240,222 @@ class PersonsView(BaseView):
 
 
 
-class ReportView(BaseView):
+# class ReportView(BaseView):
+#     template_name = 'publications/report.html'
+
+#     def get(self, request, publication_id, **kwargs):
+#         publication = get_object_or_404(Publication, pk=publication_id)
+
+#         associated_features = Feature.objects.filter(publications=publication)
+
+#         # If the report is not verified, only authenticated users can see it
+#         if not publication.verified and not request.user.is_authenticated:
+#             error = "You do not have permissions to access this publication!"
+
+#             context = {'publication': publication, 'error': error}
+#             context.update(self.get_context_data(**kwargs))
+
+#             return render(request, 'publications/access_denied.html', context=context)
+
+
+#         context = {
+#             'publication_id': publication_id,
+#             'associated_features': associated_features,
+#             'publication': publication,
+#         }
+
+#         context.update(self.get_context_data(**kwargs))
+
+#         return render(request, self.template_name, context)
+
+
+
+
+class ReportView(BaseDetailView):
+    model = Publication
     template_name = 'publications/report.html'
+    context_object_name = 'publication'
 
-    def get(self, request, publication_id, **kwargs):
-        publication = get_object_or_404(Publication, pk=publication_id)
-
-        associated_features = Feature.objects.filter(publications=publication)
-
-        # If the report is not verified, only authenticated users can see it
-        if not publication.verified and not request.user.is_authenticated:
-            error = "You do not have permissions to access this publication!"
-
-            context = {'publication': publication, 'error': error}
-            context.update(self.get_context_data(**kwargs))
-
-            return render(request, 'publications/access_denied.html', context=context)
-
-
-        context = {
-            'publication_id': publication_id,
-            'associated_features': associated_features,
-            'publication': publication,
-        }
-
-        context.update(self.get_context_data(**kwargs))
-
-        return render(request, self.template_name, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class PersonView(BaseView):
-    template_name = 'publications/person.html'
-
-    def get(self, request, person_id, **kwargs):
-        person = get_object_or_404(Person, pk=person_id)
-
-        context = {
-            'person': person,
-        }
-
-        context.update(self.get_context_data(**kwargs))
-
-        return render(request, self.template_name, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class FeatureView(BaseView):
-
-
-    def get(self, request, feature_id, **kwargs):
-
-        feature = get_object_or_404(Feature, pk=feature_id)
-
-        geometry = feature.points or feature.lines or feature.polys
-
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         
+        associated_features = Feature.objects.filter(publications=self.object)
+
+        context.update({'associated_features': associated_features})
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not self.object.verified and not request.user.is_authenticated:
+            context = self.get_context_data(object=self.object)
+            context['error'] = "You do not have permissions to access this publication!"
+            return render(request, 'publications/access_denied.html', context=context)
+        return super().get(request, *args, **kwargs)
 
 
-        context = {
-            'feature': feature,
-            'geometry': geometry,
-        }
 
-        context.update(self.get_context_data(**kwargs))
 
-        return render(request, "publications/feature.html", context)
+# class ReportView(BaseView, TemplateView):
+#     template_name = 'publications/report.html'
 
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+
+#         pk = self.kwargs.get('pk')
+#         publication = get_object_or_404(Publication, pk=pk)
+#         associated_features = Feature.objects.filter(publications=publication)
+
+#         context.update({
+#             'pk': pk,
+#             'associated_features': associated_features,
+#             'publication': publication,
+#         })
+#         return context
+
+    # def get(self, request, *args, **kwargs):
+    #     context = self.get_context_data(**kwargs)
+    #     publication = context['publication']
+    #     print(context.keys())
+
+    #     # If the report is not verified, only authenticated users can see it
+    #     if not publication.verified and not request.user.is_authenticated:
+    #         error = "You do not have permissions to access this publication!"
+    #         context['error'] = error
+    #         return render(request, 'publications/access_denied.html', context=context)
+
+    #     return self.render_to_response(context)
+
+
+
+
+
+@method_decorator(login_required, name='dispatch')
+class AddEditReportView(BaseView, CreateView, UpdateView):
+    model = Publication
+    #form_class = PublicationForm
+    template_name = 'publications/add_edit_report.html'
+
+    def get_object(self):
+        publication_id = self.kwargs.get('publication_id')
+        if publication_id:
+            return get_object_or_404(Publication, pk=publication_id)
+        return None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.object:
+            context['associated_features'] = self.object.feature_set.all()
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Add any custom logic here
+        return response
+
+    def get_success_url(self):
+        return reverse('report', kwargs={'pk': self.object.pk})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PersonView(BaseDetailView):
+    model = Person
+    template_name = 'publications/person.html'
+    context_object_name = 'person'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FeatureView(BaseDetailView):
+    model = Feature
+    template_name = 'publications/feature.html'
+    context_object_name = 'feature'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        geometry = self.object.points or self.object.lines or self.object.polys
+        context.update({'geometry': geometry})
+        return context
 
 
 
