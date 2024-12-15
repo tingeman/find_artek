@@ -1,3 +1,0 @@
-[submodule ".docker-migrate"]
-	path = .docker-migrate
-	url = https://github.com/vicmrp/.docker-migrate
