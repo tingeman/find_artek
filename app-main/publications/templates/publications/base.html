@@ -32,20 +32,13 @@
 
 <body>
 
-
-
-
-
-
     <header class="flex-container flex-column justify-center">
 
         <!-- default header menu. Mobile is hidden, the code is beneath the default menu -->
         <div class="default-header-content flex-container justify-between">
 
-
             <!-- navigiation to the left -->
             <nav class="nav-left flex-container justify-around">
-
 
                 <!-- abstact ice icon that leads to frontpage -->
                 <a class="nav-link header-nav-frontpage-icon" href="{% url 'frontpage' %}">
@@ -56,45 +49,38 @@
                 </a>
 
                 <a class="nav-link header-nav-frontpage" href="{% url 'frontpage' %}">{% trans "Frontpage" %}</a>
-
                 <a class="nav-link header-nav-map" href="{% url 'map' %}">{% trans "Map" %}</a>
-
                 <a class="nav-link header-nav-reports" href="{% url 'reports' %}">{% trans "Reports" %}</a>
-
                 <a class="nav-link header-nav-persons" href="{% url 'persons' %}">{% trans "Persons" %}</a>
-
                 <a class="nav-link header-nav-api" href="{% url 'schema-swagger-ui' %}">{% trans "API" %}</a>
-
-                
 
             </nav>
             <!-- navigiation to the left -->
 
-
-
-
-
-
-
             <!-- navigiation to the right -->
-            <nav class="nav-right flex-container">
-
-
-
+            <!-- <nav class="nav-right flex-container">
                 <a class="sign-in nav-link flex-container justify-between" href="{% if user.is_authenticated %}{% url 'cas_ng_logout' %}{% else %}{% url 'cas_ng_login' %}{% endif %}">
-
                     <img class="sign-in-icon"
                         src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
                         alt="DTU Logo">
-
                     {% if user.is_authenticated %}
                     <span>{% trans "Sign out" %} ({{ user.username }})</span>
                     {% else %}
                     <span>{% trans "Sign in" %}</span>
                     {% endif %}
                 </a>
-
-
+            </nav> -->
+            <nav class="nav-right flex-container">
+                <a class="nav-link flex-container justify-between" href="{% if user.is_authenticated %}{% url 'cas_ng_logout' %}{% else %}{% url 'cas_ng_login' %}{% endif %}">
+                    <!-- <img class="sign-in-icon"
+                        src="{% static 'publications/img/login_dtu_logo_screen_capture_transparent.png' %}"
+                        alt="DTU Logo"> -->
+                    {% if user.is_authenticated %}
+                    <span>{% trans "Sign out" %} ({{ user.username }})</span>
+                    {% else %}
+                    <span>{% trans "Sign in" %}</span>
+                    {% endif %}
+                </a>
             </nav>
             <!-- navigiation to the right -->
         </div>
