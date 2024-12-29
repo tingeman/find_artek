@@ -1,3 +1,5 @@
+import re
+
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.template import RequestContext
@@ -7,18 +9,24 @@ from django.contrib.auth import authenticate, login, logout
 from django.views import View
 from django.urls import reverse
 
+
 from django.views.generic import TemplateView
 from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView, UpdateView
+from django.views.generic.edit import CreateView, UpdateView, FormView
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 
+from django_select2.views import AutoResponseView
+
+from find_artek.search import get_query
+from publications.utils import CaseInsensitively
 from publications.library import get_client_ip, is_private
-from publications.forms import LoginForm
+from publications.forms import LoginForm, AddReportForm
 from publications.models import Publication, Topic, Feature, Person
 #from .forms import PublicationForm
 
+import pdb
 
 # Create your views here.
 
@@ -330,21 +338,17 @@ class ReportView(BaseDetailView):
 
 
 @method_decorator(login_required, name='dispatch')
-class AddEditReportView(BaseView, CreateView, UpdateView):
+class EditReportView(FormView, BaseView):    #UpdateView, BaseView):
     model = Publication
-    #form_class = PublicationForm
+    form_class = AddReportForm    # PublicationForm
     template_name = 'publications/add_edit_report.html'
-
-    def get_object(self):
-        publication_id = self.kwargs.get('publication_id')
-        if publication_id:
-            return get_object_or_404(Publication, pk=publication_id)
-        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.object:
-            context['associated_features'] = self.object.feature_set.all()
+        base_context = BaseView.get_context_data(self, **kwargs)
+        context.update(base_context)
+        # if self.object:
+        #     context['associated_features'] = self.object.feature_set.all()
         return context
 
     def form_valid(self, form):
@@ -357,10 +361,165 @@ class AddEditReportView(BaseView, CreateView, UpdateView):
 
 
 
+class PersonAutocompleteView(AutoResponseView, BaseView):
+    
+    re_studynumber = re.compile(r'^s\d{1,6}$')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print('In PersonAutocompleteView:__init__')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        base_context = BaseView.get_context_data(self, **kwargs)
+        context.update(base_context)
+        return context
+
+    def get_queryset(self):
+        """Return a QuerySet based on the search term.
+        If the search term looks like a study number, search for that.
+        Otherwise, search for the term in a range of name fields as well as initials.
+        """
+        if self.q:
+            # if the string in self.q starts with 's' followed by 1 to 6 numbers then...
+            if self.re_studynumber.match(self.q):
+                qs = Person.objects.filter(id_number__iexact=self.q).order_by('first')
+            else:
+                fields_to_search = ['first_relaxed', 'last_relaxed',
+                                    'first', 'middle', 'prelast', 'last', 'lineage',
+                                    'initials']
+                query = get_query(self.q, fields_to_search)
+
+                qs = Person.objects.filter(query).order_by('first')
+        else:
+            qs = Person.objects.all()
+        
+        return qs
+
+    def get_results(self, context):
+        """Customize the JSON structure of the results
+        If the person is a student, include the study number in the label.
+        If the person is not a student, include the position and department in the label.
+        """
+
+        print(f"In PersonAutocompleteView")
+
+        json_data = []
+        for person in context['object_list']:
+            if person.position == CaseInsensitively('student'):
+                if person.id_number:
+                    label = person.get_full_name() + f' [id:{person.id_numner}]'
+                else:
+                    label = person.get_full_name() + f' [pk:{person.id}]'
+            else:
+                label = person.get_full_name() + f' [pk:{person.id}]'
+                if person.position:
+                    label += f', {person.position}'
+                if person.department:
+                    label += f', {person.department}'
+
+            json_data.append({'id': person.pk,
+                              'text': label})
+
+        return json_data
+
+# def person_ajax_search(request):
+#     if ('term' in request.GET) and request.GET['term'].strip():
+#         query_string = request.GET['term']
+#         entry_query = get_query(query_string, ['first_relaxed', 'last_relaxed',
+#                                 'first', 'middle', 'prelast', 'last', 'lineage',
+#                                 'initials'])
+#         found_entries = Person.objects.filter(entry_query).order_by('first')
+
+#         json_entries = []
+#         for e in found_entries:
+#             if e.position == CaseInsensitively('student'):
+#                 json_entries.append({'label': e.__unicode__() + ' [id:{0}], {1}'.format(e.id, e.id_number),
+#                                      'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
+#             else:
+#                 label = e.__unicode__() + ' [id:{0}]'.format(e.id)
+#                 if e.position:
+#                     label += ', {0}'.format(e.position)
+#                 if e.department:
+#                     label += ', {0}'.format(e.department)
+#                 if e.id_number:
+#                     label += ', {0}'.format(e.id_number)
+
+#                 json_entries.append({'label': label,
+#                                      'value': e.__unicode__() + ' [id:{0}]'.format(e.id)})
+
+# #        my_array = [{'label': 'This is a Test', 'value': 'The test value inserted'},
+# #                    {'label': 'Second option', 'value': request.GET['term']+'_123'}]
+
+# #        return HttpResponse(simplejson.dumps(my_array))
+#         return HttpResponse(simplejson.dumps(json_entries))
+#     else:
+#         return HttpResponse('Nope')
 
 
 
 
+
+# from django.views.generic.edit import CreateView
+# from django_select2.views import AutoResponseView
+# from .models import Publication, Person
+from .forms import PublicationForm
+
+
+# class TestPersonAutocompleteView(AutoResponseView):
+#     model = Person
+#     search_fields = [
+#         "first__icontains",
+#         "middle__icontains",
+#         "last__icontains",
+#     ]
+
+class TestPersonAutocompleteView(View):
+    
+    re_studynumber = re.compile(r'^s\d{1,6}$')
+
+    def get(self, request, *args, **kwargs):
+        term = request.GET.get("term", "")
+        
+        if False:
+            queryset = Person.objects.filter(
+                first__icontains=term
+            ) | Person.objects.filter(
+                middle__icontains=term
+            ) | Person.objects.filter(
+                last__icontains=term
+            )
+        if True:
+            if term:
+                # if the string in term starts with 's' followed by 1 to 6 numbers then...
+                if self.re_studynumber.match(term):
+                    queryset = Person.objects.filter(id_number__iexact=term).order_by('first')
+                else:
+                    fields_to_search = ['first_relaxed', 'last_relaxed',
+                                        'first', 'middle', 'prelast', 'last', 'lineage',
+                                        'initials']
+                    query = get_query(term, fields_to_search)
+
+                    queryset = Person.objects.filter(query).order_by('first')
+            else:
+                queryset = Person.objects.all()
+
+        results = [
+            {"id": person.pk, "text": str(person)} for person in queryset
+        ]
+        
+        # print debug message to console displaying the number of results
+        print(f"Term requested: {term}")
+        print(f"Number of results: {len(results)}")
+
+        return JsonResponse({"results": results})
+
+
+class TestPublicationCreateView(CreateView):
+    model = Publication
+    form_class = PublicationForm
+    template_name = "publications/test_publication_form.html"
+    success_url = "/"
 
 
 

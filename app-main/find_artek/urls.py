@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import RedirectView
 import django_cas_ng.views
 from publications_meta.views import AdminCasLoginView
@@ -57,6 +58,8 @@ urlpatterns = [
     # redoc
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
+    # select2
+    path("select2/", include("django_select2.urls")),
     
     # redirect root URL to pubs/publist
     path("", RedirectView.as_view(url="publications/frontpage/", permanent=True)),
@@ -71,5 +74,6 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += staticfiles_urlpatterns()
 
     

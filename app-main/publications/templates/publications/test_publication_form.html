@@ -1,0 +1,26 @@
+<!-- templates/publication_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Create Publication</title>
+    
+    <!-- Include jQuery (required for django-select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" 
+        integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK" 
+        crossorigin="anonymous"></script>
+    <!-- Include Select2's CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Include Select2's JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    {{ form.media }}
+</head>
+<body>
+    <h1>Create Publication</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save</button>
+    </form>
+</body>
+</html>
