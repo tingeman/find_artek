@@ -16,9 +16,10 @@ urlpatterns = [
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
-    path('edit/report/<int:pk>/', views.EditReportView.as_view(), name='edit_report'),
-    path('person-autocomplete/', views.PersonAutocompleteView.as_view(), name='person-autocomplete'),
-
-    path("test/autocomplete/person/", views.TestPersonAutocompleteView.as_view(), name="test-person-autocomplete"),
-    path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
+    path('add/report/', views.AddReportView.as_view(), name='add_report'),
+    #path('edit/report/<int:pk>/', views.EditReportView.as_view(), name='edit_report'),
+    path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
+    
+    #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
+    #path("test/create/<int:pk>/", views.TestPublicationCreateViewNEW.as_view(), name="test-publication-create"),
 ]

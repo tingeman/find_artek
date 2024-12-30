@@ -12,20 +12,9 @@ New report
 {% endif %}
 {% endblock %}
 {% block dynamic_head_content %}
-    <!--
-    <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
-    <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
-    <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
-    -->
-   
-    // Removed all the custom javascript from OLD find_artek template; THIN 2024-12-15
-    
+    <!-- Removed all the custom javascript from OLD find_artek template; THIN 2024-12-15 -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <link href="{% static 'django_select2/django_select2.css' %}" rel="stylesheet">
-    <script src="{% static 'django_select2/django_select2.js' %}"></script> 
-
     {{ form.media }}
-
 {% endblock %}
 
 {% block headline %}
@@ -47,12 +36,11 @@ Register new report
 <br>
 <br>
 
-<form  enctype="multipart/form-data" method="post" id="add-report-form">
+<form enctype="multipart/form-data" action="{{ request.path }}" method="post" id="add-report-form">
     {% csrf_token %}
     <div id="data_container"></div>
     <table>
         {{ form.as_table }}
-        <tr><th></th><td>(Date format is YYYY-MM-DD)</td></tr>
         <tr><th></th><td>&nbsp;</td></tr>
 
 <!-- Appendices upload commented; THIN 2024-12-15
@@ -70,11 +58,10 @@ record has been created/updated.
 {% endcomment %}
 </td></tr> -->
 
-        <tr><th></th><td><br><button type="button" id="process-persons">Process Persons</button> <button type="button" id="process-submit">submit</button>
-        <div id="authors_loading" style="display: block; vertical-align: bottom"><img src="/static/publications/images/ui-anim_basic_16x16.gif"</div></td>
+        <tr><th></th><td><button type="submit" id="process-submit">submit</button></td></tr>
     </table>
 </form>
-
+<p>&nbsp;</p>
 <p>'Process persons' button will do a check against the database for all persons
 specified in the Author field. A dialog will appear to allow choosing the correct
 person or create new person. When creating a new person, only the name will be

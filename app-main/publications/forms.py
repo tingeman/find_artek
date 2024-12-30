@@ -1,9 +1,11 @@
 from django import forms
 from django.forms import ModelForm
+from django.contrib.admin.widgets import AdminFileWidget
 from django_select2 import forms as s2forms
-from publications.models import Publication, Person, Feature
+from publications.models import Publication, Person, Feature, Topic, Keyword
 from django.urls import reverse
-
+import datetime
+import ast
 
 
 class LoginForm(forms.Form):
@@ -11,90 +13,113 @@ class LoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
 
 
-# class AuthorSelect2TagWidget(s2forms.HeavySelect2TagWidget):
-#     # def __init__(self, *args, **kwargs):
-#     #     print('In AuthorSelect2TagWidget:__init__')
-#     #     super().__init__(*args, **kwargs)
-#     def get_url(self):
-#         print('In AuthorSelect2TagWidget:get_url')
-#         return reverse('person-autocomplete')  # The URL for fetching existing authors
+class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
+    def get_context(self, name, value, attrs):
+        """Get the context for rendering the widget.
+        This method is overridden to ensure that the entire contents of the Person table is not
+        rendered as options in the select2 widget. The 'optgroups' key is set to an empty list.
+        """
+        context = super().get_context(name, value, attrs)
+        context['widget']['optgroups'] = []
+        return context
 
-class AuthorSelect2HeavyTagWidget(s2forms.HeavySelect2TagWidget):
-    """
-    A HeavySelect2TagWidget configured for the Author autocomplete view.
-    The data_view parameter will be passed during initialization in the form.
-    """
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('queryset', Person.objects.none())  # Use an empty queryset as default
-        super().__init__(*args, **kwargs)
-
-
-class CoAuthorsWidget(s2forms.ModelSelect2MultipleWidget):
-    search_fields = [
-        "username__icontains",
-        "email__icontains",
-    ]
+    def value_new(self, value):
+        """Handle creation of new Person objects."""
+        print(f'In PersonHeavySelect2TagWidget:value_new: {value}')
+        # names = value.split()
+        # first = names[0]
+        # last = names[-1] if len(names) > 1 else ""
+        # middle = " ".join(names[1:-1]) if len(names) > 2 else ""
+        # return Person.objects.create(first=first, middle=middle, last=last).pk
+        return 9999
 
 
 class AddReportForm(ModelForm):
     """A Form handling the adding or editing of reports
     """
-    authors = forms.CharField(
-        widget=AuthorSelect2HeavyTagWidget(
-             data_view='person-autocomplete',
-            attrs={'data-placeholder': "Add or select authors",
-                   'data-tags': 'true',  # Equivalent to `tags: true` in JS
+
+    year = forms.IntegerField(
+        initial=datetime.datetime.now().year,
+        widget=forms.NumberInput(attrs={
+            'min': 1900,
+            'max': datetime.datetime.now().year,
+            'placeholder': 'Enter year'
         })
     )
 
-
-    # authors = forms.CharField(max_length=1000, required=False,
-    #                             help_text='Full name of all authors, separated by semicolon (;) or &-sign.',
-    #                             widget=forms.widgets.Textarea(attrs={'rows': 1, 'cols': 50}))
+    authors = forms.CharField(max_length=1000, required=False,
+        widget=PersonHeavySelect2TagWidget(
+            data_view="person-autocomplete",
+            attrs={"data-token-separators": "['&',';']",
+                    "data-tags": "true",   # enable tagging
+                    "data-placeholder": "Add or select authors (separate by semicolon (;) or &-sign)",
+                    "data-minimum-input-length": 3,
+                    "style": "width: 50em;",
+            }, 
+        ),
+    )
 
     supervisors = forms.CharField(max_length=1000, required=False,
-                                help_text='Full name of all supervisors, separated by semicolon (;) or &-sign.',
-                                widget=forms.widgets.Textarea(attrs={'rows': 1, 'cols': 50}))
+        widget=PersonHeavySelect2TagWidget(
+            data_view="person-autocomplete",
+            attrs={"data-token-separators": "['&',';']",
+                    "data-tags": "true",   # enable tagging
+                    "data-placeholder": "Add or select supervisors (separate by semicolon (;) or &-sign)",
+                    "data-minimum-input-length": 3,
+                    "style": "width: 50em;",
+            }, 
+        ),
+    )
 
-#     topics = myfields.TagField(required=False,
-#                                 #help_text='Type topics separated by comma or enter',
-#                                 widget=mywidgets.TagInput(
-#                                         TagInputAttrs={
-#                                             'tagSource': "'/pubs/ajax/search/topic/'",
-#                                             'allowNewTags': "false",
-#                                             'minLength': "0",
-#                                             'triggerKeys': [b'enter', b'comma']
-#                                         }))
+    topics = forms.ModelMultipleChoiceField(
+        queryset=Topic.objects.all(),
+        required=False,
+        widget=s2forms.Select2TagWidget(
+            attrs={
+                "data-tags": "true",  # Enable tagging
+                "data-token-separators": "[',', ';']",
+                "data-placeholder": "Add or select topics (separate by comma or enter)",
+                "data-minimum-input-length": 0,
+                "style": "width: 100%;",  # Optional: Set widget width
+            }
+        ),
+    )
 
-#     keywords = myfields.TagField(required=False,
-#                                 #help_text='Type keywords separated by comma or enter',
-#                                 widget=mywidgets.TagInput(
-#                                         TagInputAttrs={
-#                                             'tagSource': "'/pubs/ajax/search/keyword/'",
-#                                             'allowNewTags': "true",
-#                                             'triggerKeys': [b'enter', b'comma']
-#                                         }))
+    keywords = forms.ModelMultipleChoiceField(
+        queryset=Keyword.objects.all(),
+        required=False,
+        widget=s2forms.Select2TagWidget(
+            attrs={
+                "data-tags": "true",  # Enable tagging
+                "data-token-separators": "[',', ';']",
+                "data-placeholder": "Add or select keywords (separated by comma or enter)",
+                "data-minimum-input-length": 0,
+                "style": "width: 100%;",  # Optional: Set widget width
+            }
+        ),
+    )
 
-#     pdffile = forms.FileField(required=False, allow_empty_file=True,
-#                                 #help_text='Select file to upload',
-#                                 widget=AdminFileWidget)
+    # pdffile = forms.FileField(
+    #     required=False, 
+    #     allow_empty_file=True,
+    #     #help_text='Select file to upload',
+    #     widget=AdminFileWidget
+    # )
 
-    date = forms.DateField(widget=forms.DateInput(format = '%Y-%m-%d'),
-                       input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
-                       required=False)
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+        input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
+        required=False,
+    )
 
 
     class Meta:
         model = Publication
-        # # Only show the following fields
-        # fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-        #           'authors', 'supervisors', 'topics', 'keywords', 'pdffile']
-        # # Exclude the following native fields of the Publication model, because
-        # # we are handling them separately by new fields in the form.
-        # # exclude = ['quality', 'keywords', 'topic', 'file']
-
+        # Only show the following fields
         fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors']
+                  'authors', 'supervisors', 'topics', 'keywords', 'date']
+        exclude = ['pdffile']
+
 
     def __init__(self, *args, **kwargs):
         print('In AddReportForm:__init__')
@@ -110,24 +135,31 @@ class AddReportForm(ModelForm):
             # For a new publication, no authors are pre-selected
             self.fields['authors'].widget.queryset = Person.objects.none()
 
-
-
     def clean_authors(self):
-        authors_data = self.cleaned_data['authors']  # This will be a comma-separated list of author names
-        author_names = [name.strip() for name in authors_data.split(',')]
-        authors = []
+        print(f"AddReportForm:clean_authors: {self.cleaned_data['authors']}")
+        authors_data = self.cleaned_data['authors']  # This will be a comma-separated list of author primary keys or author names
 
-        for name in author_names:
-            # Check if the author already exists, otherwise create a new one
-            first_name, middle_name, last_name = self.parse_name(name)
-            person, created = Person.objects.get_or_create(
-                first_name=first_name,
-                middle_name=middle_name,
-                last_name=last_name
-            )
-            authors.append(person)
+        # author_data is a string of the type "['1001', '996', 'Anders And']"
+        # Parse the string into a list of strings
+        parsed_authors = ast.literal_eval(authors_data)
+        
+        # If the authors field is empty, return an empty list
+        if not parsed_authors:
+            print('AddReportForm:clean_authors:No authors')
+            return Person.objects.none()
 
-        return authors
+        for author in parsed_authors:
+            print(f'AddReportForm:clean_authors:author: {author}')
+
+        # if all entries are numeric, assume they are primary keys
+        if all([c.isnumeric() for c in parsed_authors]):
+            print('AddReportForm:clean_authors:All numeric')
+            author_pks = [int(pk) for pk in parsed_authors]
+            authors = Person.objects.filter(pk__in=author_pks)
+            return authors
+        else:
+            print('AddReportForm:clean_authors:Not all numeric')
+            return parsed_authors
 
     def parse_name(self, full_name):
         """
@@ -140,12 +172,12 @@ class AddReportForm(ModelForm):
         last_name = parts[-1] if len(parts) > 1 else None
         return first_name, middle_name, last_name
     
-    def save(self, full_name):
-        # instance = super().save(commit=False)
-        # instance.save()
-        # self.cleaned_data['authors'] = instance.authors.set(self.cleaned_data['authors'])
-        # return instance
-        pass
+    # def save(self, full_name):
+    #     # instance = super().save(commit=False)
+    #     # instance.save()
+    #     # self.cleaned_data['authors'] = instance.authors.set(self.cleaned_data['authors'])
+    #     # return instance
+    #     pass
 
 
 
@@ -220,15 +252,8 @@ class AddReportForm(ModelForm):
 
 
 
-class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
-    def value_new(self, value):
-        """Handle creation of new Person objects."""
-        names = value.split()
-        first = names[0]
-        last = names[-1] if len(names) > 1 else ""
-        middle = " ".join(names[1:-1]) if len(names) > 2 else ""
-        return Person.objects.create(first=first, middle=middle, last=last).pk
 
+    
 
 class PublicationForm(forms.ModelForm):
     class Meta:
@@ -237,6 +262,11 @@ class PublicationForm(forms.ModelForm):
         widgets = {
             "authors": PersonHeavySelect2TagWidget(
                 data_view="test-person-autocomplete",
-                attrs={"data-token-separators": "[',',';']"},
+                attrs={"data-token-separators": "[',',';']",
+                       "data-tags": "true",   # enable tagging
+                       "data-placeholder": "Add or select authors",
+                       "data-minimum-input-length": 2,
+                       "style": "width: 400px;",
+                }, 
             ),
         }

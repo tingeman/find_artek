@@ -59,7 +59,7 @@ class BaseModel(models.Model):
     modified_date = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_created")
     modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(class)s_modified")
-    
+
     class Meta:
         abstract = True
 
@@ -113,7 +113,7 @@ class Person(BaseModel):
     def __str__(self):
         # Prints "First Middle von Last, Jr <pk:1>"
         full_name = self.get_full_name()
-        return full_name + f" <pk:{self.pk}>"
+        return full_name + f" [pk:{self.pk}]"
 
     def get_full_name(self):
         full_name = ' '.join(part for part in (self.first, self.middle,
@@ -334,10 +334,12 @@ class FileObject(BaseModel):
     def filename(self):
         return os.path.basename(self.file.name)
 
+
 class URLObject(BaseModel):
     URL = models.URLField(blank=False)
     description = models.CharField(max_length=1000, blank=True)
     linktext = models.CharField(max_length=50, blank=True)
+
 
 class Publication(BaseModel):
     not_bibtex = ('supervisor', 'grade', 'quality', 'created', 'modified', 'modified_by')
@@ -386,6 +388,8 @@ class Publication(BaseModel):
     verified = models.BooleanField(blank=False, default=False)
     quality = models.SmallIntegerField(choices=quality_flags, default=CREATED)
 
+    _key = None   # a cache for temporary key
+
     class Meta:
         permissions = (
             ("edit_own_publication", "Can edit own publications"),
@@ -394,19 +398,38 @@ class Publication(BaseModel):
         )
 
     def __str__(self):
-        if not self.key:
+        # Workaround to avoid recursion error. 
+        # We use a temporary string representation, stored in _key
+        # this proper key representation is generated if possible (not a new publication)
+
+        print(f"Publication: key: {self.key}")    
+        if (not self.key) and (self._key is None):
+            if not self.pk:
+                return 'New publication instance'
+            else:
+                self._key = f'pk:{self.pk}'
             self.create_key()
-        return self.key
+
+        if self.key:
+            return self.key
+        else:
+            return self._key
 
     def create_key(self):
         """Creates are unique reference key (bibtext key) for the publication. 
         The key is based on the first author's last name and the year of publication.
         If the key already exists, a letter is added after the year to make it unique."""
         
-        if self.author.all():
+        success = False
+        key = None
+
+        if not self.pk:
+            # this is a new intstance, so it has no relationships to other models yet
+            # it also has no primary key, so we cannot create a key yet
+            return
+        elif self.authors.all():
             alphabet = ['']
             alphabet.extend(list('abcdefghijklmnopqrstuvwxyz'))
-            success = False
             if self.type.type == 'STUDENTREPORT':
                 for letter in alphabet:
                     key = '{0}({1}{2})'.format(self.sorted_authors()[0].last, self.year, letter)
@@ -416,18 +439,21 @@ class Publication(BaseModel):
                 if not success:
                     raise ValueError('Could not construct valid key!')
                 
-        else:
-            key = ''
+        if not key:
+            key = f'pk:{self.pk}'
 
         if success:
             self.key = key
             self.save()
+        else:
+            self._key = key
+            # Dont save the key if it simply represents the pk
     
     def sorted_authors(self):
         """ Returns the authors as a list of Person instances sorted
         according to the author index (so in the correct order from
         the publication. """
-        return self.author.all().order_by('authorship__author_id')
+        return self.authors.all().order_by('authorship__author_id')
 
     def sorted_authorships(self):
         """ Returns the authorships as a list of Authorship instances sorted
@@ -613,34 +639,22 @@ class Keywordship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     keyword = models.ForeignKey(Keyword, on_delete=models.CASCADE)
 
-class Authorship(models.Model):
-    person = models.ForeignKey(Person, on_delete=models.CASCADE)
+
+
+class Personship(models.Model):
+    """Intended for subclassing to Authorship, Editorship, Supervisorship etc."""
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
-    author_id = models.IntegerField(null=True, default=None)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE)
 
     # Fields used for automatic person matching on import
-    exact_match = models.BooleanField(default=False)
-    multiple_match = models.BooleanField(default=False)
-    relaxed_match = models.BooleanField(default=False)
-    match_string = models.CharField(max_length=100, blank=True)
-
-    def clear_match_indicators(self, commit=True):
-        self.exact_match = False
-        self.relaxed_match = False
-        self.multiple_match = False
-        self.match_string = ""
-        if commit:
-            self.save()
-
-class Editorship(models.Model):
-    person = models.ForeignKey(Person, on_delete=models.CASCADE)
-    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
-    editor_id = models.IntegerField(null=True, default=None)
     exact_match = models.BooleanField(default=False)   # True if one or more exact matches at time of import
     multiple_match = models.BooleanField(default=False)   # True if more than one relaxed match at time of import
     relaxed_match = models.BooleanField(default=False)   # True if one or more relaxed matches at time of import - but no exact matches
     match_string = models.CharField(max_length=100, blank=True)   # Not used, what was the intention
 
+    class Meta:
+        abstract = True
+
     def clear_match_indicators(self, commit=True):
         self.exact_match = False
         self.relaxed_match = False
@@ -648,33 +662,29 @@ class Editorship(models.Model):
         self.match_string = ""
         if commit:
             self.save()
+
+
+
+class Authorship(Personship):
+    author_id = models.IntegerField(null=True, default=None)
+
+
+class Editorship(Personship):
+    editor_id = models.IntegerField(null=True, default=None)
+
+
+class Supervisorship(Personship):
+    supervisor_id = models.IntegerField(null=True, default=None)
+
 
 class Appendenciesship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     fileobject = models.ForeignKey(FileObject, on_delete=models.CASCADE)
 
-class Supervisorship(models.Model):
-    person = models.ForeignKey(Person, on_delete=models.CASCADE)
-    publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
-    supervisor_id = models.IntegerField(null=True, default=None)
-    # Fields used for automatic person matching on import
-    exact_match = models.BooleanField(default=False)             
-    multiple_match = models.BooleanField(default=False)          
-    relaxed_match = models.BooleanField(default=False)           
-    match_string = models.CharField(max_length=100, blank=True)  
-
-    def clear_match_indicators(self, commit=True):
-        self.exact_match = False
-        self.relaxed_match = False
-        self.multiple_match = False
-        self.match_string = ""
-        if commit:
-            self.save()
 
 class PublicationURLObjectship(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE)
     URLs = models.ForeignKey(URLObject, on_delete=models.CASCADE)
-
 
 
 class AddPubFields(models.Model):
