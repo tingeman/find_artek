@@ -141,36 +141,72 @@ class AddReportForm(ModelForm):
             print(f'AddReportForm:__init__:instance: {instance}')
             # Restrict the queryset to authors already associated with this publication
             self.fields['authors'].widget.queryset = instance.authors.all()
+            self.fields['supervisors'].widget.queryset = instance.supervisors.all()
         else:
             print('AddReportForm:__init__:No instance')
             # For a new publication, no authors are pre-selected
             self.fields['authors'].widget.queryset = Person.objects.none()
+            self.fields['supervisors'].widget.queryset = Person.objects.none()
 
     def clean_authors(self):
         print(f"AddReportForm:clean_authors: {self.cleaned_data['authors']}")
         authors_data = self.cleaned_data['authors']  # This will be a comma-separated list of author primary keys or author names
 
-        # author_data is a string of the type "['1001', '996', 'Anders And']"
-        # Parse the string into a list of strings
-        parsed_authors = ast.literal_eval(authors_data)
-        
-        # If the authors field is empty, return an empty list
-        if not parsed_authors:
+        if authors_data:
+            # author_data is a string of the type "['1001', '996', 'Anders And']"
+            # Parse the string into a list of strings
+            parsed_authors = ast.literal_eval(authors_data)
+            
+            # If the authors field is empty, return an empty list
+            if not parsed_authors:
+                print('AddReportForm:clean_authors:No authors')
+                return Person.objects.none()
+
+            for author in parsed_authors:
+                print(f'AddReportForm:clean_authors:author: {author}')
+
+            # if all entries are numeric, assume they are primary keys
+            if all([c.isnumeric() for c in parsed_authors]):
+                print('AddReportForm:clean_authors:All numeric')
+                author_pks = [int(pk) for pk in parsed_authors]
+                authors = Person.objects.filter(pk__in=author_pks)
+                return authors
+            else:
+                print('AddReportForm:clean_authors:Not all numeric')
+                return parsed_authors
+        else:
             print('AddReportForm:clean_authors:No authors')
             return Person.objects.none()
 
-        for author in parsed_authors:
-            print(f'AddReportForm:clean_authors:author: {author}')
+    def clean_supervisors(self):
+        print(f"AddReportForm:clean_supervisors: {self.cleaned_data['supervisors']}")
+        supervisors_data = self.cleaned_data['supervisors']  # This will be a comma-separated list of supervisor primary keys or supervisor names
 
-        # if all entries are numeric, assume they are primary keys
-        if all([c.isnumeric() for c in parsed_authors]):
-            print('AddReportForm:clean_authors:All numeric')
-            author_pks = [int(pk) for pk in parsed_authors]
-            authors = Person.objects.filter(pk__in=author_pks)
-            return authors
+        if supervisors_data:
+            # supervisor_data is a string of the type "['1001', '996', 'Anders And']"
+            # Parse the string into a list of strings
+            parsed_supervisors = ast.literal_eval(supervisors_data)
+            
+            # If the supervisors field is empty, return an empty list
+            if not parsed_supervisors:
+                print('AddReportForm:clean_supervisors:No supervisors')
+                return Person.objects.none()
+
+            for supervisor in parsed_supervisors:
+                print(f'AddReportForm:clean_supervisors:supervisor: {supervisor}')
+
+            # if all entries are numeric, assume they are primary keys
+            if all([c.isnumeric() for c in parsed_supervisors]):
+                print('AddReportForm:clean_supervisors:All numeric')
+                supervisor_pks = [int(pk) for pk in parsed_supervisors]
+                supervisors = Person.objects.filter(pk__in=supervisor_pks)
+                return supervisors
+            else:
+                print('AddReportForm:clean_supervisors:Not all numeric')
+                return parsed_supervisors
         else:
-            print('AddReportForm:clean_authors:Not all numeric')
-            return parsed_authors
+            print('AddReportForm:clean_supervisors:No supervisors')
+            return Person.objects.none()
 
     def parse_name(self, full_name):
         """

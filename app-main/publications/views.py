@@ -23,7 +23,7 @@ from django_select2.views import AutoResponseView
 from find_artek.search import get_query
 from publications.utils import CaseInsensitively
 from publications.library import get_client_ip, is_private
-from publications.forms import LoginForm, AddReportForm, PublicationForm, AuthorSelectForm
+from publications.forms import LoginForm, AddReportForm, PublicationForm, AuthorSelectForm, SupervisorSelectForm
 from publications.models import Publication, Topic, Feature, Person
 
 import pdb
@@ -273,7 +273,7 @@ class AddReportView(BaseFormView):
     model = Publication
     form_class = AddReportForm    # PublicationForm
     template_name = 'publications/add_edit_report.html'
-    select_persons_url = 'select-authors'
+    select_persons_url = 'select-persons'
 
     def __init__(self, *args, **kwargs):
         print('In AddReportView:__init__')
@@ -361,10 +361,12 @@ class AddReportView(BaseFormView):
             form.instance.created_by = self.request.user
         form.instance.modified_by = self.request.user
 
-        session_data = self.request.session.get('add_report_form_data', {})
-        authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])   
-      
+        # session_data = self.request.session.get('add_report_form_data', {})
+        # authors = session_data.get('authors', [])
+        # supervisors = session_data.get('supervisors', [])   
+        authors = form.cleaned_data['authors']
+        supervisors = form.cleaned_data['supervisors']
+
         if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
             # the authors or supervisors field is not a queryset, so one of them must contain person names not already in the database
             # store all the form data in the session and redirect to the author/supervisor selection page
@@ -384,6 +386,114 @@ class AddReportView(BaseFormView):
     def get_success_url(self):
         return reverse('report', kwargs={'pk': self.object.pk})
 
+
+
+@method_decorator(login_required, name='dispatch')
+class PersonSelectView(BaseView):
+    template_name = 'publications/persons_select.html'
+    
+    def __init__(self, *args, **kwargs):
+        print('In PersonSelectView:__init__')
+        super().__init__(*args, **kwargs)
+
+    def get(self, request):
+        print('In PersonSelectView:get')
+        
+        session_data = self.request.session.get('add_report_form_data', {})
+        authors = session_data.get('authors', [])
+        supervisors = session_data.get('supervisors', [])   
+
+        if authors:
+            authors_form = AuthorSelectForm(authors=authors)
+        else:
+            authors_form = None
+
+        if supervisors:
+            supervisors_form = SupervisorSelectForm(supervisors=supervisors)
+        else:
+            supervisors_form = None
+
+        return render(request, self.template_name, {
+            'authors_form': authors_form,
+            'supervisors_form': supervisors_form
+        })
+
+    def post(self, request):
+        print(f"AddReportView:post: {request.POST}")
+
+        session_data = self.request.session.get('add_report_form_data', {})
+        authors = session_data.get('authors', [])
+        supervisors = session_data.get('supervisors', [])  
+
+        if authors:
+            authors_form = AuthorSelectForm(authors=authors)
+        else:
+            authors_form = None
+
+        if supervisors:
+            supervisors_form = SupervisorSelectForm(supervisors=supervisors)
+        else:
+            supervisors_form = None
+
+        author_form_valid = False
+        if authors_form.is_valid():
+            print(f"AddReportView:post: form cleaned data: {authors_form.cleaned_data}")
+            selected_authors = []
+            for key, value in authors_form.cleaned_data.items():
+                if key.startswith("author_"):
+                    if value == 'create_new':
+                        print(f"Create new author: {key}: {value}")
+                        # Create a new Person instance
+                        # name = authors[int(key.split('_')[1])]
+                        # first_name, last_name = name.split(maxsplit=1)
+                        # person = Person.objects.create(first_name=first_name, last_name=last_name)
+                        # selected_authors.append(person.pk)
+                    else:
+                        # Use the selected Person primary key
+                        print(f"Select existing author: {key}: {value}")
+                        selected_authors.append(int(value))
+
+            # Update the session with the selected author primary keys
+            if 'add_report_form_data' not in self.request.session:
+                self.request.session['add_report_form_data'] = {}
+            self.request.session['add_report_form_data']['authors'] = selected_authors
+            author_form_valid = True
+
+        supervisor_form_valid = False
+        if supervisors_form.is_valid():
+            print(f"AddReportView:post: form cleaned data: {supervisors_form.cleaned_data}")
+            selected_supervisors = []
+            for key, value in supervisors_form.cleaned_data.items():
+                if key.startswith("supervisor_"):
+                    if value == 'create_new':
+                        print(f"Create new supervisor: {key}: {value}")
+                        # Create a new Person instance
+                        # name = authors[int(key.split('_')[1])]
+                        # first_name, last_name = name.split(maxsplit=1)
+                        # person = Person.objects.create(first_name=first_name, last_name=last_name)
+                        # selected_authors.append(person.pk)
+                    else:
+                        # Use the selected Person primary key
+                        print(f"Select existing supervisor: {key}: {value}")
+                        selected_supervisors.append(int(value))
+
+            # Update the session with the selected author primary keys
+            if 'add_report_form_data' not in self.request.session:
+                self.request.session['add_report_form_data'] = {}
+            self.request.session['add_report_form_data']['supervisors'] = selected_supervisors
+            supervisor_form_valid = True
+
+        if author_form_valid and supervisor_form_valid:
+            raise Exception("Not implemented yet")  # Redirect to finalize publication save
+            return redirect('publication_final_save')  # Redirect to finalize publication save
+        else:
+            print(f"PersonSelectView:post: authors_form errors: {authors_form.errors}")
+            print(f"PersonSelectView:post: supervisors_form errors: {supervisors_form.errors}")
+            return render(request, self.template_name, {
+                'authors_form': authors_form,
+                'supervisors_form': supervisors_form
+            })
+          
 
 
 
@@ -429,7 +539,7 @@ class AuthorSelectView(BaseView):
             return redirect('publication_final_save')  # Redirect to finalize publication save
 
         else:
-            print(f"AddReportView:post: form errors: {form.errors}")
+            print(f"AuthorSelectView:post: form errors: {form.errors}")
 
         
         return render(request, self.template_name, {'form': form})

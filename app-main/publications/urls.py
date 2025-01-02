@@ -19,7 +19,8 @@ urlpatterns = [
     path('add/report/', views.AddReportView.as_view(), name='add_report'),
     #path('edit/report/<int:pk>/', views.EditReportView.as_view(), name='edit_report'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
-    path("select/authors/", views.AuthorSelectView.as_view(), name="select-authors"),
+    #path("select/authors/", views.AuthorSelectView.as_view(), name="select-authors"),
+    path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
     #path("test/create/<int:pk>/", views.TestPublicationCreateViewNEW.as_view(), name="test-publication-create"),
