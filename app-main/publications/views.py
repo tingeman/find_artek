@@ -273,7 +273,7 @@ class AddReportView(BaseFormView):
     model = Publication
     form_class = AddReportForm    # PublicationForm
     template_name = 'publications/add_edit_report.html'
-    select_authors_url = 'select-authors'
+    select_persons_url = 'select-authors'
 
     def __init__(self, *args, **kwargs):
         print('In AddReportView:__init__')
@@ -314,34 +314,40 @@ class AddReportView(BaseFormView):
         # Get the form instance
         form = super().get_form()
 
-        # Retrieve session data for authors
+        # Retrieve session data for authors and supervisors
         session_data = self.request.session.get('add_report_form_data', {})
         authors = session_data.get('authors', [])
-
+        supervisors = session_data.get('supervisors', [])   
+      
         # Format authors for prepopulation
-        choices = []
-        for author in authors:
-            if isinstance(author, int) or (isinstance(author, str) and author.isnumeric()):  # Existing author (ID)
-                # Fetch the name from the database
-                person = Person.objects.filter(pk=int(author)).first()
-                if person:
-                    choices.append((author, str(person)))
-            elif isinstance(author, str):  # New author (name)
-                choices.append((author, author))
-                
-        print(f"AddReportView:get_form: choices: {choices}")
-
-        # Inject initial data into the widget
+        choices = self.get_person_choices(authors)
+        print(f"AddReportView:get_form: author choices: {choices}")
         form.fields['authors'].widget.choices = choices
+
+        # Format supervisors for prepopulation
+        choices = self.get_person_choices(supervisors)
+        print(f"AddReportView:get_form: supervisor choices: {choices}")
+        form.fields['supervisors'].widget.choices = choices
+
         return form
 
-
+    def get_person_choices(self, persons=[]):
+        choices = []
+        for person in persons:
+            if isinstance(person, int) or (isinstance(person, str) and person.isnumeric()):  # Existing person (ID)
+                # Fetch the name from the database
+                person = Person.objects.filter(pk=int(person)).first()
+                if person:
+                    choices.append((person.pk, str(person)))
+            elif isinstance(person, str):  # New person (name)
+                choices.append((person, person))
+        return choices
+    
     def get(self, request, *args, **kwargs):
         action = request.GET.get('action', 'new') # Default to new form, if no action is given
         if action == 'new':
             # Clear session data to start fresh
             request.session.pop('add_report_form_data', None)
-            request.session.pop('add_report_authors', None)
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -355,22 +361,24 @@ class AddReportView(BaseFormView):
             form.instance.created_by = self.request.user
         form.instance.modified_by = self.request.user
 
-        authors = form.cleaned_data['authors']
-        
-        if not isinstance(authors, QuerySet):
-            # the authors field is not a queryset, so it must contain author names not already in the database
-            # store all the form data in the session and redirect to the author selection page
+        session_data = self.request.session.get('add_report_form_data', {})
+        authors = session_data.get('authors', [])
+        supervisors = session_data.get('supervisors', [])   
+      
+        if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
+            # the authors or supervisors field is not a queryset, so one of them must contain person names not already in the database
+            # store all the form data in the session and redirect to the author/supervisor selection page
             raw_data = dict(self.request.POST.lists())
             self.request.session['add_report_form_data'] = raw_data
-            self.request.session['add_report_authors'] = list(authors) 
             print(f"AddReportView:form_valid: raw data: {raw_data}")
-            print(f"AddReportView:form_valid: redirecting to {self.select_authors_url}")
-            return redirect(self.select_authors_url)
+            print(f"AddReportView:form_valid: redirecting to {self.select_persons_url}")
+            return redirect(self.select_persons_url)
 
         # Otherwise, save publication normally
         self.object = form.save(commit=False)
         self.object.save()
         self.object.authors.set(authors)
+        self.object.supervisors.set(supervisors)
         return super().form_valid(form)    
            
     def get_success_url(self):
