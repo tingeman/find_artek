@@ -264,36 +264,39 @@ class AddReportForm(ModelForm):
 
 
 
+class PersonSelectForm(forms.Form):
+    # An abstract class intended for subclassing
+    class Meta:
+        abstract = True
 
+    person_type = None   # Define in subclass as "author" or "supervisor"
 
-
-
-class AuthorSelectForm(forms.Form):
-    def __init__(self, *args, authors=None, **kwargs):
+    def __init__(self, *args, persons=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if authors is not None:
-            for i, author in enumerate(authors):
-                if author.isnumeric():  # Assume it's a primary key
-                    person = Person.objects.get(pk=author)
-                    self.fields[f'author_{i}'] = forms.ChoiceField(
-                        label=f"Author {i + 1}: Exact match on primary key",
+        if persons is not None:
+            # Add a headline in the form, it should be pure text and not a field
+            for i, person in enumerate(persons):
+                if person.isnumeric():  # Assume it's a primary key
+                    person = Person.objects.get(pk=person)
+                    self.fields[f'{self.person_type}_{i}'] = forms.ChoiceField(
+                        label=f"{self.person_type.capitalize()} {i + 1}: Exact match on primary key",
                         widget=forms.RadioSelect,
                         choices=[(person.pk, person.get_full_name() + f" [pk:{person.pk}]")],
                         disabled=True,
                     )
-                    self.fields[f'author_{i}'].initial = self.fields[f'author_{i}'].choices[0][0]
+                    self.fields[f'{self.person_type}_{i}'].initial = self.fields[f'{self.person_type}_{i}'].choices[0][0]
                 else:  # Assume it's a name
-                    self.fields[f'author_{i}'] = forms.ChoiceField(
-                        label=f"Author {i + 1}: Select matching person or create new",
-                        choices=self.get_person_choices(author),
+                    self.fields[f'{self.person_type}_{i}'] = forms.ChoiceField(
+                        label=f"{self.person_type.capitalize()} {i + 1}: Select matching person or create new",
+                        choices=self.get_person_choices(person),
                         widget=forms.RadioSelect,
                         required=True,
                     )
                     # Add a "Create New" option
-                    self.fields[f'author_{i}'].choices.insert(0, ('create_new', f'{author} (Create new Person)'))
+                    self.fields[f'{self.person_type}_{i}'].choices.insert(0, ('create_new', f'{person} (Create new Person)'))
                     # Set first option as selected
-                    self.fields[f'author_{i}'].initial = self.fields[f'author_{i}'].choices[0][0]
+                    self.fields[f'{self.person_type}_{i}'].initial = self.fields[f'{self.person_type}_{i}'].choices[0][0]
 
     def get_person_choices(self, name):
         # Search for matching `Person` instances
@@ -304,16 +307,32 @@ class AuthorSelectForm(forms.Form):
         )
         return [(person.pk, person.get_full_name() + f" [pk:{person.pk}]") for person in matches]
 
-    def get_selected_authors(self):
-        selected_authors = []
-        for key, value in self.cleaned_data.items():
-            if key.startswith("author_"):
-                selected_authors.append(value)
-        return selected_authors
+    # Is this method needed?
+    # def get_selected_authors(self):
+    #     selected_authors = []
+    #     for key, value in self.cleaned_data.items():
+    #         if key.startswith("author_"):
+    #             selected_authors.append(value)
+    #     return selected_authors
 
 
+class AuthorSelectForm(PersonSelectForm):
+    person_type = "author"
 
+    def __init__(self, *args, authors=None, **kwargs):
+        super().__init__(*args, persons=authors, **kwargs)
 
+class SupervisorSelectForm(PersonSelectForm):
+    person_type = "supervisor"
+
+    def __init__(self, *args, supervisors=None, **kwargs):
+        super().__init__(*args, persons=supervisors, **kwargs)
+
+class EditorSelectForm(PersonSelectForm):
+    person_type = "editor"
+
+    def __init__(self, *args, editors=None, **kwargs):
+        super().__init__(*args, persons=editors, **kwargs)
 
 
 
