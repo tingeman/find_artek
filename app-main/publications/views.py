@@ -1,4 +1,5 @@
 import re
+import json
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -22,7 +23,7 @@ from django_select2.views import AutoResponseView
 from find_artek.search import get_query
 from publications.utils import CaseInsensitively
 from publications.library import get_client_ip, is_private
-from publications.forms import LoginForm, AddReportForm, PublicationForm
+from publications.forms import LoginForm, AddReportForm, PublicationForm, AuthorSelectForm
 from publications.models import Publication, Topic, Feature, Person
 
 import pdb
@@ -55,14 +56,22 @@ class BaseDetailView(DetailView, BaseView):
     def get_context_data(self, **kwargs):
         # Get the context from BaseView
         context = super().get_context_data(**kwargs)
-
         # Get the context from BaseView
         base_context = BaseView.get_context_data(self, **kwargs)
-        
         # Combine the contexts
         context.update(base_context)
-        
         return context
+
+class BaseFormView(FormView, BaseView):
+    def get_context_data(self, **kwargs):
+        # Get the context from BaseView
+        context = super().get_context_data(**kwargs)
+        # Get the context from BaseView
+        base_context = BaseView.get_context_data(self, **kwargs)
+        # Combine the contexts
+        context.update(base_context)
+        return context
+
 
 
 
@@ -260,11 +269,11 @@ class ReportView(BaseDetailView):
 
 
 @method_decorator(login_required, name='dispatch')
-class AddReportView(FormView, BaseView):    #UpdateView, BaseView):
+class AddReportView(BaseFormView):
     model = Publication
     form_class = AddReportForm    # PublicationForm
     template_name = 'publications/add_edit_report.html'
-    process_authors_url = 'process_authors'
+    select_authors_url = 'select-authors'
 
     def __init__(self, *args, **kwargs):
         print('In AddReportView:__init__')
@@ -272,11 +281,68 @@ class AddReportView(FormView, BaseView):    #UpdateView, BaseView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        base_context = BaseView.get_context_data(self, **kwargs)
-        context.update(base_context)
+        context['action'] = self.request.GET.get('action', 'new')
         # if self.object:
         #     context['associated_features'] = self.object.feature_set.all()
         return context
+
+    def get_initial(self):
+        # Check the 'action' query parameter
+        action = self.request.GET.get('action', 'new')  # Default to new form, if no action is given
+
+        if action == 'edit':
+            # Prefill the form with existing session data
+            session_data = self.request.session.get('add_report_form_data', {})
+            
+            # Normalize session data for form initialization
+            normalized_data = {}
+            for key, value in session_data.items():
+                if isinstance(value, list) and len(value) == 1:
+                    # Convert single-item lists to a string
+                    normalized_data[key] = value[0]
+                else:
+                    # Keep multi-value fields as lists
+                    normalized_data[key] = value
+
+            print(f"AddReportView:get_initial: normalized data: {normalized_data}")
+            return normalized_data
+        else:
+            # Default to an empty form if action is unrecognized
+            return {}
+
+    def get_form(self):
+        # Get the form instance
+        form = super().get_form()
+
+        # Retrieve session data for authors
+        session_data = self.request.session.get('add_report_form_data', {})
+        authors = session_data.get('authors', [])
+
+        # Format authors for prepopulation
+        choices = []
+        for author in authors:
+            if isinstance(author, int) or (isinstance(author, str) and author.isnumeric()):  # Existing author (ID)
+                # Fetch the name from the database
+                person = Person.objects.filter(pk=int(author)).first()
+                if person:
+                    choices.append((author, str(person)))
+            elif isinstance(author, str):  # New author (name)
+                choices.append((author, author))
+                
+        print(f"AddReportView:get_form: choices: {choices}")
+
+        # Inject initial data into the widget
+        form.fields['authors'].widget.choices = choices
+        return form
+
+
+    def get(self, request, *args, **kwargs):
+        action = request.GET.get('action', 'new') # Default to new form, if no action is given
+        if action == 'new':
+            # Clear session data to start fresh
+            request.session.pop('add_report_form_data', None)
+            request.session.pop('add_report_authors', None)
+        return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         print(f"AddReportView:post: {request.POST}")
@@ -293,9 +359,13 @@ class AddReportView(FormView, BaseView):    #UpdateView, BaseView):
         
         if not isinstance(authors, QuerySet):
             # the authors field is not a queryset, so it must contain author names not already in the database
-            self.request.session['publication_data'] = form.cleaned_data
-            self.request.session['authors'] = list(authors) 
-            return self.redirect(self.process_authors_url)
+            # store all the form data in the session and redirect to the author selection page
+            raw_data = dict(self.request.POST.lists())
+            self.request.session['add_report_form_data'] = raw_data
+            self.request.session['add_report_authors'] = list(authors) 
+            print(f"AddReportView:form_valid: raw data: {raw_data}")
+            print(f"AddReportView:form_valid: redirecting to {self.select_authors_url}")
+            return redirect(self.select_authors_url)
 
         # Otherwise, save publication normally
         self.object = form.save(commit=False)
@@ -305,6 +375,60 @@ class AddReportView(FormView, BaseView):    #UpdateView, BaseView):
            
     def get_success_url(self):
         return reverse('report', kwargs={'pk': self.object.pk})
+
+
+
+
+@method_decorator(login_required, name='dispatch')
+class AuthorSelectView(BaseView):
+    template_name = 'publications/author_select.html'
+    
+    def __init__(self, *args, **kwargs):
+        print('In AuthorSelectView:__init__')
+        super().__init__(*args, **kwargs)
+
+    def get(self, request):
+        print('In AuthorSelectView:get')
+        authors = request.session.get('add_report_authors', [])
+        form = AuthorSelectForm(authors=authors)
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request):
+        print(f"AddReportView:post: {request.POST}")
+        authors = request.session.get('add_report_authors', [])
+        form = AuthorSelectForm(request.POST, authors=authors)
+        if form.is_valid():
+            print(f"AddReportView:post: form cleaned data: {form.cleaned_data}")
+            selected_authors = []
+            for key, value in form.cleaned_data.items():
+                if key.startswith("author_"):
+                    if value == 'create_new':
+                        print(f"Create new author: {key}: {value}")
+                        # Create a new Person instance
+                        # name = authors[int(key.split('_')[1])]
+                        # first_name, last_name = name.split(maxsplit=1)
+                        # person = Person.objects.create(first_name=first_name, last_name=last_name)
+                        # selected_authors.append(person.pk)
+                    else:
+                        # Use the selected Person primary key
+                        print(f"Select existing author: {key}: {value}")
+                        selected_authors.append(int(value))
+
+            # Update the session with the selected author primary keys
+            request.session['authors'] = selected_authors
+
+            raise Exception("Not implemented yet")  # Redirect to finalize publication save
+            return redirect('publication_final_save')  # Redirect to finalize publication save
+
+        else:
+            print(f"AddReportView:post: form errors: {form.errors}")
+
+        
+        return render(request, self.template_name, {'form': form})
+          
+
+
+
 
 
 class PersonAutocompleteView(View):
@@ -337,41 +461,6 @@ class PersonAutocompleteView(View):
         print(f"Number of results: {len(results)}")
 
         return JsonResponse({"results": results})
-
-
-class TestPublicationCreateView(CreateView, BaseView):
-    model = Publication
-    form_class = PublicationForm
-    template_name = "publications/test_publication_form_templated.html"
-    success_url = "/"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        base_context = BaseView.get_context_data(self, **kwargs)
-        context.update(base_context)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        print(request.POST)
-        return super().post(request, *args, **kwargs)
-
-
-class TestPublicationCreateViewNEW(CreateView, BaseView):
-    model = Publication
-    form_class = AddReportForm
-    template_name = "publications/test_publication_form_templated.html"
-    success_url = "/"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        base_context = BaseView.get_context_data(self, **kwargs)
-        context.update(base_context)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        print(f"TestPublicationCreateViewNEW:post: {request.POST}")
-        return super().post(request, *args, **kwargs)
-
 
 
 

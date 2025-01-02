@@ -6,6 +6,7 @@ from publications.models import Publication, Person, Feature, Topic, Keyword
 from django.urls import reverse
 import datetime
 import ast
+import json
 
 
 class LoginForm(forms.Form):
@@ -14,13 +15,22 @@ class LoginForm(forms.Form):
 
 
 class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
+
+    def __init__(self, *args, initial_data=None, **kwargs):
+        """
+        Extend the widget to accept initial_data during initialization.
+        """
+        print(f"PersonHeavySelect2TagWidget:__init__: {initial_data}")
+        self.initial_data = initial_data or []
+        super().__init__(*args, **kwargs)
+
     def get_context(self, name, value, attrs):
         """Get the context for rendering the widget.
         This method is overridden to ensure that the entire contents of the Person table is not
         rendered as options in the select2 widget. The 'optgroups' key is set to an empty list.
         """
         context = super().get_context(name, value, attrs)
-        context['widget']['optgroups'] = []
+        #context['widget']['optgroups'] = []
         return context
 
     def value_new(self, value):
@@ -55,6 +65,7 @@ class AddReportForm(ModelForm):
                     "data-placeholder": "Add or select authors (separate by semicolon (;) or &-sign)",
                     "data-minimum-input-length": 3,
                     "style": "width: 50em;",
+                    "data-initial": "",  # Will be dynamically populated by the view
             }, 
         ),
     )
@@ -247,6 +258,78 @@ class AddReportForm(ModelForm):
 #         # Only show the following fields
 #         fields = ['type', 'title', 'year', 'abstract', 'comment',
 #                   'authors', 'supervisors', 'topics', 'keywords', 'pdffile']
+
+
+
+
+
+
+
+
+
+
+class AuthorSelectForm(forms.Form):
+    def __init__(self, *args, authors=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if authors is not None:
+            for i, author in enumerate(authors):
+                if author.isnumeric():  # Assume it's a primary key
+                    person = Person.objects.get(pk=author)
+                    self.fields[f'author_{i}'] = forms.ChoiceField(
+                        label=f"Author {i + 1}: Exact match on primary key",
+                        widget=forms.RadioSelect,
+                        choices=[(person.pk, person.get_full_name() + f" [pk:{person.pk}]")],
+                        disabled=True,
+                    )
+                    self.fields[f'author_{i}'].initial = self.fields[f'author_{i}'].choices[0][0]
+                else:  # Assume it's a name
+                    self.fields[f'author_{i}'] = forms.ChoiceField(
+                        label=f"Author {i + 1}: Select matching person or create new",
+                        choices=self.get_person_choices(author),
+                        widget=forms.RadioSelect,
+                        required=True,
+                    )
+                    # Add a "Create New" option
+                    self.fields[f'author_{i}'].choices.insert(0, ('create_new', f'{author} (Create new Person)'))
+                    # Set first option as selected
+                    self.fields[f'author_{i}'].initial = self.fields[f'author_{i}'].choices[0][0]
+
+    def get_person_choices(self, name):
+        # Search for matching `Person` instances
+        parts = name.split()  # Split name into parts (first and last)
+        matches = Person.objects.filter(
+            first__icontains=parts[0],
+            last__icontains=parts[-1] if len(parts) > 1 else ''
+        )
+        return [(person.pk, person.get_full_name() + f" [pk:{person.pk}]") for person in matches]
+
+    def get_selected_authors(self):
+        selected_authors = []
+        for key, value in self.cleaned_data.items():
+            if key.startswith("author_"):
+                selected_authors.append(value)
+        return selected_authors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
