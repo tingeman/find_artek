@@ -150,9 +150,11 @@ class Person(BaseModel):
 
         if pers.first():
             initial = pybtex_utils.bibtex_first_letter(pers.first()[0])
-            self.first_relaxed = utils.dk_unidecode(initial.decode('latex')).lower()
+            #self.first_relaxed = utils.dk_unidecode(initial.decode('latex')).lower()
+            self.first_relaxed = utils.dk_unidecode(initial).lower()
         if pers.last():
-            self.last_relaxed = utils.dk_unidecode(u' '.join(pers.last()).decode('latex')).lower()
+            #self.last_relaxed = utils.dk_unidecode(u' '.join(pers.last()).decode('latex')).lower()
+            self.last_relaxed = utils.dk_unidecode(u' '.join(pers.last())).lower()
 
         if commit:
             self.save()

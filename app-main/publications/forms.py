@@ -2,6 +2,8 @@ from django import forms
 from django.forms import ModelForm
 from django.contrib.admin.widgets import AdminFileWidget
 from django_select2 import forms as s2forms
+from django.core.exceptions import ValidationError
+from django.db.models import QuerySet
 from publications.models import Publication, Person, Feature, Topic, Keyword
 from django.urls import reverse
 import datetime
@@ -162,11 +164,15 @@ class AddReportForm(ModelForm):
                 print('AddReportForm:clean_authors:No authors')
                 return Person.objects.none()
 
-            for author in parsed_authors:
-                print(f'AddReportForm:clean_authors:author: {author}')
+            print(f'AddReportForm:clean_authors:parsed_authors: {parsed_authors}')
+
+            # check if parsed_authors is a string or an integer
+            if isinstance(parsed_authors, (int, str)):
+                print('AddReportForm:clean_authors:parsed_authors is a string or an integer')
+                parsed_authors = [parsed_authors]   # Convert to list
 
             # if all entries are numeric, assume they are primary keys
-            if all([c.isnumeric() for c in parsed_authors]):
+            if all([str(c).isnumeric() for c in parsed_authors]):
                 print('AddReportForm:clean_authors:All numeric')
                 author_pks = [int(pk) for pk in parsed_authors]
                 authors = Person.objects.filter(pk__in=author_pks)
@@ -192,11 +198,15 @@ class AddReportForm(ModelForm):
                 print('AddReportForm:clean_supervisors:No supervisors')
                 return Person.objects.none()
 
-            for supervisor in parsed_supervisors:
-                print(f'AddReportForm:clean_supervisors:supervisor: {supervisor}')
+            print(f'AddReportForm:clean_supervisors:parsed_supervisors: {parsed_supervisors}')
+
+            # check if parsed_supervisors is a string or an integer
+            if isinstance(parsed_supervisors, (int, str)):
+                print('AddReportForm:clean_supervisors:parsed_supervisors is a string or an integer')
+                parsed_supervisors = [parsed_supervisors]   # Convert to list
 
             # if all entries are numeric, assume they are primary keys
-            if all([c.isnumeric() for c in parsed_supervisors]):
+            if all([str(c).isnumeric() for c in parsed_supervisors]):
                 print('AddReportForm:clean_supervisors:All numeric')
                 supervisor_pks = [int(pk) for pk in parsed_supervisors]
                 supervisors = Person.objects.filter(pk__in=supervisor_pks)
@@ -219,12 +229,33 @@ class AddReportForm(ModelForm):
         last_name = parts[-1] if len(parts) > 1 else None
         return first_name, middle_name, last_name
     
+    def is_valid(self):
+        print('In AddReportForm:is_valid')
+        return super().is_valid()
+    
     # def save(self, full_name):
     #     # instance = super().save(commit=False)
     #     # instance.save()
     #     # self.cleaned_data['authors'] = instance.authors.set(self.cleaned_data['authors'])
     #     # return instance
     #     pass
+
+
+class AddReportFinalSaveForm(AddReportForm):
+    def clean_authors(self):
+        result = super().clean_authors()
+        if not isinstance(result, QuerySet):
+            raise ValidationError("Authors must be a QuerySet instance")
+        return result
+    
+    def clean_supervisors(self):
+        result = super().clean_supervisors()
+        if not isinstance(result, QuerySet):
+            raise ValidationError("Supervisors must be a QuerySet instance")
+        return result
+    
+
+
 
 
 
@@ -313,7 +344,7 @@ class PersonSelectForm(forms.Form):
         if persons is not None:
             # Add a headline in the form, it should be pure text and not a field
             for i, person in enumerate(persons):
-                if person.isnumeric():  # Assume it's a primary key
+                if str(person).isnumeric():  # Assume it's a primary key, this formulation works with both int and str
                     person = Person.objects.get(pk=person)
                     self.fields[f'{self.person_type}_{i}'] = forms.ChoiceField(
                         label=f"{self.person_type.capitalize()} {i + 1}: Exact match on primary key",

@@ -17,6 +17,7 @@ urlpatterns = [
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
     path('add/report/', views.AddReportView.as_view(), name='add_report'),
+    path('add/report/finalize/', views.AddReportFinalSaveView.as_view(), name='publication_final_save'),
     #path('edit/report/<int:pk>/', views.EditReportView.as_view(), name='edit_report'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
     #path("select/authors/", views.AuthorSelectView.as_view(), name="select-authors"),
