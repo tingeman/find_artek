@@ -5,6 +5,7 @@ from django_select2 import forms as s2forms
 from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
 from publications.models import Publication, Person, Feature, Topic, Keyword
+from publications.utils import create_ordered_queryset
 from django.urls import reverse
 import datetime
 import ast
@@ -49,6 +50,9 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
 class AddReportForm(ModelForm):
     """A Form handling the adding or editing of reports
     """
+    
+    # Class variable for file size limit (in MB)
+    MAX_FILE_SIZE_MB = 300
 
     year = forms.IntegerField(
         initial=datetime.datetime.now().year,
@@ -118,6 +122,16 @@ class AddReportForm(ModelForm):
     #     #help_text='Select file to upload',
     #     widget=AdminFileWidget
     # )
+    
+    pdffile = forms.FileField(
+        required=False,
+        help_text='Upload PDF file for this report',  # Will be updated in __init__
+        widget=forms.FileInput(attrs={
+            'accept': '.pdf',
+            'class': 'file-upload-input',
+            'id': 'pdf-upload'
+        })
+    )
 
     date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
@@ -130,14 +144,17 @@ class AddReportForm(ModelForm):
         model = Publication
         # Only show the following fields
         fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'topics', 'keywords', 'date']
-        exclude = ['pdffile']
+                  'authors', 'supervisors', 'topics', 'keywords', 'date', 'pdffile']
+        exclude = []
 
 
     def __init__(self, *args, **kwargs):
         print('In AddReportForm:__init__')
         instance = kwargs.get('instance')
         super().__init__(*args, **kwargs)
+
+        # Set dynamic help text using class variable
+        self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {self.MAX_FILE_SIZE_MB}MB)'
 
         if instance:
             print(f'AddReportForm:__init__:instance: {instance}')
@@ -175,8 +192,8 @@ class AddReportForm(ModelForm):
             if all([str(c).isnumeric() for c in parsed_authors]):
                 print('AddReportForm:clean_authors:All numeric')
                 author_pks = [int(pk) for pk in parsed_authors]
-                authors = Person.objects.filter(pk__in=author_pks)
-                return authors
+                # Create an ordered QuerySet to preserve the original logic
+                return create_ordered_queryset(Person, author_pks)
             else:
                 print('AddReportForm:clean_authors:Not all numeric')
                 return parsed_authors
@@ -209,8 +226,8 @@ class AddReportForm(ModelForm):
             if all([str(c).isnumeric() for c in parsed_supervisors]):
                 print('AddReportForm:clean_supervisors:All numeric')
                 supervisor_pks = [int(pk) for pk in parsed_supervisors]
-                supervisors = Person.objects.filter(pk__in=supervisor_pks)
-                return supervisors
+                # Create an ordered QuerySet to preserve the original logic
+                return create_ordered_queryset(Person, supervisor_pks)
             else:
                 print('AddReportForm:clean_supervisors:Not all numeric')
                 return parsed_supervisors
@@ -233,6 +250,22 @@ class AddReportForm(ModelForm):
         print('In AddReportForm:is_valid')
         return super().is_valid()
     
+    def clean_pdffile(self):
+        """Validate the uploaded PDF file"""
+        uploaded_file = self.cleaned_data.get('pdffile')
+        
+        if uploaded_file:
+            # Check file type
+            if not uploaded_file.name.lower().endswith('.pdf'):
+                raise ValidationError('Only PDF files are allowed.')
+            
+            # Check file size using class variable
+            max_size = self.MAX_FILE_SIZE_MB * 1024 * 1024  # Convert MB to bytes
+            if uploaded_file.size > max_size:
+                raise ValidationError(f'File size cannot exceed {self.MAX_FILE_SIZE_MB}MB.')
+        
+        return uploaded_file
+    
     # def save(self, full_name):
     #     # instance = super().save(commit=False)
     #     # instance.save()
@@ -247,7 +280,7 @@ class AddReportFinalSaveForm(AddReportForm):
         if not isinstance(result, QuerySet):
             raise ValidationError("Authors must be a QuerySet instance")
         return result
-    
+
     def clean_supervisors(self):
         result = super().clean_supervisors()
         if not isinstance(result, QuerySet):

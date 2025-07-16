@@ -21,7 +21,7 @@ from django.shortcuts import get_object_or_404
 from django_select2.views import AutoResponseView
 
 from find_artek.search import get_query
-from publications.utils import CaseInsensitively
+from publications.utils import CaseInsensitively, create_ordered_queryset, handle_publication_file_upload
 from publications.library import get_client_ip, is_private
 from publications.forms import (LoginForm, AddReportForm, AddReportFinalSaveForm, 
                                 PublicationForm, AuthorSelectForm, SupervisorSelectForm)
@@ -381,8 +381,34 @@ class AddReportView(BaseFormView):
         # Otherwise, save publication normally
         self.object = form.save(commit=False)
         self.object.save()
-        self.object.authors.set(authors)
-        self.object.supervisors.set(supervisors)
+        
+        # Handle file upload if present
+        uploaded_file = form.cleaned_data.get('pdffile')
+        if uploaded_file:
+            file_obj = handle_publication_file_upload(self.object, uploaded_file)
+            self.object.file = file_obj
+            self.object.save()
+        
+        # Handle authors - preserve order using author_id
+        self.object.authorship_set.all().delete()
+        for i, author in enumerate(authors):
+            from publications.models import Authorship
+            Authorship.objects.create(
+                publication=self.object, 
+                person=author, 
+                author_id=i
+            )
+            
+        # Handle supervisors - preserve order using supervisor_id
+        self.object.supervisorship_set.all().delete()  
+        for i, supervisor in enumerate(supervisors):
+            from publications.models import Supervisorship
+            Supervisorship.objects.create(
+                publication=self.object, 
+                person=supervisor, 
+                supervisor_id=i
+            )
+            
         return super().form_valid(form)    
            
     def get_success_url(self):
@@ -661,9 +687,37 @@ class AddReportFinalSaveView(BaseFormView):
         self.object = form.save(commit=False)
         self.object.save()
         print(f"AddReportFinalSaveView:form_valid: authors: {authors}")
-        self.object.authors.set(authors)
+        
+        # Handle file upload if present
+        uploaded_file = form.cleaned_data.get('pdffile')
+        if uploaded_file:
+            file_obj = handle_publication_file_upload(self.object, uploaded_file)
+            self.object.file = file_obj
+            self.object.save()
+            print(f"AddReportFinalSaveView:form_valid: PDF file uploaded and saved")
+        
+        # Handle authors - preserve order using author_id
+        self.object.authorship_set.all().delete()
+        for i, author in enumerate(authors):
+            from publications.models import Authorship
+            Authorship.objects.create(
+                publication=self.object, 
+                person=author, 
+                author_id=i
+            )
+            
         print(f"AddReportFinalSaveView:form_valid: supervisors: {supervisors}")
-        self.object.supervisors.set(supervisors)
+        
+        # Handle supervisors - preserve order using supervisor_id
+        self.object.supervisorship_set.all().delete()  
+        for i, supervisor in enumerate(supervisors):
+            from publications.models import Supervisorship
+            Supervisorship.objects.create(
+                publication=self.object, 
+                person=supervisor, 
+                supervisor_id=i
+            )
+            
         print(f"AddReportFinalSaveView:form_valid: publication saved")
         return super().form_valid(form)    
            

@@ -14,6 +14,8 @@ New report
 {% block dynamic_head_content %}
     <!-- Removed all the custom javascript from OLD find_artek template; THIN 2024-12-15 -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'publications/css/file-upload.css' %}" />
+    <script src="{% static 'publications/js/file-upload.js' %}" defer></script>
     {{ form.media }}
 {% endblock %}
 

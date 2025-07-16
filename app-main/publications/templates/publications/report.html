@@ -102,7 +102,11 @@
     
         <div class="row">
             <span class="property">pdf-file</span>
-            <span class="value pdf-file"><a href="{{MEDIA_URL}}reports/{{publication.year}}/{{publication.number}}.pdf" target="_blank">download report as pdf (21.0 Mb)</a></span>
+            {% if publication.file %}
+                <span class="value pdf-file"><a href="{{ publication.file.file.url }}" target="_blank">download report as pdf ({{ publication.file.filesize }})</a></span>
+            {% else %}
+                <span class="value">No PDF file available</span>
+            {% endif %}
         </div>
     
         <div class="row">
@@ -128,8 +132,16 @@
 
         <div class="row">
             <span class="property">Abstract</span>
-            <span class="visible" id="abstract-collapsed">{{publication.abstract | slice:":280"}}.... <p id="abstract-expand-btn" class="abstract-btn" >[Expand]</p></span>
-            <span class="hidden" id="abstract-expanded">{{publication.abstract}} <p id="abstract-collapse-btn" class="abstract-btn" >[Collapse]</p></span>
+            {% if publication.abstract %}
+                {% if publication.abstract|length > 280 %}
+                    <span class="visible" id="abstract-collapsed">{{publication.abstract | slice:":280"}}.... <p id="abstract-expand-btn" class="abstract-btn" >[Expand]</p></span>
+                    <span class="hidden" id="abstract-expanded">{{publication.abstract}} <p id="abstract-collapse-btn" class="abstract-btn" >[Collapse]</p></span>
+                {% else %}
+                    <span class="value">{{publication.abstract}}</span>
+                {% endif %}
+            {% else %}
+                <span class="value">No abstract available</span>
+            {% endif %}
         </div>
     </div>
 
