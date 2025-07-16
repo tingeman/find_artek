@@ -1,7 +1,7 @@
 {
     // make colortheme light
     // "workbench.colorTheme": "Tokyo Night",
-    "workbench.colorTheme": "Red",
+    "workbench.colorTheme": "Visual Studio Light",
     // hide .git folder
     "files.exclude": {
         "**/.git": true
