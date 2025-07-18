@@ -5,7 +5,7 @@
 {% load i18n static %}
 
 {% block title %}
-{% if pub %}
+{% if publication %}
 Edit report
 {% else %}
 New report
@@ -20,7 +20,7 @@ New report
 {% endblock %}
 
 {% block headline %}
-{% if pub %}
+{% if publication %}
 Edit report
 {% else %}
 Register new report
@@ -29,7 +29,7 @@ Register new report
 
 {% block main-content %}
 
-{% if pub %}
+{% if publication %}
 <table class="report-block" style="background-color: #F0F0F0; max-width: 600px; display:block; padding: 5px; border-style: solid; border-width: 1px 1px 1px 1px; border-color: grey;">
     <tr>{% include "publications/reports_snippets/report_td.html" %}</tr>
 </table>

@@ -320,7 +320,7 @@ class AddEditReportView(BaseFormView):
         context['action'] = 'edit' if self.is_edit_mode() else 'add'
         
         if self.is_edit_mode():
-            context['pub'] = self.get_object()
+            context['publication'] = self.get_object()
         
         # Handle returning from person selection
         if self.request.GET.get('action') == 'edit_continue':
