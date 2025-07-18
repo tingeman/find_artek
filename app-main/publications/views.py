@@ -369,18 +369,21 @@ class AddEditReportView(BaseFormView):
             'comment': publication.comment,
         }
         
-        # Prepare authors as string list for select2 widget
-        authors = publication.authorship_set.all().order_by('author_id')
-        if authors:
-            author_list = [str(auth.person.pk) for auth in authors]
-            initial_data['authors'] = str(author_list)
-        
-        # Prepare supervisors as string list for select2 widget  
-        supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
-        if supervisors:
-            supervisor_list = [str(sup.person.pk) for sup in supervisors]
-            initial_data['supervisors'] = str(supervisor_list)
+        # Prepare authors and supervisors
+        if publication.authorship_set.exists():
+            authors = publication.authorship_set.all().order_by('author_id')
+            author_pks = [auth.person.pk for auth in authors]  # Use integers, not strings
+            # For HeavySelect2TagWidget, set as list of PKs (not string representation)
+            initial_data['authors'] = author_pks
+            print(f'AddEditReportView:_get_edit_initial - Set initial authors as list: {author_pks}')
             
+        if publication.supervisorship_set.exists():
+            supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
+            supervisor_pks = [sup.person.pk for sup in supervisors]  # Use integers, not strings
+            # For HeavySelect2TagWidget, set as list of PKs (not string representation)
+            initial_data['supervisors'] = supervisor_pks
+            print(f'AddEditReportView:_get_edit_initial - Set initial supervisors as list: {supervisor_pks}')
+        
         # Prepare topics and keywords
         initial_data['publication_topics'] = publication.publication_topics.all()
         initial_data['publication_keywords'] = publication.publication_keywords.all()
@@ -421,21 +424,37 @@ class AddEditReportView(BaseFormView):
         # Retrieve session data for authors and supervisors
         session_key = self.get_session_key()
         session_data = self.request.session.get(session_key, {})
-        authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])
+        session_authors = session_data.get('authors', [])
+        session_supervisors = session_data.get('supervisors', [])
         
-        if not self.is_edit_mode() or session_data:
-            # Format authors and supervisors for prepopulation
-            form.fields['authors'].widget.choices = self._get_person_choices(authors)
-            form.fields['supervisors'].widget.choices = self._get_person_choices(supervisors)
+        # Configure widget choices based on mode and data availability
+        if session_data:
+            # Coming back from person selection - use session data
+            form.fields['authors'].widget.choices = self._get_person_choices(session_authors)
+            form.fields['supervisors'].widget.choices = self._get_person_choices(session_supervisors)
+            print(f"AddEditReportView:_get_regular_form - Using session data: {len(session_authors)} authors, {len(session_supervisors)} supervisors")
         elif self.is_edit_mode():
-            # Get current authors and supervisors from publication
+            # Edit mode - get current authors and supervisors from publication
             publication = self.get_object()
             if publication:
-                authors = [str(auth.person.pk) for auth in publication.authorship_set.all().order_by('author_id')]
-                supervisors = [str(sup.person.pk) for sup in publication.supervisorship_set.all().order_by('supervisor_id')]
-                form.fields['authors'].widget.choices = self._get_person_choices(authors)
-                form.fields['supervisors'].widget.choices = self._get_person_choices(supervisors)
+                # Get current authors and supervisors
+                current_authors = publication.authorship_set.all().order_by('author_id')
+                current_supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
+                
+                # Convert to choices for widget
+                author_choices = [(str(auth.person.pk), str(auth.person)) for auth in current_authors]
+                supervisor_choices = [(str(sup.person.pk), str(sup.person)) for sup in current_supervisors]
+                
+                # Set widget choices to enable display of current values
+                form.fields['authors'].widget.choices = author_choices
+                form.fields['supervisors'].widget.choices = supervisor_choices
+                
+                print(f"AddEditReportView:_get_regular_form - Edit mode: Setting widget choices for {len(author_choices)} authors, {len(supervisor_choices)} supervisors")
+        else:
+            # Add mode - start with empty choices
+            form.fields['authors'].widget.choices = []
+            form.fields['supervisors'].widget.choices = []
+            print("AddEditReportView:_get_regular_form - Add mode: Empty widget choices")
         
         return form
 
@@ -501,7 +520,13 @@ class AddEditReportView(BaseFormView):
         form = self.get_form()
         
         if hasattr(form, 'is_valid') and form.is_valid():
-            return self.form_valid(form)
+            # Process the form and get the result
+            result = self.form_valid(form)
+            # If form_valid returns a redirect response, return it
+            if hasattr(result, 'status_code') and result.status_code in [301, 302]:
+                return result
+            # Otherwise, redirect to success URL manually
+            return redirect(self.get_success_url())
         else:
             # Redirect back with error
             if self.is_edit_mode():
@@ -546,7 +571,9 @@ class AddEditReportView(BaseFormView):
             if self.is_edit_mode():
                 self.request.session.pop('edit_report_publication_id', None)
 
-        return super().form_valid(form)
+        # Always return a redirect to the success URL
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(self.get_success_url())
 
     def _handle_person_selection_redirect(self, form):
         """Handle redirect to person selection"""

@@ -19,21 +19,71 @@ class LoginForm(forms.Form):
 
 class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
 
-    def __init__(self, *args, initial_data=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
-        Extend the widget to accept initial_data during initialization.
+        Initialize the widget with proper django-select2 patterns.
+        Remove the unused initial_data parameter since Django handles initial values.
         """
-        print(f"PersonHeavySelect2TagWidget:__init__: {initial_data}")
-        self.initial_data = initial_data or []
         super().__init__(*args, **kwargs)
+
+    def format_value(self, value):
+        """
+        Convert the initial value (list of PKs) to the format expected by Select2.
+        This is crucial for preselection to work properly.
+        """
+        print(f"PersonHeavySelect2TagWidget:format_value: {value}")
+        
+        if value is None or value == '':
+            return None
+            
+        # Handle different input formats
+        if isinstance(value, (list, tuple)):
+            # List of PKs - convert to Person objects for display
+            pks = [int(pk) for pk in value if str(pk).isdigit()]
+            if pks:
+                from publications.models import Person
+                persons = Person.objects.filter(pk__in=pks)
+                # Return list of PKs as strings (Select2 expects string values)
+                return [str(person.pk) for person in persons]
+        elif isinstance(value, str) and value:
+            try:
+                # Try to parse as list representation
+                parsed_value = ast.literal_eval(value)
+                if isinstance(parsed_value, (list, tuple)):
+                    return self.format_value(parsed_value)
+                else:
+                    return [str(value)]
+            except (ValueError, SyntaxError):
+                # Single value
+                return [str(value)]
+        elif hasattr(value, '__iter__'):
+            # QuerySet or other iterable
+            return [str(item.pk if hasattr(item, 'pk') else item) for item in value]
+        else:
+            # Single value
+            return [str(value)]
+            
+        return None
+
+    def value_from_datadict(self, data, files, name):
+        """
+        Extract and format the value from form submission data.
+        """
+        value = super().value_from_datadict(data, files, name)
+        print(f"PersonHeavySelect2TagWidget:value_from_datadict: {value}")
+        return value
 
     def get_context(self, name, value, attrs):
         """Get the context for rendering the widget.
-        This method is overridden to ensure that the entire contents of the Person table is not
-        rendered as options in the select2 widget. The 'optgroups' key is set to an empty list.
+        Ensure that preselected values are properly included in the context.
         """
         context = super().get_context(name, value, attrs)
-        #context['widget']['optgroups'] = []
+        
+        # Don't clear optgroups - they're needed for preselection display
+        # The commented line was interfering with preselection:
+        # context['widget']['optgroups'] = []
+        
+        print(f"PersonHeavySelect2TagWidget:get_context: name={name}, value={value}")
         return context
 
     def value_new(self, value):
@@ -188,37 +238,47 @@ class AddEditReportForm(ModelForm):
                 
                 print('AddEditReportForm:__init__:EDIT MODE - No existing file, hiding delete_pdf field')
             
-            # Restrict the queryset to authors already associated with this publication
-            self.fields['authors'].widget.queryset = instance.authors.all()
-            self.fields['supervisors'].widget.queryset = instance.supervisors.all()
+            # Configure authors and supervisors for edit mode
+            # Note: Initial data for authors/supervisors is now set in the view's _get_edit_initial method
+            # to be consistent with how topics and keywords are handled
         else:
             # ADD MODE: Configure form for adding new publication
             print('AddEditReportForm:__init__:ADD MODE - No instance')
             
             # Hide the delete_pdf field in add mode since there's no existing file
             self.fields['delete_pdf'].widget = forms.HiddenInput()
-            
-            # For a new publication, no authors are pre-selected
-            self.fields['authors'].widget.queryset = Person.objects.none()
-            self.fields['supervisors'].widget.queryset = Person.objects.none()
 
         print(f'AddEditReportForm:__init__: delete_pdf field after configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
 
     def clean_authors(self):
         print(f"AddEditReportForm:clean_authors: {self.cleaned_data['authors']}")
-        authors_data = self.cleaned_data['authors']  # This will be a comma-separated list of author primary keys or author names
+        authors_data = self.cleaned_data['authors']  # Can be list of PKs or string representation
 
         if authors_data:
-            # author_data is a string of the type "['1001', '996', 'Anders And']"
-            # Parse the string into a list of strings
-            parsed_authors = ast.literal_eval(authors_data)
+            # Handle different input formats for HeavySelect2TagWidget compatibility
+            if isinstance(authors_data, list):
+                # Direct list format (from widget prepopulation)
+                parsed_authors = [str(pk) for pk in authors_data]  # Convert to strings for consistency
+                print(f'AddEditReportForm:clean_authors:List format: {parsed_authors}')
+            elif isinstance(authors_data, str):
+                try:
+                    # Try to parse as list representation: "['1001', '996', 'Anders And']"
+                    parsed_authors = ast.literal_eval(authors_data)
+                    print(f'AddEditReportForm:clean_authors:Parsed string format: {parsed_authors}')
+                except (ValueError, SyntaxError):
+                    # If parsing fails, treat as single value
+                    parsed_authors = [authors_data]
+                    print(f'AddEditReportForm:clean_authors:Single value: {parsed_authors}')
+            else:
+                parsed_authors = [str(authors_data)]
+                print(f'AddEditReportForm:clean_authors:Other format: {parsed_authors}')
             
             # If the authors field is empty, return an empty list
             if not parsed_authors:
                 print('AddEditReportForm:clean_authors:No authors')
                 return Person.objects.none()
 
-            print(f'AddEditReportForm:clean_authors:parsed_authors: {parsed_authors}')
+            print(f'AddEditReportForm:clean_authors:Final parsed_authors: {parsed_authors}')
 
             # check if parsed_authors is a string or an integer
             if isinstance(parsed_authors, (int, str)):
@@ -240,19 +300,33 @@ class AddEditReportForm(ModelForm):
 
     def clean_supervisors(self):
         print(f"AddEditReportForm:clean_supervisors: {self.cleaned_data['supervisors']}")
-        supervisors_data = self.cleaned_data['supervisors']  # This will be a comma-separated list of supervisor primary keys or supervisor names
+        supervisors_data = self.cleaned_data['supervisors']  # Can be list of PKs or string representation
 
         if supervisors_data:
-            # supervisor_data is a string of the type "['1001', '996', 'Anders And']"
-            # Parse the string into a list of strings
-            parsed_supervisors = ast.literal_eval(supervisors_data)
+            # Handle different input formats for HeavySelect2TagWidget compatibility
+            if isinstance(supervisors_data, list):
+                # Direct list format (from widget prepopulation)
+                parsed_supervisors = [str(pk) for pk in supervisors_data]  # Convert to strings for consistency
+                print(f'AddEditReportForm:clean_supervisors:List format: {parsed_supervisors}')
+            elif isinstance(supervisors_data, str):
+                try:
+                    # Try to parse as list representation: "['1001', '996', 'Anders And']"
+                    parsed_supervisors = ast.literal_eval(supervisors_data)
+                    print(f'AddEditReportForm:clean_supervisors:Parsed string format: {parsed_supervisors}')
+                except (ValueError, SyntaxError):
+                    # If parsing fails, treat as single value
+                    parsed_supervisors = [supervisors_data]
+                    print(f'AddEditReportForm:clean_supervisors:Single value: {parsed_supervisors}')
+            else:
+                parsed_supervisors = [str(supervisors_data)]
+                print(f'AddEditReportForm:clean_supervisors:Other format: {parsed_supervisors}')
             
             # If the supervisors field is empty, return an empty list
             if not parsed_supervisors:
                 print('AddEditReportForm:clean_supervisors:No supervisors')
                 return Person.objects.none()
 
-            print(f'AddEditReportForm:clean_supervisors:parsed_supervisors: {parsed_supervisors}')
+            print(f'AddEditReportForm:clean_supervisors:Final parsed_supervisors: {parsed_supervisors}')
 
             # check if parsed_supervisors is a string or an integer
             if isinstance(parsed_supervisors, (int, str)):
