@@ -397,6 +397,16 @@ class AddEditReportView(BaseFormView):
                 normalized_data[key] = value
         return normalized_data
 
+    def get_form_kwargs(self):
+        """Return the keyword arguments for instantiating the form"""
+        kwargs = super().get_form_kwargs()
+        
+        # For edit mode, always pass the instance
+        if self.is_edit_mode():
+            kwargs['instance'] = self.get_object()
+            
+        return kwargs
+
     def get_form(self):
         """Get form instance with proper setup"""
         if self.is_final_save():
@@ -462,9 +472,9 @@ class AddEditReportView(BaseFormView):
         if self.is_final_save():
             return self._handle_final_save_get(request)
         else:
-            return self._handle_regular_get(request)
+            return self._handle_regular_get(request, *args, **kwargs)
 
-    def _handle_regular_get(self, request):
+    def _handle_regular_get(self, request, *args, **kwargs):
         """Handle regular GET requests"""
         action = request.GET.get('action', 'new' if not self.is_edit_mode() else 'edit')
         
