@@ -272,150 +272,337 @@ class ReportView(BaseDetailView):
 
 
 @method_decorator(login_required, name='dispatch')
-class AddReportView(BaseFormView):
+class AddEditReportView(BaseFormView):
+    """Unified view for both adding and editing reports"""
     model = Publication
-    form_class = AddReportForm    # PublicationForm
     template_name = 'publications/add_edit_report.html'
     select_persons_url = 'select-persons'
 
-    def __init__(self, *args, **kwargs):
-        print('In AddReportView:__init__')
-        super().__init__(*args, **kwargs)
+    def get_form_class(self):
+        """Return appropriate form class based on operation mode"""
+        if self.is_edit_mode():
+            return EditReportForm if not self.is_final_save() else EditReportFinalSaveForm
+        else:
+            return AddReportForm if not self.is_final_save() else AddReportFinalSaveForm
+
+    def is_edit_mode(self):
+        """Check if we're in edit mode (has pk in URL)"""
+        return 'pk' in self.kwargs
+
+    def is_final_save(self):
+        """Check if this is a final save after person selection"""
+        action = self.request.GET.get('action', '')
+        return action in ['add_final', 'edit_final']
+
+    def get_object(self):
+        """Get the publication to edit, or None for add mode"""
+        if self.is_edit_mode():
+            if hasattr(self, '_object_cache'):
+                return self._object_cache
+            
+            # For final save, get from session
+            if self.is_final_save():
+                publication_id = self.request.session.get('edit_report_publication_id')
+                if publication_id:
+                    self._object_cache = get_object_or_404(Publication, pk=publication_id)
+                    return self._object_cache
+            else:
+                # For regular edit, get from URL
+                self._object_cache = get_object_or_404(Publication, pk=self.kwargs['pk'])
+                return self._object_cache
+        return None
+
+    def get_session_key(self):
+        """Get appropriate session key based on mode"""
+        return 'edit_report_form_data' if self.is_edit_mode() else 'add_report_form_data'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['action'] = self.request.GET.get('action', 'new')
-        # if self.object:
-        #     context['associated_features'] = self.object.feature_set.all()
+        context['action'] = 'edit' if self.is_edit_mode() else 'add'
+        
+        if self.is_edit_mode():
+            context['pub'] = self.get_object()
+        
+        # Handle returning from person selection
+        if self.request.GET.get('action') == 'edit_continue':
+            context['action'] = 'edit'
+        elif self.request.GET.get('action') == 'new':
+            context['action'] = 'add'
+            
         return context
 
     def get_initial(self):
-        # Check the 'action' query parameter
-        action = self.request.GET.get('action', 'new')  # Default to new form, if no action is given
-
-        if action == 'edit':
-            # Prefill the form with existing session data
-            session_data = self.request.session.get('add_report_form_data', {})
-            
-            # Normalize session data for form initialization
-            normalized_data = {}
-            for key, value in session_data.items():
-                if isinstance(value, list) and len(value) == 1:
-                    # Convert single-item lists to a string
-                    normalized_data[key] = value[0]
-                else:
-                    # Keep multi-value fields as lists
-                    normalized_data[key] = value
-
-            print(f"AddReportView:get_initial: normalized data: {normalized_data}")
-            return normalized_data
+        """Get initial form data based on mode and state"""
+        if self.is_edit_mode():
+            return self._get_edit_initial()
         else:
-            # Default to an empty form if action is unrecognized
+            return self._get_add_initial()
+
+    def _get_add_initial(self):
+        """Get initial data for Add mode"""
+        action = self.request.GET.get('action', 'new')
+        
+        if action == 'edit':  # Returning from person selection
+            session_data = self.request.session.get('add_report_form_data', {})
+            return self._normalize_session_data(session_data)
+        
+        return {}
+
+    def _get_edit_initial(self):
+        """Get initial data for Edit mode"""
+        action = self.request.GET.get('action', 'edit')
+        
+        if action == 'edit_continue':  # Returning from person selection
+            session_data = self.request.session.get('edit_report_form_data', {})
+            return self._normalize_session_data(session_data)
+        
+        # Build initial data from the publication
+        publication = self.get_object()
+        if not publication:
             return {}
+            
+        initial_data = {
+            'type': publication.type,
+            'title': publication.title,
+            'number': publication.number,
+            'year': publication.year,
+            'abstract': publication.abstract,
+            'comment': publication.comment,
+        }
+        
+        # Prepare authors as string list for select2 widget
+        authors = publication.authorship_set.all().order_by('author_id')
+        if authors:
+            author_list = [str(auth.person.pk) for auth in authors]
+            initial_data['authors'] = str(author_list)
+        
+        # Prepare supervisors as string list for select2 widget  
+        supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
+        if supervisors:
+            supervisor_list = [str(sup.person.pk) for sup in supervisors]
+            initial_data['supervisors'] = str(supervisor_list)
+            
+        # Prepare topics and keywords
+        initial_data['publication_topics'] = publication.publication_topics.all()
+        initial_data['publication_keywords'] = publication.publication_keywords.all()
+        
+        return initial_data
+
+    def _normalize_session_data(self, session_data):
+        """Normalize session data for form initialization"""
+        normalized_data = {}
+        for key, value in session_data.items():
+            if isinstance(value, list) and len(value) == 1:
+                normalized_data[key] = value[0]
+            else:
+                normalized_data[key] = value
+        return normalized_data
 
     def get_form(self):
-        # Get the form instance
+        """Get form instance with proper setup"""
+        if self.is_final_save():
+            return self._get_final_save_form()
+        else:
+            return self._get_regular_form()
+
+    def _get_regular_form(self):
+        """Get form for regular Add/Edit operations"""
         form = super().get_form()
-
+        
         # Retrieve session data for authors and supervisors
-        session_data = self.request.session.get('add_report_form_data', {})
+        session_key = self.get_session_key()
+        session_data = self.request.session.get(session_key, {})
         authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])   
-      
-        # Format authors for prepopulation
-        choices = self.get_person_choices(authors)
-        print(f"AddReportView:get_form: author choices: {choices}")
-        form.fields['authors'].widget.choices = choices
-
-        # Format supervisors for prepopulation
-        choices = self.get_person_choices(supervisors)
-        print(f"AddReportView:get_form: supervisor choices: {choices}")
-        form.fields['supervisors'].widget.choices = choices
-
+        supervisors = session_data.get('supervisors', [])
+        
+        if not self.is_edit_mode() or session_data:
+            # Format authors and supervisors for prepopulation
+            form.fields['authors'].widget.choices = self._get_person_choices(authors)
+            form.fields['supervisors'].widget.choices = self._get_person_choices(supervisors)
+        elif self.is_edit_mode():
+            # Get current authors and supervisors from publication
+            publication = self.get_object()
+            if publication:
+                authors = [str(auth.person.pk) for auth in publication.authorship_set.all().order_by('author_id')]
+                supervisors = [str(sup.person.pk) for sup in publication.supervisorship_set.all().order_by('supervisor_id')]
+                form.fields['authors'].widget.choices = self._get_person_choices(authors)
+                form.fields['supervisors'].widget.choices = self._get_person_choices(supervisors)
+        
         return form
 
-    def get_person_choices(self, persons=[]):
+    def _get_final_save_form(self):
+        """Get form for final save operations"""
+        # Pretend this is a POST request with session data
+        self.request.method = 'POST'
+        session_key = self.get_session_key()
+        normalized_data = self._normalize_session_data(self.request.session.get(session_key, {}))
+        self.request.POST = normalized_data
+        
+        # Get form with proper instance for edit mode
+        form_kwargs = self.get_form_kwargs()
+        if self.is_edit_mode():
+            form_kwargs['instance'] = self.get_object()
+            
+        form_class = self.get_form_class()
+        return form_class(**form_kwargs)
+
+    def _get_person_choices(self, person_data=[]):
+        """Convert person data to choices for select2 widget"""
         choices = []
-        for person in persons:
-            if isinstance(person, int) or (isinstance(person, str) and person.isnumeric()):  # Existing person (ID)
-                # Fetch the name from the database
-                person = Person.objects.filter(pk=int(person)).first()
-                if person:
-                    choices.append((person.pk, str(person)))
-            elif isinstance(person, str):  # New person (name)
+        for person in person_data:
+            if isinstance(person, int) or (isinstance(person, str) and person.isnumeric()):
+                person_obj = Person.objects.filter(pk=int(person)).first()
+                if person_obj:
+                    choices.append((person_obj.pk, str(person_obj)))
+            elif isinstance(person, str):  # New person name
                 choices.append((person, person))
         return choices
-    
+
     def get(self, request, *args, **kwargs):
-        action = request.GET.get('action', 'new') # Default to new form, if no action is given
-        if action == 'new':
-            # Clear session data to start fresh
+        """Handle GET requests"""
+        if self.is_final_save():
+            return self._handle_final_save_get(request)
+        else:
+            return self._handle_regular_get(request)
+
+    def _handle_regular_get(self, request):
+        """Handle regular GET requests"""
+        action = request.GET.get('action', 'new' if not self.is_edit_mode() else 'edit')
+        
+        if action == 'new' and not self.is_edit_mode():
+            # Clear session data for new Add operation
             request.session.pop('add_report_form_data', None)
+        elif action == 'edit' and self.is_edit_mode():
+            # Clear session data for new Edit operation
+            request.session.pop('edit_report_form_data', None)
+            
         return super().get(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
-        print(f"AddReportView:post: {request.POST}")
-        return super().post(request, *args, **kwargs)
+    def _handle_final_save_get(self, request):
+        """Handle final save GET requests"""
+        session_key = self.get_session_key()
+        
+        if not request.session.get(session_key, {}):
+            # Redirect if no session data
+            if self.is_edit_mode():
+                return redirect('reports')
+            else:
+                return redirect('add_report')
+        
+        form = self.get_form()
+        
+        if hasattr(form, 'is_valid') and form.is_valid():
+            return self.form_valid(form)
+        else:
+            # Redirect back with error
+            if self.is_edit_mode():
+                publication_id = self.request.session.get('edit_report_publication_id')
+                if publication_id:
+                    return redirect('edit_report', pk=publication_id)
+                return redirect('reports')
+            else:
+                return redirect('add_report')
 
     def form_valid(self, form):
-        print(f"AddReportView:form_valid: Form contains the following data: {form.cleaned_data}")
-
+        """Unified form processing for both Add and Edit"""
+        print(f"AddEditReportView:form_valid: Form contains data: {form.cleaned_data}")
+        
+        # Set user information
         if not form.instance.pk:
             form.instance.created_by = self.request.user
         form.instance.modified_by = self.request.user
 
-        # session_data = self.request.session.get('add_report_form_data', {})
-        # authors = session_data.get('authors', [])
-        # supervisors = session_data.get('supervisors', [])   
         authors = form.cleaned_data['authors']
         supervisors = form.cleaned_data['supervisors']
 
+        # Handle person selection redirect if needed
         if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
-            # the authors or supervisors field is not a queryset, so one of them must contain person names not already in the database
-            # store all the form data in the session and redirect to the author/supervisor selection page
-            raw_data = dict(self.request.POST.lists())
-            self.request.session['add_report_form_data'] = raw_data
-            print(f"AddReportView:form_valid: raw data: {raw_data}")
-            print(f"AddReportView:form_valid: redirecting to {self.select_persons_url}")
-            return redirect(f"{self.select_persons_url}?action=add")
+            return self._handle_person_selection_redirect(form)
 
-        # Otherwise, save publication normally
+        # Save publication
         self.object = form.save(commit=False)
         self.object.save()
+
+        # Handle file operations
+        self._handle_file_operations(form)
+
+        # Handle relationships
+        self._handle_authors_and_supervisors(authors, supervisors)
+        self._handle_topics_and_keywords(form)
+
+        # Clear session data for final save operations
+        if self.is_final_save():
+            session_key = self.get_session_key()
+            self.request.session.pop(session_key, None)
+            if self.is_edit_mode():
+                self.request.session.pop('edit_report_publication_id', None)
+
+        return super().form_valid(form)
+
+    def _handle_person_selection_redirect(self, form):
+        """Handle redirect to person selection"""
+        raw_data = dict(self.request.POST.lists())
+        session_key = self.get_session_key()
+        self.request.session[session_key] = raw_data
         
-        # Handle file upload if present
+        if self.is_edit_mode():
+            obj = self.get_object()
+            if obj:
+                self.request.session['edit_report_publication_id'] = obj.pk
+            
+        action = 'edit' if self.is_edit_mode() else 'add'
+        print(f"AddEditReportView: redirecting to {self.select_persons_url}?action={action}")
+        return redirect(f"{self.select_persons_url}?action={action}")
+
+    def _handle_file_operations(self, form):
+        """Handle PDF file upload/deletion"""
+        delete_pdf = form.cleaned_data.get('delete_pdf', False)
         uploaded_file = form.cleaned_data.get('pdffile')
+        
+        if delete_pdf and self.object.file:
+            if self.object.file.file:
+                self.object.file.file.delete()
+            self.object.file.delete()
+            self.object.file = None
+            
         if uploaded_file:
+            if self.object.file:
+                if self.object.file.file:
+                    self.object.file.file.delete()
+                self.object.file.delete()
+            
             file_obj = handle_publication_file_upload(self.object, uploaded_file)
             self.object.file = file_obj
-            self.object.save()
-        
-        # Handle authors - preserve order using author_id
+            
+        self.object.save()
+
+    def _handle_authors_and_supervisors(self, authors, supervisors):
+        """Handle author and supervisor relationships"""
+        # Authors
         self.object.authorship_set.all().delete()
         for i, author in enumerate(authors):
             from publications.models import Authorship
             Authorship.objects.create(
-                publication=self.object, 
-                person=author, 
+                publication=self.object,
+                person=author,
                 author_id=i
             )
             
-        # Handle supervisors - preserve order using supervisor_id
-        self.object.supervisorship_set.all().delete()  
+        # Supervisors
+        self.object.supervisorship_set.all().delete()
         for i, supervisor in enumerate(supervisors):
             from publications.models import Supervisorship
             Supervisorship.objects.create(
-                publication=self.object, 
-                person=supervisor, 
+                publication=self.object,
+                person=supervisor,
                 supervisor_id=i
             )
-            
-        # Handle topics and keywords
+
+    def _handle_topics_and_keywords(self, form):
+        """Handle topic and keyword relationships"""
         self.object.publication_topics.set(form.cleaned_data.get('publication_topics', []))
         self.object.publication_keywords.set(form.cleaned_data.get('publication_keywords', []))
-            
-        return super().form_valid(form)    
-           
+
     def get_success_url(self):
         return reverse('report', kwargs={'pk': self.object.pk})
 
@@ -573,507 +760,8 @@ class PersonSelectView(BaseView):
           
 
 
-@method_decorator(login_required, name='dispatch')
-class AddReportFinalSaveView(BaseFormView):
-    model = Publication
-    form_class = AddReportFinalSaveForm  
-    template_name = None
-    select_persons_url = 'select-persons'
-    add_report_url = 'add_report'
-        
-    def __init__(self, *args, **kwargs):
-        print('In AddReportFinalSaveView:__init__')
-        super().__init__(*args, **kwargs)
-
-    # def get_initial(self):
-    #     print('In AddReportFinalSaveView:get_initial')
-    #     # Prefill the form with existing session data
-    #     session_data = self.request.session.get('add_report_form_data', {})
-        
-    #     print(f"AddReportFinalSaveView:get_initial: session data: {session_data}")
-
-    #     # Normalize session data for form initialization
-    #     normalized_data = {}
-    #     for key, value in session_data.items():
-    #         if isinstance(value, list) and len(value) == 1:
-    #             # Convert single-item lists to a string
-    #             normalized_data[key] = value[0]
-    #         else:
-    #             # Keep multi-value fields as lists
-    #             normalized_data[key] = value
-
-    #     print(f"AddReportFinalSaveView:get_initial: normalized data: {normalized_data}")
-    #     return normalized_data
-
-    def get_normalized_data(self):
-        print('In AddReportFinalSaveView:get_normalized_data')
-        # Prefill the form with existing session data
-        session_data = self.request.session.get('add_report_form_data', {})
-        
-        print(f"AddReportFinalSaveView:get_normalized_data: session data: {session_data}")
-
-        # Normalize session data for form initialization
-        normalized_data = {}
-        for key, value in session_data.items():
-            if isinstance(value, list) and len(value) == 1:
-                # Convert single-item lists to a string
-                normalized_data[key] = value[0]
-            else:
-                # Keep multi-value fields as lists
-                normalized_data[key] = value
-
-        print(f"AddReportFinalSaveView:get_normalized_data: normalized data: {normalized_data}")
-        return normalized_data
 
 
-    def get_form(self):
-        print('In AddReportFinalSaveView:get_form')
-        
-        # Get the form instance
-        self.request.method = 'POST'  # pretend that this is a POST request
-        self.request.POST = self.get_normalized_data()  # add the session data as if it were posted from the form
-        #pdb.set_trace()
-        form = super().get_form()
-
-        # # Retrieve session data for authors and supervisors
-        # session_data = self.request.session.get('add_report_form_data', {})
-        # authors = session_data.get('authors', [])
-        # supervisors = session_data.get('supervisors', [])   
-      
-        # # Format authors for prepopulation
-        # choices = self.get_person_choices(authors)
-        # print(f"AddReportView:get_form: author choices: {choices}")
-        # form.fields['authors'].widget.choices = choices
-
-        # # Format supervisors for prepopulation
-        # choices = self.get_person_choices(supervisors)
-        # print(f"AddReportView:get_form: supervisor choices: {choices}")
-        # form.fields['supervisors'].widget.choices = choices
-
-        return form
-
-    # def get_person_choices(self, persons=[]):
-    #     choices = []
-    #     for person in persons:
-    #         if isinstance(person, int) or (isinstance(person, str) and person.isnumeric()):  # Existing person (ID)
-    #             # Fetch the name from the database
-    #             person = Person.objects.filter(pk=int(person)).first()
-    #             if person:
-    #                 choices.append((person.pk, str(person)))
-    #         elif isinstance(person, str):  # New person (name)
-    #             choices.append((person, person))
-    #     return choices
-
-    def get(self, request, *args, **kwargs):
-        print('In AddReportFinalSaveView:get')
-        # Redirect to a different view if accessed without proper session data
-        if not request.session.get('add_report_form_data', {}):
-            # redirect to add_report view
-            return redirect('add_report')
-        
-        form = self.get_form()
-        #print(f"AddReportFinalSaveView:get: form: {form}")
-        print(f"AddReportFinalSaveView:get: form initial: {form.initial}")
-        print(f"AddReportFinalSaveView:get: form data: {form.data}")
-
-        if form.is_valid():
-            # Call form_valid directly since there's no actual form submission in GET
-            print(f"AddReportFinalSaveView:get: form is valid")
-            return self.form_valid(form)
-        else:
-            print(f"AddReportFinalSaveView:get: form is not valid, redirecting to {self.add_report_url}")
-            print(f"AddReportFinalSaveView:get: form is bound?: {form.is_bound}")
-            print(f"AddReportFinalSaveView:get: form errors: {form.errors}")
-            print(f"AddReportFinalSaveView:get: form non_field_errors: {form.non_field_errors()}")
-            redirect('add_report')
-
-    def form_valid(self, form):
-        print(f"AddReportFinalSaveView:form_valid: Form contains the following data: {form.cleaned_data}")
-
-        if not form.instance.pk:
-            form.instance.created_by = self.request.user
-        form.instance.modified_by = self.request.user
-
-        authors = form.cleaned_data['authors']
-        supervisors = form.cleaned_data['supervisors']
-
-        if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
-            # the authors or supervisors field is not a queryset, so one of them must contain person names not already in the database
-            # store all the form data in the session and redirect to the author/supervisor selection page
-            raw_data = dict(self.request.POST.lists())
-            self.request.session['add_report_form_data'] = raw_data
-            print(f"AddReportFinalSaveView:form_valid: raw data: {raw_data}")
-            print(f"AddReportFinalSaveView:form_valid: redirecting to {self.select_persons_url}")
-            return redirect(f"{self.select_persons_url}?action=add")
-        else:
-            print(f"AddReportFinalSaveView:form_valid: authors and supervisors are QuerySets")
-
-        # Otherwise, save publication normally
-        self.object = form.save(commit=False)
-        self.object.save()
-        print(f"AddReportFinalSaveView:form_valid: authors: {authors}")
-        
-        # Handle file upload if present
-        uploaded_file = form.cleaned_data.get('pdffile')
-        if uploaded_file:
-            file_obj = handle_publication_file_upload(self.object, uploaded_file)
-            self.object.file = file_obj
-            self.object.save()
-            print(f"AddReportFinalSaveView:form_valid: PDF file uploaded and saved")
-        
-        # Handle authors - preserve order using author_id
-        self.object.authorship_set.all().delete()
-        for i, author in enumerate(authors):
-            from publications.models import Authorship
-            Authorship.objects.create(
-                publication=self.object, 
-                person=author, 
-                author_id=i
-            )
-            
-        print(f"AddReportFinalSaveView:form_valid: supervisors: {supervisors}")
-        
-        # Handle supervisors - preserve order using supervisor_id
-        self.object.supervisorship_set.all().delete()  
-        for i, supervisor in enumerate(supervisors):
-            from publications.models import Supervisorship
-            Supervisorship.objects.create(
-                publication=self.object, 
-                person=supervisor, 
-                supervisor_id=i
-            )
-            
-        # Handle topics and keywords
-        self.object.publication_topics.set(form.cleaned_data.get('publication_topics', []))
-        self.object.publication_keywords.set(form.cleaned_data.get('publication_keywords', []))
-            
-        print(f"AddReportFinalSaveView:form_valid: publication saved")
-        return super().form_valid(form)    
-           
-    def get_success_url(self):
-        print('In AddReportFinalSaveView:get_success_url')
-        return reverse('report', kwargs={'pk': self.object.pk})
-
-
-@method_decorator(login_required, name='dispatch')
-class EditReportView(BaseFormView):
-    model = Publication
-    form_class = EditReportForm
-    template_name = 'publications/add_edit_report.html'
-    select_persons_url = 'select-persons'
-
-    def __init__(self, *args, **kwargs):
-        print('In EditReportView:__init__')
-        super().__init__(*args, **kwargs)
-
-    def get_object(self):
-        """Get the publication to edit"""
-        return get_object_or_404(Publication, pk=self.kwargs['pk'])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'edit'
-        context['pub'] = self.get_object()
-        return context
-
-    def get_initial(self):
-        """Prepopulate form with existing publication data"""
-        publication = self.get_object()
-        
-        # Check if we're returning from person selection
-        action = self.request.GET.get('action', 'edit')
-        if action == 'edit_continue':
-            # Use session data if returning from person selection
-            session_data = self.request.session.get('edit_report_form_data', {})
-            normalized_data = {}
-            for key, value in session_data.items():
-                if isinstance(value, list) and len(value) == 1:
-                    normalized_data[key] = value[0]
-                else:
-                    normalized_data[key] = value
-            return normalized_data
-        
-        # Build initial data from the publication
-        initial_data = {
-            'type': publication.type,
-            'title': publication.title,
-            'number': publication.number,
-            'year': publication.year,
-            'abstract': publication.abstract,
-            'comment': publication.comment,
-        }
-        
-        # Prepare authors as a string list for the select2 widget
-        authors = publication.authorship_set.all().order_by('author_id')
-        if authors:
-            author_list = [str(auth.person.pk) for auth in authors]
-            initial_data['authors'] = str(author_list)
-        
-        # Prepare supervisors as a string list for the select2 widget  
-        supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
-        if supervisors:
-            supervisor_list = [str(sup.person.pk) for sup in supervisors]
-            initial_data['supervisors'] = str(supervisor_list)
-            
-        # Prepare topics and keywords
-        initial_data['publication_topics'] = publication.publication_topics.all()
-        initial_data['publication_keywords'] = publication.publication_keywords.all()
-        
-        return initial_data
-
-    def get_form(self):
-        """Get form with prepopulated select2 choices"""
-        form = super().get_form()
-        publication = self.get_object()
-        
-        # Check if we're returning from person selection
-        session_data = self.request.session.get('edit_report_form_data', {})
-        if session_data:
-            authors = session_data.get('authors', [])
-            supervisors = session_data.get('supervisors', [])
-        else:
-            # Get current authors and supervisors from the publication
-            authors = [str(auth.person.pk) for auth in publication.authorship_set.all().order_by('author_id')]
-            supervisors = [str(sup.person.pk) for sup in publication.supervisorship_set.all().order_by('supervisor_id')]
-
-        # Set choices for authors and supervisors
-        form.fields['authors'].widget.choices = self.get_person_choices(authors)
-        form.fields['supervisors'].widget.choices = self.get_person_choices(supervisors)
-        
-        return form
-
-    def get_person_choices(self, person_ids=[]):
-        """Convert person IDs to choices for select2 widget"""
-        choices = []
-        for person_id in person_ids:
-            if isinstance(person_id, int) or (isinstance(person_id, str) and person_id.isnumeric()):
-                person = Person.objects.filter(pk=int(person_id)).first()
-                if person:
-                    choices.append((person.pk, str(person)))
-            elif isinstance(person_id, str):  # New person name
-                choices.append((person_id, person_id))
-        return choices
-
-    def get(self, request, *args, **kwargs):
-        action = request.GET.get('action', 'edit')
-        if action == 'edit':
-            # Clear session data to start fresh
-            request.session.pop('edit_report_form_data', None)
-        return super().get(request, *args, **kwargs)
-
-    def form_valid(self, form):
-        print(f"EditReportView:form_valid: Form contains the following data: {form.cleaned_data}")
-        
-        # Set user information before validation
-        form.instance.modified_by = self.request.user
-        
-        authors = form.cleaned_data['authors']
-        supervisors = form.cleaned_data['supervisors']
-
-        if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
-            # Store form data in session and redirect to person selection
-            raw_data = dict(self.request.POST.lists())
-            self.request.session['edit_report_form_data'] = raw_data
-            self.request.session['edit_report_publication_id'] = self.get_object().pk
-            print(f"EditReportView:form_valid: redirecting to {self.select_persons_url}")
-            return redirect(f"{self.select_persons_url}?action=edit")
-
-        # Save the publication using form.save() for consistency with Add views
-        # This approach uses Django's automatic field mapping instead of manual setattr()
-        # The EditReportForm.clean_number() method ensures the number field is protected
-        self.object = form.save(commit=False)
-        self.object.save()
-        
-        # Handle PDF file operations
-        delete_pdf = form.cleaned_data.get('delete_pdf', False)
-        uploaded_file = form.cleaned_data.get('pdffile')
-        
-        if delete_pdf and self.object.file:
-            # Delete the existing file
-            if self.object.file.file:
-                self.object.file.file.delete()
-            self.object.file.delete()
-            self.object.file = None
-            
-        if uploaded_file:
-            # Delete old file if it exists
-            if self.object.file:
-                if self.object.file.file:
-                    self.object.file.file.delete()
-                self.object.file.delete()
-            
-            # Upload new file
-            file_obj = handle_publication_file_upload(self.object, uploaded_file)
-            self.object.file = file_obj
-            
-        self.object.save()
-        
-        # Update authors - preserve order using author_id
-        self.object.authorship_set.all().delete()
-        for i, author in enumerate(authors):
-            from publications.models import Authorship
-            Authorship.objects.create(
-                publication=self.object,
-                person=author,
-                author_id=i
-            )
-            
-        # Update supervisors - preserve order using supervisor_id
-        self.object.supervisorship_set.all().delete()
-        for i, supervisor in enumerate(supervisors):
-            from publications.models import Supervisorship
-            Supervisorship.objects.create(
-                publication=self.object,
-                person=supervisor,
-                supervisor_id=i
-            )
-            
-        # Update topics and keywords
-        self.object.publication_topics.set(form.cleaned_data.get('publication_topics', []))
-        self.object.publication_keywords.set(form.cleaned_data.get('publication_keywords', []))
-        
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('report', kwargs={'pk': self.get_object().pk})
-
-
-@method_decorator(login_required, name='dispatch')
-class EditReportFinalSaveView(BaseFormView):
-    model = Publication
-    form_class = EditReportFinalSaveForm
-    template_name = None
-    select_persons_url = 'select-persons'
-    edit_report_url = 'edit_report'
-        
-    def __init__(self, *args, **kwargs):
-        print('In EditReportFinalSaveView:__init__')
-        super().__init__(*args, **kwargs)
-
-    def get_object(self):
-        """Get the publication from session"""
-        publication_id = self.request.session.get('edit_report_publication_id')
-        if publication_id:
-            return get_object_or_404(Publication, pk=publication_id)
-        return None
-
-    def get_normalized_data(self):
-        session_data = self.request.session.get('edit_report_form_data', {})
-        normalized_data = {}
-        for key, value in session_data.items():
-            if isinstance(value, list) and len(value) == 1:
-                normalized_data[key] = value[0]
-            else:
-                normalized_data[key] = value
-        return normalized_data
-
-    def get_form(self):
-        print('In EditReportFinalSaveView:get_form')
-        
-        # Get the publication instance
-        publication = self.get_object()
-        if not publication:
-            # Redirect if no publication found
-            return redirect(self.edit_report_url)
-        
-        # Pretend this is a POST request with session data
-        self.request.method = 'POST'
-        self.request.POST = self.get_normalized_data()
-        
-        # Get form with instance
-        form_kwargs = self.get_form_kwargs()
-        form_kwargs['instance'] = publication
-        form = self.form_class(**form_kwargs)
-        
-        return form
-
-    def get(self, request, *args, **kwargs):
-        print('In EditReportFinalSaveView:get')
-        
-        if not request.session.get('edit_report_form_data', {}):
-            return redirect('reports')  # or appropriate fallback
-        
-        form = self.get_form()
-        
-        if hasattr(form, 'is_valid') and form.is_valid():
-            return self.form_valid(form)
-        else:
-            # Redirect back to edit form with error
-            publication_id = self.request.session.get('edit_report_publication_id')
-            if publication_id:
-                return redirect('edit_report', pk=publication_id)
-            return redirect('reports')
-
-    def form_valid(self, form):
-        print(f"EditReportFinalSaveView:form_valid: Form contains the following data: {form.cleaned_data}")
-        
-        # Set user information before validation
-        form.instance.modified_by = self.request.user
-        
-        authors = form.cleaned_data['authors']
-        supervisors = form.cleaned_data['supervisors']
-
-        if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
-            return redirect(f"{self.select_persons_url}?action=edit")
-
-        # Save the publication using form.save() for consistency with Add views
-        # This approach uses Django's automatic field mapping instead of manual setattr()
-        # The EditReportFinalSaveForm.clean_number() method ensures the number field is protected
-        self.object = form.save(commit=False)
-        self.object.save()
-        
-        # Handle PDF file operations
-        delete_pdf = form.cleaned_data.get('delete_pdf', False)
-        uploaded_file = form.cleaned_data.get('pdffile')
-        
-        if delete_pdf and self.object.file:
-            if self.object.file.file:
-                self.object.file.file.delete()
-            self.object.file.delete()
-            self.object.file = None
-            
-        if uploaded_file:
-            if self.object.file:
-                if self.object.file.file:
-                    self.object.file.file.delete()
-                self.object.file.delete()
-            file_obj = handle_publication_file_upload(self.object, uploaded_file)
-            self.object.file = file_obj
-            
-        self.object.save()
-        
-        # Update authors
-        self.object.authorship_set.all().delete()
-        for i, author in enumerate(authors):
-            from publications.models import Authorship
-            Authorship.objects.create(
-                publication=self.object,
-                person=author,
-                author_id=i
-            )
-            
-        # Update supervisors
-        self.object.supervisorship_set.all().delete()
-        for i, supervisor in enumerate(supervisors):
-            from publications.models import Supervisorship
-            Supervisorship.objects.create(
-                publication=self.object,
-                person=supervisor,
-                supervisor_id=i
-            )
-            
-        # Update topics and keywords
-        self.object.publication_topics.set(form.cleaned_data.get('publication_topics', []))
-        self.object.publication_keywords.set(form.cleaned_data.get('publication_keywords', []))
-        
-        # Clear session data
-        self.request.session.pop('edit_report_form_data', None)
-        self.request.session.pop('edit_report_publication_id', None)
-        
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('report', kwargs={'pk': self.object.pk})
 
 
 

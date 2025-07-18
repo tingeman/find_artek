@@ -16,14 +16,12 @@ urlpatterns = [
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
-    path('add/report/', views.AddReportView.as_view(), name='add_report'),
-    path('add/report/finalize/', views.AddReportFinalSaveView.as_view(), name='publication_final_save'),
-    #path('edit/report/<int:pk>/', views.EditReportView.as_view(), name='edit_report'),
+    path('add/report/', views.AddEditReportView.as_view(), name='add_report'),
+    path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
+    path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
+    path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
-    #path("select/authors/", views.AuthorSelectView.as_view(), name="select-authors"),
     path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
-
-    path('report/<int:pk>/edit/', views.EditReportView.as_view(), name='edit_report'),
 
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
