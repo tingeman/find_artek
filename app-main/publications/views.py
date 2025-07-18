@@ -23,8 +23,7 @@ from django_select2.views import AutoResponseView
 from find_artek.search import get_query
 from publications.utils import CaseInsensitively, create_ordered_queryset, handle_publication_file_upload
 from publications.library import get_client_ip, is_private
-from publications.forms import (LoginForm, AddReportForm, AddReportFinalSaveForm, 
-                                EditReportForm, EditReportFinalSaveForm,
+from publications.forms import (LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
                                 PublicationForm, AuthorSelectForm, SupervisorSelectForm)
 from publications.models import Publication, Topic, Feature, Person
 
@@ -279,11 +278,11 @@ class AddEditReportView(BaseFormView):
     select_persons_url = 'select-persons'
 
     def get_form_class(self):
-        """Return appropriate form class based on operation mode"""
-        if self.is_edit_mode():
-            return EditReportForm if not self.is_final_save() else EditReportFinalSaveForm
+        """Return the appropriate form class based on mode"""
+        if self.is_final_save():
+            return AddEditReportFinalSaveForm
         else:
-            return AddReportForm if not self.is_final_save() else AddReportFinalSaveForm
+            return AddEditReportForm
 
     def is_edit_mode(self):
         """Check if we're in edit mode (has pk in URL)"""

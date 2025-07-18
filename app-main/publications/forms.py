@@ -47,8 +47,12 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
         return 9999
 
 
-class AddReportForm(ModelForm):
-    """A Form handling the adding or editing of reports
+class AddEditReportForm(ModelForm):
+    """A unified form for both adding and editing reports
+    
+    Automatically adapts behavior based on whether an instance is provided:
+    - When instance=None: Adding mode (number field editable, no delete_pdf option)
+    - When instance provided: Editing mode (number field readonly, delete_pdf option available)
     """
     
     # Class variable for file size limit (in MB)
@@ -133,17 +137,22 @@ class AddReportForm(ModelForm):
         })
     )
 
+    # Field for deleting existing PDF files (only shown in edit mode)
+    delete_pdf = forms.BooleanField(
+        required=False,
+        label="Delete existing PDF file",
+        help_text="Check this box to delete the current PDF file"
+    )
 
     class Meta:
         model = Publication
-        # Only show the following fields
+        # Include all fields including delete_pdf for edit mode
         fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile']
+                  'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile', 'delete_pdf']
         exclude = []
 
-
     def __init__(self, *args, **kwargs):
-        print('In AddReportForm:__init__')
+        print('In AddEditReportForm:__init__')
         instance = kwargs.get('instance')
         super().__init__(*args, **kwargs)
 
@@ -151,12 +160,28 @@ class AddReportForm(ModelForm):
         self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {self.MAX_FILE_SIZE_MB}MB)'
 
         if instance:
-            print(f'AddReportForm:__init__:instance: {instance}')
+            # EDIT MODE: Configure form for editing existing publication
+            print(f'AddEditReportForm:__init__:EDIT MODE - instance: {instance}')
+            
+            # Make the number field read-only for editing
+            self.fields['number'].widget.attrs['readonly'] = True
+            self.fields['number'].help_text = "Report number cannot be changed when editing"
+            
+            # Update PDF field help text if there's an existing file
+            if instance.file:
+                current_file_name = instance.file.file.name.split('/')[-1] if instance.file.file else "Unknown file"
+                self.fields['pdffile'].help_text = f'Current file: {current_file_name}. Upload a new PDF to replace it (max {self.MAX_FILE_SIZE_MB}MB)'
+            
             # Restrict the queryset to authors already associated with this publication
             self.fields['authors'].widget.queryset = instance.authors.all()
             self.fields['supervisors'].widget.queryset = instance.supervisors.all()
         else:
-            print('AddReportForm:__init__:No instance')
+            # ADD MODE: Configure form for adding new publication
+            print('AddEditReportForm:__init__:ADD MODE - No instance')
+            
+            # Hide the delete_pdf field in add mode since there's no existing file
+            self.fields['delete_pdf'].widget = forms.HiddenInput()
+            
             # For a new publication, no authors are pre-selected
             self.fields['authors'].widget.queryset = Person.objects.none()
             self.fields['supervisors'].widget.queryset = Person.objects.none()
@@ -260,6 +285,14 @@ class AddReportForm(ModelForm):
         
         return uploaded_file
     
+    def clean_number(self):
+        """Prevent number from being changed in edit mode"""
+        if self.instance and self.instance.pk:
+            # In edit mode, always return the original number
+            return self.instance.number
+        # In add mode, return the cleaned data
+        return self.cleaned_data.get('number')
+    
     # def save(self, full_name):
     #     # instance = super().save(commit=False)
     #     # instance.save()
@@ -268,61 +301,13 @@ class AddReportForm(ModelForm):
     #     pass
 
 
-class AddReportFinalSaveForm(AddReportForm):
-    def clean_authors(self):
-        result = super().clean_authors()
-        if not isinstance(result, QuerySet):
-            raise ValidationError("Authors must be a QuerySet instance")
-        return result
-
-    def clean_supervisors(self):
-        result = super().clean_supervisors()
-        if not isinstance(result, QuerySet):
-            raise ValidationError("Supervisors must be a QuerySet instance")
-        return result
-
-
-class EditReportForm(AddReportForm):
-    """A Form for editing existing reports
+class AddEditReportFinalSaveForm(AddEditReportForm):
+    """Final save form that ensures authors and supervisors are QuerySet instances
     
-    Inherits from AddReportForm but disables the number field and
-    adds functionality for handling existing PDF files.
+    Used when processing person selections from the person select view.
+    Validates that authors and supervisors have been converted from names to QuerySet objects.
     """
     
-    # Add a field to handle PDF deletion
-    delete_pdf = forms.BooleanField(
-        required=False,
-        label="Delete existing PDF file",
-        help_text="Check this box to delete the current PDF file"
-    )
-    
-    class Meta:
-        model = Publication
-        # Include all fields from AddReportForm plus delete_pdf
-        fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile', 'delete_pdf']
-        exclude = []
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # Make the number field read-only for editing
-        self.fields['number'].widget.attrs['readonly'] = True
-        self.fields['number'].help_text = "Report number cannot be changed when editing"
-        
-        # Update PDF field help text if there's an existing file
-        if self.instance and self.instance.file:
-            current_file_name = self.instance.file.file.name.split('/')[-1] if self.instance.file.file else "Unknown file"
-            self.fields['pdffile'].help_text = f'Current file: {current_file_name}. Upload a new PDF to replace it (max {self.MAX_FILE_SIZE_MB}MB)'
-            
-    def clean_number(self):
-        """Prevent number from being changed"""
-        if self.instance and self.instance.pk:
-            return self.instance.number
-        return self.cleaned_data.get('number')
-
-
-class EditReportFinalSaveForm(EditReportForm):
     def clean_authors(self):
         result = super().clean_authors()
         if not isinstance(result, QuerySet):
@@ -334,6 +319,10 @@ class EditReportFinalSaveForm(EditReportForm):
         if not isinstance(result, QuerySet):
             raise ValidationError("Supervisors must be a QuerySet instance")
         return result
+
+
+# Keep AddReportForm as an alias for backward compatibility
+AddReportForm = AddEditReportForm
     
 
 
