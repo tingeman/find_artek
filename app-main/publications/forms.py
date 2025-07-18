@@ -88,7 +88,7 @@ class AddReportForm(ModelForm):
         ),
     )
 
-    topics = forms.ModelMultipleChoiceField(
+    publication_topics = forms.ModelMultipleChoiceField(
         queryset=Topic.objects.all(),
         required=False,
         widget=s2forms.Select2TagWidget(
@@ -102,7 +102,7 @@ class AddReportForm(ModelForm):
         ),
     )
 
-    keywords = forms.ModelMultipleChoiceField(
+    publication_keywords = forms.ModelMultipleChoiceField(
         queryset=Keyword.objects.all(),
         required=False,
         widget=s2forms.Select2TagWidget(
@@ -133,18 +133,12 @@ class AddReportForm(ModelForm):
         })
     )
 
-    date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
-        input_formats=('%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'),
-        required=False,
-    )
-
 
     class Meta:
         model = Publication
         # Only show the following fields
         fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'topics', 'keywords', 'date', 'pdffile']
+                  'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile']
         exclude = []
 
 
@@ -275,6 +269,60 @@ class AddReportForm(ModelForm):
 
 
 class AddReportFinalSaveForm(AddReportForm):
+    def clean_authors(self):
+        result = super().clean_authors()
+        if not isinstance(result, QuerySet):
+            raise ValidationError("Authors must be a QuerySet instance")
+        return result
+
+    def clean_supervisors(self):
+        result = super().clean_supervisors()
+        if not isinstance(result, QuerySet):
+            raise ValidationError("Supervisors must be a QuerySet instance")
+        return result
+
+
+class EditReportForm(AddReportForm):
+    """A Form for editing existing reports
+    
+    Inherits from AddReportForm but disables the number field and
+    adds functionality for handling existing PDF files.
+    """
+    
+    # Add a field to handle PDF deletion
+    delete_pdf = forms.BooleanField(
+        required=False,
+        label="Delete existing PDF file",
+        help_text="Check this box to delete the current PDF file"
+    )
+    
+    class Meta:
+        model = Publication
+        # Include all fields from AddReportForm plus delete_pdf
+        fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
+                  'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile', 'delete_pdf']
+        exclude = []
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Make the number field read-only for editing
+        self.fields['number'].widget.attrs['readonly'] = True
+        self.fields['number'].help_text = "Report number cannot be changed when editing"
+        
+        # Update PDF field help text if there's an existing file
+        if self.instance and self.instance.file:
+            current_file_name = self.instance.file.file.name.split('/')[-1] if self.instance.file.file else "Unknown file"
+            self.fields['pdffile'].help_text = f'Current file: {current_file_name}. Upload a new PDF to replace it (max {self.MAX_FILE_SIZE_MB}MB)'
+            
+    def clean_number(self):
+        """Prevent number from being changed"""
+        if self.instance and self.instance.pk:
+            return self.instance.number
+        return self.cleaned_data.get('number')
+
+
+class EditReportFinalSaveForm(EditReportForm):
     def clean_authors(self):
         result = super().clean_authors()
         if not isinstance(result, QuerySet):

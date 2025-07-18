@@ -23,6 +23,9 @@ urlpatterns = [
     #path("select/authors/", views.AuthorSelectView.as_view(), name="select-authors"),
     path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
 
+    path('report/<int:pk>/edit/', views.EditReportView.as_view(), name='edit_report'),
+
+
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
     #path("test/create/<int:pk>/", views.TestPublicationCreateViewNEW.as_view(), name="test-publication-create"),
 ]
