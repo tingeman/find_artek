@@ -1,0 +1,98 @@
+{% extends base_template %}
+
+<!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
+<!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
+{% load i18n static %}
+
+{% block title %}
+{% if publication %}
+Edit report
+{% else %}
+New report
+{% endif %}
+{% endblock %}
+{% block dynamic_head_content %}
+    <!-- Removed all the custom javascript from OLD find_artek template; THIN 2024-12-15 -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'publications/css/file-upload.css' %}" />
+    <script src="{% static 'publications/js/file-upload.js' %}" defer></script>
+    {{ form.media }}
+{% endblock %}
+
+{% block headline %}
+{% if publication %}
+Edit report
+{% else %}
+Register new report
+{% endif %}
+{% endblock %}
+
+{% block main-content %}
+
+{% if publication %}
+<table class="report-block" style="background-color: #F0F0F0; max-width: 600px; display:block; padding: 5px; border-style: solid; border-width: 1px 1px 1px 1px; border-color: grey;">
+    <tr>{% include "publications/reports_snippets/report_td.html" %}</tr>
+</table>
+{% endif %}
+
+<br>
+<br>
+
+<form enctype="multipart/form-data" action="{{ request.path }}" method="post" id="add-report-form">
+    {% csrf_token %}
+    <div id="data_container"></div>
+    <table>
+        {{ form.as_table }}
+        <tr><th></th><td>&nbsp;</td></tr>
+
+<!-- Appendices upload commented; THIN 2024-12-15
+<tr><th>Appendices</th>
+<td>
+Appendices can be uploaded from the publication view, after the publication
+record has been created/updated.
+{% comment %}
+{% if pub %}
+<a id="open-files-dialog" href="/pubs/edit/report/{{ pub.id }}/upload/{{ appendix_batch_tag }}/" target="_popup">add appendix files or other files</a>
+{% else %}
+<a id="open-files-dialog" href="/pubs/add/report/upload/{{ appendix_batch_tag }}/" target="_popup">add appendix files or other files</a>
+{% endif %}
+<input type="hidden" name="appendix_batch_tag" value="{{ appendix_batch_tag }}">
+{% endcomment %}
+</td></tr> -->
+
+        <tr><th></th><td><button type="submit" id="process-submit">submit</button></td></tr>
+    </table>
+</form>
+<p>&nbsp;</p>
+<p>'Process persons' button will do a check against the database for all persons
+specified in the Author field. A dialog will appear to allow choosing the correct
+person or create new person. When creating a new person, only the name will be
+stored. Use the "edit person" functionality to register more person info after
+the report is created.</p>
+
+<p>'submit' button will also first check authors against database and creation rules,
+and then if the check succeeds, submit the form to the database.</p>
+
+<br>
+<br>
+
+<div id="dialog" title="Test dialog">No information</div>
+
+
+<!-- Commented; THIN 2024-12-15
+{% comment %} Clash of jQuery versions, cannot live together with newer code!
+<div id="add-files-dialog" title="Add files">
+    {% load thumbnail %}
+    {% load multiuploader %}
+    {% multiupform "TESTING 12345" %}
+</div>
+{% endcomment %} -->
+
+
+
+{% endblock %}
+
+
+
+
+

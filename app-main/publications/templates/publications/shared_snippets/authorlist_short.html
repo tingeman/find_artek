@@ -2,7 +2,7 @@
 
 <div class="author-list">
 
-    {% for auth in pub.sorted_authorships %}
+    {% for auth in publication.sorted_authorships %}
         <a target="_blank">
             {{ auth.person.last }}
             {% if auth.person.first or auth.person.middle %}, {% endif %}

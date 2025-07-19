@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Authors</title>
+</head>
+<body>
+    <h1>Select or Create Authors</h1>
+    <form method="post">
+        {% csrf_token %}
+
+        {% if authors_form %}
+            <h2>Select authors:</h2>
+            {{ authors_form.as_p }}
+        {% endif %}
+
+        {% if supervisors_form %}
+            <h2>Select supervisors:</h2>
+            {{ supervisors_form.as_p }}
+        {% endif %}
+
+        <div class="button-container">
+            <!-- Back button (GET request) -->
+            <a href="{% url 'add_report' %}?action=edit">Back</a>
+            <!-- Submit button (POST request) -->
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+</body>
+</html>

@@ -2,7 +2,6 @@
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
 {% load i18n static %}
 
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -18,8 +17,7 @@
     </script>
 
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
-    <link rel="icon" href="{% static 'publications/img/artek_logo_absract_transparent_resized_favicon.ico' %}"
-        type="image/x-icon" />
+    <link rel="icon" href="{% static 'publications/img/artek_logo_absract_transparent_resized_favicon.ico' %}" type="image/x-icon" />
 
     <script src="{% static 'publications/js/base.js' %}" defer></script>
     

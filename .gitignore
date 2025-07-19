@@ -32,3 +32,5 @@ app-datatransfer/datatransfer/publications/migrations
 *.log
 debug.log
 datadump.json
+
+Thumbs.db

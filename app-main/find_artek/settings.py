@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'django_cas_ng',
     'rest_framework',
     'drf_yasg',
+    'django_select2',
 ]
 
 MIDDLEWARE = [
@@ -82,7 +83,7 @@ ROOT_URLCONF = 'find_artek.urls'
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 FORCE_SCRIPT_NAME = '/find'
-URL_PREFIX = '/find'          # Custom settings to provide URL_PREFIX to any template
+URL_PREFIX = '/find'             # Custom settings to provide URL_PREFIX to any template
 
 # Media url
 MEDIA_ROOT = '/mnt/shared-project-data/media'

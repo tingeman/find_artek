@@ -5,6 +5,8 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     container_name: webapp-find-artek-devcon
+    env_file:
+      - .env
     environment:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -41,6 +43,8 @@ services:
     restart: always
     image: mariadb:11.2
     container_name: fa-mariadb-service-devcon
+    env_file:
+      - .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
@@ -59,6 +63,8 @@ services:
       container_name: fa-phpmyadmin-service-devcon
       ports:
         - "6001:80"
+      env_file:
+        - .env
       environment:
         PMA_HOST: ${MYSQL_HOST}
         MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}

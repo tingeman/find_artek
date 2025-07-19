@@ -16,5 +16,14 @@ urlpatterns = [
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
 
-    #path('^pubs/edit/report/(?P<pub_id>\d+)/$', views.AddEditReportView.as_view(), name='add_edit_report'),
+    path('add/report/', views.AddEditReportView.as_view(), name='add_report'),
+    path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
+    path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
+    path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
+    path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
+    path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
+
+
+    #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
+    #path("test/create/<int:pk>/", views.TestPublicationCreateViewNEW.as_view(), name="test-publication-create"),
 ]

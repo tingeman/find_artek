@@ -20,6 +20,12 @@ def normalize_query(query_string, findterms=findterms,normspace=normspace):
 def get_query(query_string, search_fields):
     ''' Returns a query, that is a combination of Q objects. That combination
         aims to search keywords within a model by testing the given search fields.
+
+        The query string is split into individual terms (taking into account grouping by quotes)
+        and sets up a query that searches every field specified for the terms given.
+
+        (field1 icontains term1 | field2 icontinains term 1) &
+        (field1 icontains term2 | field2 icontinains term 2)  & ... etc
     
     '''
     query = None # Query to search for every search term        

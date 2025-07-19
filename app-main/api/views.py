@@ -60,12 +60,12 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
     )
     def list(self, request, *args, **kwargs):
         logger.warning("GetReportViewSet.list was called")
-        queryset = self.get_queryset()
+        queryset = self.get_queryset(request)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    def get_queryset(self):
+    def get_queryset(self, request):
         """Filters the queryset based on the query parameters and returns the filtered queryset.
 
         Also filters out any entries that have the word "confidential" in the field "comment" 
@@ -142,12 +142,13 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
 
 
         # ============ Remove unvalidated entries ============
-        queryset = queryset.filter(verified=True)
+        if not request.user.is_authenticated:
+            queryset = queryset.filter(verified=True)
 
-        queryset_length_3 = len(queryset)
+            queryset_length_3 = len(queryset)
 
-        if queryset_length_3 != queryset_length_2:
-            logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
+            if queryset_length_3 != queryset_length_2:
+                logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
 
         return queryset
 
