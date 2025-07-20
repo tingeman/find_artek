@@ -10,6 +10,7 @@ urlpatterns = [
     path('persons/', views.PersonsView.as_view(), name='persons'),
 
     path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
+    path('report/<int:pk>/upload_appendices/', views.UploadAppendicesView.as_view(), name='upload_appendices'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
     path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
     # path('login/', views.LoginView.as_view(), name='login'),

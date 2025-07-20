@@ -601,3 +601,54 @@ class PublicationForm(forms.ModelForm):
                 }, 
             ),
         }
+
+
+class AppendixUploadForm(forms.Form):
+    """
+    Form for uploading multiple appendix files to a publication.
+    Uses session-based batch management for file handling.
+    
+    Note: For very large files (>100MB), we may need to implement 
+    a secondary upload scheme with chunked uploads or direct storage.
+    """
+    appendix_files = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={
+            'multiple': True,
+            'accept': '.pdf,.doc,.docx,.txt,.zip,.jpg,.jpeg,.png,.gif,.xls,.xlsx,.ppt,.pptx',
+            'class': 'form-control',
+        }),
+        required=False,
+        help_text="Select multiple files to upload as appendices. Supported formats: PDF, DOC, TXT, ZIP, images, Office documents."
+    )
+    
+    def clean_appendix_files(self):
+        """Validate uploaded files"""
+        files = self.files.getlist('appendix_files')
+        
+        if not files:
+            return files
+            
+        # File size limit (50MB per file)
+        max_size = 50 * 1024 * 1024  # 50MB
+        
+        for file in files:
+            if file.size > max_size:
+                raise ValidationError(
+                    f'File "{file.name}" is too large. Maximum file size is 50MB.'
+                )
+                
+            # Basic file type validation based on extension
+            allowed_extensions = {
+                '.pdf', '.doc', '.docx', '.txt', '.zip', 
+                '.jpg', '.jpeg', '.png', '.gif', 
+                '.xls', '.xlsx', '.ppt', '.pptx'
+            }
+            
+            file_ext = file.name.lower().split('.')[-1] if '.' in file.name else ''
+            if f'.{file_ext}' not in allowed_extensions:
+                raise ValidationError(
+                    f'File "{file.name}" has an unsupported file type. '
+                    f'Allowed types: {", ".join(sorted(allowed_extensions))}'
+                )
+        
+        return files

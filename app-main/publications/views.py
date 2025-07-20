@@ -1144,3 +1144,192 @@ class LogoutView(BaseView):
 #     serialized_features = serializers.serialize('json', features)
 #     return JsonResponse(serialized_features, safe=False)
 
+
+class UploadAppendicesView(BaseView):
+    """
+    View for uploading multiple appendix files to a publication.
+    Uses session-based batch management for file handling.
+    
+    Note: For very large files (>100MB), we may need to implement 
+    a secondary upload scheme with chunked uploads or direct storage.
+    """
+    template_name = 'publications/upload_appendices.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        publication_id = self.kwargs['pk']
+        
+        # Get the publication
+        publication = get_object_or_404(Publication, id=publication_id)
+        context['publication'] = publication
+        
+        # Import forms here to avoid circular imports
+        from publications.forms import AppendixUploadForm
+        context['form'] = AppendixUploadForm()
+        
+        # Get session files for this publication
+        session_key = f'appendix_upload_{publication_id}'
+        # Note: request is not available in get_context_data, will handle in get method
+        context['session_files'] = []
+        
+        # Get existing appendices
+        context['existing_appendices'] = publication.appendices.all()
+        
+        return context
+    
+    def get(self, request, **kwargs):
+        self.request = request  # Store request for context access
+        self.kwargs = kwargs    # Store kwargs for context access
+        context = self.get_context_data(**kwargs)
+        
+        # Add session files here where we have access to request
+        publication_id = kwargs['pk']
+        session_key = f'appendix_upload_{publication_id}'
+        context['session_files'] = request.session.get(session_key, [])
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        """Handle different POST actions: upload, remove, submit, cancel"""
+        publication_id = self.kwargs['pk']
+        publication = get_object_or_404(Publication, id=publication_id)
+        action = request.POST.get('action', 'upload')
+        
+        if action == 'upload':
+            return self.handle_file_upload(request, publication)
+        elif action == 'remove':
+            return self.handle_file_removal(request, publication)
+        elif action == 'submit':
+            return self.handle_submit(request, publication)
+        elif action == 'cancel':
+            return self.handle_cancel(request, publication)
+        else:
+            return self.get(request, *args, **kwargs)
+    
+    def handle_file_upload(self, request, publication):
+        """Add uploaded files to session storage"""
+        from publications.forms import AppendixUploadForm
+        import tempfile
+        import os
+        
+        form = AppendixUploadForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            files = request.FILES.getlist('appendix_files')
+            session_key = f'appendix_upload_{publication.id}'
+            session_files = request.session.get(session_key, [])
+            
+            for uploaded_file in files:
+                # Save to temporary file
+                temp_file = tempfile.NamedTemporaryFile(delete=False)
+                try:
+                    for chunk in uploaded_file.chunks():
+                        temp_file.write(chunk)
+                    temp_file.close()
+                    
+                    # Store file info in session
+                    file_info = {
+                        'filename': uploaded_file.name,
+                        'temp_path': temp_file.name,
+                        'size': uploaded_file.size,
+                        'content_type': uploaded_file.content_type,
+                    }
+                    session_files.append(file_info)
+                    
+                except Exception as e:
+                    # Clean up on error
+                    try:
+                        os.unlink(temp_file.name)
+                    except OSError:
+                        pass
+                    # Add error message
+                    from django.contrib import messages
+                    messages.error(request, f'Error uploading {uploaded_file.name}: {e}')
+            
+            # Update session
+            request.session[session_key] = session_files
+            request.session.modified = True
+            
+            from django.contrib import messages
+            messages.success(request, f'Successfully uploaded {len(files)} file(s)')
+        
+        return redirect('upload_appendices', pk=publication.id)
+    
+    def handle_file_removal(self, request, publication):
+        """Remove a file from session storage"""
+        import os
+        
+        file_index = int(request.POST.get('file_index', -1))
+        session_key = f'appendix_upload_{publication.id}'
+        session_files = request.session.get(session_key, [])
+        
+        if 0 <= file_index < len(session_files):
+            file_to_remove = session_files.pop(file_index)
+            
+            # Clean up temporary file
+            temp_path = file_to_remove.get('temp_path')
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+            
+            # Update session
+            request.session[session_key] = session_files
+            request.session.modified = True
+            
+            from django.contrib import messages
+            messages.success(request, f'Removed {file_to_remove["filename"]}')
+        
+        return redirect('upload_appendices', pk=publication.id)
+    
+    def handle_submit(self, request, publication):
+        """Commit all session files to the publication"""
+        from publications.utils import handle_session_appendix_uploads
+        
+        try:
+            created_files = handle_session_appendix_uploads(request, publication)
+            
+            from django.contrib import messages
+            if created_files:
+                messages.success(
+                    request, 
+                    f'Successfully attached {len(created_files)} appendix file(s) to publication {publication.number}'
+                )
+            else:
+                messages.info(request, 'No files were uploaded')
+                
+            # Redirect to publication detail page
+            return redirect('report', pk=publication.id)
+            
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(request, f'Error processing files: {e}')
+            return redirect('upload_appendices', pk=publication.id)
+    
+    def handle_cancel(self, request, publication):
+        """Cancel upload and clean up session files"""
+        import os
+        
+        session_key = f'appendix_upload_{publication.id}'
+        session_files = request.session.get(session_key, [])
+        
+        # Clean up temporary files
+        for file_info in session_files:
+            temp_path = file_info.get('temp_path')
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+        
+        # Clear session
+        if session_key in request.session:
+            del request.session[session_key]
+        
+        from django.contrib import messages
+        messages.info(request, 'Upload cancelled')
+        
+        # Redirect to publication detail page
+        return redirect('report', pk=publication.id)
+

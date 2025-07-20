@@ -178,3 +178,110 @@ def handle_publication_file_upload(publication, uploaded_file):
     )
     
     return file_obj
+
+
+def handle_appendix_file_upload(publication, uploaded_file):
+    """
+    Handle the upload and storage of an appendix file for a publication.
+    Files are stored in: media/reports/{year}/{report_number}/filename.ext
+    
+    Note: For very large files (>100MB), we may need to implement 
+    a secondary upload scheme with chunked uploads or streaming.
+    
+    Args:
+        publication: The Publication instance
+        uploaded_file: The uploaded file from the form
+        
+    Returns:
+        FileObject: The created FileObject instance
+    """
+    if not uploaded_file:
+        return None
+        
+    # Keep original filename for appendices
+    original_filename = uploaded_file.name
+    
+    # Create the directory path: reports/YYYY/report_number/
+    appendix_dir = f"reports/{publication.year}/{publication.number}"
+    file_path = os.path.join(appendix_dir, original_filename)
+    
+    # Ensure the directory exists
+    full_dir_path = os.path.join(settings.MEDIA_ROOT, appendix_dir)
+    os.makedirs(full_dir_path, exist_ok=True)
+    
+    # Save the file with original name
+    saved_path = default_storage.save(file_path, uploaded_file)
+    
+    # Create FileObject instance
+    from publications.models import FileObject
+    file_obj = FileObject.objects.create(
+        file=saved_path,
+        description=f"Appendix file for report {publication.number} ({publication.year})"
+    )
+    
+    return file_obj
+
+
+def handle_session_appendix_uploads(request, publication):
+    """
+    Process all appendix files stored in session and create FileObject instances.
+    Links them to the publication via Appendenciesship.
+    
+    Args:
+        request: The HTTP request object (for session access)
+        publication: The Publication instance to attach files to
+        
+    Returns:
+        list: List of created FileObject instances
+    """
+    from django.db import transaction
+    from publications.models import FileObject, Appendenciesship
+    import tempfile
+    import shutil
+    from django.core.files.base import ContentFile
+    
+    session_key = f'appendix_upload_{publication.id}'
+    uploaded_files = request.session.get(session_key, [])
+    
+    if not uploaded_files:
+        return []
+    
+    created_files = []
+    
+    with transaction.atomic():
+        for file_data in uploaded_files:
+            # Recreate the uploaded file from session data
+            temp_file_path = file_data.get('temp_path')
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    with open(temp_file_path, 'rb') as temp_file:
+                        file_content = ContentFile(temp_file.read(), name=file_data['filename'])
+                        
+                    # Create FileObject using our utility
+                    file_obj = handle_appendix_file_upload(publication, file_content)
+                    
+                    if file_obj:
+                        # Link to publication
+                        Appendenciesship.objects.create(
+                            publication=publication,
+                            fileobject=file_obj
+                        )
+                        created_files.append(file_obj)
+                        
+                except Exception as e:
+                    # Log error but continue processing other files
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error processing appendix file {file_data['filename']}: {e}")
+                finally:
+                    # Clean up temporary file
+                    try:
+                        os.unlink(temp_file_path)
+                    except OSError:
+                        pass
+    
+    # Clear session data after successful processing
+    if session_key in request.session:
+        del request.session[session_key]
+    
+    return created_files

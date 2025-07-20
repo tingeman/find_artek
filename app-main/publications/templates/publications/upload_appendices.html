@@ -1,0 +1,320 @@
+{% extends base_template %}
+
+{% load i18n static humanize %}
+
+{# title #}
+{% block title %}Upload Appendices{% endblock %}
+
+{% block dynamic_head_content %}
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
+    <style>
+        .upload-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .file-list {
+            margin: 20px 0;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+        }
+        .file-info {
+            flex-grow: 1;
+        }
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .publication-info {
+            font-family: Verdana, Arial;
+            font-size: 8pt;
+            margin-bottom: 20px;
+        }
+        .publication-info table {
+            border-collapse: collapse;
+        }
+        .publication-info td {
+            padding: 4px;
+            vertical-align: top;
+        }
+        .report-title {
+            font-weight: bold;
+        }
+        .messages {
+            margin: 10px 0;
+        }
+        .messages .alert {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+{% endblock %}
+
+<!-- headline for the page -->
+{% block headline %}Upload Publication Appendices{% endblock %}
+
+{% block main-content %}
+
+<!-- Display publication information -->
+{% if publication %}
+<div class="publication-info">
+    <table style='font-family: Verdana, Arial; font-size: 8pt'>
+        <tr>
+            <td>Title</td>
+            <td class='report-title'>
+                {{ publication.title }}
+                {% if publication.file %}
+                    <a href='{{ MEDIA_URL }}{{ publication.file.file.name }}'>
+                        <img src="{% static 'publications/img/pdf_16x16.png' %}" alt="PDF" />
+                    </a>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Authors</td>
+            <td>
+                {% for author in publication.authors.all %}
+                    {{ author.first }} {{ author.last }}
+                    {% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    No authors registered
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td>Year</td>
+            <td>{{ publication.year }}</td>
+        </tr>
+        <tr>
+            <td>Report no.</td>
+            <td>{{ publication.number }}</td>
+        </tr>
+        <tr>
+            <td>Topics</td>
+            <td>
+                {% for topic in publication.publication_topics.all %}
+                    {{ topic }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    No topics registered
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td>Keywords</td>
+            <td>
+                {% for keyword in publication.publication_keywords.all %}
+                    {{ keyword }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    No keywords registered
+                {% endfor %}
+            </td>
+        </tr>
+        {% if publication.file %}
+        <tr>
+            <td>Download PDF:</td>
+            <td>
+                <a href='{{ MEDIA_URL }}{{ publication.file.file.name }}'>
+                    Download report as PDF ({{ publication.file.filesize }})
+                </a>
+            </td>
+        </tr>
+        {% endif %}
+        <tr><td><br></td><td></td></tr>
+    </table>
+</div>
+{% endif %}
+
+<!-- Display messages -->
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Display existing appendices -->
+{% if existing_appendices %}
+<div class="existing-appendices">
+    <h3>Existing Appendices</h3>
+    <div class="file-list">
+        {% for appendix in existing_appendices %}
+        <div class="file-item">
+            <div class="file-info">
+                <strong>{{ appendix.filename }}</strong>
+                <div class="file-size">{{ appendix.filesize }}</div>
+                {% if appendix.description %}
+                <div class="file-description">{{ appendix.description }}</div>
+                {% endif %}
+            </div>
+            <div class="file-actions">
+                <a href="{{ MEDIA_URL }}{{ appendix.file.name }}" class="btn btn-primary" target="_blank">
+                    Download
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- File upload form -->
+<div class="upload-form">
+    <h3>Upload New Appendices</h3>
+    
+    <p>
+        <strong>Upload Process:</strong>
+    </p>
+    <ol>
+        <li>First, select files and click "Upload Files" to add them to temporary storage</li>
+        <li>Review the uploaded files in the "Files Ready for Upload" section below</li>
+        <li>Finally, click "Submit and Attach Files to Publication" to permanently attach them</li>
+    </ol>
+    
+    <p>
+        Files are temporarily stored and automatically deleted if not submitted within the session.
+    </p>
+    
+    <p>
+        <strong>Note:</strong> For very large files (>50MB), we may need to implement 
+        a secondary upload scheme. Please contact support for assistance with large files.
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload">
+        
+        <div class="form-group">
+            {{ form.appendix_files.label_tag }}
+            {{ form.appendix_files }}
+            {% if form.appendix_files.help_text %}
+                <small class="form-text text-muted">{{ form.appendix_files.help_text }}</small>
+            {% endif %}
+            {% if form.appendix_files.errors %}
+                <div class="alert alert-error">
+                    {% for error in form.appendix_files.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Upload Files</button>
+    </form>
+</div>
+
+<!-- Display session files (pending upload) -->
+{% if session_files %}
+<div class="session-files">
+    <h3>Files Ready for Upload</h3>
+    <div class="file-list">
+        {% for file_info in session_files %}
+        <div class="file-item">
+            <div class="file-info">
+                <strong>{{ file_info.filename }}</strong>
+                <div class="file-size">
+                    {% if file_info.size %}
+                        {{ file_info.size|filesizeformat }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="file-actions">
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="file_index" value="{{ forloop.counter0 }}">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Remove this file?')">
+                        Remove
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Submit/Cancel buttons -->
+{% if session_files %}
+<div class="form-actions" style="margin: 20px 0;">
+    <form method="post" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="submit">
+        <button type="submit" class="btn btn-success">
+            Submit and Attach Files to Publication
+        </button>
+    </form>
+    
+    <form method="post" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="cancel">
+        <button type="submit" class="btn btn-secondary" onclick="return confirm('Cancel upload and remove all files?')">
+            Cancel
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Navigation -->
+<div class="navigation" style="margin: 20px 0;">
+    <a href="{% url 'report' pk=publication.id %}" class="btn btn-secondary">
+        ← Back to Publication
+    </a>
+</div>
+
+{% endblock %}
