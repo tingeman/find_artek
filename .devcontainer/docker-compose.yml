@@ -5,13 +5,15 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     container_name: webapp-find-artek-devcon
+    # Load environment variables from .dev.env for development
+    # Note: MYSQL_HOST is hardcoded for dev container environment
     env_file:
-      - .env
+      - ../.dev.env
     environment:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_HOST: find-artek-mariadb-service-devcon
       SECRET_KEY: ${SECRET_KEY}
     volumes:
       - ../../00_static_data/find_artek_static:/mnt/shared-project-data
@@ -44,10 +46,10 @@ services:
     image: mariadb:11.2
     container_name: fa-mariadb-service-devcon
     env_file:
-      - .env
+      - ../.dev.env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
@@ -64,9 +66,9 @@ services:
       ports:
         - "6001:80"
       env_file:
-        - .env
+        - ../.dev.env
       environment:
-        PMA_HOST: ${MYSQL_HOST}
+        PMA_HOST: find-artek-mariadb-service-devcon  # Hardcoded for dev container
         MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         MYSQL_USER: ${MYSQL_USER}
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}

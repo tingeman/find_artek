@@ -12,6 +12,7 @@ drf-yasg
 mysqlclient
 ping3
 PyPDF2
+pdf2image
 setuptools
 werkzeug
 gunicorn

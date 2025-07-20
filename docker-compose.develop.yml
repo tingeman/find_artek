@@ -24,6 +24,9 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_HOST: ${MYSQL_HOST}
       SECRET_KEY: ${SECRET_KEY}
+      # Cron configuration
+      ENABLE_CRON: ${ENABLE_CRON:-false}
+      THUMBNAIL_HEIGHT: ${THUMBNAIL_HEIGHT:-400}
     volumes:
       - ../00_static_data/find_artek_static:/mnt/shared-project-data
     ports:

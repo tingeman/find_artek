@@ -33,6 +33,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin libgdal-dev \
     build-essential \
     gcc \
+    poppler-utils \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure and generate the en_US.UTF-8 locale
@@ -76,9 +78,26 @@ RUN set -ex \
 # Add the virtual environment to PATH
 ENV PATH="/usr/src/venv/bin:$PATH"
 
+# Set environment variable for Django project location
+ENV DJANGO_PROJECT_DIR="/usr/src/project/app-main"
+
 WORKDIR /usr/src/project/
 
-# Copy the project files
+# Note: Thumbnail generation scripts are available via volume mounts from docker-compose
+# In devcontainer mode, cron is not automatically started
+# 
+# For manual thumbnail generation testing, use either:
+# /usr/local/bin/generate_thumbnails_cron.sh [height]
+# OR: ./scripts/generate_thumbnails_cron.sh [height]
+# 
+# To set up cron manually (if needed for testing):
+# /usr/local/bin/setup_cron.sh
+# OR: ./scripts/setup_cron.sh
+#
+# Scripts are dynamically editable since they're mounted from the host
+# Symbolic links are automatically created by postCreateCommand.sh
+
+# Copy the project files - not needed for devcontainer 
 #COPY --chown=$USERNAME:$USERNAME ../app-main /app
 
 #EXPOSE 8099

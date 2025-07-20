@@ -30,12 +30,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
+    env_file:
+      - .prod.env
     environment:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_HOST: find-artek-mariadb-service
       SECRET_KEY: ${SECRET_KEY}
+      # Cron configuration
+      ENABLE_CRON: ${ENABLE_CRON:-true}
+      THUMBNAIL_HEIGHT: ${THUMBNAIL_HEIGHT:-400}
     volumes:
       - ../00_static_data/find_artek_static:/mnt/shared-project-data
     ports:
@@ -66,6 +71,8 @@ services:
     restart: always
     image: mariadb:11.2
     container_name: fa-mariadb-service
+    env_file:
+      - .prod.env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
@@ -84,8 +91,10 @@ services:
       container_name: fa-phpmyadmin-service
       ports:
         - "6001:80"
+      env_file:
+        - .prod.env
       environment:
-        PMA_HOST: ${MYSQL_HOST}
+        PMA_HOST: find-artek-mariadb-service
         MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         MYSQL_USER: ${MYSQL_USER}
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}

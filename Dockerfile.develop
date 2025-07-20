@@ -32,6 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin libgdal-dev \
     build-essential \
     gcc \
+    poppler-utils \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure and generate the en_US.UTF-8 locale
@@ -74,8 +76,26 @@ RUN set -ex && \
 # Add the virtual environment to PATH
 ENV PATH="/app/venv/bin:$PATH"
 
+# Set environment variable for Django project location
+ENV DJANGO_PROJECT_DIR="/app"
+
 # Copy the project files
 COPY --chown=$USERNAME:$USERNAME ./app-main /app
+
+# Copy and set up the thumbnail generation script
+COPY --chown=$USERNAME:$USERNAME ./scripts/generate_thumbnails_cron.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/generate_thumbnails_cron.sh
+
+# Copy and set up the cron setup script
+COPY --chown=root:root ./scripts/setup_cron.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup_cron.sh
+
+# Copy and set up the entrypoint script
+COPY --chown=root:root ./scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 #EXPOSE 8099
 # Start Gunicorn to serve the Django app
