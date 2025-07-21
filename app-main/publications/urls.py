@@ -10,7 +10,7 @@ urlpatterns = [
     path('persons/', views.PersonsView.as_view(), name='persons'),
 
     path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
-    path('report/<int:pk>/upload_appendices/', views.UploadAppendicesView.as_view(), name='upload_appendices'),
+    path('report/<int:pk>/appendix/upload/', views.UploadAppendixView.as_view(), name='upload_appendix'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
     path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
     # path('login/', views.LoginView.as_view(), name='login'),
@@ -21,8 +21,10 @@ urlpatterns = [
     path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
     path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
     path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
+    path('report/<int:pk>/change-number/', views.ChangeReportNumberView.as_view(), name='change_report_number'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
     path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
+    path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
 
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),

@@ -97,6 +97,63 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
         return 9999
 
 
+class ChangeReportNumberForm(forms.Form):
+    """
+    Specialized form for changing an existing report's number.
+    Handles validation and triggers file/directory renaming.
+    """
+    new_number = forms.CharField(
+        max_length=10,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Enter new report number (format: YY-NN)',
+            'class': 'report-number-field'
+        }),
+        help_text="New report number in format YY-NN. Files and directories will be renamed automatically."
+    )
+    
+    confirm_change = forms.BooleanField(
+        required=True,
+        label="I understand this will rename files and directories",
+        help_text="Check this box to confirm you want to change the report number and rename associated files"
+    )
+    
+    def __init__(self, *args, publication=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.publication = publication
+        if publication:
+            self.fields['new_number'].widget.attrs['placeholder'] = f'Current: {publication.number}'
+    
+    def clean_new_number(self):
+        """Validate the new report number"""
+        new_number = self.cleaned_data.get('new_number')
+        
+        if not new_number:
+            raise ValidationError("New report number is required")
+        
+        # Validate format
+        from publications.utils import validate_report_number_format
+        is_valid, error_message = validate_report_number_format(new_number)
+        if not is_valid:
+            raise ValidationError(error_message)
+        
+        # Check if it's the same as current number
+        if self.publication and new_number == self.publication.number:
+            raise ValidationError("New number must be different from current number")
+        
+        # Check if number already exists for this year
+        if self.publication and self.publication.year:
+            existing = Publication.objects.filter(
+                year=self.publication.year, 
+                number=new_number
+            ).exclude(pk=self.publication.pk)
+            
+            if existing.exists():
+                raise ValidationError(f"Report number {new_number} already exists for year {self.publication.year}")
+        
+        return new_number
+
+
 class AddEditReportForm(ModelForm):
     """A unified form for both adding and editing reports
     
@@ -109,12 +166,26 @@ class AddEditReportForm(ModelForm):
     MAX_FILE_SIZE_MB = 300
 
     year = forms.IntegerField(
+        required=True,  # Required in forms for proper report numbering
         initial=datetime.datetime.now().year,
         widget=forms.NumberInput(attrs={
             'min': 1900,
-            'max': datetime.datetime.now().year,
+            'max': datetime.datetime.now().year + 5,  # Allow future years for planning
             'placeholder': 'Enter year'
-        })
+        }),
+        help_text="Year of publication (required for proper report numbering and file organization)"
+    )
+
+    # Report number field - auto-generated after save, not editable during creation
+    number = forms.CharField(
+        max_length=10,
+        required=False,  # Not required during form submission - auto-generated
+        widget=forms.TextInput(attrs={
+            'readonly': True,  # Always readonly in forms
+            'placeholder': 'Auto-generated after save',
+            'class': 'report-number-field'
+        }),
+        help_text="Report number will be automatically assigned in format YY-NN when the report is saved"
     )
 
     authors = forms.CharField(max_length=1000, required=False,
@@ -247,6 +318,11 @@ class AddEditReportForm(ModelForm):
             
             # Hide the delete_pdf field in add mode since there's no existing file
             self.fields['delete_pdf'].widget = forms.HiddenInput()
+            
+            # In ADD mode, number field is readonly and shows placeholder
+            self.fields['number'].widget.attrs['readonly'] = True
+            self.fields['number'].widget.attrs['placeholder'] = 'Will be auto-generated when report is saved'
+            self.fields['number'].help_text = "Report number will be automatically assigned when you save the report"
 
         print(f'AddEditReportForm:__init__: delete_pdf field after configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
 
@@ -377,13 +453,31 @@ class AddEditReportForm(ModelForm):
         
         return uploaded_file
     
+    def clean_year(self):
+        """Validate year and ensure it's reasonable"""
+        year = self.cleaned_data.get('year')
+        if not year:
+            raise ValidationError("Year is required")
+        
+        current_year = datetime.datetime.now().year
+        if year < 1900:
+            raise ValidationError("Year cannot be before 1900")
+        if year > current_year + 5:
+            raise ValidationError(f"Year cannot be more than 5 years in the future (max: {current_year + 5})")
+        
+        return year
+
     def clean_number(self):
-        """Prevent number from being changed in edit mode"""
+        """Handle report number validation - simplified since auto-generation happens at save"""
+        number = self.cleaned_data.get('number')
+        
         if self.instance and self.instance.pk:
-            # In edit mode, always return the original number
+            # In edit mode, return the existing number (unless specifically changing it)
             return self.instance.number
-        # In add mode, return the cleaned data
-        return self.cleaned_data.get('number')
+        else:
+            # In add mode, number is auto-generated at save time, not during form validation
+            # Return None to indicate auto-generation is needed
+            return None
     
     # def save(self, full_name):
     #     # instance = super().save(commit=False)
@@ -603,7 +697,7 @@ class PublicationForm(forms.ModelForm):
         }
 
 
-class AppendixUploadForm(forms.Form):
+class UploadAppendixForm(forms.Form):
     """
     Form for uploading multiple appendix files to a publication.
     Uses session-based batch management for file handling.

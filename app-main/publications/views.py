@@ -553,11 +553,46 @@ class AddEditReportView(BaseFormView):
         if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
             return self._handle_person_selection_redirect(form)
 
-        # Save publication
+        # Save publication (without files yet)
         self.object = form.save(commit=False)
-        self.object.save()
+        
+        # Auto-generate report number for new publications
+        if not self.object.pk and not self.object.number:
+            if self.object.year:
+                from publications.utils import generate_next_report_number
+                from django.db import transaction, IntegrityError
+                import time
+                
+                # Use retry logic to handle concurrency during auto-generation
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        with transaction.atomic():
+                            # Generate number atomically
+                            self.object.number = generate_next_report_number(self.object.year)
+                            self.object.save()
+                            break  # Success - exit retry loop
+                    except IntegrityError:
+                        if attempt < max_retries - 1:
+                            time.sleep(0.1)  # Brief delay before retry
+                            continue
+                        else:
+                            # If all retries fail, show error
+                            from django.contrib import messages
+                            messages.error(
+                                self.request, 
+                                "Unable to assign report number due to high system load. Please try again."
+                            )
+                            return redirect('add_report')
+            else:
+                from django.contrib import messages
+                messages.error(self.request, "Cannot create report without a year")
+                return redirect('add_report')
+        else:
+            # Save existing publication (edit mode)
+            self.object.save()
 
-        # Handle file operations
+        # Handle file operations AFTER report number is assigned
         self._handle_file_operations(form)
 
         # Handle relationships
@@ -1145,7 +1180,7 @@ class LogoutView(BaseView):
 #     return JsonResponse(serialized_features, safe=False)
 
 
-class UploadAppendicesView(BaseView):
+class UploadAppendixView(BaseView):
     """
     View for uploading multiple appendix files to a publication.
     Uses session-based batch management for file handling.
@@ -1153,7 +1188,7 @@ class UploadAppendicesView(BaseView):
     Note: For very large files (>100MB), we may need to implement 
     a secondary upload scheme with chunked uploads or direct storage.
     """
-    template_name = 'publications/upload_appendices.html'
+    template_name = 'publications/upload_appendix.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1164,8 +1199,8 @@ class UploadAppendicesView(BaseView):
         context['publication'] = publication
         
         # Import forms here to avoid circular imports
-        from publications.forms import AppendixUploadForm
-        context['form'] = AppendixUploadForm()
+        from publications.forms import UploadAppendixForm
+        context['form'] = UploadAppendixForm()
         
         # Get session files for this publication
         session_key = f'appendix_upload_{publication_id}'
@@ -1208,11 +1243,11 @@ class UploadAppendicesView(BaseView):
     
     def handle_file_upload(self, request, publication):
         """Add uploaded files to session storage"""
-        from publications.forms import AppendixUploadForm
+        from publications.forms import UploadAppendixForm
         import tempfile
         import os
         
-        form = AppendixUploadForm(request.POST, request.FILES)
+        form = UploadAppendixForm(request.POST, request.FILES)
         
         if form.is_valid():
             files = request.FILES.getlist('appendix_files')
@@ -1253,7 +1288,7 @@ class UploadAppendicesView(BaseView):
             from django.contrib import messages
             messages.success(request, f'Successfully uploaded {len(files)} file(s)')
         
-        return redirect('upload_appendices', pk=publication.id)
+        return redirect('upload_appendix', pk=publication.id)
     
     def handle_file_removal(self, request, publication):
         """Remove a file from session storage"""
@@ -1281,7 +1316,7 @@ class UploadAppendicesView(BaseView):
             from django.contrib import messages
             messages.success(request, f'Removed {file_to_remove["filename"]}')
         
-        return redirect('upload_appendices', pk=publication.id)
+        return redirect('upload_appendix', pk=publication.id)
     
     def handle_submit(self, request, publication):
         """Commit all session files to the publication"""
@@ -1305,7 +1340,7 @@ class UploadAppendicesView(BaseView):
         except Exception as e:
             from django.contrib import messages
             messages.error(request, f'Error processing files: {e}')
-            return redirect('upload_appendices', pk=publication.id)
+            return redirect('upload_appendix', pk=publication.id)
     
     def handle_cancel(self, request, publication):
         """Cancel upload and clean up session files"""
@@ -1332,4 +1367,104 @@ class UploadAppendicesView(BaseView):
         
         # Redirect to publication detail page
         return redirect('report', pk=publication.id)
+
+
+class ChangeReportNumberView(BaseFormView):
+    """
+    View for changing an existing report's number with file renaming.
+    """
+    template_name = 'publications/change_report_number.html'
+    
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_object(self):
+        """Get the publication to change number for"""
+        return get_object_or_404(Publication, pk=self.kwargs['pk'])
+    
+    def get_form_class(self):
+        from publications.forms import ChangeReportNumberForm
+        return ChangeReportNumberForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['publication'] = self.get_object()
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['publication'] = self.get_object()
+        return context
+    
+    def form_valid(self, form):
+        publication = self.get_object()
+        old_number = publication.number
+        new_number = form.cleaned_data['new_number']
+        
+        try:
+            from django.db import transaction
+            from publications.utils import rename_publication_files
+            
+            with transaction.atomic():
+                # First rename files
+                rename_results = rename_publication_files(publication, old_number, new_number)
+                
+                if not rename_results['success']:
+                    # If file renaming failed, show errors
+                    for error in rename_results['errors']:
+                        from django.contrib import messages
+                        messages.error(self.request, f"File renaming error: {error}")
+                    return self.form_invalid(form)
+                
+                # Update publication number in database
+                publication.number = new_number
+                publication.modified_by = self.request.user
+                publication.save(update_fields=['number', 'modified_by', 'modified'])
+                
+                # Show success message with file details
+                from django.contrib import messages
+                messages.success(
+                    self.request, 
+                    f"Report number changed from {old_number} to {new_number}"
+                )
+                
+                if rename_results['renamed_files']:
+                    messages.info(
+                        self.request,
+                        f"Renamed {len(rename_results['renamed_files'])} files and {len(rename_results['directories_renamed'])} directories"
+                    )
+                
+                return redirect('report', pk=publication.pk)
+                
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(
+                self.request, 
+                f"Error changing report number: {str(e)}"
+            )
+            return self.form_invalid(form)
+
+
+class GetNextReportNumberView(View):
+    """
+    AJAX view to get the next available report number for a given year.
+    Used for auto-updating the report number field when year changes.
+    """
+    
+    def get(self, request):
+        year = request.GET.get('year')
+        
+        if not year:
+            return JsonResponse({'error': 'Year parameter is required'}, status=400)
+        
+        try:
+            year = int(year)
+            from publications.utils import generate_next_report_number
+            next_number = generate_next_report_number(year)
+            return JsonResponse({'number': next_number})
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid year format'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error generating report number: {str(e)}'}, status=500)
 

@@ -17,6 +17,38 @@ New report
     <link rel="stylesheet" type="text/css" href="{% static 'publications/css/file-upload.css' %}" />
     <script src="{% static 'publications/js/file-upload.js' %}" defer></script>
     {{ form.media }}
+    
+    <script>
+    $(document).ready(function() {
+        // Auto-update report number when year changes (only in add mode)
+        var isEditMode = {{ publication|yesno:"true,false" }};
+        
+        if (!isEditMode) {
+            $('#id_year').on('change', function() {
+                var year = $(this).val();
+                if (year && year.length === 4) {
+                    // Make AJAX request to get next available report number
+                    $.ajax({
+                        url: '{% url "get_next_report_number" %}',
+                        data: {
+                            'year': year
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.number) {
+                                $('#id_number').val(data.number);
+                                $('#id_number').attr('placeholder', 'Suggested: ' + data.number);
+                            }
+                        },
+                        error: function() {
+                            console.log('Error getting next report number');
+                        }
+                    });
+                }
+            });
+        }
+    });
+    </script>
 {% endblock %}
 
 {% block headline %}

@@ -1,0 +1,121 @@
+{% extends base_template %}
+
+{% load i18n static %}
+
+{# title #}
+{% block title %}Change Report Number{% endblock %}
+
+<!-- headline for the page -->
+{% block headline %}Change Report Number{% endblock %}
+
+{% block main-content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Change Report Number</h2>
+            
+            <div class="alert alert-warning">
+                <strong>Warning:</strong> Changing the report number will rename associated files and directories. 
+                This action cannot be undone automatically.
+            </div>
+            
+            <div class="publication-info">
+                <h4>Current Publication:</h4>
+                <p><strong>Title:</strong> {{ publication.title }}</p>
+                <p><strong>Year:</strong> {{ publication.year }}</p>
+                <p><strong>Current Number:</strong> {{ publication.number }}</p>
+            </div>
+            
+            <form method="post" class="mt-4">
+                {% csrf_token %}
+                
+                <div class="form-group mb-3">
+                    <label for="{{ form.new_number.id_for_label }}">{{ form.new_number.label }}</label>
+                    {{ form.new_number }}
+                    {% if form.new_number.help_text %}
+                        <small class="form-text text-muted">{{ form.new_number.help_text }}</small>
+                    {% endif %}
+                    {% if form.new_number.errors %}
+                        <div class="text-danger">
+                            {% for error in form.new_number.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    <div class="form-check">
+                        {{ form.confirm_change }}
+                        <label class="form-check-label" for="{{ form.confirm_change.id_for_label }}">
+                            {{ form.confirm_change.label }}
+                        </label>
+                    </div>
+                    {% if form.confirm_change.help_text %}
+                        <small class="form-text text-muted">{{ form.confirm_change.help_text }}</small>
+                    {% endif %}
+                    {% if form.confirm_change.errors %}
+                        <div class="text-danger">
+                            {% for error in form.confirm_change.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Change Report Number</button>
+                    <a href="{% url 'report' pk=publication.pk %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>What will be renamed:</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li>📁 Report directory: <code>media/reports/{{ publication.year }}/{{ publication.number }}/</code></li>
+                        <li>🖼️ Thumbnail: <code>{{ publication.number }}_thumb.jpg</code></li>
+                        <li>📄 PDF file path (if exists)</li>
+                        <li>📎 Appendix file paths (if any)</li>
+                        <li>💾 Database references</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block dynamic_head_content %}
+<style>
+.publication-info {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 20px 0;
+}
+
+.form-actions {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #dee2e6;
+}
+
+.alert-warning {
+    border-left: 4px solid #ffc107;
+}
+
+code {
+    background-color: #f1f3f4;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+</style>
+{% endblock %}

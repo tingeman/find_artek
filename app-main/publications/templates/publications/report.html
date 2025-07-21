@@ -66,7 +66,14 @@
     
         <div class="row">
             <span class="property">Report no.</span>
-            <span class="value">{{publication.number}}</span>
+            <span class="value">
+                {{publication.number}}
+                {% if user.is_authenticated %}
+                    <a href="{% url 'change_report_number' pk=publication.pk %}" class="btn btn-sm btn-outline-secondary ms-2" title="Change report number">
+                        ✏️
+                    </a>
+                {% endif %}
+            </span>
         </div>
     
         <div class="row">
@@ -163,7 +170,7 @@
     {% endfor %}
     
     <div style="margin-top: 10px;">
-        <a href="{% url 'upload_appendices' pk=publication.id %}" class="btn btn-primary">
+        <a href="{% url 'upload_appendix' pk=publication.id %}" class="btn btn-primary">
             Upload Appendices
         </a>
     </div>
