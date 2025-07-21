@@ -187,7 +187,7 @@ class Migration(migrations.Migration):
                 ('ISSN', models.CharField(blank=True, max_length=255)),
                 ('note', models.TextField(blank=True, max_length=255)),
                 ('series', models.CharField(blank=True, max_length=255)),
-                ('abstract', models.TextField(blank=True, max_length=255)),
+                ('abstract', models.TextField(blank=True)),
                 ('remark', models.CharField(blank=True, max_length=255)),
                 ('subject', models.CharField(blank=True, max_length=255)),
                 ('howpublished', models.CharField(blank=True, max_length=255)),
