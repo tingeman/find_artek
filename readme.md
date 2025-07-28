@@ -1,6 +1,7 @@
 # TODO list
 
 ### To do...
+- [] implement links to edit and delete publication
 - [] implement feature view
 - [] check data in database against old find-artek
 - [] check model setup against old find-artek
@@ -8,6 +9,8 @@
 
 
 ### Completed
+- [x] implemented appendices upload
+- [x] implemented report pdf upload
 - [x] fix map view on report page (and limit features to those from the report)
 - [x] fix author links, etc...
 - [x] implement simple search from front page

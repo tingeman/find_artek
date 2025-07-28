@@ -150,6 +150,23 @@
                 <span class="value">No abstract available</span>
             {% endif %}
         </div>
+        
+        {% if user.is_authenticated %}
+        <div class="row">
+            <span class="property">Actions</span>
+            <span class="value">
+                <a href="{% url 'edit_report' pk=publication.pk %}" class="btn btn-sm btn-outline-primary me-2" title="Edit this publication">
+                    ✏️ Edit
+                </a>
+                {% if user.is_superuser or publication.created_by == user or perms.publications.delete_publication %}
+                <a href="{% url 'delete_report' pk=publication.pk %}" class="btn btn-sm btn-outline-danger" title="Delete this publication" 
+                   onclick="return confirm('Are you sure you want to delete this publication? This action cannot be undone.');">
+                    🗑️ Delete
+                </a>
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
     </div>
 
     <div class="preview-box">
@@ -218,6 +235,14 @@
         </div>
 
     </div>
+    
+    <!-- Add Feature by Coordinates Section -->
+    <div class="mb-3 text-center">
+        <a href="{% url 'add_feature_coordinates' report_pk=publication.pk %}" class="btn btn-success">
+            📍 Add Feature by Coordinates
+        </a>
+    </div>
+    
     <div class="feature-table-box">
         <table>
             <thead>

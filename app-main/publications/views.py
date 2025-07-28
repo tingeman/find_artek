@@ -1,5 +1,6 @@
 import re
 import json
+import os
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -24,7 +25,8 @@ from find_artek.search import get_query
 from publications.utils import CaseInsensitively, create_ordered_queryset, handle_publication_file_upload
 from publications.library import get_client_ip, is_private
 from publications.forms import (LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
-                                PublicationForm, AuthorSelectForm, SupervisorSelectForm)
+                                PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
+                                AddFeatureCoordinatesForm)
 from publications.models import Publication, Topic, Feature, Person
 
 import pdb
@@ -1467,4 +1469,243 @@ class GetNextReportNumberView(View):
             return JsonResponse({'error': 'Invalid year format'}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error generating report number: {str(e)}'}, status=500)
+
+
+@method_decorator(login_required, name='dispatch')
+class AddFeatureCoordinatesView(BaseFormView):
+    """View for adding a point feature with known coordinates"""
+    template_name = 'publications/add_feature_coordinates.html'
+    form_class = AddFeatureCoordinatesForm
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Add debugging for all requests"""
+        print(f"AddFeatureCoordinatesView.dispatch: {request.method} request received")
+        print(f"POST data: {request.POST}")
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_publication(self):
+        """Get the publication this feature will be associated with"""
+        report_pk = self.kwargs.get('report_pk')
+        return get_object_or_404(Publication, pk=report_pk)
+    
+    def get_context_data(self, **kwargs):
+        print("AddFeatureCoordinatesView.get_context_data called")
+        context = super().get_context_data(**kwargs)
+        context['publication'] = self.get_publication()
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Handle POST requests with debugging"""
+        print(f"AddFeatureCoordinatesView.post called with data: {request.POST}")
+        return super().post(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        """Process valid form and create the feature"""
+        print(f"AddFeatureCoordinatesView.form_valid called with cleaned_data: {form.cleaned_data}")
+        from django.contrib.gis.geos import Point
+        from django.contrib import messages
+        
+        try:
+            print("Step 1: Getting publication...")
+            publication = self.get_publication()
+            print(f"Publication: {publication}")
+            
+            print("Step 2: Creating feature instance...")
+            # Create the feature instance
+            feature = form.save(commit=False)
+            feature.created_by = self.request.user
+            feature.modified_by = self.request.user
+            print(f"Feature instance created: {feature}")
+            
+            print("Step 3: Getting coordinate data...")
+            # Get coordinate data
+            x_coord = form.cleaned_data['x_coordinate']
+            y_coord = form.cleaned_data['y_coordinate']
+            srid = int(form.cleaned_data['spatial_reference_system'])
+            print(f"Coordinates: x={x_coord}, y={y_coord}, srid={srid}")
+            
+            print("Step 4: Creating Point geometry...")
+            # Create the geometry
+            point = Point(float(x_coord), float(y_coord), srid=srid)
+            print(f"Point created: {point}")
+            
+            print("Step 5: Converting to MultiPoint...")
+            # Convert to MultiPoint for storage (following the old system pattern)
+            from django.contrib.gis.geos import MultiPoint
+            feature.points = MultiPoint(point, srid=srid)
+            print(f"MultiPoint created: {feature.points}")
+            
+            print("Step 6: Saving feature...")
+            # Save the feature
+            feature.save()
+            print("Feature saved successfully")
+            
+            print("Step 7: Associating with publication...")
+            # Associate with the publication
+            feature.publications.add(publication)
+            print("Feature associated with publication")
+            
+            print("Step 8: Adding success messages...")
+            messages.success(
+                self.request, 
+                f'Feature "{feature.name}" has been successfully created and associated with '
+                f'publication {publication.number}.'
+            )
+            
+            # Check if coordinates seem reasonable and add informational message
+            if hasattr(form, 'coordinate_warnings') and form.coordinate_warnings:
+                messages.warning(
+                    self.request,
+                    'Please verify the feature location is correct. Some coordinate values '
+                    'generated warnings during validation.'
+                )
+            else:
+                messages.info(
+                    self.request,
+                    'Please verify that the geographical location of the feature is correct.'
+                )
+            
+            print("Step 9: Redirecting...")
+            return redirect('report', pk=publication.pk)
+            
+        except Exception as e:
+            print(f"ERROR in form_valid: {type(e).__name__}: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            messages.error(
+                self.request,
+                f'Error creating feature geometry: {str(e)}. Please check your coordinates and SRID.'
+            )
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        """Handle invalid form with debugging"""
+        print(f"AddFeatureCoordinatesView.form_invalid called")
+        print(f"Form errors: {form.errors}")
+        print(f"Form non_field_errors: {form.non_field_errors}")
+        return super().form_invalid(form)
+    
+    def get_success_url(self):
+        """Redirect to the publication detail page"""
+        return reverse('report', kwargs={'pk': self.kwargs['report_pk']})
+
+
+class DeleteReportView(BaseView):
+    """View for deleting a publication and all its associated files"""
+    template_name = 'publications/delete_report_form.html'
+    
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+    
+    def get_publication(self):
+        """Get the publication to be deleted"""
+        pk = self.kwargs.get('pk')
+        return get_object_or_404(Publication, pk=pk)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['publication'] = self.get_publication()
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        """Display the delete confirmation page"""
+        publication = self.get_publication()
+        
+        # Check permissions - user must be able to delete their own publications
+        # or have admin privileges
+        if not (request.user.is_superuser or 
+                publication.created_by == request.user or
+                request.user.has_perm('publications.delete_publication')):
+            return render(request, 'publications/access_denied.html', {
+                'message': 'You do not have permission to delete this publication.'
+            })
+        
+        context = self.get_context_data()
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        """Handle the delete or cancel action"""
+        publication = self.get_publication()
+        
+        # Check permissions
+        if not (request.user.is_superuser or 
+                publication.created_by == request.user or
+                request.user.has_perm('publications.delete_publication')):
+            return render(request, 'publications/access_denied.html', {
+                'message': 'You do not have permission to delete this publication.'
+            })
+        
+        action = request.POST.get('action')
+        
+        if action == 'cancel':
+            # Redirect back to the publication detail page
+            return redirect('report', pk=publication.pk)
+        
+        elif action == 'delete':
+            try:
+                # Delete all associated files first
+                self._delete_publication_files(publication)
+                
+                # Store publication title for success message
+                pub_title = publication.title or f"Publication {publication.pk}"
+                
+                # Delete the publication itself (this will cascade to relationships)
+                publication.delete()
+                
+                # Redirect to reports list with success message
+                from django.contrib import messages
+                messages.success(request, f'Publication "{pub_title}" has been successfully deleted.')
+                return redirect('reports')
+                
+            except Exception as e:
+                from django.contrib import messages
+                messages.error(request, f'Error deleting publication: {str(e)}')
+                return redirect('report', pk=publication.pk)
+        
+        # Invalid action - show the form again
+        context = self.get_context_data()
+        return render(request, self.template_name, context)
+    
+    def _delete_publication_files(self, publication):
+        """Delete all files associated with the publication"""
+        import os
+        from django.conf import settings
+        
+        # Delete main PDF file and its thumbnail
+        if publication.file:
+            # Delete the main file
+            if publication.file.file and os.path.exists(publication.file.file.path):
+                os.remove(publication.file.file.path)
+            
+            # Delete thumbnail if it exists
+            thumbnail_path = self._get_thumbnail_path(publication.file.file.path)
+            if thumbnail_path and os.path.exists(thumbnail_path):
+                os.remove(thumbnail_path)
+            
+            # Delete the FileObject record
+            publication.file.delete()
+        
+        # Delete all appendices
+        for appendix in publication.appendices.all():
+            if appendix.file and os.path.exists(appendix.file.path):
+                os.remove(appendix.file.path)
+            
+            # Delete thumbnail if it exists
+            thumbnail_path = self._get_thumbnail_path(appendix.file.path)
+            if thumbnail_path and os.path.exists(thumbnail_path):
+                os.remove(thumbnail_path)
+        
+        # Clear the many-to-many relationship (this will delete Appendenciesship records)
+        publication.appendices.clear()
+    
+    def _get_thumbnail_path(self, file_path):
+        """Generate the expected thumbnail path for a file"""
+        if not file_path:
+            return None
+        
+        # Assuming thumbnails are stored in the same directory with '_thumb' suffix
+        # Adjust this logic based on your thumbnail generation implementation
+        base_path, ext = os.path.splitext(file_path)
+        return f"{base_path}_thumb.png"
 
