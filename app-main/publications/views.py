@@ -337,6 +337,8 @@ class AddEditReportView(BaseFormView):
         
         if self.is_edit_mode():
             context['publication'] = self.get_object()
+        else:
+            context['publication'] = None  # Ensure publication is always in context
         
         # Handle returning from person selection
         if self.request.GET.get('action') == 'edit_continue':

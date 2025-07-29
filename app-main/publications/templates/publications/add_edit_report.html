@@ -21,7 +21,7 @@ New report
     <script>
     $(document).ready(function() {
         // Auto-update report number when year changes (only in add mode)
-        var isEditMode = {{ publication|yesno:"true,false" }};
+        var isEditMode = {% if action == 'edit' %}true{% else %}false{% endif %};
         
         if (!isEditMode) {
             $('#id_year').on('change', function() {
