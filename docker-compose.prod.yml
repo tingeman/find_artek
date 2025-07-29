@@ -33,13 +33,13 @@ services:
     env_file:
       - .prod.env
     environment:
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_HOST: find-artek-mariadb-service
-      SECRET_KEY: ${SECRET_KEY}
+      #MYSQL_USER: ${MYSQL_USER}                   # given in env file
+      #MYSQL_PASSWORD: ${MYSQL_PASSWORD}           # given in env file
+      #MYSQL_DATABASE: ${MYSQL_DATABASE}           # given in env file
+      MYSQL_HOST: find-artek-mariadb-service-dev
+      #SECRET_KEY: ${SECRET_KEY}                   # given in env file
       # Cron configuration
-      ENABLE_CRON: ${ENABLE_CRON:-true}
+      ENABLE_CRON: ${ENABLE_CRON:-false}
       THUMBNAIL_HEIGHT: ${THUMBNAIL_HEIGHT:-400}
     volumes:
       - ../00_static_data/find_artek_static:/mnt/shared-project-data
@@ -51,19 +51,19 @@ services:
     networks:
       - shared_network
 
-
-  nginx:
-    # build:
-    #   context: ./docker/nginx
-    image: nginx:latest
-    container_name: fa-nginx-service
-    ports:
-      - "80:80"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../00_static_data/find_artek_static/staticfiles:/usr/share/nginx/staticfiles
-    networks:
-      - shared_network
+  # In production the nginx server is already running on the host machine.
+  # nginx:
+  #   # build:
+  #   #   context: ./docker/nginx
+  #   image: nginx:latest
+  #   container_name: fa-nginx-service
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ../00_static_data/find_artek_static/staticfiles:/usr/share/nginx/staticfiles
+  #   networks:
+  #     - shared_network
 
 
   # CONSIDER HOW TO INSTANTIATE DATABASE!!!
@@ -73,11 +73,11 @@ services:
     container_name: fa-mariadb-service
     env_file:
       - .prod.env
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    # environment:               # all given in env file
+    #   MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    #   MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
+    #   MYSQL_USER: ${MYSQL_USER}
+    #   MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - find-artek-mariadb:/var/lib/mysql
       - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -95,9 +95,9 @@ services:
         - .prod.env
       environment:
         PMA_HOST: find-artek-mariadb-service
-        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-        MYSQL_USER: ${MYSQL_USER}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        # MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        # MYSQL_USER: ${MYSQL_USER}
+        # MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       volumes:
         - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:

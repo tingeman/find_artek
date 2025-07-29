@@ -45,6 +45,15 @@ ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 
+# Copy and set up the cron setup script
+COPY --chown=root:root ./scripts/setup_cron.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup_cron.sh
+
+# Copy and set up the entrypoint script
+COPY --chown=root:root ./scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+
 # Allow the non-root user to use sudo without password
 RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
@@ -52,6 +61,7 @@ RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 RUN mkdir -p /app \
     && chown $USER_UID:$USER_GID /app \
     && chmod -R 755 /app 
+
 
 # Switch to the non-root user
 USER $USERNAME
@@ -85,14 +95,6 @@ COPY --chown=$USERNAME:$USERNAME ./app-main /app
 # Copy and set up the thumbnail generation script
 COPY --chown=$USERNAME:$USERNAME ./scripts/generate_thumbnails_cron.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/generate_thumbnails_cron.sh
-
-# Copy and set up the cron setup script
-COPY --chown=root:root ./scripts/setup_cron.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/setup_cron.sh
-
-# Copy and set up the entrypoint script
-COPY --chown=root:root ./scripts/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

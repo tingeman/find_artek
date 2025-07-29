@@ -18,12 +18,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.develop
+    env_file:
+      - .dev.env
     environment:
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_HOST: ${MYSQL_HOST}
-      SECRET_KEY: ${SECRET_KEY}
+      #MYSQL_USER: ${MYSQL_USER}                   # given in env file
+      #MYSQL_PASSWORD: ${MYSQL_PASSWORD}           # given in env file
+      #MYSQL_DATABASE: ${MYSQL_DATABASE}           # given in env file
+      MYSQL_HOST: find-artek-mariadb-service-dev
+      #SECRET_KEY: ${SECRET_KEY}                   # given in env file
       # Cron configuration
       ENABLE_CRON: ${ENABLE_CRON:-false}
       THUMBNAIL_HEIGHT: ${THUMBNAIL_HEIGHT:-400}
@@ -58,11 +60,13 @@ services:
     restart: always
     image: mariadb:11.2
     container_name: fa-mariadb-service-dev
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE} # find-artek-django
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    env_file:
+      - .dev.env
+    # environment:               # all given in env file
+    #   MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}       
+    #   MYSQL_DATABASE: ${MYSQL_DATABASE}                         
+    #   MYSQL_USER: ${MYSQL_USER}                         
+    #   MYSQL_PASSWORD: ${MYSQL_PASSWORD}                         
     volumes:
       - find-artek-mariadb-dev:/var/lib/mysql         # MAKE SURE THIS VOLUME EXISTS, CLONE IT FROM find-artek-mariadb
       - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -76,11 +80,13 @@ services:
       container_name: fa-phpmyadmin-service-dev
       ports:
         - "6002:80"
+      env_file:
+        - .dev.env
       environment:
-        PMA_HOST: ${MYSQL_HOST}
-        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-        MYSQL_USER: ${MYSQL_USER}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        PMA_HOST: find-artek-mariadb-service-dev
+        # MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}        # given in env file
+        # MYSQL_USER: ${MYSQL_USER}                          # given in env file
+        # MYSQL_PASSWORD: ${MYSQL_PASSWORD}                  # given in env file
       volumes:
         - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
       networks:
