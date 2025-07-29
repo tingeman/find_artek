@@ -1,0 +1,16 @@
+{% extends base_template %}
+{% load i18n static %}
+
+{% block title %}Confirm Delete Feature{% endblock %}
+
+{% block main-content %}
+<div class="info-box">
+    <h2>Confirm Feature Deletion</h2>
+    <p>Are you sure you want to delete the feature <strong>{{ feature.name }}</strong> (ID: {{ feature.id }})? This will also delete all associated files from the database and disk. This action cannot be undone.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, delete feature</button>
+        <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

@@ -122,7 +122,7 @@ class MyMapClass {
             featureData = this.getFeatures();
         }
 
-        // console.log('addFeatureDataToMap::featureData:', featureData);
+        console.log('addFeatureDataToMap::featureData:', featureData);
 
         // if featureData not null, add a geojson layer to the map
         if (featureData && featureData.length > 0) {
@@ -138,6 +138,9 @@ class MyMapClass {
                 const featureReportsString = this.#_createFeatureReportsString(feature.related_publications);
 
                 const popupContent = this.#_createPopupContent(feature, featureReportsString);
+
+                // Debug: log each feature's geometry
+                console.log('Feature PK:', feature.feature_pk, 'points:', feature.points, 'lines:', feature.lines, 'polys:', feature.polys);
 
                 // add points, lines, and polys to allFeatures
                 if (feature.points) {
@@ -156,7 +159,11 @@ class MyMapClass {
                     };
 
                     this.#_addGeoJSONLayer(feature.points, map, options, popupContent);
-                    allFeatures.features.push(JSON.parse(feature.points));
+                    try {
+                        allFeatures.features.push(JSON.parse(feature.points));
+                    } catch (e) {
+                        console.error('Error parsing feature.points for PK', feature.feature_pk, e, feature.points);
+                    }
                 }
 
                 if (feature.lines) {
@@ -169,7 +176,11 @@ class MyMapClass {
                     };
 
                     this.#_addGeoJSONLayer(feature.lines, map, options, popupContent);
-                    allFeatures.features.push(JSON.parse(feature.lines));
+                    try {
+                        allFeatures.features.push(JSON.parse(feature.lines));
+                    } catch (e) {
+                        console.error('Error parsing feature.lines for PK', feature.feature_pk, e, feature.lines);
+                    }
                 }
 
                 if (feature.polys) {
@@ -182,7 +193,11 @@ class MyMapClass {
                     };
 
                     this.#_addGeoJSONLayer(feature.polys, map, options, popupContent);
-                    allFeatures.features.push(JSON.parse(feature.polys));
+                    try {
+                        allFeatures.features.push(JSON.parse(feature.polys));
+                    } catch (e) {
+                        console.error('Error parsing feature.polys for PK', feature.feature_pk, e, feature.polys);
+                    }
                 }
             });
 
@@ -322,11 +337,18 @@ class MyMapClass {
     #_addGeoJSONLayer(geoJSONData, map, options, popupContent) {
         if (!geoJSONData) return;
 
+        // Debug: log the GeoJSON data before parsing
+        console.log('Adding GeoJSON layer:', geoJSONData);
+
         options.onEachFeature = function (feature, layer) {
             // bind popup to each feature in the GeoJSON layer
             layer.bindPopup(popupContent);
         };
 
-        L.geoJSON(JSON.parse(geoJSONData), options).addTo(map);
+        try {
+            L.geoJSON(JSON.parse(geoJSONData), options).addTo(map);
+        } catch (e) {
+            console.error('Error parsing geoJSONData in #_addGeoJSONLayer:', e, geoJSONData);
+        }
     }
 }

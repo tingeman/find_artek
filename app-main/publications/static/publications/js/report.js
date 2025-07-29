@@ -85,7 +85,6 @@ async function main() {
     const abstractExpandBtn = document.getElementById("abstract-expand-btn");
     const abstractCollapseBtn = document.getElementById("abstract-collapse-btn");
 
-
     function toggleAbstract() {
         const collapsed = document.getElementById("abstract-collapsed");
         const expanded = document.getElementById("abstract-expanded");
@@ -99,9 +98,13 @@ async function main() {
         }
     }
 
-    // Execution starts here
-    abstractExpandBtn.addEventListener("click", toggleAbstract);
-    abstractCollapseBtn.addEventListener("click", toggleAbstract);
+    // Only add event listeners if the buttons exist
+    if (abstractExpandBtn) {
+        abstractExpandBtn.addEventListener("click", toggleAbstract);
+    }
+    if (abstractCollapseBtn) {
+        abstractCollapseBtn.addEventListener("click", toggleAbstract);
+    }
 
 })();
 

@@ -1,14 +1,22 @@
 # TODO list
 
 ### To do...
-- [] implement links to edit and delete publication
-- [] implement feature view
+- [] MAJOR: change to postgresql/postgis backend! (to allow handling of coordinate transformations)
+- [] MAJOR: implement unit testing
+- [] remove pop-ups for user acknowledgements when separate views also ask for akcnowledgement.
+       Or move popups to acknowledgement view instead of happening from report view.
+- [] implement edit feature view/form
 - [] check data in database against old find-artek
 - [] check model setup against old find-artek
 - [] clean up code (remove commented code, newlines etc) [started]
 
 
 ### Completed
+- [x] caching causes problems when new features are added (and possibly reports added). Using context 
+        variable to trigger invalidation of report feature session cache. The template then injects
+        js to clear the relevant session cache key.
+- [x] implement feature view
+- [x] implement links to edit and delete publication        
 - [x] implemented appendices upload
 - [x] implemented report pdf upload
 - [x] fix map view on report page (and limit features to those from the report)

@@ -12,6 +12,11 @@
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+    {% if invalidate_feature_cache %}
+        <script>
+            sessionStorage.removeItem('featureData_report_{{ publication.pk }}');
+        </script>
+    {% endif %}
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js" defer></script>
     <script src="{% static 'publications/js/proj4leaflet.js' %}" defer></script>
@@ -141,8 +146,14 @@
             <span class="property">Abstract</span>
             {% if publication.abstract %}
                 {% if publication.abstract|length > 280 %}
-                    <span class="visible" id="abstract-collapsed">{{publication.abstract | slice:":280"}}.... <p id="abstract-expand-btn" class="abstract-btn" >[Expand]</p></span>
-                    <span class="hidden" id="abstract-expanded">{{publication.abstract}} <p id="abstract-collapse-btn" class="abstract-btn" >[Collapse]</p></span>
+                    <span class="visible" id="abstract-collapsed">
+                        {{publication.abstract | slice:":280"}}.... 
+                        <button id="abstract-expand-btn" class="abstract-btn" type="button">[Expand]</button>
+                    </span>
+                    <span class="hidden" id="abstract-expanded">
+                        {{publication.abstract}} 
+                        <button id="abstract-collapse-btn" class="abstract-btn" type="button">[Collapse]</button>
+                    </span>
                 {% else %}
                     <span class="value">{{publication.abstract}}</span>
                 {% endif %}
@@ -262,6 +273,11 @@
                         <td>{{feature.type}}</td>
                         <td>{{feature.date}}</td>
                         <td>{{feature.description}}</td>
+                        <td>
+                        {% if can_delete_features %}
+                            <a href="{% url 'delete_feature' pk=feature.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this feature? This cannot be undone.');">Delete</a>
+                        {% endif %}
+                        </td>
                     </tr>
                 {% endfor %}
         </table>

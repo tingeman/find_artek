@@ -792,7 +792,7 @@ class AddFeatureCoordinatesForm(ModelForm):
             attrs={'type': 'date', 'class': 'form-control'}
         ),
         input_formats=['%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'],
-        required=False,
+        required=True,
         help_text="Date when the feature was observed/measured"
     )
 
@@ -821,9 +821,14 @@ class AddFeatureCoordinatesForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Make name field required
+        # Make required fields obvious
         self.fields['name'].required = True
         self.fields['type'].required = True
+        self.fields['pos_quality'].required = True
+        self.fields['date'].required = True
+        self.fields['x_coordinate'].required = True
+        self.fields['y_coordinate'].required = True
+        self.fields['spatial_reference_system'].required = True
         
         # Set better labels for coordinate fields
         self.fields['x_coordinate'].label = "X Coordinate"
@@ -861,7 +866,44 @@ class AddFeatureCoordinatesForm(ModelForm):
         x_coord = cleaned_data.get('x_coordinate')
         y_coord = cleaned_data.get('y_coordinate')
         srid = cleaned_data.get('spatial_reference_system')
+        date = cleaned_data.get('date')
+        name = cleaned_data.get('name')
+        pos_quality = cleaned_data.get('pos_quality')
         
+        # Check that all required fields are provided
+        if not name:
+            self.add_error('name', 'Feature name is required')
+        
+        if not pos_quality:
+            self.add_error('pos_quality', 'Position quality is required')
+        
+        # Check that all coordinate fields are provided together
+        coordinate_fields = [x_coord, y_coord, srid]
+        has_any_coords = any(field is not None for field in coordinate_fields)
+        has_all_coords = all(field is not None for field in coordinate_fields)
+        
+        if has_any_coords and not has_all_coords:
+            if x_coord is None:
+                self.add_error('x_coordinate', 'X coordinate is required when providing coordinate information')
+            if y_coord is None:
+                self.add_error('y_coordinate', 'Y coordinate is required when providing coordinate information')
+            if srid is None:
+                self.add_error('spatial_reference_system', 'Spatial Reference System is required when providing coordinates')
+        
+        # All coordinate fields are required for this form
+        if not has_all_coords:
+            if x_coord is None:
+                self.add_error('x_coordinate', 'X coordinate is required')
+            if y_coord is None:
+                self.add_error('y_coordinate', 'Y coordinate is required')
+            if srid is None:
+                self.add_error('spatial_reference_system', 'Spatial Reference System is required')
+        
+        # Date field is required
+        if not date:
+            self.add_error('date', 'Date is required')
+        
+        # If we have all coordinate data, validate ranges
         if x_coord is not None and y_coord is not None and srid:
             try:
                 srid_int = int(srid)

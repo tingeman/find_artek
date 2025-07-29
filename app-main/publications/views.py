@@ -29,6 +29,14 @@ from publications.forms import (LoginForm, AddEditReportForm, AddEditReportFinal
                                 AddFeatureCoordinatesForm)
 from publications.models import Publication, Topic, Feature, Person
 
+from django.contrib import messages
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic.edit import DeleteView
+from publications.models import Feature
+
+
+
 import pdb
 
 # Create your views here.
@@ -253,10 +261,16 @@ class ReportView(BaseDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
         associated_features = Feature.objects.filter(publications=self.object)
-
-        context.update({'associated_features': associated_features})
+        user = self.request.user
+        can_edit_features = self.object.is_editable_by(user) if user.is_authenticated else False
+        can_delete_features = self.object.is_deletable_by(user) if user.is_authenticated else False
+        context.update({
+            'associated_features': associated_features,
+            'can_edit_features': can_edit_features,
+            'can_delete_features': can_delete_features,
+        })
+        context['invalidate_feature_cache'] = self.request.session.pop('invalidate_feature_cache', False)
         print(context)
         return context
 
@@ -1515,7 +1529,9 @@ class AddFeatureCoordinatesView(BaseFormView):
             feature = form.save(commit=False)
             feature.created_by = self.request.user
             feature.modified_by = self.request.user
+            
             print(f"Feature instance created: {feature}")
+            print(f"Feature date: {feature.date}")
             
             print("Step 3: Getting coordinate data...")
             # Get coordinate data
@@ -1539,12 +1555,15 @@ class AddFeatureCoordinatesView(BaseFormView):
             # Save the feature
             feature.save()
             print("Feature saved successfully")
-            
+
             print("Step 7: Associating with publication...")
             # Associate with the publication
             feature.publications.add(publication)
             print("Feature associated with publication")
-            
+
+            # Set flag to trigger session cache clearing
+            self.request.session['invalidate_feature_cache'] = True              
+
             print("Step 8: Adding success messages...")
             messages.success(
                 self.request, 
@@ -1709,3 +1728,52 @@ class DeleteReportView(BaseView):
         base_path, ext = os.path.splitext(file_path)
         return f"{base_path}_thumb.png"
 
+
+class DeleteFeatureView(LoginRequiredMixin, UserPassesTestMixin, DeleteView, BaseView):
+    model = Feature
+    template_name = 'publications/feature_confirm_delete.html'
+    context_object_name = 'feature'
+
+    def test_func(self):
+        # User must have permission to delete the feature (customize as needed)
+        feature = self.get_object()
+        # Example: allow if user has global or own-feature delete permission
+        return self.request.user.has_perm('publications.delete_feature') or \
+               self.request.user.has_perm('publications.delete_own_feature')
+
+    def get_success_url(self):
+        # Redirect to the report page after deletion
+        # Assumes feature is associated with at least one publication
+        
+        # Set flag to invalidate feature cache
+        self.request.session['invalidate_feature_cache'] = True
+
+        pubs = self.object.publications.all()
+        if pubs.exists():
+            return reverse_lazy('report', kwargs={'pk': pubs.first().pk})
+        return reverse_lazy('reports')
+
+    def get_context_data(self, **kwargs):
+        # Ensure self.object is set before using it
+        if not hasattr(self, 'object') or self.object is None:
+            self.object = self.get_object()
+        context = super().get_context_data(**kwargs)
+        # Ensure base_template is always present
+        context['base_template'] = getattr(self, 'base_template', 'publications/base.html')
+        pubs = self.object.publications.all()
+        if pubs.exists():
+            context['cancel_url'] = reverse_lazy('report', kwargs={'pk': pubs.first().pk})
+        else:
+            context['cancel_url'] = reverse_lazy('reports')
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        # Delete associated files from DB and disk
+        for fileobj in self.object.files.all():
+            if fileobj.file:
+                fileobj.file.delete(save=False)  # Delete from disk
+            fileobj.delete()  # Delete FileObject from DB
+        # Optionally, handle images or other related objects here
+
+        return super().delete(request, *args, **kwargs)

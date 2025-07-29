@@ -13,6 +13,7 @@ urlpatterns = [
     path('report/<int:pk>/appendix/upload/', views.UploadAppendixView.as_view(), name='upload_appendix'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
     path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
+    path('feature/<int:pk>/delete/', views.DeleteFeatureView.as_view(), name='delete_feature'),
     # path('login/', views.LoginView.as_view(), name='login'),
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),

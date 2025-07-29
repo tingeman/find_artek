@@ -6,6 +6,17 @@
 
 {% block headline %}Add Feature by Coordinates{% endblock %}
 
+{% block extra_css %}
+<style>
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+.text-danger {
+    font-size: 0.875em;
+}
+</style>
+{% endblock %}
+
 {% block main-content %}
 <div class="container">
     <div class="row">
@@ -17,6 +28,7 @@
                 <p><strong>Publication:</strong> {{ publication.title }}</p>
                 <p>This form allows you to register a point feature using known coordinates. 
                    The feature will be automatically associated with the selected publication.</p>
+                <p><small class="text-muted"><span style="color: red;">*</span> indicates required fields</small></p>
             </div>
 
             {% if form.non_field_errors %}
@@ -31,7 +43,7 @@
                 {% csrf_token %}
                 
                 <!-- Feature Basic Information -->
-                <div class="form-group mb-3 row">
+                <div class="form-group mb-3 row required-field">
                     <label for="{{ form.name.id_for_label }}" class="col-sm-3 col-form-label">{{ form.name.label }}</label>
                     <div class="col-sm-9">
                         {{ form.name }}
@@ -48,7 +60,7 @@
                     </div>
                 </div>
 
-                <div class="form-group mb-3 row">
+                <div class="form-group mb-3 row required-field">
                     <label for="{{ form.type.id_for_label }}" class="col-sm-3 col-form-label">{{ form.type.label }}</label>
                     <div class="col-sm-9">
                         {{ form.type }}
@@ -69,7 +81,7 @@
                 <div class="coordinate-section">
                     <h5>Coordinate Information</h5>
                     
-                    <div class="form-group mb-3 row">
+                    <div class="form-group mb-3 row required-field">
                         <label for="{{ form.pos_quality.id_for_label }}" class="col-sm-3 col-form-label">{{ form.pos_quality.label }}</label>
                         <div class="col-sm-9">
                             {{ form.pos_quality }}
@@ -86,7 +98,7 @@
                         </div>
                     </div>
                     
-                    <div class="form-group mb-3 row">
+                    <div class="form-group mb-3 row required-field">
                         <label for="{{ form.x_coordinate.id_for_label }}" class="col-sm-3 col-form-label" id="x-coordinate-label">{{ form.x_coordinate.label }}</label>
                         <div class="col-sm-9">
                             {{ form.x_coordinate }}
@@ -103,7 +115,7 @@
                         </div>
                     </div>
                     
-                    <div class="form-group mb-3 row">
+                    <div class="form-group mb-3 row required-field">
                         <label for="{{ form.y_coordinate.id_for_label }}" class="col-sm-3 col-form-label" id="y-coordinate-label">{{ form.y_coordinate.label }}</label>
                         <div class="col-sm-9">
                             {{ form.y_coordinate }}
@@ -120,7 +132,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group mb-3 row">
+                    <div class="form-group mb-3 row required-field">
                         <label for="{{ form.spatial_reference_system.id_for_label }}" class="col-sm-3 col-form-label">{{ form.spatial_reference_system.label }}</label>
                         <div class="col-sm-9">
                             {{ form.spatial_reference_system }}
@@ -174,7 +186,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group mb-3 row">
+                    <div class="form-group mb-3 row required-field">
                         <label for="{{ form.date.id_for_label }}" class="col-sm-3 col-form-label">{{ form.date.label }}</label>
                         <div class="col-sm-9">
                             {{ form.date }}
@@ -256,6 +268,13 @@
 
 {% block dynamic_head_content %}
 <style>
+/* Required field asterisks */
+.required-field label:after {
+    content: " *";
+    color: red;
+    font-weight: bold;
+}
+
 .publication-info {
     background-color: #f8f9fa;
     padding: 15px;
