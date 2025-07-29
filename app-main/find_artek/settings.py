@@ -25,6 +25,7 @@ CSRF_COOKIE_SAMESITE = 'Lax'    # Or 'None' if cross-site usage is required
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookies
 CSRF_COOKIE_HTTPONLY = False    # CSRF cookies need to be accessible by JavaScript
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Quick-start development settings - unsuitable for production

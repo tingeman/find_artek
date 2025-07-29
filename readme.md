@@ -1,6 +1,7 @@
 # TODO list
 
 ### To do...
+- [] The add feature button is shown also when not logged in, at least in production. Check/fix
 - [] MAJOR: change to postgresql/postgis backend! (to allow handling of coordinate transformations)
 - [] MAJOR: implement unit testing
 - [] remove pop-ups for user acknowledgements when separate views also ask for akcnowledgement.
