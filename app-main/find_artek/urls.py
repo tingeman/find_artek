@@ -29,6 +29,25 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
 
+from django.views import View
+from django.http import HttpResponse
+import json
+
+class DebugRootView(View):
+    def get(self, request):
+        debug_info = {
+            'path': request.path,
+            'path_info': request.path_info,
+            'script_name': request.META.get('SCRIPT_NAME', 'Not set'),
+            'force_script_name': settings.FORCE_SCRIPT_NAME,
+            'url_prefix': settings.URL_PREFIX,
+        }
+        return HttpResponse(f"<pre>{json.dumps(debug_info, indent=2)}</pre>")
+    
+
+
+
+
 schema_view = get_schema_view(
    openapi.Info(
       title="Find_Artek Data API",
@@ -62,7 +81,7 @@ urlpatterns = [
     path("select2/", include("django_select2.urls")),
     
     # redirect root URL to pubs/publist
-    path("", RedirectView.as_view(url="publications/frontpage/", permanent=True)),
+    path("", RedirectView.as_view(pattern_name="frontpage", permanent=True)),
     
     # include the primary publication
     path("publications/", include("publications.urls")),
@@ -70,6 +89,11 @@ urlpatterns = [
     # cas login and logout
     path("login", django_cas_ng.views.LoginView.as_view(), name="cas_ng_login"),
     path("logout", django_cas_ng.views.LogoutView.as_view(), name="cas_ng_logout"),
+
+    # Temporary debug root view
+    path("debug-root/", DebugRootView.as_view(), name="debug-root"),
+
+
 ]
 
 if settings.DEBUG:

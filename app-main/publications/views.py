@@ -1779,3 +1779,6 @@ class DeleteFeatureView(LoginRequiredMixin, UserPassesTestMixin, DeleteView, Bas
         # Optionally, handle images or other related objects here
 
         return super().delete(request, *args, **kwargs)
+    
+
+
