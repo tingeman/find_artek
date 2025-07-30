@@ -1,8 +1,13 @@
 {
     "name": "Find Artek Django Dev Container",
-    "dockerComposeFile": ["docker-compose.yml"],
-    "service": "webapp-find-artek-devcon",
-    "workspaceFolder": "/usr/src/project",
+    "dockerComposeFile": [
+        "../docker-compose.yml",
+        "../docker-compose.develop.yml", 
+        "docker-compose.yml"
+    ],
+    "service": "webapp-find-artek",
+    "workspaceFolder": "/workspace",
+    "overrideCommand": false,
     "customizations": {
         "vscode": {
             "settings": {
@@ -15,5 +20,5 @@
         }
     },
     
-    "postCreateCommand": "bash /usr/src/project/.devcontainer/postCreateCommand.sh"
+    "postCreateCommand": "bash /workspace/.devcontainer/postCreateCommand.sh"
 }
