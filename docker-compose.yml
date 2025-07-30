@@ -15,7 +15,7 @@ services:
       - staticfiles_data:/mnt/shared-project-data/staticfiles:ro
       - media_data:/mnt/shared-project-data/media:rw
     networks:
-      - shared_network
+      - docker_default
     stdin_open: true
     tty: true
 
@@ -27,7 +27,7 @@ services:
       - find-artek-mariadb-data:/var/lib/mysql
       - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - shared_network
+      - docker_default
 
   find-artek-phpmyadmin-service:
     restart: always
@@ -40,7 +40,7 @@ services:
     volumes:
       - ./docker/phpmyadmin-service/phpmyadmin-misc.ini:/usr/local/etc/php/conf.d/phpmyadmin-misc.ini
     networks:
-      - shared_network
+      - docker_default
 
 volumes:
   staticfiles_data:
@@ -52,5 +52,5 @@ volumes:
     # For development, it can be external to reuse data.
 
 networks:
-  shared_network:
+  docker_default:
     external: true
