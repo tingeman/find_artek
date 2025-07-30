@@ -1,0 +1,131 @@
+{% comment %}
+Modern Django 4.2 version of the person disambiguation dialog.
+Based on legacy choose_person_form.html template.
+{% endcomment %}
+
+<script>
+$(function() {
+    // Initialize collapsible accordion
+    $("#collapsible").accordion({
+        collapsible: true,
+        active: 0,
+        heightStyle: "content",
+    });
+});
+
+// Serialize form to object
+$.fn.serializeObject = function() {
+    var o = {};
+    var a = this.serializeArray();
+    $.each(a, function() {
+        if (o[this.name] !== undefined) {
+            if (!o[this.name].push) {
+                o[this.name] = [o[this.name]];
+            }
+            o[this.name].push(this.value || '');
+        } else {
+            o[this.name] = this.value || '';
+        }
+    });
+    return o;
+};
+
+$(function() {
+    $('#choose-person-form').submit(function(event) {
+        event.preventDefault();
+        
+        var form_content = $('#choose-person-form').serializeObject();
+        if (Object.keys(form_content).length === 0) {
+            console.log('Please choose from the list, or cancel the dialog!');
+            return;
+        }
+        
+        // Update the form field using the updatePersons function
+        $("#id_{{ data.name_field }}").updatePersons(form_content);
+        
+        console.log('Person choices updated:', form_content);
+        
+        // Update the response variable to mark this field as resolved
+        var response = $('#data_container').data('response');
+        if (response && response.{{ data.name_field }}) {
+            response.{{ data.name_field }}.message = 'ok';
+            response.{{ data.name_field }}.html = '';
+        }
+        
+        // Close dialog and return control to parent
+        $(this).parents("div.ui-dialog-content:first").dialog("close");
+        
+        // Call the callback function to continue processing
+        var callbackFunction = $(this).parents("div.ui-dialog-content:first").data('callbackFunction');
+        var submit_on_ok = $(this).parents("div.ui-dialog-content:first").data('submit_on_ok');
+        if (callbackFunction) {
+            callbackFunction(submit_on_ok);
+        }
+    });
+});
+</script>
+
+<p class="validateTips">Please choose for each name in the list:</p>
+
+<form id="choose-person-form" action="">
+    <div id='collapsible'>
+        {% for p in data.persons %}
+        <h3>{{ p.name|default:"Unknown Person" }}</h3>
+        <div>
+            <!-- Option to create new person -->
+            <input type="radio" 
+                   name="{{ p.name }}" 
+                   value="{{ p.name }} [id:0]" 
+                   id="p{{ forloop.parentloop.counter0 }}_new">
+            <label for="p{{ forloop.parentloop.counter0 }}_new">
+                <strong>Create new person</strong>
+            </label><br><br>
+            
+            {% comment %} LDAP matches - not implemented in modern version
+            {% if p.p_ldap %}
+            <em>LDAP matches:</em><br/>
+            {% for c in p.p_ldap %}
+            <input type="radio" 
+                   name="{{ p.name }}" 
+                   value="{{ p.name.strip }} [id:ldap]" 
+                   id="p{{ forloop.parentloop.counter0 }}_l{{ forloop.counter0 }}">
+            <label for="p{{ forloop.parentloop.counter0 }}_l{{ forloop.counter0 }}">
+                {{ c }} [LDAP]
+            </label><br>
+            {% endfor %}
+            <br>
+            {% endif %}
+            {% endcomment %}
+            
+            {% if p.p_exact %}
+            <em>Exact matches:</em><br/>
+            {% for c in p.p_exact %}
+            <input type="radio" 
+                   name="{{ p.name }}" 
+                   value="{{ c }} [id:{{ c.id }}]" 
+                   id="p{{ forloop.parentloop.counter0 }}_e{{ forloop.counter0 }}">
+            <label for="p{{ forloop.parentloop.counter0 }}_e{{ forloop.counter0 }}">
+                {{ c }} [id:{{ c.id }}]
+            </label><br>
+            {% endfor %}
+            <br>
+            {% endif %}
+            
+            {% if p.p_relaxed %}
+            <em>Similar matches:</em><br/>
+            {% for c in p.p_relaxed %}
+            <input type="radio" 
+                   name="{{ p.name }}" 
+                   value="{{ c }} [id:{{ c.id }}]" 
+                   id="p{{ forloop.parentloop.counter0 }}_r{{ forloop.counter0 }}">
+            <label for="p{{ forloop.parentloop.counter0 }}_r{{ forloop.counter0 }}">
+                {{ c }} [id:{{ c.id }}]
+            </label><br>
+            {% endfor %}
+            <br>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <input type="submit" value="Accept choices" />
+</form>

@@ -28,6 +28,10 @@ urlpatterns = [
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
     path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
     path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
+    
+    # AJAX endpoints for person disambiguation workflow
+    path("ajax/person/check/", views.check_person_ajax, name="check_person_ajax"),
+    path("ajax/person/add/", views.add_person_ajax, name="add_person_ajax"),
 
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
