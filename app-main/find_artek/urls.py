@@ -79,10 +79,7 @@ urlpatterns = [
 
     # select2
     path("select2/", include("django_select2.urls")),
-    
-    # redirect root URL to pubs/publist
-    path("", RedirectView.as_view(pattern_name="frontpage", permanent=True)),
-    
+   
     # include the primary publication
     path("publications/", include("publications.urls")),
         
@@ -93,6 +90,9 @@ urlpatterns = [
     # Temporary debug root view
     path("debug-root/", DebugRootView.as_view(), name="debug-root"),
 
+
+    # Root redirect pattern MUST BE LAST - catch-all for any unmatched URLs
+    path("", RedirectView.as_view(pattern_name="frontpage", permanent=True)),
 
 ]
 
