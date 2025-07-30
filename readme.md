@@ -1,9 +1,15 @@
 # TODO list
 
 ### To do...
-- [] The add feature button is shown also when not logged in, at least in production. Check/fix
+
+***URGENT***
+- [] In production, add/edit report form does not properly handle new persons not already in database
+- [] In production, add/edit report form fails during upload of pdf report.
+
+***Not urgent***
 - [] MAJOR: change to postgresql/postgis backend! (to allow handling of coordinate transformations)
 - [] MAJOR: implement unit testing
+- [] The add feature button is shown also when not logged in, at least in production. Check/fix
 - [] remove pop-ups for user acknowledgements when separate views also ask for akcnowledgement.
        Or move popups to acknowledgement view instead of happening from report view.
 - [] implement edit feature view/form
