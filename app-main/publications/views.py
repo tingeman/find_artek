@@ -31,6 +31,7 @@ from publications.library import get_client_ip, is_private
 from publications.forms import (LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
                                 PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
                                 AddFeatureCoordinatesForm)
+from publications.enhanced_forms import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
 from publications.models import Publication, Topic, Feature, Person
 
 from django.contrib import messages
@@ -300,9 +301,9 @@ class AddEditReportView(BaseFormView):
     def get_form_class(self):
         """Return the appropriate form class based on mode"""
         if self.is_final_save():
-            return AddEditReportFinalSaveForm
+            return WorkflowAddEditReportFinalSaveForm
         else:
-            return AddEditReportForm
+            return WorkflowAddEditReportForm
 
     def is_edit_mode(self):
         """Check if we're in edit mode (has pk in URL)"""
@@ -425,6 +426,9 @@ class AddEditReportView(BaseFormView):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form"""
         kwargs = super().get_form_kwargs()
+        
+        # Add request object for workflow forms
+        kwargs['request'] = self.request
         
         # For edit mode, always pass the instance
         if self.is_edit_mode():
@@ -560,8 +564,12 @@ class AddEditReportView(BaseFormView):
                 return redirect('add_report')
 
     def form_valid(self, form):
-        """Unified form processing for both Add and Edit"""
+        """Unified form processing for both Add and Edit with workflow support"""
         print(f"AddEditReportView:form_valid: Form contains data: {form.cleaned_data}")
+        
+        # Check if workflow forms need to redirect to disambiguation
+        if hasattr(form, 'has_workflow_redirect') and form.has_workflow_redirect():
+            return form.get_workflow_redirect()
         
         # Set user information
         if not form.instance.pk:
@@ -571,7 +579,7 @@ class AddEditReportView(BaseFormView):
         authors = form.cleaned_data['authors']
         supervisors = form.cleaned_data['supervisors']
 
-        # Handle person selection redirect if needed
+        # Handle person selection redirect if needed (fallback for legacy forms)
         if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
             return self._handle_person_selection_redirect(form)
 
@@ -1965,6 +1973,7 @@ def add_person_ajax(request):
         return JsonResponse({
             'error': f'Failed to create person: {str(e)}'
         }, status=500)
-    
 
 
+# Multi-step person disambiguation workflow views
+from .person_workflow import disambiguate_person_step, complete_person_workflow

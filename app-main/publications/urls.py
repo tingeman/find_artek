@@ -32,6 +32,10 @@ urlpatterns = [
     # AJAX endpoints for person disambiguation workflow
     path("ajax/person/check/", views.check_person_ajax, name="check_person_ajax"),
     path("ajax/person/add/", views.add_person_ajax, name="add_person_ajax"),
+    
+    # Multi-step person disambiguation workflow
+    path("workflow/person/disambiguate/", views.disambiguate_person_step, name="disambiguate_person_step"),
+    path("workflow/person/complete/", views.complete_person_workflow, name="complete_person_workflow"),
 
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
