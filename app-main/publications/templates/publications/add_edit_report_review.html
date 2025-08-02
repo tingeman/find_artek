@@ -1,0 +1,288 @@
+{% extends base_template %}
+{% load i18n static %}
+
+{% block title %}
+    {% if action == 'edit' %}Review Report Changes{% else %}Review New Report{% endif %}
+{% endblock %}
+
+{% block dynamic_head_content %}
+    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
+{% endblock %}
+
+{% block main-content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-info" role="alert">
+                <h5><i class="fas fa-eye"></i> Review Mode</h5>
+                <p>Please review the information below before saving. This shows how your {% if action == 'edit' %}changes{% else %}new report{% endif %} will appear.</p>
+                {% if has_workflow_changes %}
+                <p><strong>Note:</strong> Person assignments have been updated based on your selections during the disambiguation workflow.</p>
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3>
+                        {% if action == 'edit' %}
+                            <i class="fas fa-edit"></i> Review Changes: {{ review_data.title|default:"Untitled" }}
+                        {% else %}
+                            <i class="fas fa-plus"></i> Review New Report
+                        {% endif %}
+                    </h3>
+                    <div>
+                        {% if action == 'edit' %}
+                            <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-secondary btn-sm me-2">
+                                <i class="fas fa-arrow-left"></i> Go Back to Edit
+                            </a>
+                        {% else %}
+                            <a href="{% url 'publications:add_report' %}" class="btn btn-secondary btn-sm me-2">
+                                <i class="fas fa-arrow-left"></i> Go Back to Edit
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="info-box">
+                        <div class="details-box">
+                            <div class="row">
+                                <span class="property">Type</span>
+                                <span class="value">{{ review_data.type|default:"Not specified" }}</span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Title</span>
+                                <span class="value">{{ review_data.title|default:"Untitled" }}</span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Authors</span>
+                                <span class="value">
+                                    {% if review_data.authors %}
+                                        {% for author in review_data.authors %}
+                                            {{ author }}
+                                            {% if forloop.counter == 1 and review_data.authors|length == 2 %}
+                                                &amp;
+                                            {% elif not forloop.last %}
+                                                ,
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if has_workflow_changes %}
+                                            <span class="badge bg-success ms-2">
+                                                <i class="fas fa-check"></i> Updated from workflow
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <em class="text-muted">No authors specified</em>
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Supervisors</span>
+                                <span class="value">
+                                    {% if review_data.supervisors %}
+                                        {% for supervisor in review_data.supervisors %}
+                                            {{ supervisor }}
+                                            {% if forloop.counter == 1 and review_data.supervisors|length == 2 %}
+                                                &amp;
+                                            {% elif not forloop.last %}
+                                                ,
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if has_workflow_changes %}
+                                            <span class="badge bg-success ms-2">
+                                                <i class="fas fa-check"></i> Updated from workflow
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <em class="text-muted">No supervisors specified</em>
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Year</span>
+                                <span class="value">{{ review_data.year|default:"Not specified" }}</span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Report no.</span>
+                                <span class="value">
+                                    {% if review_data.number %}
+                                        {{ review_data.number }}
+                                    {% else %}
+                                        <em class="text-muted">Will be auto-generated</em>
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Topics</span>
+                                <span class="value">
+                                    {% if review_data.publication_topics %}
+                                        {% for topic in review_data.publication_topics %}
+                                            {{ topic }}
+                                            {% if forloop.counter == 1 and review_data.publication_topics|length == 2 %}
+                                                &amp;
+                                            {% elif not forloop.last %}
+                                                ,
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <em class="text-muted">No topics specified</em>
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="row">
+                                <span class="property">Keywords</span>
+                                <span class="value">
+                                    {% if review_data.publication_keywords %}
+                                        {% for keyword in review_data.publication_keywords %}
+                                            {{ keyword }}
+                                            {% if forloop.counter == 1 and review_data.publication_keywords|length == 2 %}
+                                                &amp;
+                                            {% elif not forloop.last %}
+                                                ,
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <em class="text-muted">No keywords specified</em>
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            {% if action == 'edit' and review_data.pdffile %}
+                                <div class="row">
+                                    <span class="property">PDF File</span>
+                                    <span class="value">
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-upload"></i> New file will be uploaded: {{ review_data.pdffile.name }}
+                                        </span>
+                                    </span>
+                                </div>
+                            {% endif %}
+
+                            {% if action == 'edit' and review_data.delete_pdf %}
+                                <div class="row">
+                                    <span class="property">PDF File</span>
+                                    <span class="value">
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-trash"></i> Current PDF file will be deleted
+                                        </span>
+                                    </span>
+                                </div>
+                            {% endif %}
+
+                            <div class="row">
+                                <span class="property">Abstract</span>
+                                <span class="value">
+                                    {% if review_data.abstract %}
+                                        {% if review_data.abstract|length > 280 %}
+                                            <span class="visible" id="abstract-collapsed">
+                                                {{ review_data.abstract|slice:":280" }}.... 
+                                                <button id="abstract-expand-btn" class="abstract-btn" type="button">[Expand]</button>
+                                            </span>
+                                            <span class="hidden" id="abstract-expanded">
+                                                {{ review_data.abstract }} 
+                                                <button id="abstract-collapse-btn" class="abstract-btn" type="button">[Collapse]</button>
+                                            </span>
+                                        {% else %}
+                                            {{ review_data.abstract }}
+                                        {% endif %}
+                                    {% else %}
+                                        <em class="text-muted">No abstract provided</em>
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            {% if review_data.comment %}
+                                <div class="row">
+                                    <span class="property">Comment</span>
+                                    <span class="value">{{ review_data.comment }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <div>
+                            {% if action == 'edit' %}
+                                <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Go Back to Edit
+                                </a>
+                            {% else %}
+                                <a href="{% url 'publications:add_report' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Go Back to Edit
+                                </a>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-check"></i> 
+                                    {% if action == 'edit' %}Accept Changes{% else %}Create Report{% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Abstract expand/collapse functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const expandBtn = document.getElementById('abstract-expand-btn');
+    const collapseBtn = document.getElementById('abstract-collapse-btn');
+    const collapsedSpan = document.getElementById('abstract-collapsed');
+    const expandedSpan = document.getElementById('abstract-expanded');
+    
+    if (expandBtn) {
+        expandBtn.addEventListener('click', function() {
+            collapsedSpan.classList.add('hidden');
+            collapsedSpan.classList.remove('visible');
+            expandedSpan.classList.add('visible');
+            expandedSpan.classList.remove('hidden');
+        });
+    }
+    
+    if (collapseBtn) {
+        collapseBtn.addEventListener('click', function() {
+            expandedSpan.classList.add('hidden');
+            expandedSpan.classList.remove('visible');
+            collapsedSpan.classList.add('visible');
+            collapsedSpan.classList.remove('hidden');
+        });
+    }
+});
+</script>
+
+<style>
+.hidden {
+    display: none;
+}
+.visible {
+    display: inline;
+}
+.abstract-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font-size: inherit;
+}
+.abstract-btn:hover {
+    color: #0056b3;
+}
+.badge {
+    font-size: 0.75em;
+}
+</style>
+{% endblock %}

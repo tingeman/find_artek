@@ -153,7 +153,7 @@ $(function() {
         $.ajax({
             data: $.param(persons, false),
             type: "GET",
-            url: "{% url 'check_person_ajax' %}",
+            url: "{% url 'publications:check_person_ajax' %}",
             dataType: 'json',
             success: function(response) {
                 if ('error' in response) {
@@ -191,7 +191,7 @@ $(function() {
         $.ajax({
             data: $.param(persons, false),
             type: "GET",
-            url: "{% url 'check_person_ajax' %}",
+            url: "{% url 'publications:check_person_ajax' %}",
             dataType: 'json',
             success: function(response) {
                 if ('error' in response) {

@@ -29,7 +29,7 @@ New report
                 if (year && year.length === 4) {
                     // Make AJAX request to get next available report number
                     $.ajax({
-                        url: '{% url "get_next_report_number" %}',
+                        url: '{% url "publications:get_next_report_number" %}',
                         data: {
                             'year': year
                         },

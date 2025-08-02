@@ -4,17 +4,378 @@ from django.contrib.admin.widgets import AdminFileWidget
 from django_select2 import forms as s2forms
 from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
+from django.shortcuts import redirect
 from publications.models import Publication, Person, Feature, Topic, Keyword
 from publications.utils import create_ordered_queryset
 from django.urls import reverse
+import json
 import datetime
 import ast
 import json
 
 
+class PersonWorkflowMixin:
+    """Mixin for forms that need person disambiguation workflow"""
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean(self):
+        """Enhanced clean method that handles person workflow"""
+        print("🔍 DEBUG: PersonWorkflowMixin.clean() called")
+        print(f"🔍 DEBUG: Session keys: {list(self.request.session.keys()) if self.request else 'No request'}")
+        print(f"🔍 DEBUG: Has updated_form_data in session: {'updated_form_data' in self.request.session if self.request else 'No request'}")
+        
+        # Clear workflow redirect FIRST if we have session data to process
+        if self.request and 'updated_form_data' in self.request.session:
+            if hasattr(self, '_workflow_redirect'):
+                delattr(self, '_workflow_redirect')
+                print("🔍 DEBUG: Cleared workflow redirect before processing session data")
+        
+        cleaned_data = super().clean()
+        
+        # Check if we have updated form data from completed workflow
+        if self.request and 'updated_form_data' in self.request.session:
+            updated_data = self.request.session.pop('updated_form_data')
+            
+            print(f"🔍 DEBUG: Restoring updated_form_data from workflow: {updated_data}")
+            print(f"🔍 DEBUG: Session keys before workflow restoration: {list(self.request.session.keys())}")
+            
+            # Merge updated data into cleaned_data, converting tagged names to Person instances
+            for field_name, value in updated_data.items():
+                print(f"🔍 DEBUG: Processing field '{field_name}': {value} (type: {type(value)})")
+                if field_name in self.fields:
+                    # Special handling for person fields - convert IDs and CREATE markers to Person instances
+                    if field_name in ['authors', 'supervisors'] and isinstance(value, list):
+                        print(f"🔍 DEBUG: Processing person field '{field_name}' with list value: {value}")
+                        from publications.models import Person
+                        
+                        converted_persons = []
+                        for item in value:
+                            if isinstance(item, str):
+                                # Check if it's a CREATE marker
+                                if item.startswith('CREATE:'):
+                                    person_name = item[7:]  # Remove 'CREATE:' prefix
+                                    # Create new person
+                                    try:
+                                        person = Person(created_by=self.request.user, modified_by=self.request.user)
+                                        person.set_names(person_name)
+                                        person.save()
+                                        converted_persons.append(person)
+                                        print(f"🔍 DEBUG: Created new person from CREATE marker: {person_name} -> {person}")
+                                    except Exception as e:
+                                        print(f"❌ DEBUG: Failed to create person from CREATE marker {person_name}: {e}")
+                                        # Keep the original item for further processing
+                                        converted_persons.append(item)
+                                elif item.startswith('SKIP:'):
+                                    # Keep the SKIP: prefix - this prevents workflow from triggering again
+                                    converted_persons.append(item)
+                                    print(f"🔍 DEBUG: Keeping skipped item with prefix: {item}")
+                                elif item.isdigit():
+                                    # It's a person ID
+                                    try:
+                                        person = Person.objects.get(id=int(item))
+                                        converted_persons.append(person)
+                                        print(f"🔍 DEBUG: Restored person from ID: {item} -> {person}")
+                                    except Person.DoesNotExist:
+                                        print(f"❌ DEBUG: Person with ID {item} not found")
+                                        # Keep the original item for further processing
+                                        converted_persons.append(item)
+                                else:
+                                    # Some other string format - keep as string
+                                    # This allows non-person data to pass through unchanged
+                                    converted_persons.append(item)
+                                    print(f"🔍 DEBUG: Keeping string item unchanged: {item}")
+                            else:
+                                # Already a Person instance or other type
+                                converted_persons.append(item)
+                        
+                        # Convert to QuerySet if we have Person instances
+                        if converted_persons and all(isinstance(p, Person) for p in converted_persons):
+                            from publications.forms import create_ordered_queryset
+                            cleaned_data[field_name] = create_ordered_queryset(Person, [p.pk for p in converted_persons])
+                            print(f"🔍 DEBUG: Converted {field_name} to QuerySet with {len(converted_persons)} persons")
+                        else:
+                            cleaned_data[field_name] = converted_persons
+                            print(f"🔍 DEBUG: {field_name} still has unresolved data: {converted_persons}")
+                    else:
+                        # For all other fields, SKIP restoration - let Django handle them normally
+                        # This prevents type conversion issues with fields like ModelChoiceField
+                        print(f"🔍 DEBUG: Skipping non-person field {field_name} (value: {value}, type: {type(value)})")
+                        pass
+                        
+            print(f"🔍 DEBUG: Final cleaned_data after workflow restoration: {cleaned_data}")
+            
+            # Clear any workflow redirect since we've processed the workflow data
+            if hasattr(self, '_workflow_redirect'):
+                delattr(self, '_workflow_redirect')
+                print("🔍 DEBUG: Cleared workflow redirect after successful data restoration")
+        
+        return cleaned_data
+    
+    def clean_authors_with_workflow(self):
+        """Enhanced clean_authors method with workflow support"""
+        authors = self.cleaned_data.get('authors', [])
+        
+        # Check if disambiguation workflow is needed
+        workflow_result = self.check_person_disambiguation_needed(['authors'])
+        
+        if workflow_result:
+            field_name, person_names = workflow_result
+            # Start workflow and return redirect response
+            return self.start_person_workflow(field_name, person_names)
+        
+        return authors
+
+    def clean_supervisors_with_workflow(self):
+        """Enhanced clean_supervisors method with workflow support"""
+        supervisors = self.cleaned_data.get('supervisors', [])
+        
+        # Check if disambiguation workflow is needed
+        workflow_result = self.check_person_disambiguation_needed(['supervisors'])
+        
+        if workflow_result:
+            field_name, person_names = workflow_result
+            # Start workflow and return redirect response
+            return self.start_person_workflow(field_name, person_names)
+        
+        return supervisors
+
+    def clean_editors_with_workflow(self):
+        """Enhanced clean_editors method with workflow support"""
+        editors = self.cleaned_data.get('editors', [])
+        
+        # Check if disambiguation workflow is needed
+        workflow_result = self.check_person_disambiguation_needed(['editors'])
+        
+        if workflow_result:
+            field_name, person_names = workflow_result
+            # Start workflow and return redirect response
+            return self.start_person_workflow(field_name, person_names)
+        
+        return editors
+    
+    def check_person_disambiguation_needed(self, field_names):
+        """
+        Check if person disambiguation is needed for specified fields.
+        Returns the first field that needs disambiguation, or None if all are resolved.
+        """
+        if not self.request:
+            return None
+        
+        # Import here to avoid circular imports
+        from publications.person_workflow import extract_person_names
+        
+        for field_name in field_names:
+            if field_name in self.cleaned_data:
+                field_data = self.cleaned_data[field_name]
+                
+                # Convert to list if it's a single value
+                if isinstance(field_data, str):
+                    field_data = [field_data]
+                elif hasattr(field_data, '__iter__') and not isinstance(field_data, str):
+                    field_data = list(field_data)
+                else:
+                    continue
+                
+                # Check if any names need disambiguation
+                names_needing_resolution = extract_person_names(
+                    MockFormData(field_data), field_name
+                )
+                
+                if names_needing_resolution:
+                    return field_name, names_needing_resolution
+        
+        return None
+    
+    def start_person_workflow(self, field_name, person_names):
+        """Start person disambiguation workflow"""
+        if not self.request:
+            raise ValueError("Request object required for workflow")
+        
+        # Clear any existing workflow data to prevent interference
+        if 'updated_form_data' in self.request.session:
+            del self.request.session['updated_form_data']
+            print("🔍 DEBUG: Cleared old workflow session data before starting new workflow")
+        
+        # Import here to avoid circular imports
+        from publications.person_workflow import PersonWorkflowSession
+        
+        workflow = PersonWorkflowSession(self.request)
+        
+        # Store RAW POST data instead of cleaned data to avoid model instance serialization issues
+        raw_form_data = dict(self.request.POST)
+        
+        # Convert QueryDict list values to simple values where appropriate
+        simplified_form_data = {}
+        for key, value_list in raw_form_data.items():
+            if len(value_list) == 1:
+                # Single value - store as string
+                simplified_form_data[key] = value_list[0]
+            else:
+                # Multiple values - store as list
+                simplified_form_data[key] = value_list
+        
+        print(f"🔍 DEBUG: Storing raw POST data for workflow: {simplified_form_data}")
+        
+        # Test JSON serialization to ensure it will work
+        try:
+            import json
+            json.dumps(simplified_form_data)
+            print("✅ Raw POST data is JSON serializable")
+        except (TypeError, ValueError) as e:
+            print(f"❌ Raw POST data serialization failed: {e}")
+            print(f"Problematic data: {simplified_form_data}")
+        
+        workflow.start_workflow(field_name, person_names, simplified_form_data, self.request.path)
+        
+        return redirect('publications:disambiguate_person_step')
+
+
+class MockFormData:
+    """Mock form data object for extract_person_names function"""
+    
+    def __init__(self, data_list):
+        self.data = data_list
+    
+    def getlist(self, field_name):
+        return self.data
+    
+    def get(self, field_name, default=None):
+        return self.data if self.data else default
+
+
+def clean_authors_with_workflow(form_instance):
+    """
+    Standalone utility function for enhanced clean_authors method with workflow support.
+    
+    This is a utility function that can be called from any form's clean_authors method
+    to add workflow support. For forms that inherit from PersonWorkflowMixin,
+    use the clean_authors_with_workflow method instead.
+    
+    Args:
+        form_instance: The form instance that should have PersonWorkflowMixin capabilities
+    
+    Returns:
+        Either the processed authors data or a redirect response for workflow
+    """
+    if not hasattr(form_instance, 'check_person_disambiguation_needed'):
+        raise ValueError("Form instance must have PersonWorkflowMixin capabilities")
+    
+    authors = form_instance.cleaned_data.get('authors', [])
+    
+    # Check if disambiguation workflow is needed
+    workflow_result = form_instance.check_person_disambiguation_needed(['authors'])
+    
+    if workflow_result:
+        field_name, person_names = workflow_result
+        # Start workflow and return redirect response
+        return form_instance.start_person_workflow(field_name, person_names)
+    
+    return authors
+
+
+def clean_supervisors_with_workflow(form_instance):
+    """
+    Standalone utility function for enhanced clean_supervisors method with workflow support.
+    
+    This is a utility function that can be called from any form's clean_supervisors method
+    to add workflow support. For forms that inherit from PersonWorkflowMixin,
+    use the clean_supervisors_with_workflow method instead.
+    
+    Args:
+        form_instance: The form instance that should have PersonWorkflowMixin capabilities
+    
+    Returns:
+        Either the processed supervisors data or a redirect response for workflow
+    """
+    if not hasattr(form_instance, 'check_person_disambiguation_needed'):
+        raise ValueError("Form instance must have PersonWorkflowMixin capabilities")
+    
+    supervisors = form_instance.cleaned_data.get('supervisors', [])
+    
+    # Check if disambiguation workflow is needed
+    workflow_result = form_instance.check_person_disambiguation_needed(['supervisors'])
+    
+    if workflow_result:
+        field_name, person_names = workflow_result
+        # Start workflow and return redirect response
+        return form_instance.start_person_workflow(field_name, person_names)
+    
+    return supervisors
+
+
+def clean_editors_with_workflow(form_instance):
+    """
+    Standalone utility function for enhanced clean_editors method with workflow support.
+    
+    This is a utility function that can be called from any form's clean_editors method
+    to add workflow support. For forms that inherit from PersonWorkflowMixin,
+    use the clean_editors_with_workflow method instead.
+    
+    Args:
+        form_instance: The form instance that should have PersonWorkflowMixin capabilities
+    
+    Returns:
+        Either the processed editors data or a redirect response for workflow
+    """
+    if not hasattr(form_instance, 'check_person_disambiguation_needed'):
+        raise ValueError("Form instance must have PersonWorkflowMixin capabilities")
+    
+    editors = form_instance.cleaned_data.get('editors', [])
+    
+    # Check if disambiguation workflow is needed
+    workflow_result = form_instance.check_person_disambiguation_needed(['editors'])
+    
+    if workflow_result:
+        field_name, person_names = workflow_result
+        # Start workflow and return redirect response
+        return form_instance.start_person_workflow(field_name, person_names)
+    
+    return editors
+
+
 class LoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField(widget=forms.PasswordInput)
+
+
+class AddPersonForm(forms.ModelForm):
+    """Form for creating new Person instances"""
+    
+    # Add a name field that will be processed by the Person model
+    name = forms.CharField(
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Full name (e.g., "John Doe" or "Doe, John")'
+        }),
+        help_text="Enter the person's full name. It will be automatically split into first, middle, and last name components."
+    )
+    
+    class Meta:
+        model = Person
+        fields = ['email', 'institution', 'department']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email address'}),
+            'institution': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Institution'}),
+            'department': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Department'}),
+        }
+    
+    def save(self, commit=True):
+        """Override save to handle the name field properly"""
+        instance = super().save(commit=False)
+        name = self.cleaned_data.get('name')
+        if name:
+            # The Person model will handle name parsing in its __init__ method
+            # But since we're working with an existing instance, we need to call set_names
+            instance.set_names(name, commit=False)
+        
+        if commit:
+            instance.save()
+        return instance
 
 
 class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
@@ -34,7 +395,7 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
         print(f"PersonHeavySelect2TagWidget:format_value: {value}")
         
         if value is None or value == '':
-            return None
+            return []  # Return empty list instead of None
             
         # Handle different input formats
         if isinstance(value, (list, tuple)):
@@ -45,6 +406,8 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
                 persons = Person.objects.filter(pk__in=pks)
                 # Return list of PKs as strings (Select2 expects string values)
                 return [str(person.pk) for person in persons]
+            else:
+                return []  # Return empty list if no valid PKs
         elif isinstance(value, str) and value:
             try:
                 # Try to parse as list representation
@@ -58,12 +421,15 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
                 return [str(value)]
         elif hasattr(value, '__iter__'):
             # QuerySet or other iterable
-            return [str(item.pk if hasattr(item, 'pk') else item) for item in value]
+            try:
+                return [str(item.pk if hasattr(item, 'pk') else item) for item in value]
+            except:
+                return []  # Return empty list if iteration fails
         else:
             # Single value
             return [str(value)]
             
-        return None
+        return []  # Return empty list as fallback instead of None
 
     def value_from_datadict(self, data, files, name):
         """
@@ -190,7 +556,7 @@ class AddEditReportForm(ModelForm):
 
     authors = forms.CharField(max_length=1000, required=False,
         widget=PersonHeavySelect2TagWidget(
-            data_view="person-autocomplete",
+            data_view="publications:person-autocomplete",
             attrs={"data-token-separators": "['&',';']",
                     "data-tags": "true",   # enable tagging
                     "data-placeholder": "Add or select authors (separate by semicolon (;) or &-sign)",
@@ -203,7 +569,7 @@ class AddEditReportForm(ModelForm):
 
     supervisors = forms.CharField(max_length=1000, required=False,
         widget=PersonHeavySelect2TagWidget(
-            data_view="person-autocomplete",
+            data_view="publications:person-autocomplete",
             attrs={"data-token-separators": "['&',';']",
                     "data-tags": "true",   # enable tagging
                     "data-placeholder": "Add or select supervisors (separate by semicolon (;) or &-sign)",
@@ -422,17 +788,6 @@ class AddEditReportForm(ModelForm):
             print('AddEditReportForm:clean_supervisors:No supervisors')
             return Person.objects.none()
 
-    def parse_name(self, full_name):
-        """
-        Splits a full name into first, middle, and last components.
-        Adjust this logic based on your requirements.
-        """
-        parts = full_name.split()
-        first_name = parts[0]
-        middle_name = ' '.join(parts[1:-1]) if len(parts) > 2 else None
-        last_name = parts[-1] if len(parts) > 1 else None
-        return first_name, middle_name, last_name
-    
     def is_valid(self):
         print('In AddEditReportForm:is_valid')
         return super().is_valid()
@@ -622,13 +977,365 @@ class PersonSelectForm(forms.Form):
                     self.fields[f'{self.person_type}_{i}'].initial = self.fields[f'{self.person_type}_{i}'].choices[0][0]
 
     def get_person_choices(self, name):
-        # Search for matching `Person` instances
-        parts = name.split()  # Split name into parts (first and last)
-        matches = Person.objects.filter(
-            first__icontains=parts[0],
-            last__icontains=parts[-1] if len(parts) > 1 else ''
-        )
-        return [(person.pk, person.get_full_name() + f" [pk:{person.pk}]") for person in matches]
+        """Get person choices with enhanced matching and metadata display"""
+        matches = self.get_person_matches(name)
+        
+        # Format choices with additional identifying information
+        choices = []
+        for match in matches:
+            person = match['person']
+            confidence = match['confidence']
+            match_type = match['match_type']
+            
+            # Build display string with unique identifiers
+            display_parts = [person.get_full_name()]
+            
+            # Add confidence indicator
+            confidence_str = f"{confidence:.0%}"
+            display_parts.append(f"({confidence_str})")
+            
+            # Add unique identifiers
+            identifiers = []
+            if person.pk:
+                identifiers.append(f"pk:{person.pk}")
+            if person.email:
+                identifiers.append(f"email:{person.email}")
+            if person.id_number:
+                identifiers.append(f"id:{person.id_number}")
+            
+            if identifiers:
+                display_parts.append(f"[{', '.join(identifiers)}]")
+            
+            # Add match type if not exact
+            if match_type != 'exact_full':
+                display_parts.append(f"({match_type})")
+            
+            display_string = ' '.join(display_parts)
+            choices.append((person.pk, display_string))
+        
+        return choices
+
+    def get_person_matches(self, name_string):
+        """Get potential person matches using comprehensive matching strategies"""
+        from publications.models import Person
+        from pybtex.database import Person as PyBTeXPerson
+        from django.db.models import Q
+        import re
+        
+        # Parse the name using PyBTeX
+        parsed_person = PyBTeXPerson(name_string)
+        
+        # Extract components
+        first = ' '.join(parsed_person.first()) if parsed_person.first() else ''
+        middle = ' '.join(parsed_person.middle()) if parsed_person.middle() else ''
+        prelast = ' '.join(parsed_person.prelast()) if parsed_person.prelast() else ''
+        last = ' '.join(parsed_person.last()) if parsed_person.last() else ''
+        lineage = ' '.join(parsed_person.lineage()) if parsed_person.lineage() else ''
+        
+        matches = []
+        seen_ids = set()
+        
+        # Helper function to add match if not already seen
+        def add_match(person, match_type, confidence, notes=''):
+            if person.id not in seen_ids:
+                seen_ids.add(person.id)
+                matches.append({
+                    'person': person,
+                    'match_type': match_type,
+                    'confidence': confidence,
+                    'notes': notes,
+                    'pk': person.pk,
+                    'email': person.email,
+                    'id_number': person.id_number
+                })
+        
+        # Helper function for special character substitution
+        def normalize_name(name):
+            """Normalize special characters for matching"""
+            substitutions = {
+                'ø': 'oe', 'ö': 'oe', 'ü': 'ue', 'ä': 'ae', 'å': 'aa',
+                'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
+                'á': 'a', 'à': 'a', 'â': 'a', 'ã': 'a',
+                'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
+                'ó': 'o', 'ò': 'o', 'ô': 'o', 'õ': 'o',
+                'ú': 'u', 'ù': 'u', 'û': 'u',
+                'ç': 'c', 'ñ': 'n'
+            }
+            normalized = name.lower()
+            for char, replacement in substitutions.items():
+                normalized = normalized.replace(char, replacement)
+            return normalized
+        
+        # Helper function for alternative character substitutions
+        def get_name_variants(name):
+            """Get multiple variants of a name with different character substitutions"""
+            variants = [name.lower()]
+            
+            # Danish/Norwegian specific substitutions
+            variants.append(name.lower().replace('ø', 'oe'))
+            variants.append(name.lower().replace('ø', 'o'))
+            variants.append(name.lower().replace('æ', 'ae'))
+            variants.append(name.lower().replace('æ', 'a'))
+            variants.append(name.lower().replace('å', 'aa'))
+            variants.append(name.lower().replace('å', 'a'))
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_variants = []
+            for variant in variants:
+                if variant not in seen:
+                    seen.add(variant)
+                    unique_variants.append(variant)
+            
+            return unique_variants
+        
+        # Helper function to check if names are truly identical (case-insensitive only)
+        def are_names_identical(search_name, db_name):
+            """Check if two names are exactly identical (case-insensitive only)"""
+            return search_name.lower().strip() == db_name.lower().strip()
+        
+        # Helper function to check if names differ only by special characters
+        def are_names_character_variants(search_name, db_name):
+            """Check if two names differ only by special character substitutions"""
+            if are_names_identical(search_name, db_name):
+                return False  # They're identical, not variants
+            
+            # Normalize both and see if they match
+            search_normalized = normalize_name(search_name)
+            db_normalized = normalize_name(db_name)
+            return search_normalized == db_normalized
+        
+        # Strategy 1: TRUE EXACT match on all name components (case-insensitive but no character substitution)
+        if first and last:
+            query = Q(first__iexact=first, last__iexact=last)
+            if middle:
+                query &= Q(middle__iexact=middle)
+            if prelast:
+                query &= Q(prelast__iexact=prelast)
+            if lineage:
+                query &= Q(lineage__iexact=lineage)
+            
+            potential_matches = Person.objects.filter(query)
+            for person in potential_matches:
+                # Check if it's truly identical (case-insensitive) vs character variant
+                person_first = person.first or ''
+                person_middle = person.middle or ''
+                person_last = person.last or ''
+                person_prelast = person.prelast or ''
+                person_lineage = person.lineage or ''
+                
+                # Check if ALL components are case-identical (no character substitution)
+                is_case_only_diff = (
+                    are_names_identical(first, person_first) and
+                    are_names_identical(middle, person_middle) and
+                    are_names_identical(last, person_last) and
+                    are_names_identical(prelast, person_prelast) and
+                    are_names_identical(lineage, person_lineage)
+                )
+                
+                # Check if any component is a character variant
+                has_character_variants = (
+                    are_names_character_variants(first, person_first) or
+                    are_names_character_variants(middle, person_middle) or
+                    are_names_character_variants(last, person_last) or
+                    are_names_character_variants(prelast, person_prelast) or
+                    are_names_character_variants(lineage, person_lineage)
+                )
+                
+                if is_case_only_diff:
+                    add_match(person, 'exact_full', 1.0, 'Exact match on all name components')
+                elif has_character_variants:
+                    add_match(person, 'normalized_full', 0.85, 'Character variant match (full name)')
+        
+        # Strategy 2: Exact match on first, middle, last (ignoring prelast/lineage)
+        if first and last and not any(m['match_type'] in ['exact_full', 'normalized_full'] for m in matches):
+            query = Q(first__iexact=first, last__iexact=last)
+            if middle:
+                query &= Q(middle__iexact=middle)
+            
+            potential_matches = Person.objects.filter(query)
+            for person in potential_matches:
+                # Check if core components are case-identical vs character variants
+                person_first = person.first or ''
+                person_middle = person.middle or ''
+                person_last = person.last or ''
+                
+                is_case_only_diff = (
+                    are_names_identical(first, person_first) and
+                    are_names_identical(middle, person_middle) and
+                    are_names_identical(last, person_last)
+                )
+                
+                has_character_variants = (
+                    are_names_character_variants(first, person_first) or
+                    are_names_character_variants(middle, person_middle) or
+                    are_names_character_variants(last, person_last)
+                )
+                
+                if is_case_only_diff:
+                    add_match(person, 'exact_core', 0.95, 'Exact match on core name components')
+                elif has_character_variants:
+                    add_match(person, 'normalized_core', 0.80, 'Character variant match (core names)')
+        
+        # Strategy 3: First + Last name matching (exact search)
+        if first and last:
+            first_last_matches = Person.objects.filter(
+                Q(first__iexact=first) & Q(last__iexact=last)
+            )
+            for person in first_last_matches:
+                person_first = person.first or ''
+                person_last = person.last or ''
+                
+                first_is_case_identical = are_names_identical(first, person_first)
+                last_is_case_identical = are_names_identical(last, person_last)
+                
+                first_is_character_variant = are_names_character_variants(first, person_first)
+                last_is_character_variant = are_names_character_variants(last, person_last)
+                
+                if first_is_case_identical and last_is_case_identical:
+                    add_match(person, 'exact_first_last', 0.90, 'Exact first + last name match')
+                elif (first_is_character_variant or first_is_case_identical) and (last_is_character_variant or last_is_case_identical):
+                    add_match(person, 'normalized_first_last', 0.85, 'First + last name character variant match')
+        
+        # Strategy 4: First + Middle name matching (when last name missing)
+        if first and last and not middle:
+            # Check if "last" could actually be a middle name
+            first_middle_matches = Person.objects.filter(
+                Q(first__iexact=first) & Q(middle__iexact=last)
+            )
+            for person in first_middle_matches:
+                person_first = person.first or ''
+                person_middle = person.middle or ''
+                
+                first_is_exact = are_names_identical(first, person_first)
+                middle_is_exact = are_names_identical(last, person_middle)
+                
+                if first_is_exact and middle_is_exact:
+                    add_match(person, 'exact_first_middle', 0.85, f'Exact first name + middle name "{last}" match')
+        
+        # Strategy 4b: First + Middle variant matching
+        if first and last and not middle:
+            first_variants = get_name_variants(first)
+            last_variants = get_name_variants(last)
+            
+            for person in Person.objects.all():
+                if person.id in seen_ids or not person.first or not person.middle:
+                    continue
+                
+                person_first_variants = get_name_variants(person.first)
+                person_middle_variants = get_name_variants(person.middle)
+                
+                # Check if search terms match first + middle with variants
+                first_match = any(fv == pfv for fv in first_variants for pfv in person_first_variants)
+                middle_match = any(lv == pmv for lv in last_variants for pmv in person_middle_variants)
+                
+                if first_match and middle_match:
+                    add_match(person, 'normalized_first_middle', 0.82, f'First name + middle name variant match')
+        
+        # Strategy 5: Initial matching - first initial + middle + last
+        if first and last:
+            first_initial = first[0].upper()
+            query = Q(first__istartswith=first_initial, last__iexact=last)
+            if middle:
+                query &= Q(middle__iexact=middle)
+            
+            initial_matches = Person.objects.filter(query)
+            for person in initial_matches:
+                # Check if last name is case-identical vs character variant
+                person_last = person.last or ''
+                person_middle = person.middle or ''
+                
+                last_is_case_identical = are_names_identical(last, person_last)
+                middle_is_case_identical = are_names_identical(middle, person_middle) if middle else True
+                
+                last_is_character_variant = are_names_character_variants(last, person_last)
+                middle_is_character_variant = are_names_character_variants(middle, person_middle) if middle else False
+                
+                if last_is_case_identical and middle_is_case_identical:
+                    add_match(person, 'initial_match', 0.8, f'First initial "{first_initial}" + exact last name match')
+                elif (last_is_character_variant or last_is_case_identical) and (middle_is_character_variant or middle_is_case_identical):
+                    add_match(person, 'initial_variant', 0.75, f'First initial "{first_initial}" + character variant last name match')
+        
+        # Strategy 5b: Initial matching with middle name - first initial + middle + last
+        if first and last:
+            first_initial = first[0].upper()
+            # Try matching where the provided "last" name is actually someone's middle name
+            middle_matches = Person.objects.filter(
+                Q(first__istartswith=first_initial) & Q(middle__iexact=last)
+            )
+            for person in middle_matches:
+                person_middle = person.middle or ''
+                middle_is_exact = are_names_identical(last, person_middle)
+                
+                if middle_is_exact:
+                    add_match(person, 'initial_middle', 0.75, f'First initial "{first_initial}" + exact middle name "{last}" match')
+        
+        # Strategy 6: ID number matching (if name_string could be an ID)
+        if re.match(r'^[a-zA-Z0-9]+$', name_string.strip()) and len(name_string.strip()) >= 3:
+            id_matches = Person.objects.filter(id_number__iexact=name_string.strip())
+            for person in id_matches:
+                add_match(person, 'id_number', 0.9, f'ID number match: {person.id_number}')
+        
+        # Strategy 7: Special character normalization matching (for remaining cases)
+        if first and last:
+            first_variants = get_name_variants(first)
+            last_variants = get_name_variants(last)
+            
+            # Find persons whose names match variants (but exclude already found matches)
+            all_persons = Person.objects.all()
+            for person in all_persons:
+                if person.id in seen_ids:
+                    continue
+                    
+                person_first_variants = get_name_variants(person.first) if person.first else ['']
+                person_last_variants = get_name_variants(person.last) if person.last else ['']
+                
+                # Check for variant matches (only proceed if not already matched)
+                first_match = any(fv in person_first_variants for fv in first_variants) or any(pfv in first_variants for pfv in person_first_variants)
+                last_match = any(lv in person_last_variants for lv in last_variants) or any(plv in last_variants for plv in person_last_variants)
+                
+                if first_match and last_match:
+                    # Check middle name too if provided
+                    if middle:
+                        middle_variants = get_name_variants(middle)
+                        person_middle_variants = get_name_variants(person.middle) if person.middle else ['']
+                        middle_match = any(mv in person_middle_variants for mv in middle_variants)
+                        
+                        if middle_match:
+                            add_match(person, 'normalized_remaining', 0.70, 'Additional normalized character match (full)')
+                    else:
+                        add_match(person, 'normalized_remaining', 0.65, 'Additional normalized character match (core)')
+        
+        # Strategy 8: Last name only with first initial (broader search)
+        if first and last and len(matches) < 5:
+            first_initial = first[0].upper()
+            broad_matches = Person.objects.filter(
+                Q(first__istartswith=first_initial) & Q(last__icontains=last)
+            )
+            for person in broad_matches:
+                add_match(person, 'broad_initial', 0.6, f'Broad search: "{first_initial}" + partial last name')
+        
+        # Strategy 9: Fuzzy matching on last name (lowest priority)
+        if last and len(matches) < 8:
+            # Split compound last names and search for parts
+            last_parts = re.split(r'[-\s]+', last)
+            for part in last_parts:
+                if len(part) >= 3:  # Only search meaningful parts
+                    fuzzy_matches = Person.objects.filter(last__icontains=part)
+                    for person in fuzzy_matches:
+                        add_match(person, 'fuzzy_last', 0.4, f'Fuzzy match on last name part: "{part}"')
+        
+        # Strategy 10: Email domain matching (if name_string looks like email)
+        if '@' in name_string:
+            email_matches = Person.objects.filter(email__iexact=name_string.strip())
+            for person in email_matches:
+                add_match(person, 'email_exact', 0.95, f'Email match: {person.email}')
+        
+        # Sort by confidence score (descending)
+        matches.sort(key=lambda x: x['confidence'], reverse=True)
+        
+        # Limit to top 15 matches to avoid overwhelming the user
+        return matches[:15]
 
     # Is this method needed?
     # def get_selected_authors(self):
@@ -686,7 +1393,7 @@ class PublicationForm(forms.ModelForm):
         fields = ["title", "authors"]
         widgets = {
             "authors": PersonHeavySelect2TagWidget(
-                data_view="test-person-autocomplete",
+                data_view="publications:person-autocomplete",
                 attrs={"data-token-separators": "[',',';']",
                        "data-tags": "true",   # enable tagging
                        "data-placeholder": "Add or select authors",

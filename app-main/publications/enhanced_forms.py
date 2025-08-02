@@ -5,8 +5,7 @@ This integrates the workflow system with existing forms.
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.db.models import QuerySet
-from .forms import AddEditReportForm, AddEditReportFinalSaveForm
-from .workflow_forms import PersonWorkflowMixin
+from .forms import AddEditReportForm, AddEditReportFinalSaveForm, PersonWorkflowMixin
 from .person_workflow import extract_person_names
 import ast
 
@@ -19,58 +18,51 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
     when person names need to be resolved.
     """
     
-    def __init__(self, *args, **kwargs):
-        # Extract request object before passing to parent
-        self.request = kwargs.pop('request', None)
-        super().__init__(*args, **kwargs)
+    def clean_authors(self):
+        """Enhanced clean_authors with workflow trigger only for string data"""
+        # Call parent method first to get the data
+        authors_data = super().clean_authors()
+        
+        # Only trigger workflow if we have string data (not QuerySet)
+        # QuerySet means data is already resolved from previous workflow
+        if isinstance(authors_data, QuerySet):
+            print(f"clean_authors: Already resolved QuerySet with {authors_data.count()} authors")
+            return authors_data
+        
+        # If we have list of strings, trigger workflow
+        if isinstance(authors_data, list) and any(isinstance(item, str) and not item.isnumeric() for item in authors_data):
+            print(f"clean_authors: Found unresolved string data, triggering workflow: {authors_data}")
+            self._workflow_redirect = self.start_person_workflow(
+                'authors', authors_data
+            )
+            # Return the original data - workflow will handle resolution
+            return authors_data
+        
+        print(f"clean_authors: No workflow needed, returning: {authors_data}")
+        return authors_data
     
-    def clean(self):
-        """Enhanced clean method that triggers workflow if needed"""
-        cleaned_data = super().clean()
+    def clean_supervisors(self):
+        """Enhanced clean_supervisors with workflow trigger only for string data"""
+        # Call parent method first to get the data
+        supervisors_data = super().clean_supervisors()
         
-        # Check if we need to start person disambiguation workflow
-        person_fields = ['authors', 'supervisors']
+        # Only trigger workflow if we have string data (not QuerySet)
+        # QuerySet means data is already resolved from previous workflow
+        if isinstance(supervisors_data, QuerySet):
+            print(f"clean_supervisors: Already resolved QuerySet with {supervisors_data.count()} supervisors")
+            return supervisors_data
         
-        for field_name in person_fields:
-            if field_name in cleaned_data:
-                field_data = cleaned_data[field_name]
-                
-                # Skip if already a QuerySet (persons are resolved)
-                if isinstance(field_data, QuerySet):
-                    continue
-                
-                # Convert the field data to the format expected by extract_person_names
-                if field_data:
-                    # Handle the complex data formats from HeavySelect2TagWidget
-                    if isinstance(field_data, list):
-                        names_to_check = [str(item) for item in field_data]
-                    elif isinstance(field_data, str):
-                        try:
-                            parsed_data = ast.literal_eval(field_data)
-                            names_to_check = [str(item) for item in parsed_data]
-                        except (ValueError, SyntaxError):
-                            names_to_check = [field_data]
-                    else:
-                        names_to_check = [str(field_data)]
-                    
-                    # Filter out numeric IDs (already resolved)
-                    names_needing_resolution = []
-                    for name in names_to_check:
-                        if not str(name).isnumeric():
-                            names_needing_resolution.append(name)
-                    
-                    if names_needing_resolution:
-                        # Start workflow for this field
-                        workflow_result = self.start_person_workflow(
-                            field_name, names_needing_resolution
-                        )
-                        # This will be a redirect response
-                        # We need to handle this in the view, not here
-                        # For now, we'll store it in the form for the view to handle
-                        self._workflow_redirect = workflow_result
-                        break
+        # If we have list of strings, trigger workflow
+        if isinstance(supervisors_data, list) and any(isinstance(item, str) and not item.isnumeric() for item in supervisors_data):
+            print(f"clean_supervisors: Found unresolved string data, triggering workflow: {supervisors_data}")
+            self._workflow_redirect = self.start_person_workflow(
+                'supervisors', supervisors_data
+            )
+            # Return the original data - workflow will handle resolution
+            return supervisors_data
         
-        return cleaned_data
+        print(f"clean_supervisors: No workflow needed, returning: {supervisors_data}")
+        return supervisors_data
     
     def has_workflow_redirect(self):
         """Check if form needs to redirect to workflow"""

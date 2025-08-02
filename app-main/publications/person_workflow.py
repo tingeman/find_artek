@@ -30,14 +30,15 @@ class PersonWorkflowSession:
                 'field_name': None
             }
     
-    def start_workflow(self, field_name, person_names, original_form_data):
+    def start_workflow(self, field_name, person_names, original_form_data, source_url=None):
         """Start new workflow for a field"""
         self.session['person_workflow'] = {
             'pending_persons': person_names,
             'resolved_persons': {},
             'original_form_data': original_form_data,
             'current_step': 0,
-            'field_name': field_name
+            'field_name': field_name,
+            'source_url': source_url or self.request.path
         }
         self.session.modified = True
     
@@ -78,6 +79,10 @@ class PersonWorkflowSession:
         """Get the field being processed"""
         return self.session['person_workflow']['field_name']
     
+    def get_source_url(self):
+        """Get the source URL to redirect back to"""
+        return self.session['person_workflow'].get('source_url', '/publications/add/report/')
+    
     def clear_workflow(self):
         """Clear workflow session"""
         if 'person_workflow' in self.session:
@@ -110,36 +115,40 @@ def remove_tags(string):
 
 def get_person_matches(name_string):
     """
-    Find person matches in database.
-    Returns dict with exact and relaxed matches.
+    Find person matches in database using comprehensive matching strategies.
+    Returns dict with matches organized by confidence levels.
     """
+    from publications.forms import PersonSelectForm
+    
     clean_name = remove_tags(name_string).strip()
     
     if not clean_name:
         return {'exact': [], 'relaxed': []}
     
-    # Try exact match first
-    exact_matches = Person.objects.filter(name__iexact=clean_name)
+    # Use the enhanced matching from forms
+    form_instance = PersonSelectForm()
+    all_matches = form_instance.get_person_matches(clean_name)
     
-    # Try relaxed match (split on common separators)
+    # Organize matches by confidence level for backwards compatibility
+    exact_matches = []
     relaxed_matches = []
-    name_parts = re.split(r'[,\s]+', clean_name)
-    if len(name_parts) >= 2:
-        first_part = name_parts[0].strip()
-        last_part = name_parts[-1].strip()
+    
+    for match in all_matches:
+        person = match['person']
+        confidence = match['confidence']
         
-        relaxed_qs = Person.objects.filter(
-            name__icontains=first_part
-        ).filter(
-            name__icontains=last_part
-        ).exclude(
-            id__in=[p.id for p in exact_matches]
-        )
-        relaxed_matches = list(relaxed_qs)
+        # High confidence matches (95%+) considered "exact"
+        if confidence >= 0.95:
+            exact_matches.append(person)
+        # Medium to high confidence (60%+) considered "relaxed"
+        elif confidence >= 0.6:
+            relaxed_matches.append(person)
+        # Low confidence matches not included to avoid clutter
     
     return {
-        'exact': list(exact_matches),
-        'relaxed': relaxed_matches
+        'exact': exact_matches,
+        'relaxed': relaxed_matches,
+        'all_matches': all_matches  # Include enhanced match data
     }
 
 
@@ -154,6 +163,10 @@ def extract_person_names(form_data, field_name):
     
     for name in field_values:
         if not name or not name.strip():
+            continue
+        
+        # Skip items that were explicitly skipped by user
+        if isinstance(name, str) and name.startswith('SKIP:'):
             continue
             
         # Check if name already has an ID tag
@@ -191,7 +204,7 @@ def disambiguate_person_step(request):
     
     if not current_person_name:
         messages.error(request, "No person to disambiguate.")
-        return redirect('publications:add_publication')
+        return redirect('publications:add_report')
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -201,9 +214,8 @@ def disambiguate_person_step(request):
             person_id = request.POST.get('person_id')
             try:
                 person = Person.objects.get(id=person_id)
-                # Tag the name with the selected person ID
-                tagged_name = f"{remove_tags(current_person_name)} [id:{person.id}]"
-                workflow.resolve_current_person(tagged_name)
+                # Store just the person ID for generic list handling
+                workflow.resolve_current_person(str(person.id))
                 
                 if workflow.is_complete():
                     return redirect('publications:complete_person_workflow')
@@ -217,31 +229,48 @@ def disambiguate_person_step(request):
             # User wants to create a new person
             person_name = remove_tags(current_person_name)
             
-            # Create the person
+            # Create the person using the AddPersonForm
             try:
-                person = Person.objects.create(
-                    name=person_name,
-                    created_by=request.user,
-                    modified_by=request.user
-                )
-                # Tag the name with new person ID
-                tagged_name = f"{person_name} [id:{person.id}]"
-                workflow.resolve_current_person(tagged_name)
-                
-                messages.success(request, f'Created new person: {person.name}')
-                
-                if workflow.is_complete():
-                    return redirect('publications:complete_person_workflow')
-                else:
-                    return redirect('publications:disambiguate_person_step')
+                from publications.forms import AddPersonForm
+                form = AddPersonForm({'name': person_name})
+                if form.is_valid():
+                    person = form.save(commit=False)
+                    person.created_by = request.user
+                    person.modified_by = request.user
+                    person.save()
                     
-            except ValidationError as e:
+                    # Store just the person ID for generic list handling
+                    workflow.resolve_current_person(str(person.id))
+                    
+                    messages.success(request, f'Created new person: {person.get_full_name()}')
+                    
+                    if workflow.is_complete():
+                        return redirect('publications:complete_person_workflow')
+                    else:
+                        return redirect('publications:disambiguate_person_step')
+                else:
+                    # If form validation fails, try basic creation
+                    person = Person(created_by=request.user, modified_by=request.user)
+                    person.set_names(person_name)
+                    person.save()
+                    
+                    # Store just the person ID for generic list handling
+                    workflow.resolve_current_person(str(person.id))
+                    
+                    messages.success(request, f'Created new person: {person.get_full_name()}')
+                    
+                    if workflow.is_complete():
+                        return redirect('publications:complete_person_workflow')
+                    else:
+                        return redirect('publications:disambiguate_person_step')
+                    
+            except Exception as e:
                 messages.error(request, f"Error creating person: {e}")
         
         elif action == 'skip':
-            # User wants to skip (use as-is, will create automatically)
-            tagged_name = f"{remove_tags(current_person_name)} [id:0]"
-            workflow.resolve_current_person(tagged_name)
+            # User wants to skip (keep original string, don't treat as person)
+            # Mark with SKIP: prefix so it won't trigger workflow again
+            workflow.resolve_current_person(f"SKIP:{current_person_name}")
             
             if workflow.is_complete():
                 return redirect('publications:complete_person_workflow')
@@ -257,6 +286,7 @@ def disambiguate_person_step(request):
         'clean_name': clean_name,
         'exact_matches': matches['exact'],
         'relaxed_matches': matches['relaxed'],
+        'all_matches': matches.get('all_matches', []),
         'field_name': workflow.get_field_name(),
         'step_number': workflow.session['person_workflow']['current_step'] + 1,
         'total_steps': len(workflow.session['person_workflow']['pending_persons'])
@@ -267,7 +297,7 @@ def disambiguate_person_step(request):
 
 @login_required
 def complete_person_workflow(request):
-    """Complete the person workflow and return to original form"""
+    """Complete the person workflow and return to review form"""
     workflow = PersonWorkflowSession(request)
     
     if not workflow.is_complete():
@@ -283,6 +313,10 @@ def complete_person_workflow(request):
     updated_form_data = original_form_data.copy()
     resolved_names = []
     
+    print(f"🔍 DEBUG: original_form_data type: {type(original_form_data)}")
+    print(f"🔍 DEBUG: original_form_data: {original_form_data}")
+    print(f"🔍 DEBUG: resolved_persons mapping: {resolved_persons}")
+    
     # Reconstruct the field with resolved person names
     original_names = original_form_data.getlist(field_name) if hasattr(original_form_data, 'getlist') else original_form_data.get(field_name, [])
     if isinstance(original_names, str):
@@ -294,16 +328,45 @@ def complete_person_workflow(request):
         else:
             resolved_names.append(name)  # Already resolved or doesn't need resolution
     
+    # Always store as list, even for single values
+    # This ensures consistency between authors and supervisors
     updated_form_data[field_name] = resolved_names
     
-    # Store updated form data in session for the main form
+    # If we're dealing with supervisors, make sure it's a list
+    # This is a special check because supervisors sometimes get stored as a string
+    if field_name == 'supervisors' and not isinstance(updated_form_data[field_name], list):
+        updated_form_data[field_name] = [updated_form_data[field_name]]
+        print(f"🔍 DEBUG: Converted supervisors to list: {updated_form_data[field_name]}")
+    
+    print(f"🔍 DEBUG: updated_form_data before storing: {updated_form_data}")
+    print(f"🔍 DEBUG: updated_form_data type: {type(updated_form_data)}")
+    
+    # Store updated form data in session - keep original structure intact
+    # No field-specific logic needed since we only replaced ambiguous strings with IDs
     request.session['updated_form_data'] = dict(updated_form_data)
     request.session.modified = True
+    
+    # Get the source URL and determine publication ID for redirect
+    source_url = workflow.get_source_url()
     
     # Clear workflow
     workflow.clear_workflow()
     
     messages.success(request, f"Person disambiguation complete for {field_name}.")
     
-    # Redirect back to the form that initiated the workflow
-    return redirect('publications:add_publication')
+    # Determine redirect URL based on source
+    if '/report/' in source_url and '/edit/' in source_url:
+        # Extract publication ID from source URL
+        import re
+        match = re.search(r'/report/(\d+)/edit/', source_url)
+        if match:
+            publication_id = match.group(1)
+            print(f"🔍 DEBUG: Redirecting to review view for publication {publication_id}")
+            return redirect('publications:edit_report_review', pk=publication_id)
+    elif '/add/' in source_url:
+        print("🔍 DEBUG: Redirecting to add review view")
+        return redirect('publications:add_report_review')
+    
+    # Fallback to original source URL for unknown cases
+    print(f"🔍 DEBUG: Fallback redirect to original source: {source_url}")
+    return redirect(source_url)

@@ -1,6 +1,9 @@
 from django.urls import include, path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
+from .person_workflow import disambiguate_person_step, complete_person_workflow
+
+app_name = 'publications'
 
 urlpatterns = [
     path('base/', views.BaseView.as_view(), name='base'),
@@ -16,11 +19,13 @@ urlpatterns = [
     path('feature/<int:pk>/delete/', views.DeleteFeatureView.as_view(), name='delete_feature'),
     # path('login/', views.LoginView.as_view(), name='login'),
     # path('logout/', views.LogoutView.as_view(), name='logout'),
-    path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('frontpage')), name='logout'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('publications:frontpage')), name='logout'),
 
     path('add/report/', views.AddEditReportView.as_view(), name='add_report'),
+    path('add/report/review/', views.AddEditReportReviewView.as_view(), name='add_report_review'),
     path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
     path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
+    path('report/<int:pk>/edit/review/', views.AddEditReportReviewView.as_view(), name='edit_report_review'),
     path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
     path('report/<int:pk>/delete/', views.DeleteReportView.as_view(), name='delete_report'),
     path('report/<int:pk>/change-number/', views.ChangeReportNumberView.as_view(), name='change_report_number'),
@@ -34,8 +39,8 @@ urlpatterns = [
     path("ajax/person/add/", views.add_person_ajax, name="add_person_ajax"),
     
     # Multi-step person disambiguation workflow
-    path("workflow/person/disambiguate/", views.disambiguate_person_step, name="disambiguate_person_step"),
-    path("workflow/person/complete/", views.complete_person_workflow, name="complete_person_workflow"),
+    path("workflow/person/disambiguate/", disambiguate_person_step, name="disambiguate_person_step"),
+    path("workflow/person/complete/", complete_person_workflow, name="complete_person_workflow"),
 
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),

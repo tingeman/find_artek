@@ -53,4 +53,4 @@ volumes:
 
 networks:
   docker_default:
-    external: true
+    # Let Docker Compose manage this network in dev and base. Only external in production.

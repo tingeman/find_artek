@@ -3,7 +3,9 @@
 
 {% block title %}Disambiguate Person - {{ clean_name }}{% endblock %}
 
-{% block content %}
+{% block headline %}Person Disambiguation{% endblock %}
+
+{% block main-content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -19,8 +21,8 @@
                     
                     {% if exact_matches %}
                     <div class="mb-4">
-                        <h5>Exact Matches Found</h5>
-                        <p class="text-muted">We found persons with exactly this name:</p>
+                        <h5>High Confidence Matches (95%+)</h5>
+                        <p class="text-muted">We found persons that closely match this name:</p>
                         <form method="post">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="select_existing">
@@ -28,13 +30,19 @@
                                 {% for person in exact_matches %}
                                 <label class="list-group-item list-group-item-action">
                                     <input type="radio" name="person_id" value="{{ person.id }}" class="me-2">
-                                    <strong>{{ person.name }}</strong>
-                                    {% if person.institution %}
-                                        <br><small class="text-muted">{{ person.institution }}</small>
-                                    {% endif %}
-                                    {% if person.email %}
-                                        <br><small class="text-muted">{{ person.email }}</small>
-                                    {% endif %}
+                                    <div>
+                                        <strong>{{ person.get_full_name }}</strong>
+                                        <span class="badge bg-success ms-2">High Match</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            PK: {{ person.pk }}
+                                            {% if person.email %} | Email: {{ person.email }}{% endif %}
+                                            {% if person.id_number %} | ID: {{ person.id_number }}{% endif %}
+                                        </small>
+                                        {% if person.institution %}
+                                            <br><small class="text-muted">Institution: {{ person.institution }}</small>
+                                        {% endif %}
+                                    </div>
                                 </label>
                                 {% endfor %}
                             </div>
@@ -47,7 +55,7 @@
                     
                     {% if relaxed_matches %}
                     <div class="mb-4">
-                        <h5>Similar Names Found</h5>
+                        <h5>Possible Matches (60-94%)</h5>
                         <p class="text-muted">We found persons with similar names:</p>
                         <form method="post">
                             {% csrf_token %}
@@ -56,13 +64,19 @@
                                 {% for person in relaxed_matches %}
                                 <label class="list-group-item list-group-item-action">
                                     <input type="radio" name="person_id" value="{{ person.id }}" class="me-2">
-                                    <strong>{{ person.name }}</strong>
-                                    {% if person.institution %}
-                                        <br><small class="text-muted">{{ person.institution }}</small>
-                                    {% endif %}
-                                    {% if person.email %}
-                                        <br><small class="text-muted">{{ person.email }}</small>
-                                    {% endif %}
+                                    <div>
+                                        <strong>{{ person.get_full_name }}</strong>
+                                        <span class="badge bg-warning ms-2">Possible Match</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            PK: {{ person.pk }}
+                                            {% if person.email %} | Email: {{ person.email }}{% endif %}
+                                            {% if person.id_number %} | ID: {{ person.id_number }}{% endif %}
+                                        </small>
+                                        {% if person.institution %}
+                                            <br><small class="text-muted">Institution: {{ person.institution }}</small>
+                                        {% endif %}
+                                    </div>
                                 </label>
                                 {% endfor %}
                             </div>
@@ -70,6 +84,50 @@
                                 Select This Person
                             </button>
                         </form>
+                    </div>
+                    {% endif %}
+                    
+                    {% if all_matches %}
+                    <div class="mb-4">
+                        <details class="border rounded p-3">
+                            <summary class="fw-bold text-primary" style="cursor: pointer;">
+                                View All Matches with Details ({{ all_matches|length }} found)
+                            </summary>
+                            <div class="mt-3">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="select_existing">
+                                    <div class="list-group">
+                                        {% for match in all_matches %}
+                                        <label class="list-group-item list-group-item-action">
+                                            <input type="radio" name="person_id" value="{{ match.person.id }}" class="me-2">
+                                            <div>
+                                                <strong>{{ match.person.get_full_name }}</strong>
+                                                <span class="badge {% if match.confidence >= 0.95 %}bg-success{% elif match.confidence >= 0.8 %}bg-warning{% else %}bg-secondary{% endif %} ms-2">
+                                                    {{ match.confidence|floatformat:0 }}% - {{ match.match_type|title }}
+                                                </span>
+                                                <br>
+                                                <small class="text-muted">
+                                                    PK: {{ match.person.pk }}
+                                                    {% if match.person.email %} | Email: {{ match.person.email }}{% endif %}
+                                                    {% if match.person.id_number %} | ID: {{ match.person.id_number }}{% endif %}
+                                                </small>
+                                                {% if match.person.institution %}
+                                                    <br><small class="text-muted">Institution: {{ match.person.institution }}</small>
+                                                {% endif %}
+                                                {% if match.notes %}
+                                                    <br><small class="text-info">{{ match.notes }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-primary mt-2" onclick="return validatePersonSelection()">
+                                        Select From All Matches
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
                     </div>
                     {% endif %}
                     
