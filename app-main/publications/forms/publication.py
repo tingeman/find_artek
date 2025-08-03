@@ -52,6 +52,12 @@ class AddEditReportForm(ModelForm):
         help_text="Report number will be automatically assigned in format YY-NN when the report is saved"
     )
 
+    comment = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 2}),
+        help_text="Any additional comments about the report"
+    )
+
     authors = forms.CharField(max_length=1000, required=False,
         widget=PersonHeavySelect2TagWidget(
             data_view="publications:person-autocomplete",
@@ -132,7 +138,7 @@ class AddEditReportForm(ModelForm):
     class Meta:
         model = Publication
         # Include all fields including delete_pdf for edit mode
-        fields = ['type', 'title', 'number', 'year', 'abstract', 'comment',
+        fields = ['title', 'type', 'number', 'year', 'abstract', 'comment',
                   'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile', 'delete_pdf']
         exclude = []
 
