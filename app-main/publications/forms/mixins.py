@@ -6,7 +6,7 @@ from django.forms import ValidationError
 from publications.models import Person
 from publications.forms.publication import AddEditReportForm, AddEditReportFinalSaveForm
 from publications.workflows.person import extract_person_names, get_tag, remove_tags
-from publications.utils import create_ordered_queryset
+from publications.utils_models import create_ordered_queryset
 import json
 import ast
 import logging

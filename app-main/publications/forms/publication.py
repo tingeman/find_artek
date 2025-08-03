@@ -7,7 +7,7 @@ from django_select2 import forms as s2forms
 from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
 from publications.models import Publication, Person, Feature, Topic, Keyword
-from publications.utils import create_ordered_queryset, validate_report_number_format
+from publications.utils_models import create_ordered_queryset, validate_report_number_format
 from publications.forms.person import PersonHeavySelect2TagWidget
 import datetime
 import ast

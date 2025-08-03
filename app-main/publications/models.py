@@ -4,7 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models as geo_models
 
-from publications import utils
+from publications import utils_basic as utils
 from pybtex.database import Person as pybtexPerson
 from pybtex.bibtex import utils as pybtex_utils
 
