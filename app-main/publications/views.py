@@ -1,56 +1,71 @@
-import re
+
+# Standard library imports
+import ast
+
+# === Standard library imports ===
+import ast
+import datetime
 import json
 import os
-import ast
-import time
-import tempfile
+import pdb
+import re
 import shutil
-import traceback  # Make sure traceback is imported
+import tempfile
+import time
+import traceback
 
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render, redirect
-from django.template import RequestContext
-from django.core import serializers
-from django.contrib.auth import authenticate, login, logout
-from django.views import View
-from django.urls import reverse
-from django.db.models import QuerySet
-from django.core.exceptions import ValidationError
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
-from django.template.loader import render_to_string
-
-from django.views.generic import TemplateView
-from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView, UpdateView, FormView
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-
+# === Third-party imports ===
 from django_select2.views import AutoResponseView
 
-from find_artek.search import get_query
-from publications.utils import CaseInsensitively, create_ordered_queryset, handle_publication_file_upload
-from publications.library import get_client_ip, is_private
-from publications.forms import (LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
-                                PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
-                                AddFeatureCoordinatesForm, PersonWorkflowMixin)
-from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
-from publications.models import Publication, Topic, Feature, Person
-
+# === Django imports ===
+from django.conf import settings
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.views.generic.edit import DeleteView
-from publications.models import Feature
+from django.core import serializers
+from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
+from django.db import transaction, IntegrityError
+from django.db.models import QuerySet
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render, redirect
+from django.template import RequestContext
+from django.template.loader import render_to_string
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.decorators.http import require_http_methods
+from django.views.generic import TemplateView
+from django.views.generic.detail import DetailView
+from django.views.generic.edit import CreateView, UpdateView, FormView, DeleteView
 
+# === Django GIS imports ===
+from django.contrib.gis.geos import Point, MultiPoint
+from urllib3 import request
 
-
-import pdb
+# === Project-specific imports ===
+from find_artek.search import get_query
+from publications.forms import (
+    LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
+    PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
+    AddFeatureCoordinatesForm, PersonWorkflowMixin, UploadAppendixForm, ChangeReportNumberForm
+)
+from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
+from publications.library import get_client_ip, is_private
+from publications.models import (
+    Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
+    Keyword, FileObject
+)
+from publications.utils_basic import CaseInsensitively
+from publications.utils_models import (
+    handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
+    handle_session_appendix_uploads, rename_publication_files
+)
+from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
 # Create your views here.
-
-
 
 
 class BaseView(View):
@@ -315,9 +330,13 @@ class AddEditReportView(BaseFormView):
 
     def is_final_save(self):
         """Check if this is a final save after person selection"""
+
+        # WE HAVE TRANSITIONED AWAY FROM ACTION PARAMETER
+
         # Check for action parameter in query string
         action = self.request.GET.get('action', '')
         if action in ['add_final', 'edit_final']:
+            print(f"❌ WARNING: Found action '{action}', THIS SHOULD NOT HAPPEN!")
             return True
             
         # Check if we're on a finalize URL path
@@ -333,6 +352,7 @@ class AddEditReportView(BaseFormView):
     def get_object(self):
         """Get the publication to edit, or None for add mode"""
         if self.is_edit_mode():
+            # To avoid unnecessary database queries, cache the object
             if hasattr(self, '_object_cache'):
                 return self._object_cache
             
@@ -360,12 +380,15 @@ class AddEditReportView(BaseFormView):
             context['publication'] = self.get_object()
         else:
             context['publication'] = None  # Ensure publication is always in context
-        
+
+        # TODO: WE SHOULD BE HANDLING EVERYTHING WITH URLs NOW; NOT ACTION PARAMETERS
         # Handle returning from person selection
         if self.request.GET.get('action') == 'edit_continue':
             context['action'] = 'edit'
+            print(f"❌ WARNING: Found action 'edit_continue', THIS SHOULD NOT HAPPEN!")
         elif self.request.GET.get('action') == 'new':
             context['action'] = 'add'
+            print(f"❌ WARNING: Found action 'new', THIS SHOULD NOT HAPPEN!")
             
         return context
 
@@ -379,7 +402,10 @@ class AddEditReportView(BaseFormView):
     def _get_add_initial(self):
         """Get initial data for Add mode"""
         action = self.request.GET.get('action', 'new')
-        
+        if self.request.GET.get('action', None) is not None:
+            print(f"❌ WARNING: Found action '{action}', THIS SHOULD NOT HAPPEN!")
+        print(f"🔍 DEBUG: _get_add_initial called, action: {action}")
+
         if action == 'edit':  # Returning from person selection
             session_data = self.request.session.get('add_report_form_data', {})
             return self._normalize_session_data(session_data)
@@ -389,7 +415,10 @@ class AddEditReportView(BaseFormView):
     def _get_edit_initial(self):
         """Get initial data for Edit mode - always from database"""
         action = self.request.GET.get('action', 'edit')
-        
+        if self.request.GET.get('action', None) is not None:
+            print(f"❌ WARNING: Found action '{action}', THIS SHOULD NOT HAPPEN!")
+        print(f"🔍 DEBUG: _get_edit_initial called, action: {action}")
+
         if action == 'edit_continue':  # Returning from person selection (legacy)
             session_data = self.request.session.get('edit_report_form_data', {})
             return self._normalize_session_data(session_data)
@@ -508,6 +537,8 @@ class AddEditReportView(BaseFormView):
         if self.request.method == 'POST' and self.request.POST:
             print(f"🔍 DEBUG: Using existing POST data from request with keys: {list(self.request.POST.keys())}")
         else:
+            # TODO: WHEN DOES THIS HAPPEN???
+
             # Pretend this is a POST request with session data
             print(f"🔍 DEBUG: No POST data, using session data instead")
             self.request.method = 'POST'
@@ -546,6 +577,8 @@ class AddEditReportView(BaseFormView):
 
     def get(self, request, *args, **kwargs):
         """Handle GET requests"""
+        print(f"🔍 DEBUG: We received a GET request!!!!!!!!")
+        print(f"🔍 DEBUG: AddEditReportView.get called for URL: {request.path}")
         if self.is_final_save():
             return self._handle_final_save_get(request)
         else:
@@ -566,11 +599,12 @@ class AddEditReportView(BaseFormView):
             if use_session_data and 'updated_form_data' in request.session:
                 print(f"🔍 DEBUG: Using session data from 'updated_form_data' key")
                 session_data = request.session.get('updated_form_data', {})
-                
+                print(f"🔍 DEBUG: Session data: {session_data}")
+
                 # Create a publication instance directly
-                from django.db import transaction
                 try:
                     with transaction.atomic():
+                        # Get or create a publication object
                         publication = self.get_object() if self.is_edit_mode() else Publication()
                         
                         # Update basic fields
@@ -580,7 +614,6 @@ class AddEditReportView(BaseFormView):
                         # Type field needs special handling
                         type_id = request.POST.get('type')
                         if type_id:
-                            from publications.models import PubType
                             try:
                                 publication.type = PubType.objects.get(pk=type_id)
                             except (PubType.DoesNotExist, ValueError):
@@ -595,10 +628,9 @@ class AddEditReportView(BaseFormView):
                         publication.comment = request.POST.get('comment', '')
                         
                         # Set the modified by user
-                        if request.user.is_authenticated:
-                            publication.modified_by = request.user
-                            if not publication.pk:  # If new publication
-                                publication.created_by = request.user
+                        publication.modified_by = request.user
+                        if not publication.pk:  # If new publication
+                            publication.created_by = request.user
                         
                         # Save publication to get an ID if it's new
                         publication.save()
@@ -610,7 +642,6 @@ class AddEditReportView(BaseFormView):
                         publication.authorship_set.all().delete()
                         authors = request.POST.getlist('authors', [])
                         for i, author_pk in enumerate(authors):
-                            from publications.models import Authorship, Person
                             try:
                                 person = Person.objects.get(pk=int(author_pk))
                                 Authorship.objects.create(
@@ -626,7 +657,6 @@ class AddEditReportView(BaseFormView):
                         publication.supervisorship_set.all().delete()
                         supervisors = request.POST.getlist('supervisors', [])
                         for i, supervisor_pk in enumerate(supervisors):
-                            from publications.models import Supervisorship, Person
                             try:
                                 person = Person.objects.get(pk=int(supervisor_pk))
                                 Supervisorship.objects.create(
@@ -642,7 +672,6 @@ class AddEditReportView(BaseFormView):
                         publication.publication_topics.clear()
                         topics = request.POST.getlist('publication_topics', [])
                         if topics:
-                            from publications.models import Topic
                             for topic_pk in topics:
                                 try:
                                     topic = Topic.objects.get(pk=int(topic_pk))
@@ -655,7 +684,6 @@ class AddEditReportView(BaseFormView):
                         publication.publication_keywords.clear()
                         keywords = request.POST.getlist('publication_keywords', [])
                         if keywords:
-                            from publications.models import Keyword
                             for keyword_pk in keywords:
                                 try:
                                     keyword = Keyword.objects.get(pk=int(keyword_pk))
@@ -680,10 +708,12 @@ class AddEditReportView(BaseFormView):
                 
                 # After saving, handle file operations separately BEFORE clearing session data
                 try:
-                    # Create a dummy form for the file operations
-                    form = self.get_form()
-                    # Set the object manually since we created it directly
-                    self.object = publication
+                    # TODO: THESE LINES SEEM TO DO NOTHING...
+                    # # Create a dummy form for the file operations
+                    # form = self.get_form()
+                    # # Set the object manually since we created it directly
+                    # self.object = publication
+
                     # Call the file operations method
                     self._handle_file_operations_with_session_data(request)
                 except Exception as e:
@@ -699,6 +729,7 @@ class AddEditReportView(BaseFormView):
                 return redirect(self.get_success_url())
             else:
                 print(f"🔍 DEBUG: No session data found, trying normal form processing")
+
                 # Process the form and get the result
                 form = self.get_form()
                 
@@ -709,6 +740,17 @@ class AddEditReportView(BaseFormView):
                     print(f"🔍 DEBUG: Form validation failed: {form.errors}")
                     # Try to fix validation issues with session data
                     if 'updated_form_data' in request.session:
+
+                        # TODO: WHEN DOES THIS HAPPEN???
+                        # We seem to have a flag that tells us not to use session data
+                        # but we choose to use it anyway???
+                        # It does not seem to be fully implemented either...
+                        
+                        # TODO: This section should be deleted.
+
+                        # print warning
+                        print(f"❌ WARNING: We should never end up here...")
+
                         print(f"🔍 DEBUG: Attempting to save with session data despite validation errors")
                         try:
                             # Get the publication instance
@@ -826,28 +868,25 @@ class AddEditReportView(BaseFormView):
             print(f"🔍 DEBUG: Found file upload: {uploaded_file.name} (size: {uploaded_file.size} bytes)")
             
             try:
-                # Create a temporary publication object for file processing
-                temp_publication = Publication()
-                temp_publication.created_by = self.request.user
-                temp_publication.modified_by = self.request.user
-                temp_publication.title = "TEMP_" + str(time.time())  # Temporary title
-                temp_publication.year = 2024  # Temporary year
-                temp_publication.save()  # Save to get an ID
+                # # Create a temporary publication object for file processing
+                # temp_publication = Publication()
+                # temp_publication.created_by = self.request.user
+                # temp_publication.modified_by = self.request.user
+                # temp_publication.title = "TEMP_" + str(time.time())  # Temporary title
+                # temp_publication.year = 2024  # Temporary year
+                # temp_publication.save()  # Save to get an ID
                 
                 # Process file and store in temp location
-                file_obj = handle_publication_file_upload(temp_publication, uploaded_file, temp_storage=True)
+                file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
                 
                 # Store the actual FileObject ID in session for later linking
                 session_data['uploaded_file_id'] = str(file_obj.id)
-                session_data['temp_publication_id'] = str(temp_publication.id)
                 
                 print(f"🔍 DEBUG: Created FileObject with ID: {file_obj.id}")
-                print(f"🔍 DEBUG: Created temporary publication ID: {temp_publication.id}")
-                
                 file_handled = True
                 
             except Exception as e:
-                print(f"🔍 DEBUG: Error storing uploaded file: {e}")
+                print(f"🔍 DEBUG: Error storing uploaded file (pdffile in request.FILES): {e}")
             
             # Store file metadata as dictionary
             session_data['pdffile'] = {
@@ -864,28 +903,25 @@ class AddEditReportView(BaseFormView):
             print(f"🔍 DEBUG: Found file upload with formset name: {uploaded_file.name}")
             
             try:
-                # Create a temporary publication object for file processing
-                temp_publication = Publication()
-                temp_publication.created_by = self.request.user
-                temp_publication.modified_by = self.request.user
-                temp_publication.title = "TEMP_" + str(time.time())  # Temporary title
-                temp_publication.year = 2024  # Temporary year
-                temp_publication.save()  # Save to get an ID
+                # # Create a temporary publication object for file processing
+                # temp_publication = Publication()
+                # temp_publication.created_by = self.request.user
+                # temp_publication.modified_by = self.request.user
+                # temp_publication.title = "TEMP_" + str(time.time())  # Temporary title
+                # temp_publication.year = 2024  # Temporary year
+                # temp_publication.save()  # Save to get an ID
                 
                 # Process file and store in temp location
-                file_obj = handle_publication_file_upload(temp_publication, uploaded_file, temp_storage=True)
-                
+                file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
+
                 # Store the actual FileObject ID in session for later linking
                 session_data['uploaded_file_id'] = str(file_obj.id)
-                session_data['temp_publication_id'] = str(temp_publication.id)
                 
                 print(f"🔍 DEBUG: Created FileObject with ID: {file_obj.id}")
-                print(f"🔍 DEBUG: Created temporary publication ID: {temp_publication.id}")
-                
                 file_handled = True
                 
             except Exception as e:
-                print(f"🔍 DEBUG: Error storing uploaded file: {e}")
+                print(f"🔍 DEBUG: Error storing uploaded file (pdffile in formset): {e}")
             
             # Store file metadata as dictionary
             session_data['pdffile'] = {
@@ -933,15 +969,12 @@ class AddEditReportView(BaseFormView):
             print("✅ Session data stored successfully for review view")
             print(f"🔍 DEBUG: Session data includes uploaded_file_id: {'uploaded_file_id' in session_data}")
             print(f"🔍 DEBUG: Session data includes existing_file_id: {'existing_file_id' in session_data}")
-            print(f"🔍 DEBUG: Session data includes temp_publication_id: {'temp_publication_id' in session_data}")
             
             # If file IDs are present, print them
             if 'uploaded_file_id' in session_data:
                 print(f"🔍 DEBUG: uploaded_file_id value: {session_data['uploaded_file_id']}")
             if 'existing_file_id' in session_data:
                 print(f"🔍 DEBUG: existing_file_id value: {session_data['existing_file_id']}")
-            if 'temp_publication_id' in session_data:
-                print(f"🔍 DEBUG: temp_publication_id value: {session_data['temp_publication_id']}")
             
             # Store publication ID for edit mode
             if self.is_edit_mode():
@@ -950,7 +983,6 @@ class AddEditReportView(BaseFormView):
                     self.request.session['edit_report_publication_id'] = obj.pk
                     
             # Redirect to the review view
-            action = 'edit' if self.is_edit_mode() else 'add'
             view_name = 'publications:review_edit_report' if self.is_edit_mode() else 'publications:review_add_report'
             if self.is_edit_mode():
                 return redirect(view_name, pk=self.kwargs['pk'])
@@ -959,7 +991,10 @@ class AddEditReportView(BaseFormView):
                 
         except (TypeError, ValueError) as e:
             print(f"❌ Failed to store session data: {e}")
-            
+            print(f"❌❌❌❌❌ WE SHOULD NEVER GET HERE!!! ❌❌❌❌❌")
+
+            # RECONSIDER HOW TO HANDLE THIS SITUATION - FIND A BETTER WAY THAN THIS EXTENSIVE TRY BLOCK
+
             # Fall back to original behavior if session storage fails
             authors = form.cleaned_data['authors']
             supervisors = form.cleaned_data['supervisors']
@@ -976,10 +1011,6 @@ class AddEditReportView(BaseFormView):
             # Auto-generate report number for new publications
             if not self.object.pk and not self.object.number:
                 if self.object.year:
-                    from publications.utils import generate_next_report_number
-                    from django.db import transaction, IntegrityError
-                    import time
-                    
                     # Use retry logic to handle concurrency during auto-generation
                     max_retries = 3
                     for attempt in range(max_retries):
@@ -995,14 +1026,12 @@ class AddEditReportView(BaseFormView):
                                 continue
                             else:
                                 # If all retries fail, show error
-                                from django.contrib import messages
                                 messages.error(
                                     self.request, 
                                     "Unable to assign report number due to high system load. Please try again."
                                 )
                                 return redirect('publications:add_report')
                 else:
-                    from django.contrib import messages
                     messages.error(self.request, "Cannot create report without a year")
                     return redirect('publications:add_report')
             else:
@@ -1024,7 +1053,6 @@ class AddEditReportView(BaseFormView):
                     self.request.session.pop('edit_report_publication_id', None)
 
             # Return a redirect to the success URL
-            from django.http import HttpResponseRedirect
             return HttpResponseRedirect(self.get_success_url())
 
     def _handle_person_selection_redirect(self, form):
@@ -1142,7 +1170,6 @@ class AddEditReportView(BaseFormView):
         # Authors
         self.object.authorship_set.all().delete()
         for i, author in enumerate(authors):
-            from publications.models import Authorship
             Authorship.objects.create(
                 publication=self.object,
                 person=author,
@@ -1152,7 +1179,6 @@ class AddEditReportView(BaseFormView):
         # Supervisors
         self.object.supervisorship_set.all().delete()
         for i, supervisor in enumerate(supervisors):
-            from publications.models import Supervisorship
             Supervisorship.objects.create(
                 publication=self.object,
                 person=supervisor,
@@ -1176,29 +1202,27 @@ class AddEditReportView(BaseFormView):
         # Check if we have file data - first from POST data (from form)
         uploaded_file_id = request.POST.get('uploaded_file_id')
         existing_file_id = request.POST.get('existing_file_id')
-        temp_publication_id = request.POST.get('temp_publication_id')
+        # temp_publication_id = request.POST.get('temp_publication_id')
         
         # If not in POST data, check session data
         if not uploaded_file_id:
             uploaded_file_id = session_data.get('uploaded_file_id')
         if not existing_file_id:
             existing_file_id = session_data.get('existing_file_id')
-        if not temp_publication_id:
-            temp_publication_id = session_data.get('temp_publication_id')
+        # if not temp_publication_id:
+        #     temp_publication_id = session_data.get('temp_publication_id')
         
         print(f"🔍 DEBUG: uploaded_file_id from POST/session: {uploaded_file_id} (type: {type(uploaded_file_id).__name__ if uploaded_file_id else 'None'})")
         print(f"🔍 DEBUG: existing_file_id from POST/session: {existing_file_id} (type: {type(existing_file_id).__name__ if existing_file_id else 'None'})")
-        print(f"🔍 DEBUG: temp_publication_id from POST/session: {temp_publication_id} (type: {type(temp_publication_id).__name__ if temp_publication_id else 'None'})")
+        # print(f"🔍 DEBUG: temp_publication_id from POST/session: {temp_publication_id} (type: {type(temp_publication_id).__name__ if temp_publication_id else 'None'})")
         
         # Handle uploaded file (new upload)
-        if uploaded_file_id and temp_publication_id:
-            print(f"🔍 DEBUG: Found uploaded file ID: {uploaded_file_id}, temp publication ID: {temp_publication_id}")
+        if uploaded_file_id:
+            print(f"🔍 DEBUG: Found uploaded file ID: {uploaded_file_id}")
             
             try:
                 # Get the uploaded file object
-                from publications.models import FileObject, Publication
                 uploaded_file_obj = FileObject.objects.get(pk=uploaded_file_id)
-                temp_publication = Publication.objects.get(pk=temp_publication_id)
                 
                 print(f"🔍 DEBUG: Retrieved uploaded file: {uploaded_file_obj.file.name}")
                 print(f"🔍 DEBUG: Current uploaded file path: {uploaded_file_obj.file.path}")
@@ -1213,13 +1237,12 @@ class AddEditReportView(BaseFormView):
                 print(f"🔍 DEBUG: File linked to publication: {final_file_obj.file.name}")
                 
                 # Clean up temporary objects
-                temp_publication.delete()
                 uploaded_file_obj.delete()
                 
                 print(f"🔍 DEBUG: Cleaned up temporary objects")
                 
             except Exception as e:
-                print(f"🔍 DEBUG: Error moving uploaded file: {e}")
+                print(f"🔍 DEBUG: _handle_file_operations_with_session_data: Error moving uploaded file: {e}")
                 print(f"🔍 DEBUG: {traceback.format_exc()}")
                 
         # Handle existing file (edit mode - preserve existing file)
@@ -1228,7 +1251,6 @@ class AddEditReportView(BaseFormView):
             
             try:
                 # Get the existing file object and link it to the publication
-                from publications.models import FileObject
                 existing_file_obj = FileObject.objects.get(pk=existing_file_id)
                 
                 print(f"🔍 DEBUG: Retrieved existing file: {existing_file_obj.file.name}")
@@ -1254,57 +1276,13 @@ class AddEditReportView(BaseFormView):
                 for key, value in request.POST.items():
                     if 'temp' in key:
                         print(f"🔍 DEBUG: Found temp-related POST field: {key} = {value}")
-                
-                # Try to find any temporary files that might match this publication
-                print(f"🔍 DEBUG: Searching for orphaned temporary files...")
-                from publications.models import FileObject, Publication
-                
-                # Look for recent temp publications (created in the last hour)
-                import datetime
-                from django.utils import timezone
-                one_hour_ago = timezone.now() - datetime.timedelta(hours=1)
-                
-                temp_publications = Publication.objects.filter(
-                    title__startswith="TEMP_",
-                    created_date__gte=one_hour_ago
-                ).order_by('-created_date')
-                
-                print(f"🔍 DEBUG: Found {temp_publications.count()} temporary publications")
-                for temp_pub in temp_publications[:5]:  # Check first 5
-                    print(f"🔍 DEBUG: Temp publication: {temp_pub.id} - {temp_pub.title} (files: {temp_pub.fileobject_set.count()})")
-                    if temp_pub.file:
-                        print(f"🔍 DEBUG: Temp publication {temp_pub.id} has main file: {temp_pub.file.file.name}")
-                        
-                        # Check if the file name matches
-                        if pdffile_data.get('name') and pdffile_data['name'] in temp_pub.file.file.name:
-                            print(f"🔍 DEBUG: Found matching temp file! Attempting to use temp publication {temp_pub.id}")
-                            try:
-                                # Move the file to final location
-                                final_file_obj = self._move_temp_file_to_final(temp_pub.file, self.object)
-                                
-                                # Link the final file to the publication
-                                self.object.file = final_file_obj
-                                self.object.save()
-                                
-                                print(f"🔍 DEBUG: Successfully moved file from temp publication {temp_pub.id}")
-                                
-                                # Clean up temporary publication
-                                temp_pub.delete()
-                                
-                                print(f"🔍 DEBUG: Cleaned up temporary publication {temp_pub.id}")
-                                break
-                                
-                            except Exception as e:
-                                print(f"🔍 DEBUG: Error moving file from temp publication {temp_pub.id}: {e}")
-                                print(f"🔍 DEBUG: {traceback.format_exc()}")
+                print(f"❌ ERROR: No uploaded file ID found in session or POST data, but pdffile metadata exists")
             else:
                 print(f"🔍 DEBUG: No pdffile metadata found either")
 
     def _move_temp_file_to_final(self, temp_file_obj, publication):
         """Move a temporary file to its final location"""
-        from django.conf import settings
-        from publications.models import FileObject
-        
+                
         print(f"🔍 DEBUG: Moving temp file to final location")
         print(f"🔍 DEBUG: Temp file: {temp_file_obj.file.name}")
         print(f"🔍 DEBUG: Publication: {publication.title} (#{publication.number})")
@@ -1341,8 +1319,8 @@ class AddEditReportView(BaseFormView):
         original_final_path = final_file_path
         full_final_path = os.path.join(settings.MEDIA_ROOT, final_file_path)
         
+        base_path, ext = os.path.splitext(original_final_path)
         while os.path.exists(full_final_path):
-            base_path, ext = os.path.splitext(original_final_path)
             final_file_path = f"{base_path}_{counter}{ext}"
             full_final_path = os.path.join(settings.MEDIA_ROOT, final_file_path)
             counter += 1
@@ -1504,7 +1482,6 @@ class AddEditReportReviewView(BaseView):
             print(f"🔍 DEBUG: Type PK extracted from list: {type_pk} (type: {type(type_pk).__name__})")
             
             try:
-                from publications.models import PubType
                 pub_type = PubType.objects.get(pk=int(type_pk))
                 print(f"🔍 DEBUG: Found PubType object: {pub_type} (ID: {pub_type.id}, type: {pub_type.type})")
                 # Pass the actual object rather than just the string
@@ -1592,7 +1569,6 @@ class AddEditReportReviewView(BaseView):
             topics = []
             for topic_pk in topics_data:
                 try:
-                    from publications.models import Topic
                     topic = Topic.objects.get(pk=int(topic_pk))
                     topics.append(str(topic))
                 except (Topic.DoesNotExist, ValueError, TypeError):
@@ -1606,7 +1582,6 @@ class AddEditReportReviewView(BaseView):
             keywords = []
             for keyword_pk in keywords_data:
                 try:
-                    from publications.models import Keyword
                     keyword = Keyword.objects.get(pk=int(keyword_pk))
                     keywords.append(str(keyword))
                 except (Keyword.DoesNotExist, ValueError, TypeError):
@@ -1887,7 +1862,6 @@ class AddEditReportReviewView(BaseView):
             # Catch any validation or processing errors
             print(f"🔍 DEBUG: Error during form processing: {str(e)}")
             print(f"🔍 DEBUG: {traceback.format_exc()}")
-            from django.contrib import messages
             messages.error(
                 request,
                 f"An error occurred while processing your form: {str(e)}"
@@ -1899,13 +1873,13 @@ class AddEditReportReviewView(BaseView):
             else:
                 return redirect('publications:add_report')
             
+            # TODO: THE CODE BELOW IS NEVER REACHABLE!!!
+
             # Get the object if in edit mode
             if self.is_edit_mode():
                 obj = self.get_object()
                 if obj:
                     # Process the object and session data directly
-                    from django.http import HttpResponseRedirect
-                    from publications.models import Publication, Authorship, Supervisorship, Person
                     
                     print(f"🔍 DEBUG: Found object to edit: {obj}")
                     
@@ -2009,8 +1983,6 @@ class AddEditReportReviewView(BaseView):
         # Auto-generate report number for new publications
         if not self.object.pk and not self.object.number:
             if self.object.year:
-                from publications.utils import generate_next_report_number
-                from django.db import transaction, IntegrityError
                 
                 # Use retry logic to handle concurrency during auto-generation
                 max_retries = 3
@@ -2027,14 +1999,12 @@ class AddEditReportReviewView(BaseView):
                             continue
                         else:
                             # If all retries fail, show error
-                            from django.contrib import messages
                             messages.error(
                                 self.request, 
                                 "Unable to assign report number due to high system load. Please try again."
                             )
                             return redirect('publications:add_report')
             else:
-                from django.contrib import messages
                 messages.error(self.request, "Cannot create report without a year")
                 return redirect('publications:add_report')
         else:
@@ -2052,7 +2022,6 @@ class AddEditReportReviewView(BaseView):
         self._clear_session_data()
 
         # Always return a redirect to the success URL
-        from django.http import HttpResponseRedirect
         success_url = self.get_success_url()
         print(f"🔍 DEBUG: Redirecting to success URL: {success_url}")
         return HttpResponseRedirect(success_url)
@@ -2578,7 +2547,6 @@ class UploadAppendixView(BaseView):
         context['publication'] = publication
         
         # Import forms here to avoid circular imports
-        from publications.forms import UploadAppendixForm
         context['form'] = UploadAppendixForm()
         
         # Get session files for this publication
@@ -2622,9 +2590,6 @@ class UploadAppendixView(BaseView):
     
     def handle_file_upload(self, request, publication):
         """Add uploaded files to session storage"""
-        from publications.forms import UploadAppendixForm
-        import tempfile
-        import os
         
         form = UploadAppendixForm(request.POST, request.FILES)
         
@@ -2657,21 +2622,18 @@ class UploadAppendixView(BaseView):
                     except OSError:
                         pass
                     # Add error message
-                    from django.contrib import messages
                     messages.error(request, f'Error uploading {uploaded_file.name}: {e}')
             
             # Update session
             request.session[session_key] = session_files
             request.session.modified = True
             
-            from django.contrib import messages
             messages.success(request, f'Successfully uploaded {len(files)} file(s)')
         
         return redirect('publications:upload_appendix', pk=publication.id)
     
     def handle_file_removal(self, request, publication):
         """Remove a file from session storage"""
-        import os
         
         file_index = int(request.POST.get('file_index', -1))
         session_key = f'appendix_upload_{publication.id}'
@@ -2692,19 +2654,16 @@ class UploadAppendixView(BaseView):
             request.session[session_key] = session_files
             request.session.modified = True
             
-            from django.contrib import messages
             messages.success(request, f'Removed {file_to_remove["filename"]}')
         
         return redirect('publications:upload_appendix', pk=publication.id)
     
     def handle_submit(self, request, publication):
         """Commit all session files to the publication"""
-        from publications.utils import handle_session_appendix_uploads
         
         try:
             created_files = handle_session_appendix_uploads(request, publication)
             
-            from django.contrib import messages
             if created_files:
                 messages.success(
                     request, 
@@ -2717,13 +2676,11 @@ class UploadAppendixView(BaseView):
             return redirect('publications:report', pk=publication.id)
             
         except Exception as e:
-            from django.contrib import messages
             messages.error(request, f'Error processing files: {e}')
             return redirect('publications:upload_appendix', pk=publication.id)
     
     def handle_cancel(self, request, publication):
         """Cancel upload and clean up session files"""
-        import os
         
         session_key = f'appendix_upload_{publication.id}'
         session_files = request.session.get(session_key, [])
@@ -2741,7 +2698,6 @@ class UploadAppendixView(BaseView):
         if session_key in request.session:
             del request.session[session_key]
         
-        from django.contrib import messages
         messages.info(request, 'Upload cancelled')
         
         # Redirect to publication detail page
@@ -2763,7 +2719,6 @@ class ChangeReportNumberView(BaseFormView):
         return get_object_or_404(Publication, pk=self.kwargs['pk'])
     
     def get_form_class(self):
-        from publications.forms import ChangeReportNumberForm
         return ChangeReportNumberForm
     
     def get_form_kwargs(self):
@@ -2782,9 +2737,6 @@ class ChangeReportNumberView(BaseFormView):
         new_number = form.cleaned_data['new_number']
         
         try:
-            from django.db import transaction
-            from publications.utils import rename_publication_files
-            
             with transaction.atomic():
                 # First rename files
                 rename_results = rename_publication_files(publication, old_number, new_number)
@@ -2792,7 +2744,6 @@ class ChangeReportNumberView(BaseFormView):
                 if not rename_results['success']:
                     # If file renaming failed, show errors
                     for error in rename_results['errors']:
-                        from django.contrib import messages
                         messages.error(self.request, f"File renaming error: {error}")
                     return self.form_invalid(form)
                 
@@ -2802,7 +2753,6 @@ class ChangeReportNumberView(BaseFormView):
                 publication.save(update_fields=['number', 'modified_by', 'modified'])
                 
                 # Show success message with file details
-                from django.contrib import messages
                 messages.success(
                     self.request, 
                     f"Report number changed from {old_number} to {new_number}"
@@ -2817,7 +2767,6 @@ class ChangeReportNumberView(BaseFormView):
                 return redirect('publications:report', pk=publication.pk)
                 
         except Exception as e:
-            from django.contrib import messages
             messages.error(
                 self.request, 
                 f"Error changing report number: {str(e)}"
@@ -2839,7 +2788,6 @@ class GetNextReportNumberView(View):
         
         try:
             year = int(year)
-            from publications.utils import generate_next_report_number
             next_number = generate_next_report_number(year)
             return JsonResponse({'number': next_number})
         except (ValueError, TypeError):
@@ -2879,8 +2827,6 @@ class AddFeatureCoordinatesView(BaseFormView):
     def form_valid(self, form):
         """Process valid form and create the feature"""
         print(f"AddFeatureCoordinatesView.form_valid called with cleaned_data: {form.cleaned_data}")
-        from django.contrib.gis.geos import Point
-        from django.contrib import messages
         
         try:
             print("Step 1: Getting publication...")
@@ -2910,7 +2856,6 @@ class AddFeatureCoordinatesView(BaseFormView):
             
             print("Step 5: Converting to MultiPoint...")
             # Convert to MultiPoint for storage (following the old system pattern)
-            from django.contrib.gis.geos import MultiPoint
             feature.points = MultiPoint(point, srid=srid)
             print(f"MultiPoint created: {feature.points}")
             
@@ -2952,7 +2897,6 @@ class AddFeatureCoordinatesView(BaseFormView):
             
         except Exception as e:
             print(f"ERROR in form_valid: {type(e).__name__}: {str(e)}")
-            import traceback
             print(f"Traceback: {traceback.format_exc()}")
             messages.error(
                 self.request,
@@ -3036,12 +2980,10 @@ class DeleteReportView(BaseView):
                 publication.delete()
                 
                 # Redirect to reports list with success message
-                from django.contrib import messages
                 messages.success(request, f'Publication "{pub_title}" has been successfully deleted.')
                 return redirect('publications:reports')
                 
             except Exception as e:
-                from django.contrib import messages
                 messages.error(request, f'Error deleting publication: {str(e)}')
                 return redirect('publications:report', pk=publication.pk)
         
@@ -3051,9 +2993,6 @@ class DeleteReportView(BaseView):
     
     def _delete_publication_files(self, publication):
         """Delete all files associated with the publication"""
-        import os
-        from django.conf import settings
-        
         # Delete main PDF file and its thumbnail
         if publication.file:
             # Delete the main file
@@ -3323,6 +3262,3 @@ def add_person_ajax(request):
             'error': f'Failed to create person: {str(e)}'
         }, status=500)
 
-
-# Multi-step person disambiguation workflow views
-from publications.workflows.person import disambiguate_person_step, complete_person_workflow
