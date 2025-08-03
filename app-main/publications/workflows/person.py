@@ -1,13 +1,12 @@
-"""
-Multi-step person disambiguation workflow.
-Session-based approach for handling person name resolution.
-"""
+"""Person disambiguation workflow functionality."""
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db.models import QuerySet
 from publications.models import Person
-from publications.forms import AddPersonForm
+from publications.forms.person import AddPersonForm, PersonSelectForm
 import re
 
 
@@ -118,7 +117,6 @@ def get_person_matches(name_string):
     Find person matches in database using comprehensive matching strategies.
     Returns dict with matches organized by confidence levels.
     """
-    from publications.forms import PersonSelectForm
     
     clean_name = remove_tags(name_string).strip()
     
@@ -153,20 +151,75 @@ def get_person_matches(name_string):
 
 
 def extract_person_names(form_data, field_name):
-    """Extract person names from form data that need disambiguation"""
-    names_needing_resolution = []
+    """
+    Extract person names from form data that need disambiguation.
     
-    # Get the field values - could be list or single value
-    field_values = form_data.getlist(field_name) if hasattr(form_data, 'getlist') else form_data.get(field_name, [])
-    if isinstance(field_values, str):
+    Handles complex data structures including nested lists and string representations of lists.
+    
+    Args:
+        form_data: Form data object with getlist method (request.POST) or any object
+        field_name: Name of the field containing person data
+    
+    Returns:
+        List of names that need disambiguation
+    """
+    names_needing_resolution = []
+    processed_names = []
+    
+    # Debug information
+    print(f"extract_person_names: processing {field_name}")
+    if hasattr(form_data, 'getlist'):
+        print(f"extract_person_names: form_data.getlist({field_name}) = {form_data.getlist(field_name)}")
+    else:
+        print(f"extract_person_names: form_data.get({field_name}) = {form_data.get(field_name, [])}")
+    
+    # Get the field values - could be list, single value, or object with getlist method
+    if hasattr(form_data, 'getlist'):
+        field_values = form_data.getlist(field_name)
+    else:
+        field_values = form_data.get(field_name, [])
+    
+    # Ensure we have a list to process
+    if field_values is None:
+        field_values = []
+    elif isinstance(field_values, str):
         field_values = [field_values]
     
-    for name in field_values:
-        if not name or not name.strip():
+    print(f"extract_person_names: initial field_values = {field_values}")
+    
+    # Process field values to extract individual items from potential nested structures
+    for value in field_values:
+        if not value:
+            continue
+            
+        # Handle string representation of lists
+        if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
+            try:
+                import ast
+                parsed_items = ast.literal_eval(value)
+                if isinstance(parsed_items, list):
+                    print(f"extract_person_names: parsed list from string: {parsed_items}")
+                    # Process each item in the parsed list
+                    for item in parsed_items:
+                        processed_names.append(item)
+                    continue  # Skip adding the original string
+            except (ValueError, SyntaxError) as e:
+                print(f"extract_person_names: failed to parse list string: {e}")
+                # If parsing fails, treat as normal string
+                processed_names.append(value)
+        else:
+            # Regular value
+            processed_names.append(value)
+    
+    print(f"extract_person_names: processed_names = {processed_names}")
+    
+    # Now process each name for disambiguation
+    for name in processed_names:
+        if not name or not isinstance(name, str) or not name.strip():
             continue
         
         # Skip items that were explicitly skipped by user
-        if isinstance(name, str) and name.startswith('SKIP:'):
+        if name.startswith('SKIP:'):
             continue
             
         # Check if name already has an ID tag
@@ -179,20 +232,35 @@ def extract_person_names(form_data, field_name):
             # Existing person ID - verify it exists
             try:
                 Person.objects.get(id=person_id)
+                print(f"extract_person_names: found existing person with ID tag: {person_id}")
                 continue  # Valid existing person
             except Person.DoesNotExist:
                 # Invalid ID, treat as new name
+                print(f"extract_person_names: person with ID tag {person_id} not found")
                 pass
+                
+        # If name is a numeric string, treat as PK and skip if valid
+        if name.isdigit():
+            try:
+                person = Person.objects.get(id=int(name))
+                print(f"extract_person_names: found existing person with ID: {name} ({person})")
+                continue  # Valid existing person, no disambiguation needed
+            except Person.DoesNotExist:
+                print(f"extract_person_names: person with ID {name} not found")
+                pass  # Not a valid PK, continue with disambiguation
         
         # No valid ID tag, check if disambiguation is needed
         matches = get_person_matches(name)
         if matches['exact'] or matches['relaxed']:
             # Has potential matches - needs disambiguation
+            print(f"extract_person_names: found matches for '{name}': {len(matches['exact'])} exact, {len(matches['relaxed'])} relaxed")
             names_needing_resolution.append(name)
         else:
             # No matches - will need to create new person
+            print(f"extract_person_names: no matches found for '{name}', will need to create")
             names_needing_resolution.append(name)
     
+    print(f"extract_person_names: final names_needing_resolution = {names_needing_resolution}")
     return names_needing_resolution
 
 
@@ -231,7 +299,6 @@ def disambiguate_person_step(request):
             
             # Create the person using the AddPersonForm
             try:
-                from publications.forms import AddPersonForm
                 form = AddPersonForm({'name': person_name})
                 if form.is_valid():
                     person = form.save(commit=False)
@@ -357,7 +424,6 @@ def complete_person_workflow(request):
     # Determine redirect URL based on source
     if '/report/' in source_url and '/edit/' in source_url:
         # Extract publication ID from source URL
-        import re
         match = re.search(r'/report/(\d+)/edit/', source_url)
         if match:
             publication_id = match.group(1)

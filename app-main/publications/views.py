@@ -34,7 +34,7 @@ from publications.library import get_client_ip, is_private
 from publications.forms import (LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
                                 PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
                                 AddFeatureCoordinatesForm, PersonWorkflowMixin)
-from publications.enhanced_forms import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
+from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
 from publications.models import Publication, Topic, Feature, Person
 
 from django.contrib import messages
@@ -2561,4 +2561,4 @@ def add_person_ajax(request):
 
 
 # Multi-step person disambiguation workflow views
-from .person_workflow import disambiguate_person_step, complete_person_workflow
+from publications.workflows.person import disambiguate_person_step, complete_person_workflow

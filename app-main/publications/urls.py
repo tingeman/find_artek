@@ -1,7 +1,7 @@
 from django.urls import include, path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
-from .person_workflow import disambiguate_person_step, complete_person_workflow
+from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
 app_name = 'publications'
 
