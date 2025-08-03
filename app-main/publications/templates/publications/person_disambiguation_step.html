@@ -1,27 +1,46 @@
-{% extends 'publications/base.html' %}
-{% load static %}
+{% extends 'publications/person_workflow_base.html' %}
+{% load static i18n %}
 
-{% block title %}Disambiguate Person - {{ clean_name }}{% endblock %}
+{% block person_title %}Disambiguate Person - {{ clean_name }}{% endblock %}
 
-{% block headline %}Person Disambiguation{% endblock %}
+{% block person_headline %}Person Disambiguation{% endblock %}
 
-{% block main-content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Person Disambiguation - Step {{ step_number }} of {{ total_steps }}</h4>
-                    <p class="mb-0 text-muted">Field: {{ field_name|title }}</p>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>Person Name:</strong> {{ clean_name }}
-                    </div>
+{% block workflow_content %}
+<div class="step-indicator">
+    <h4>Person Disambiguation - Step {{ step_number }} of {{ total_steps }}</h4>
+    <p class="mb-0 text-muted">Field: {{ field_name|title }}</p>
+</div>
+
+<div class="main-form-section">
+    <div class="alert alert-info mb-3">
+        <strong>Person Name:</strong> {{ clean_name }}
+    </div>
+    
+    <!-- Action buttons moved up -->
+    <div class="mb-4">
+        <div style="display: flex; flex-wrap: wrap; gap: 1em; justify-content: flex-start;">
+            <form method="post" style="width: 200px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_new">
+                <button type="submit" class="btn btn-success w-100 py-2">
+                    <i class="fas fa-plus"></i> Create New Person
+                </button>
+            </form>
+            <form method="post" style="width: 200px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="skip">
+                <button type="submit" class="btn btn-secondary w-100 py-2">
+                    <i class="fas fa-forward"></i> Use As-Is (Create Later)
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card-body">
                     
                     {% if exact_matches %}
                     <div class="mb-4">
-                        <h5>High Confidence Matches (95%+)</h5>
+                        <h4 class="mb-3">High Confidence Matches (95%+)</h4>
                         <p class="text-muted">We found persons that closely match this name:</p>
                         <form method="post">
                             {% csrf_token %}
@@ -29,7 +48,7 @@
                             <div class="list-group mb-3">
                                 {% for person in exact_matches %}
                                 <label class="list-group-item list-group-item-action">
-                                    <input type="radio" name="person_id" value="{{ person.id }}" class="me-2">
+                                    <input type="radio" name="person_id" value="{{ person.id }}">
                                     <div>
                                         <strong>{{ person.get_full_name }}</strong>
                                         <span class="badge bg-success ms-2">High Match</span>
@@ -46,7 +65,7 @@
                                 </label>
                                 {% endfor %}
                             </div>
-                            <button type="submit" class="btn btn-primary" onclick="return validatePersonSelection()">
+                            <button type="submit" class="btn btn-primary py-2 px-4 mt-2" onclick="return validatePersonSelection()">
                                 Select This Person
                             </button>
                         </form>
@@ -54,8 +73,10 @@
                     {% endif %}
                     
                     {% if relaxed_matches %}
+                    <!-- Section Divider with reduced spacing -->
+                    <hr style="border-top: 1px solid #dee2e6; margin: 15px 0 10px 0;">
                     <div class="mb-4">
-                        <h5>Possible Matches (60-94%)</h5>
+                        <h4 class="mb-3">Likely Matches (60-94%)</h4>
                         <p class="text-muted">We found persons with similar names:</p>
                         <form method="post">
                             {% csrf_token %}
@@ -63,7 +84,7 @@
                             <div class="list-group mb-3">
                                 {% for person in relaxed_matches %}
                                 <label class="list-group-item list-group-item-action">
-                                    <input type="radio" name="person_id" value="{{ person.id }}" class="me-2">
+                                    <input type="radio" name="person_id" value="{{ person.id }}">
                                     <div>
                                         <strong>{{ person.get_full_name }}</strong>
                                         <span class="badge bg-warning ms-2">Possible Match</span>
@@ -80,7 +101,7 @@
                                 </label>
                                 {% endfor %}
                             </div>
-                            <button type="submit" class="btn btn-warning" onclick="return validatePersonSelection()">
+                            <button type="submit" class="btn btn-warning py-2 px-4 mt-2" onclick="return validatePersonSelection()">
                                 Select This Person
                             </button>
                         </form>
@@ -88,7 +109,8 @@
                     {% endif %}
                     
                     {% if all_matches %}
-                    <div class="mb-4">
+                    <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #dee2e6;">
+                        <h4 class="mb-3">Additional Matches</h4>
                         <details class="border rounded p-3">
                             <summary class="fw-bold text-primary" style="cursor: pointer;">
                                 View All Matches with Details ({{ all_matches|length }} found)
@@ -100,7 +122,7 @@
                                     <div class="list-group">
                                         {% for match in all_matches %}
                                         <label class="list-group-item list-group-item-action">
-                                            <input type="radio" name="person_id" value="{{ match.person.id }}" class="me-2">
+                                            <input type="radio" name="person_id" value="{{ match.person.id }}">
                                             <div>
                                                 <strong>{{ match.person.get_full_name }}</strong>
                                                 <span class="badge {% if match.confidence >= 0.95 %}bg-success{% elif match.confidence >= 0.8 %}bg-warning{% else %}bg-secondary{% endif %} ms-2">
@@ -122,7 +144,7 @@
                                         </label>
                                         {% endfor %}
                                     </div>
-                                    <button type="submit" class="btn btn-outline-primary mt-2" onclick="return validatePersonSelection()">
+                                    <button type="submit" class="btn btn-outline-primary py-2 px-4 mt-3" onclick="return validatePersonSelection()">
                                         Select From All Matches
                                     </button>
                                 </form>
@@ -138,30 +160,14 @@
                     </div>
                     {% endif %}
                     
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <form method="post" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="create_new">
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="fas fa-plus"></i> Create New Person
-                                </button>
-                            </form>
-                        </div>
-                        <div class="col-md-6">
-                            <form method="post" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="skip">
-                                <button type="submit" class="btn btn-secondary w-100">
-                                    <i class="fas fa-forward"></i> Use As-Is (Create Later)
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                    <!-- Separator before progress indicator -->
+                    <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6;"></div>
                     
-                    <div class="mt-4 pt-3 border-top">
+                    <!-- Progress indicator -->
+                    <div class="mt-3 pt-3">
                         <div class="progress mb-2">
                             <div class="progress-bar" role="progressbar" 
+                                 aria-valuenow="{{ step_number }}" aria-valuemin="0" aria-valuemax="{{ total_steps }}"
                                  style="width: {% widthratio step_number total_steps 100 %}%">
                                 Step {{ step_number }} of {{ total_steps }}
                             </div>
@@ -170,12 +176,9 @@
                             Progress: {{ step_number }} of {{ total_steps }} persons processed
                         </small>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
+{% block person_scripts %}
 <script>
 function validatePersonSelection() {
     const selectedRadio = document.querySelector('input[name="person_id"]:checked');
@@ -186,4 +189,5 @@ function validatePersonSelection() {
     return true;
 }
 </script>
+{% endblock %}
 {% endblock %}

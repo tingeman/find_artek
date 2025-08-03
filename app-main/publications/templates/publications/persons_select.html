@@ -1,29 +1,44 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Select Authors</title>
-</head>
-<body>
-    <h1>Select or Create Authors</h1>
-    <form method="post">
+{% extends 'publications/person_workflow_base.html' %}
+
+{% load i18n static %}
+
+{% block person_title %}Select Authors and Supervisors{% endblock %}
+
+{% block person_headline %}Select or Create People{% endblock %}
+
+{% block workflow_content %}
+<div class="main-form-section">
+    <form method="post" class="w-100">
         {% csrf_token %}
 
         {% if authors_form %}
-            <h2>Select authors:</h2>
-            {{ authors_form.as_p }}
+            <div class="mb-4">
+                <h4 class="mb-3">Select authors:</h4>
+                <div class="table-responsive">
+                    <table class="table">
+                        {{ authors_form.as_table }}
+                    </table>
+                </div>
+            </div>
         {% endif %}
 
         {% if supervisors_form %}
-            <h2>Select supervisors:</h2>
-            {{ supervisors_form.as_p }}
+            <div class="mb-4">
+                <h4 class="mb-3">Select supervisors:</h4>
+                <div class="table-responsive">
+                    <table class="table">
+                        {{ supervisors_form.as_table }}
+                    </table>
+                </div>
+            </div>
         {% endif %}
 
-        <div class="button-container">
+        <div class="form-actions">
             <!-- Back button (GET request) -->
-            <a href="{% url 'publications:add_report' %}?action=edit">Back</a>
+            <a href="{% url 'publications:add_report' %}?action=edit" class="btn btn-secondary">Back</a>
             <!-- Submit button (POST request) -->
-            <button type="submit">Submit</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
         </div>
     </form>
-</body>
-</html>
+</div>
+{% endblock %}

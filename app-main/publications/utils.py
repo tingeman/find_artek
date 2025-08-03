@@ -531,3 +531,98 @@ def rename_publication_files(publication, old_number, new_number):
         results['errors'].append(f"Error during file renaming: {str(e)}")
     
     return results
+
+
+def handle_publication_file_upload(publication, uploaded_file, temp_storage=False):
+    """
+    Handle the upload of a PDF file for a publication.
+    Creates a FileObject instance for the uploaded file and returns it.
+    
+    Args:
+        publication (Publication): The publication instance the file belongs to
+        uploaded_file (UploadedFile): The uploaded file object from the form
+        temp_storage (bool): If True, store in temporary location
+    
+    Returns:
+        FileObject: The created file object instance
+    """
+    from publications.models import FileObject
+    import os
+    from django.conf import settings
+    
+    # Debug output to help diagnose issues
+    print(f"🔍 DEBUG: handle_publication_file_upload - Starting file processing")
+    print(f"🔍 DEBUG: Uploaded file: {uploaded_file.name}, size: {uploaded_file.size}")
+    print(f"🔍 DEBUG: Temp storage: {temp_storage}")
+    
+    # Create the FileObject instance
+    file_obj = FileObject()
+    file_obj.created_by = publication.created_by
+    file_obj.modified_by = publication.modified_by
+    
+    # Set the upload_to path based on storage type
+    if temp_storage:
+        # Store in temporary location
+        import time
+        timestamp = str(int(time.time()))
+        upload_to = os.path.join('temp', timestamp)
+        print(f"🔍 DEBUG: Using temporary storage path: {upload_to}")
+    else:
+        # Store in final location based on publication info
+        pub_number = publication.number if publication.number else 'temp'
+        year = publication.year if hasattr(publication, 'year') and publication.year else 'unknown_year'
+        
+        # Ensure we have string values
+        year_str = str(year)
+        pub_number_str = str(pub_number)
+        
+        upload_to = os.path.join('reports', year_str)
+        print(f"🔍 DEBUG: Using final storage path: {upload_to}")
+    
+    # Create the directory if it doesn't exist
+    full_upload_path = os.path.join(settings.MEDIA_ROOT, upload_to)
+    os.makedirs(full_upload_path, exist_ok=True)
+    
+    print(f"🔍 DEBUG: File will be saved to: {upload_to}")
+    
+    # Save the FileObject to get an ID
+    file_obj.save()
+    
+    # Generate the filename
+    if temp_storage:
+        # Use timestamp-based name for temp files
+        import time
+        base_name, ext = os.path.splitext(uploaded_file.name)
+        filename = f"temp_{int(time.time())}_{base_name}{ext}"
+    else:
+        # Use publication-based name for final files
+        pub_number = publication.number if publication.number else f"pub_{file_obj.id}"
+        base_name, ext = os.path.splitext(uploaded_file.name)
+        filename = f"{pub_number}{ext}"
+    
+    # Create the full file path
+    file_path = os.path.join(upload_to, filename)
+    
+    # Handle filename conflicts
+    counter = 1
+    original_file_path = file_path
+    while os.path.exists(os.path.join(settings.MEDIA_ROOT, file_path)):
+        base_path, ext = os.path.splitext(original_file_path)
+        file_path = f"{base_path}_{counter}{ext}"
+        counter += 1
+    
+    # Now assign the actual file with the custom path
+    file_obj.file.name = file_path
+    
+    # Save the file content
+    full_file_path = os.path.join(settings.MEDIA_ROOT, file_path)
+    with open(full_file_path, 'wb') as destination:
+        for chunk in uploaded_file.chunks():
+            destination.write(chunk)
+    
+    # Save the FileObject
+    file_obj.save()
+    
+    print(f"🔍 DEBUG: File saved successfully: {file_obj.file.name}")
+    
+    return file_obj

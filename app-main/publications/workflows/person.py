@@ -413,6 +413,9 @@ def complete_person_workflow(request):
     # Store updated form data in session - keep original structure intact
     # No field-specific logic needed since we only replaced ambiguous strings with IDs
     request.session['updated_form_data'] = dict(updated_form_data)
+    
+    # Track which specific field was updated in the workflow
+    request.session['workflow_updated_field'] = field_name
     request.session.modified = True
     
     # Get the source URL and determine publication ID for redirect
@@ -430,10 +433,10 @@ def complete_person_workflow(request):
         if match:
             publication_id = match.group(1)
             logger.debug(f"Redirecting to review view for publication {publication_id}")
-            return redirect('publications:edit_report_review', pk=publication_id)
+            return redirect('publications:review_edit_report', pk=publication_id)
     elif '/add/' in source_url:
         logger.debug("Redirecting to add review view")
-        return redirect('publications:add_report_review')
+        return redirect('publications:review_add_report')
     
     # Fallback to original source URL for unknown cases
     logger.debug(f"Fallback redirect to original source: {source_url}")

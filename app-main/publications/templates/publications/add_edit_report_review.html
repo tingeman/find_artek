@@ -1,35 +1,32 @@
-{% extends base_template %}
-{% load i18n static %}
+{% extends "publications/person_workflow_base.html" %}
+{% load i18n static pubs_extra_tags %}
 
-{% block title %}
+{% block person_title %}
     {% if action == 'edit' %}Review Report Changes{% else %}Review New Report{% endif %}
 {% endblock %}
 
-{% block dynamic_head_content %}
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
+{% block person_headline %}
+    {% if action == 'edit' %}Review Report Changes{% else %}Review New Report{% endif %}
 {% endblock %}
 
-{% block main-content %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="alert alert-info" role="alert">
-                <h5><i class="fas fa-eye"></i> Review Mode</h5>
-                <p>Please review the information below before saving. This shows how your {% if action == 'edit' %}changes{% else %}new report{% endif %} will appear.</p>
+{% block workflow_content %}
+            <div class="step-indicator">
+                <h4><i class="fas fa-eye"></i> Review Mode</h4>
+                <p class="mb-0">Please review the information below before saving. This shows how your {% if action == 'edit' %}changes{% else %}new report{% endif %} will appear.</p>
                 {% if has_workflow_changes %}
-                <p><strong>Note:</strong> Person assignments have been updated based on your selections during the disambiguation workflow.</p>
+                <p class="mb-0 mt-2"><strong>Note:</strong> Person assignments have been updated based on your selections during the disambiguation workflow.</p>
                 {% endif %}
             </div>
 
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3>
+            <div class="main-form-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>
                         {% if action == 'edit' %}
                             <i class="fas fa-edit"></i> Review Changes: {{ review_data.title|default:"Untitled" }}
                         {% else %}
                             <i class="fas fa-plus"></i> Review New Report
                         {% endif %}
-                    </h3>
+                    </h4>
                     <div>
                         {% if action == 'edit' %}
                             <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-secondary btn-sm me-2">
@@ -42,22 +39,35 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="info-box">
-                        <div class="details-box">
-                            <div class="row">
-                                <span class="property">Type</span>
-                                <span class="value">{{ review_data.type|default:"Not specified" }}</span>
-                            </div>
+                <div class="report-block mb-4">
+                    <table class="table table-review">
+                        <tbody>
+                            <tr>
+                                <th scope="row">Type</th>
+                                <td>
+                                    {{ review_data.type|report_type_display }}
+                                    {% if changed_fields and 'type' in changed_fields %}
+                                    <span class="badge bg-success workflow-badge">
+                                        <i class="fas fa-sync-alt"></i> updated
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Title</th>
+                                <td>
+                                    {{ review_data.title|default:"Untitled" }}
+                                    {% if changed_fields and 'title' in changed_fields %}
+                                    <span class="badge bg-success workflow-badge">
+                                        <i class="fas fa-sync-alt"></i> updated
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
 
-                            <div class="row">
-                                <span class="property">Title</span>
-                                <span class="value">{{ review_data.title|default:"Untitled" }}</span>
-                            </div>
-
-                            <div class="row">
-                                <span class="property">Authors</span>
-                                <span class="value">
+                            <tr>
+                                <th scope="row">Authors</th>
+                                <td>
                                     {% if review_data.authors %}
                                         {% for author in review_data.authors %}
                                             {{ author }}
@@ -67,20 +77,20 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
-                                        {% if has_workflow_changes %}
-                                            <span class="badge bg-success ms-2">
-                                                <i class="fas fa-check"></i> Updated from workflow
+                                        {% if has_workflow_changes and changed_fields and 'authors' in changed_fields %}
+                                            <span class="badge bg-success workflow-badge">
+                                                <i class="fas fa-sync-alt"></i> updated
                                             </span>
                                         {% endif %}
                                     {% else %}
                                         <em class="text-muted">No authors specified</em>
                                     {% endif %}
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
 
-                            <div class="row">
-                                <span class="property">Supervisors</span>
-                                <span class="value">
+                            <tr>
+                                <th scope="row">Supervisors</th>
+                                <td>
                                     {% if review_data.supervisors %}
                                         {% for supervisor in review_data.supervisors %}
                                             {{ supervisor }}
@@ -90,36 +100,48 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
-                                        {% if has_workflow_changes %}
-                                            <span class="badge bg-success ms-2">
-                                                <i class="fas fa-check"></i> Updated from workflow
+                                        {% if has_workflow_changes and changed_fields and 'supervisors' in changed_fields %}
+                                            <span class="badge bg-success workflow-badge">
+                                                <i class="fas fa-sync-alt"></i> updated
                                             </span>
                                         {% endif %}
                                     {% else %}
                                         <em class="text-muted">No supervisors specified</em>
                                     {% endif %}
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
 
-                            <div class="row">
-                                <span class="property">Year</span>
-                                <span class="value">{{ review_data.year|default:"Not specified" }}</span>
-                            </div>
+                            <tr>
+                                <th scope="row">Year</th>
+                                <td>
+                                    {{ review_data.year|default:"Not specified" }}
+                                    {% if changed_fields and 'year' in changed_fields %}
+                                    <span class="badge bg-success workflow-badge">
+                                        <i class="fas fa-sync-alt"></i> updated
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
 
-                            <div class="row">
-                                <span class="property">Report no.</span>
-                                <span class="value">
+                            <tr>
+                                <th scope="row">Report no.</th>
+                                <td>
                                     {% if review_data.number %}
                                         {{ review_data.number }}
+                                        {% if changed_fields and 'number' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">Will be auto-generated</em>
                                     {% endif %}
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
 
-                            <div class="row">
-                                <span class="property">Topics</span>
-                                <span class="value">
+                            <tr>
+                                <th scope="row">Topics</th>
+                                <td>
                                     {% if review_data.publication_topics %}
                                         {% for topic in review_data.publication_topics %}
                                             {{ topic }}
@@ -129,15 +151,20 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
+                                        {% if changed_fields and 'publication_topics' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">No topics specified</em>
                                     {% endif %}
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
 
-                            <div class="row">
-                                <span class="property">Keywords</span>
-                                <span class="value">
+                            <tr>
+                                <th scope="row">Keywords</th>
+                                <td>
                                     {% if review_data.publication_keywords %}
                                         {% for keyword in review_data.publication_keywords %}
                                             {{ keyword }}
@@ -147,37 +174,47 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
+                                        {% if changed_fields and 'publication_keywords' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">No keywords specified</em>
                                     {% endif %}
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
 
-                            {% if action == 'edit' and review_data.pdffile %}
-                                <div class="row">
-                                    <span class="property">PDF File</span>
-                                    <span class="value">
+                            {% if review_data.pdffile and review_data.pdffile.name %}
+                                <tr>
+                                    <th scope="row">PDF File</th>
+                                    <td>
                                         <span class="badge bg-info">
                                             <i class="fas fa-upload"></i> New file will be uploaded: {{ review_data.pdffile.name }}
                                         </span>
-                                    </span>
-                                </div>
+                                        {% if changed_fields and 'file' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                             {% endif %}
 
                             {% if action == 'edit' and review_data.delete_pdf %}
-                                <div class="row">
-                                    <span class="property">PDF File</span>
-                                    <span class="value">
+                                <tr>
+                                    <th scope="row">PDF File</th>
+                                    <td>
                                         <span class="badge bg-warning">
                                             <i class="fas fa-trash"></i> Current PDF file will be deleted
                                         </span>
-                                    </span>
-                                </div>
+                                    </td>
+                                </tr>
                             {% endif %}
 
-                            <div class="row">
-                                <span class="property">Abstract</span>
-                                <span class="value">
+                            <tr>
+                                <th scope="row">Abstract</th>
+                                <td>
                                     {% if review_data.abstract %}
                                         {% if review_data.abstract|length > 280 %}
                                             <span class="visible" id="abstract-collapsed">
@@ -191,37 +228,119 @@
                                         {% else %}
                                             {{ review_data.abstract }}
                                         {% endif %}
+                                        {% if changed_fields and 'abstract' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">No abstract provided</em>
                                     {% endif %}
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
 
                             {% if review_data.comment %}
-                                <div class="row">
-                                    <span class="property">Comment</span>
-                                    <span class="value">{{ review_data.comment }}</span>
-                                </div>
+                                <tr>
+                                    <th scope="row">Comment</th>
+                                    <td>
+                                        {{ review_data.comment }}
+                                        {% if changed_fields and 'comment' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                             {% endif %}
-                        </div>
-                    </div>
+                        </tbody>
+                    </table>
 
-                    <div class="mt-4 d-flex justify-content-between">
+                    <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6;"></div>
+                    
+                    <div class="form-actions d-flex justify-content-between">
                         <div>
                             {% if action == 'edit' %}
-                                <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-secondary">
+                                <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-secondary py-2 px-4">
                                     <i class="fas fa-arrow-left"></i> Go Back to Edit
                                 </a>
                             {% else %}
-                                <a href="{% url 'publications:add_report' %}" class="btn btn-secondary">
+                                <a href="{% url 'publications:add_report' %}" class="btn btn-secondary py-2 px-4">
                                     <i class="fas fa-arrow-left"></i> Go Back to Edit
                                 </a>
                             {% endif %}
                         </div>
                         <div>
-                            <form method="post" style="display: inline;">
+                            <form method="post" enctype="multipart/form-data" style="display: inline;" action="{% if action == 'edit' %}{% url 'publications:edit_report_final_save' pk=publication.pk %}{% else %}{% url 'publications:publication_final_save' %}{% endif %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-success btn-lg">
+                                <!-- File handling for the review form -->
+                                <input type="hidden" name="file_in_request" value="True">
+                                <input type="hidden" name="file_key" value="pdffile">
+                                <input type="hidden" name="use_session_data" value="True">
+                                
+                                <!-- Include all necessary form fields as hidden inputs -->
+                                <input type="hidden" name="type" value="{{ review_data.type.id }}">
+                                <input type="hidden" name="title" value="{{ review_data.title }}">
+                                <input type="hidden" name="year" value="{{ review_data.year }}">
+                                <input type="hidden" name="number" value="{{ review_data.number|default:'' }}">
+                                <input type="hidden" name="abstract" value="{{ review_data.abstract|default:'' }}">
+                                <input type="hidden" name="comment" value="{{ review_data.comment|default:'' }}">
+                                
+                                <!-- Include authors and supervisors -->
+                                {% for author_pk in request.session.updated_form_data.authors %}
+                                <input type="hidden" name="authors" value="{{ author_pk }}">
+                                {% endfor %}
+                                
+                                {% for supervisor_pk in request.session.updated_form_data.supervisors %}
+                                <input type="hidden" name="supervisors" value="{{ supervisor_pk }}">
+                                {% endfor %}
+                                
+                                <!-- Include topics -->
+                                {% if request.session.updated_form_data.publication_topics %}
+                                    {% for topic_pk in request.session.updated_form_data.publication_topics %}
+                                    <input type="hidden" name="publication_topics" value="{{ topic_pk }}">
+                                    {% endfor %}
+                                {% endif %}
+                                
+                                <!-- Include keywords if any -->
+                                {% if request.session.updated_form_data.publication_keywords %}
+                                    {% for keyword_pk in request.session.updated_form_data.publication_keywords %}
+                                    <input type="hidden" name="publication_keywords" value="{{ keyword_pk }}">
+                                    {% endfor %}
+                                {% endif %}
+                                
+                                {% if 'pdffile' in request.session.updated_form_data %}
+                                    <!-- Track that we have file data in session -->
+                                    <input type="hidden" name="has_file_in_session" value="True">
+                                    <input type="hidden" name="has_file_data_in_session" value="True">
+                                    
+                                    {% if review_data.pdffile and review_data.pdffile.name %}
+                                        <!-- Store the file name for reference -->
+                                        <input type="hidden" name="pdffile_name" value="{{ review_data.pdffile.name }}">
+                                    {% endif %}
+                                    
+                                    <!-- Include file IDs if they exist -->
+                                    {% if review_data.uploaded_file_id %}
+                                        <input type="hidden" name="uploaded_file_id" value="{{ review_data.uploaded_file_id }}">
+                                        <!-- Debug output -->
+                                        <!-- uploaded_file_id found: {{ review_data.uploaded_file_id }} -->
+                                    {% elif review_data.existing_file_id %}
+                                        <input type="hidden" name="existing_file_id" value="{{ review_data.existing_file_id }}">
+                                        <!-- Debug output -->
+                                        <!-- existing_file_id found: {{ review_data.existing_file_id }} -->
+                                    {% else %}
+                                        <!-- Debug output -->
+                                        <!-- No file IDs found in review_data -->
+                                    {% endif %}
+                                    {% if review_data.temp_publication_id %}
+                                        <input type="hidden" name="temp_publication_id" value="{{ review_data.temp_publication_id }}">
+                                        <!-- Debug output -->
+                                        <!-- temp_publication_id found: {{ review_data.temp_publication_id }} -->
+                                    {% else %}
+                                        <!-- Debug output -->
+                                        <!-- temp_publication_id NOT found in review_data -->
+                                    {% endif %}
+                                {% endif %}
+                                <button type="submit" class="btn btn-success py-2 px-4">
                                     <i class="fas fa-check"></i> 
                                     {% if action == 'edit' %}Accept Changes{% else %}Create Report{% endif %}
                                 </button>
@@ -232,8 +351,10 @@
             </div>
         </div>
     </div>
-</div>
 
+{% endblock %}
+
+{% block person_scripts %}
 <script>
 // Abstract expand/collapse functionality
 document.addEventListener('DOMContentLoaded', function() {
@@ -259,9 +380,15 @@ document.addEventListener('DOMContentLoaded', function() {
             collapsedSpan.classList.remove('hidden');
         });
     }
+    
+    // No debug code needed anymore
 });
 </script>
 
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
 <style>
 .hidden {
     display: none;
@@ -283,6 +410,60 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .badge {
     font-size: 0.75em;
+}
+.table-review {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+}
+
+.table-review th,
+.table-review td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.table-review th {
+    font-weight: 600;
+    color: #495057;
+    width: 200px;
+    min-width: 200px;
+    background-color: #f8f9fa;
+    text-align: right;
+}
+
+.table-review tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Enhanced styling for workflow badge */
+.workflow-badge {
+    position: relative;
+    display: inline-block;
+    margin-left: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: linear-gradient(to right, #28a745, #20c997);
+    color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    animation: pulse 2s infinite;
+    vertical-align: middle;
+}
+
+.workflow-badge i {
+    margin-right: 4px;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+    70% { box-shadow: 0 0 0 5px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
 }
 </style>
 {% endblock %}
