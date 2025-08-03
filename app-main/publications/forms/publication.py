@@ -14,6 +14,8 @@ import ast
 import json
 import re
 
+import logging
+logger = logging.getLogger(__name__)
 
 
 class AddEditReportForm(ModelForm):
@@ -135,19 +137,19 @@ class AddEditReportForm(ModelForm):
         exclude = []
 
     def __init__(self, *args, **kwargs):
-        print('In AddEditReportForm:__init__')
+        logger.debug('In AddEditReportForm:__init__')
         instance = kwargs.get('instance')
         super().__init__(*args, **kwargs)
 
         # Set dynamic help text using class variable
         self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {self.MAX_FILE_SIZE_MB}MB)'
 
-        print(f'AddEditReportForm:__init__: delete_pdf field before configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
+        logger.debug(f'AddEditReportForm:__init__: delete_pdf field before configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
 
         if instance:
             # EDIT MODE: Configure form for editing existing publication
-            print(f'AddEditReportForm:__init__:EDIT MODE - instance: {instance}')
-            print(f'AddEditReportForm:__init__:EDIT MODE - instance.file: {instance.file}')
+            logger.debug(f'AddEditReportForm:__init__:EDIT MODE - instance: {instance}')
+            logger.debug(f'AddEditReportForm:__init__:EDIT MODE - instance.file: {instance.file}')
             
             # Make the number field read-only for editing
             self.fields['number'].widget.attrs['readonly'] = True
@@ -163,20 +165,20 @@ class AddEditReportForm(ModelForm):
                 self.fields['delete_pdf'].widget = forms.CheckboxInput(attrs={'class': 'delete-pdf-checkbox'})
                 self.fields['delete_pdf'].help_text = f"Check this box to delete the current PDF file ({current_file_name})"
                 
-                print(f'AddEditReportForm:__init__:EDIT MODE - Configured delete_pdf field for existing file: {current_file_name}')
+                logger.debug(f'AddEditReportForm:__init__:EDIT MODE - Configured delete_pdf field for existing file: {current_file_name}')
             else:
                 # No existing file, hide the delete option
                 self.fields['delete_pdf'].widget = forms.HiddenInput()
                 self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {self.MAX_FILE_SIZE_MB}MB)'
                 
-                print('AddEditReportForm:__init__:EDIT MODE - No existing file, hiding delete_pdf field')
+                logger.debug('AddEditReportForm:__init__:EDIT MODE - No existing file, hiding delete_pdf field')
             
             # Configure authors and supervisors for edit mode
             # Note: Initial data for authors/supervisors is now set in the view's _get_edit_initial method
             # to be consistent with how topics and keywords are handled
         else:
             # ADD MODE: Configure form for adding new publication
-            print('AddEditReportForm:__init__:ADD MODE - No instance')
+            logger.debug('AddEditReportForm:__init__:ADD MODE - No instance')
             
             # Hide the delete_pdf field in add mode since there's no existing file
             self.fields['delete_pdf'].widget = forms.HiddenInput()
@@ -186,10 +188,10 @@ class AddEditReportForm(ModelForm):
             self.fields['number'].widget.attrs['placeholder'] = 'Will be auto-generated when report is saved'
             self.fields['number'].help_text = "Report number will be automatically assigned when you save the report"
 
-        print(f'AddEditReportForm:__init__: delete_pdf field after configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
+        logger.debug(f'AddEditReportForm:__init__: delete_pdf field after configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
 
     def clean_authors(self):
-        print(f"AddEditReportForm:clean_authors: {self.cleaned_data['authors']}")
+        logger.debug(f"AddEditReportForm:clean_authors: {self.cleaned_data['authors']}")
         authors_data = self.cleaned_data['authors']  # Can be list of PKs or string representation
 
         if authors_data:
@@ -197,47 +199,47 @@ class AddEditReportForm(ModelForm):
             if isinstance(authors_data, list):
                 # Direct list format (from widget prepopulation)
                 parsed_authors = [str(pk) for pk in authors_data]  # Convert to strings for consistency
-                print(f'AddEditReportForm:clean_authors:List format: {parsed_authors}')
+                logger.debug(f'AddEditReportForm:clean_authors:List format: {parsed_authors}')
             elif isinstance(authors_data, str):
                 try:
                     # Try to parse as list representation: "['1001', '996', 'Anders And']"
                     parsed_authors = ast.literal_eval(authors_data)
-                    print(f'AddEditReportForm:clean_authors:Parsed string format: {parsed_authors}')
+                    logger.debug(f'AddEditReportForm:clean_authors:Parsed string format: {parsed_authors}')
                 except (ValueError, SyntaxError):
                     # If parsing fails, treat as single value
                     parsed_authors = [authors_data]
-                    print(f'AddEditReportForm:clean_authors:Single value: {parsed_authors}')
+                    logger.debug(f'AddEditReportForm:clean_authors:Single value: {parsed_authors}')
             else:
                 parsed_authors = [str(authors_data)]
-                print(f'AddEditReportForm:clean_authors:Other format: {parsed_authors}')
+                logger.debug(f'AddEditReportForm:clean_authors:Other format: {parsed_authors}')
             
             # If the authors field is empty, return an empty list
             if not parsed_authors:
-                print('AddEditReportForm:clean_authors:No authors')
+                logger.debug('AddEditReportForm:clean_authors:No authors')
                 return Person.objects.none()
 
-            print(f'AddEditReportForm:clean_authors:Final parsed_authors: {parsed_authors}')
+            logger.debug(f'AddEditReportForm:clean_authors:Final parsed_authors: {parsed_authors}')
 
             # check if parsed_authors is a string or an integer
             if isinstance(parsed_authors, (int, str)):
-                print('AddEditReportForm:clean_authors:parsed_authors is a string or an integer')
+                logger.debug('AddEditReportForm:clean_authors:parsed_authors is a string or an integer')
                 parsed_authors = [parsed_authors]   # Convert to list
 
             # if all entries are numeric, assume they are primary keys
             if all([str(c).isnumeric() for c in parsed_authors]):
-                print('AddEditReportForm:clean_authors:All numeric')
+                logger.debug('AddEditReportForm:clean_authors:All numeric')
                 author_pks = [int(pk) for pk in parsed_authors]
                 # Create an ordered QuerySet to preserve the original logic
                 return create_ordered_queryset(Person, author_pks)
             else:
-                print('AddEditReportForm:clean_authors:Not all numeric')
+                logger.debug('AddEditReportForm:clean_authors:Not all numeric')
                 return parsed_authors
         else:
-            print('AddEditReportForm:clean_authors:No authors')
+            logger.debug('AddEditReportForm:clean_authors:No authors')
             return Person.objects.none()
 
     def clean_supervisors(self):
-        print(f"AddEditReportForm:clean_supervisors: {self.cleaned_data['supervisors']}")
+        logger.debug(f"AddEditReportForm:clean_supervisors: {self.cleaned_data['supervisors']}")
         supervisors_data = self.cleaned_data['supervisors']  # Can be list of PKs or string representation
 
         if supervisors_data:
@@ -245,47 +247,47 @@ class AddEditReportForm(ModelForm):
             if isinstance(supervisors_data, list):
                 # Direct list format (from widget prepopulation)
                 parsed_supervisors = [str(pk) for pk in supervisors_data]  # Convert to strings for consistency
-                print(f'AddEditReportForm:clean_supervisors:List format: {parsed_supervisors}')
+                logger.debug(f'AddEditReportForm:clean_supervisors:List format: {parsed_supervisors}')
             elif isinstance(supervisors_data, str):
                 try:
                     # Try to parse as list representation: "['1001', '996', 'Anders And']"
                     parsed_supervisors = ast.literal_eval(supervisors_data)
-                    print(f'AddEditReportForm:clean_supervisors:Parsed string format: {parsed_supervisors}')
+                    logger.debug(f'AddEditReportForm:clean_supervisors:Parsed string format: {parsed_supervisors}')
                 except (ValueError, SyntaxError):
                     # If parsing fails, treat as single value
                     parsed_supervisors = [supervisors_data]
-                    print(f'AddEditReportForm:clean_supervisors:Single value: {parsed_supervisors}')
+                    logger.debug(f'AddEditReportForm:clean_supervisors:Single value: {parsed_supervisors}')
             else:
                 parsed_supervisors = [str(supervisors_data)]
-                print(f'AddEditReportForm:clean_supervisors:Other format: {parsed_supervisors}')
+                logger.debug(f'AddEditReportForm:clean_supervisors:Other format: {parsed_supervisors}')
             
             # If the supervisors field is empty, return an empty list
             if not parsed_supervisors:
-                print('AddEditReportForm:clean_supervisors:No supervisors')
+                logger.debug('AddEditReportForm:clean_supervisors:No supervisors')
                 return Person.objects.none()
 
-            print(f'AddEditReportForm:clean_supervisors:Final parsed_supervisors: {parsed_supervisors}')
+            logger.debug(f'AddEditReportForm:clean_supervisors:Final parsed_supervisors: {parsed_supervisors}')
 
             # check if parsed_supervisors is a string or an integer
             if isinstance(parsed_supervisors, (int, str)):
-                print('AddEditReportForm:clean_supervisors:parsed_supervisors is a string or an integer')
+                logger.debug('AddEditReportForm:clean_supervisors:parsed_supervisors is a string or an integer')
                 parsed_supervisors = [parsed_supervisors]   # Convert to list
 
             # if all entries are numeric, assume they are primary keys
             if all([str(c).isnumeric() for c in parsed_supervisors]):
-                print('AddEditReportForm:clean_supervisors:All numeric')
+                logger.debug('AddEditReportForm:clean_supervisors:All numeric')
                 supervisor_pks = [int(pk) for pk in parsed_supervisors]
                 # Create an ordered QuerySet to preserve the original logic
                 return create_ordered_queryset(Person, supervisor_pks)
             else:
-                print('AddEditReportForm:clean_supervisors:Not all numeric')
+                logger.debug('AddEditReportForm:clean_supervisors:Not all numeric')
                 return parsed_supervisors
         else:
-            print('AddEditReportForm:clean_supervisors:No supervisors')
+            logger.debug('AddEditReportForm:clean_supervisors:No supervisors')
             return Person.objects.none()
 
     def is_valid(self):
-        print('In AddEditReportForm:is_valid')
+        logger.debug('In AddEditReportForm:is_valid')
         return super().is_valid()
     
     def clean_pdffile(self):

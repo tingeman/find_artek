@@ -2,6 +2,9 @@
 Person-related forms for publications app.
 """
 
+import logging
+logger = logging.getLogger(__name__)
+
 from django import forms
 from django_select2 import forms as s2forms
 from publications.models import Person
@@ -481,7 +484,7 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
         Convert the initial value (list of PKs) to the format expected by Select2.
         This is crucial for preselection to work properly.
         """
-        print(f"PersonHeavySelect2TagWidget:format_value: {value}")
+        logger.debug(f"PersonHeavySelect2TagWidget:format_value: {value}")
         
         if value is None or value == '':
             return []  # Return empty list instead of None
@@ -524,7 +527,7 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
         Extract and format the value from form submission data.
         """
         value = super().value_from_datadict(data, files, name)
-        print(f"PersonHeavySelect2TagWidget:value_from_datadict: {value}")
+        logger.debug(f"PersonHeavySelect2TagWidget:value_from_datadict: {value}")
         return value
 
     def get_context(self, name, value, attrs):
@@ -537,12 +540,12 @@ class PersonHeavySelect2TagWidget(s2forms.HeavySelect2TagWidget):
         # The commented line was interfering with preselection:
         # context['widget']['optgroups'] = []
         
-        print(f"PersonHeavySelect2TagWidget:get_context: name={name}, value={value}")
+        logger.debug(f"PersonHeavySelect2TagWidget:get_context: name={name}, value={value}")
         return context
 
     def value_new(self, value):
         """Handle creation of new Person objects."""
-        print(f'In PersonHeavySelect2TagWidget:value_new: {value}')
+        logger.info(f'In PersonHeavySelect2TagWidget:value_new: {value}')
         # names = value.split()
         # first = names[0]
         # last = names[-1] if len(names) > 1 else ""

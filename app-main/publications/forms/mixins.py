@@ -9,6 +9,8 @@ from publications.workflows.person import extract_person_names, get_tag, remove_
 from publications.utils import create_ordered_queryset
 import json
 import ast
+import logging
+logger = logging.getLogger(__name__)
 
 
 class PersonWorkflowMixin:
@@ -20,15 +22,15 @@ class PersonWorkflowMixin:
     
     def clean(self):
         """Enhanced clean method that handles person workflow"""
-        print("🔍 DEBUG: PersonWorkflowMixin.clean() called")
-        print(f"🔍 DEBUG: Session keys: {list(self.request.session.keys()) if self.request else 'No request'}")
-        print(f"🔍 DEBUG: Has updated_form_data in session: {'updated_form_data' in self.request.session if self.request else 'No request'}")
+        logger.debug("PersonWorkflowMixin.clean() called")
+        logger.debug(f"Session keys: {list(self.request.session.keys()) if self.request else 'No request'}")
+        logger.debug(f"Has updated_form_data in session: {'updated_form_data' in self.request.session if self.request else 'No request'}")
         
         # Clear workflow redirect FIRST if we have session data to process
         if self.request and 'updated_form_data' in self.request.session:
             if hasattr(self, '_workflow_redirect'):
                 delattr(self, '_workflow_redirect')
-                print("🔍 DEBUG: Cleared workflow redirect before processing session data")
+                logger.debug("Cleared workflow redirect before processing session data")
         
         cleaned_data = super().clean()
         
@@ -36,16 +38,16 @@ class PersonWorkflowMixin:
         if self.request and 'updated_form_data' in self.request.session:
             updated_data = self.request.session.pop('updated_form_data')
             
-            print(f"🔍 DEBUG: Restoring updated_form_data from workflow: {updated_data}")
-            print(f"🔍 DEBUG: Session keys before workflow restoration: {list(self.request.session.keys())}")
+            logger.debug(f"Restoring updated_form_data from workflow: {updated_data}")
+            logger.debug(f"Session keys before workflow restoration: {list(self.request.session.keys())}")
             
             # Merge updated data into cleaned_data, converting tagged names to Person instances
             for field_name, value in updated_data.items():
-                print(f"🔍 DEBUG: Processing field '{field_name}': {value} (type: {type(value)})")
+                logger.debug(f"Processing field '{field_name}': {value} (type: {type(value)})")
                 if field_name in self.fields:
                     # Special handling for person fields - convert IDs and CREATE markers to Person instances
                     if field_name in ['authors', 'supervisors'] and isinstance(value, list):
-                        print(f"🔍 DEBUG: Processing person field '{field_name}' with list value: {value}")
+                        logger.debug(f"Processing person field '{field_name}' with list value: {value}")
                         
                         converted_persons = []
                         for item in value:
@@ -59,30 +61,30 @@ class PersonWorkflowMixin:
                                         person.set_names(person_name)
                                         person.save()
                                         converted_persons.append(person)
-                                        print(f"🔍 DEBUG: Created new person from CREATE marker: {person_name} -> {person}")
+                                        logger.info(f"Created new person from CREATE marker: {person_name} -> {person}")
                                     except Exception as e:
-                                        print(f"❌ DEBUG: Failed to create person from CREATE marker {person_name}: {e}")
+                                        logger.error(f"Failed to create person from CREATE marker {person_name}: {e}")
                                         # Keep the original item for further processing
                                         converted_persons.append(item)
                                 elif item.startswith('SKIP:'):
                                     # Keep the SKIP: prefix - this prevents workflow from triggering again
                                     converted_persons.append(item)
-                                    print(f"🔍 DEBUG: Keeping skipped item with prefix: {item}")
+                                    logger.debug(f"Keeping skipped item with prefix: {item}")
                                 elif item.isdigit():
                                     # It's a person ID
                                     try:
                                         person = Person.objects.get(id=int(item))
                                         converted_persons.append(person)
-                                        print(f"🔍 DEBUG: Restored person from ID: {item} -> {person}")
+                                        logger.debug(f"Restored person from ID: {item} -> {person}")
                                     except Person.DoesNotExist:
-                                        print(f"❌ DEBUG: Person with ID {item} not found")
+                                        logger.warning(f"Person with ID {item} not found")
                                         # Keep the original item for further processing
                                         converted_persons.append(item)
                                 else:
                                     # Some other string format - keep as string
                                     # This allows non-person data to pass through unchanged
                                     converted_persons.append(item)
-                                    print(f"🔍 DEBUG: Keeping string item unchanged: {item}")
+                                    logger.debug(f"Keeping string item unchanged: {item}")
                             else:
                                 # Already a Person instance or other type
                                 converted_persons.append(item)
@@ -90,22 +92,22 @@ class PersonWorkflowMixin:
                         # Convert to QuerySet if we have Person instances
                         if converted_persons and all(isinstance(p, Person) for p in converted_persons):
                             cleaned_data[field_name] = create_ordered_queryset(Person, [p.pk for p in converted_persons])
-                            print(f"🔍 DEBUG: Converted {field_name} to QuerySet with {len(converted_persons)} persons")
+                            logger.debug(f"Converted {field_name} to QuerySet with {len(converted_persons)} persons")
                         else:
                             cleaned_data[field_name] = converted_persons
-                            print(f"🔍 DEBUG: {field_name} still has unresolved data: {converted_persons}")
+                            logger.debug(f"{field_name} still has unresolved data: {converted_persons}")
                     else:
                         # For all other fields, SKIP restoration - let Django handle them normally
                         # This prevents type conversion issues with fields like ModelChoiceField
-                        print(f"🔍 DEBUG: Skipping non-person field {field_name} (value: {value}, type: {type(value)})")
+                        logger.debug(f"Skipping non-person field {field_name} (value: {value}, type: {type(value)})")
                         pass
                         
-            print(f"🔍 DEBUG: Final cleaned_data after workflow restoration: {cleaned_data}")
+            logger.debug(f"Final cleaned_data after workflow restoration: {cleaned_data}")
             
             # Clear any workflow redirect since we've processed the workflow data
             if hasattr(self, '_workflow_redirect'):
                 delattr(self, '_workflow_redirect')
-                print("🔍 DEBUG: Cleared workflow redirect after successful data restoration")
+                logger.debug("Cleared workflow redirect after successful data restoration")
         
         return cleaned_data
     
@@ -174,7 +176,7 @@ class PersonWorkflowMixin:
                 else:
                     continue
                 
-                print(f"🔍 DEBUG: Raw field_data: {field_data}")
+                logger.debug(f"Raw field_data: {field_data}")
                 
                 # Process each item - simplified to handle the specific issue we've encountered
                 processed_field_data = []
@@ -187,26 +189,26 @@ class PersonWorkflowMixin:
                         # Regular string or non-string - add to processed data
                         processed_field_data.append(item)
                 
-                print(f"🔍 DEBUG: Processed field_data: {processed_field_data}")
+                logger.debug(f"Processed field_data: {processed_field_data}")
                 
                 # Nothing to disambiguate if empty
                 if not processed_field_data:
-                    print(f"🔍 DEBUG: No items to disambiguate, skipping")
+                    logger.debug("No items to disambiguate, skipping")
                     continue
                 
-                print(f"🔍 DEBUG: Items needing disambiguation check: {processed_field_data}")
+                logger.debug(f"Items needing disambiguation check: {processed_field_data}")
                 
                 # Check if any names need disambiguation
                 names_needing_resolution = extract_person_names(
                     MockFormData(processed_field_data), field_name
                 )
                 
-                print(f"🔍 DEBUG: Names needing resolution: {names_needing_resolution}")
+                logger.debug(f"Names needing resolution: {names_needing_resolution}")
                 
                 # No filtering needed - we've already handled this properly
                 filtered_names = names_needing_resolution
                 
-                print(f"🔍 DEBUG: Names for disambiguation: {filtered_names}")
+                logger.debug(f"Names for disambiguation: {filtered_names}")
                 
                 if filtered_names:
                     return field_name, filtered_names
@@ -221,7 +223,7 @@ class PersonWorkflowMixin:
         # Clear any existing workflow data to prevent interference
         if 'updated_form_data' in self.request.session:
             del self.request.session['updated_form_data']
-            print("🔍 DEBUG: Cleared old workflow session data before starting new workflow")
+            logger.debug("Cleared old workflow session data before starting new workflow")
         
         # Import here to avoid circular imports
         from publications.workflows.person import PersonWorkflowSession
@@ -241,16 +243,16 @@ class PersonWorkflowMixin:
                 # Multiple values - store as list
                 simplified_form_data[key] = value_list
         
-        print(f"🔍 DEBUG: Storing raw POST data for workflow: {simplified_form_data}")
-        print(f"🔍 DEBUG: Starting workflow for field '{field_name}' with names: {person_names}")
+        logger.debug(f"Storing raw POST data for workflow: {simplified_form_data}")
+        logger.debug(f"Starting workflow for field '{field_name}' with names: {person_names}")
         
         # Test JSON serialization to ensure it will work
         try:
             json.dumps(simplified_form_data)
-            print("✅ Raw POST data is JSON serializable")
+            logger.debug("Raw POST data is JSON serializable")
         except (TypeError, ValueError) as e:
-            print(f"❌ Raw POST data serialization failed: {e}")
-            print(f"Problematic data: {simplified_form_data}")
+            logger.error(f"Raw POST data serialization failed: {e}")
+            logger.error(f"Problematic data: {simplified_form_data}")
         
         workflow.start_workflow(field_name, person_names, simplified_form_data, self.request.path)
         
@@ -286,10 +288,10 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
         # Only trigger workflow if we have string data (not QuerySet)
         # QuerySet means data is already resolved from previous workflow
         if isinstance(authors_data, QuerySet):
-            print(f"clean_authors: Already resolved QuerySet with {authors_data.count()} authors")
+            logger.debug(f"clean_authors: Already resolved QuerySet with {authors_data.count()} authors")
             return authors_data
         
-        print(f"clean_authors: Processing authors_data: {authors_data}")
+        logger.debug(f"clean_authors: Processing authors_data: {authors_data}")
         
         # First, extract individual authors from the list (handling nested lists if necessary)
         processed_authors = []
@@ -300,11 +302,11 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
                     try:
                         parsed_items = ast.literal_eval(item)
                         if isinstance(parsed_items, list):
-                            print(f"clean_authors: Parsed list from string: {parsed_items}")
+                            logger.debug(f"clean_authors: Parsed list from string: {parsed_items}")
                             processed_authors.extend(parsed_items)
                             continue
                     except (ValueError, SyntaxError) as e:
-                        print(f"clean_authors: Failed to parse list string: {e}")
+                        logger.warning(f"clean_authors: Failed to parse list string: {e}")
                         # Fall through to normal processing
                 
                 # Regular item - add as is
@@ -313,7 +315,7 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
             # Not a list - keep as is
             processed_authors = authors_data
         
-        print(f"clean_authors: Processed authors: {processed_authors}")
+        logger.debug(f"clean_authors: Processed authors: {processed_authors}")
         
         # Replace the original data with processed data to ensure correct format
         if isinstance(authors_data, list) and processed_authors != authors_data:
@@ -326,14 +328,14 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
         if workflow_result:
             field_name, names_needing_resolution = workflow_result
             if names_needing_resolution:
-                print(f"clean_authors: Found unresolved string data, triggering workflow for: {names_needing_resolution}")
+                logger.info(f"clean_authors: Found unresolved string data, triggering workflow for: {names_needing_resolution}")
                 self._workflow_redirect = self.start_person_workflow(
                     'authors', names_needing_resolution
                 )
                 # Return the processed data - workflow will handle resolution
                 return authors_data
         
-        print(f"clean_authors: No workflow needed, returning: {authors_data}")
+        logger.debug(f"clean_authors: No workflow needed, returning: {authors_data}")
         return authors_data
     
     def clean_supervisors(self):
@@ -344,7 +346,7 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
         # Only trigger workflow if we have string data (not QuerySet)
         # QuerySet means data is already resolved from previous workflow
         if isinstance(supervisors_data, QuerySet):
-            print(f"clean_supervisors: Already resolved QuerySet with {supervisors_data.count()} supervisors")
+            logger.debug(f"clean_supervisors: Already resolved QuerySet with {supervisors_data.count()} supervisors")
             return supervisors_data
         
         # If we have list of strings, check for any that need disambiguation
@@ -355,16 +357,16 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
             if workflow_result:
                 field_name, names_needing_resolution = workflow_result
                 if names_needing_resolution:
-                    print(f"clean_supervisors: Found unresolved string data, triggering workflow for: {names_needing_resolution}")
+                    logger.debug(f"clean_supervisors: Found unresolved string data, triggering workflow for: {names_needing_resolution}")
                     self._workflow_redirect = self.start_person_workflow(
                         'supervisors', names_needing_resolution
                     )
                     # Return the original data - workflow will handle resolution
                     return supervisors_data
             
-            print(f"clean_supervisors: No names need disambiguation")
+            logger.debug(f"clean_supervisors: No names need disambiguation")
         
-        print(f"clean_supervisors: No workflow needed, returning: {supervisors_data}")
+        logger.debug(f"clean_supervisors: No workflow needed, returning: {supervisors_data}")
         return supervisors_data
     
     def has_workflow_redirect(self):
@@ -388,7 +390,7 @@ class WorkflowAddEditReportFinalSaveForm(PersonWorkflowMixin, AddEditReportFinal
     
     def clean_authors(self):
         """Enhanced clean_authors with automatic person creation"""
-        print(f"WorkflowAddEditReportFinalSaveForm:clean_authors: {self.cleaned_data.get('authors')}")
+        logger.debug(f"WorkflowAddEditReportFinalSaveForm:clean_authors: {self.cleaned_data.get('authors')}")
         
         # Call parent method first
         authors_data = super().clean_authors()
@@ -415,7 +417,7 @@ class WorkflowAddEditReportFinalSaveForm(PersonWorkflowMixin, AddEditReportFinal
     
     def clean_supervisors(self):
         """Enhanced clean_supervisors with automatic person creation"""
-        print(f"WorkflowAddEditReportFinalSaveForm:clean_supervisors: {self.cleaned_data.get('supervisors')}")
+        logger.debug(f"WorkflowAddEditReportFinalSaveForm:clean_supervisors: {self.cleaned_data.get('supervisors')}")
         
         # Call parent method first
         supervisors_data = super().clean_supervisors()
@@ -457,7 +459,7 @@ class WorkflowAddEditReportFinalSaveForm(PersonWorkflowMixin, AddEditReportFinal
                 )
                 return person.pk
             except Exception as e:
-                print(f"Error creating person {clean_name}: {e}")
+                logger.error(f"Error creating person {clean_name}: {e}")
                 return None
         elif person_id and person_id != 'ldap':
             # Existing person ID
@@ -465,7 +467,7 @@ class WorkflowAddEditReportFinalSaveForm(PersonWorkflowMixin, AddEditReportFinal
                 person = Person.objects.get(id=person_id)
                 return person.pk
             except Person.DoesNotExist:
-                print(f"Person with ID {person_id} not found")
+                logger.warning(f"Person with ID {person_id} not found")
                 return None
         
         # Fallback - try to find existing person or create new one
@@ -483,7 +485,7 @@ class WorkflowAddEditReportFinalSaveForm(PersonWorkflowMixin, AddEditReportFinal
                 )
                 return person.pk
             except Exception as e:
-                print(f"Error creating person {clean_name}: {e}")
+                logger.error(f"Error creating person {clean_name}: {e}")
                 return None
         except Person.MultipleObjectsReturned:
             # Multiple matches - return first one
@@ -516,7 +518,7 @@ def clean_authors_with_workflow(form_instance):
     if workflow_result:
         field_name, names_needing_resolution = workflow_result
         if names_needing_resolution:
-            print(f"clean_authors_with_workflow: Found names needing disambiguation: {names_needing_resolution}")
+            logger.debug(f"clean_authors_with_workflow: Found names needing disambiguation: {names_needing_resolution}")
             # Start workflow and return redirect response
             return form_instance.start_person_workflow(field_name, names_needing_resolution)
     
@@ -548,7 +550,7 @@ def clean_supervisors_with_workflow(form_instance):
     if workflow_result:
         field_name, names_needing_resolution = workflow_result
         if names_needing_resolution:
-            print(f"clean_supervisors_with_workflow: Found names needing disambiguation: {names_needing_resolution}")
+            logger.debug(f"clean_supervisors_with_workflow: Found names needing disambiguation: {names_needing_resolution}")
             # Start workflow and return redirect response
             return form_instance.start_person_workflow(field_name, names_needing_resolution)
     
@@ -580,7 +582,7 @@ def clean_editors_with_workflow(form_instance):
     if workflow_result:
         field_name, names_needing_resolution = workflow_result
         if names_needing_resolution:
-            print(f"clean_editors_with_workflow: Found names needing disambiguation: {names_needing_resolution}")
+            logger.debug(f"clean_editors_with_workflow: Found names needing disambiguation: {names_needing_resolution}")
             # Start workflow and return redirect response
             return form_instance.start_person_workflow(field_name, names_needing_resolution)
     
