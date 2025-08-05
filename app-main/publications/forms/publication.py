@@ -132,7 +132,11 @@ class AddEditReportForm(ModelForm):
     delete_pdf = forms.BooleanField(
         required=False,
         label="Delete existing PDF file",
-        help_text="Check this box to delete the current PDF file"
+        help_text="Check this box to delete the current PDF file",
+        widget=forms.CheckboxInput(attrs={
+            'class': 'delete-pdf-checkbox text-left',
+            'style': 'margin-left: 0; text-align: left;'
+        })
     )
 
     class Meta:

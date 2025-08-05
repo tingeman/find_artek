@@ -307,127 +307,41 @@ class ReportView(BaseDetailView):
         return super().get(request, *args, **kwargs)
 
 
-
-
-
 @method_decorator(login_required, name='dispatch')
-class AddEditReportView(BaseFormView):
+class ReportFormView(BaseFormView):
     """Unified view for both adding and editing reports"""
     model = Publication
     template_name = 'publications/add_edit_report.html'
     select_persons_url = 'select-persons'
-
+    
     def get_form_class(self):
-        """Return the appropriate form class based on mode"""
-        if self.is_final_save():
-            return WorkflowAddEditReportFinalSaveForm
-        else:
-            return WorkflowAddEditReportForm
-
+        return WorkflowAddEditReportForm
+    
     def is_edit_mode(self):
-        """Check if we're in edit mode (has pk in URL)"""
         return 'pk' in self.kwargs
-
-    def is_final_save(self):
-        """Check if this is a final save after person selection"""
-
-        # WE HAVE TRANSITIONED AWAY FROM ACTION PARAMETER
-
-        # Check for action parameter in query string
-        action = self.request.GET.get('action', '')
-        if action in ['add_final', 'edit_final']:
-            print(f"❌ WARNING: Found action '{action}', THIS SHOULD NOT HAPPEN!")
-            return True
-            
-        # Check if we're on a finalize URL path
-        path = self.request.path
-        print(f"🔍 DEBUG: Checking if path contains 'finalize': {path}")
-        if 'finalize' in path:
-            print(f"🔍 DEBUG: Found 'finalize' in path, treating as final save")
-            return True
-            
-        # Not a final save
-        return False
-
+    
     def get_object(self):
-        """Get the publication to edit, or None for add mode"""
         if self.is_edit_mode():
-            # To avoid unnecessary database queries, cache the object
+            # If cache exists, return it
             if hasattr(self, '_object_cache'):
                 return self._object_cache
-            
-            # For final save, get from session
-            if self.is_final_save():
-                publication_id = self.request.session.get('edit_report_publication_id')
-                if publication_id:
-                    self._object_cache = get_object_or_404(Publication, pk=publication_id)
-                    return self._object_cache
-            else:
-                # For regular edit, get from URL
-                self._object_cache = get_object_or_404(Publication, pk=self.kwargs['pk'])
-                return self._object_cache
+
+            # To avoid unnecessary database queries, cache the object
+            self._object_cache = get_object_or_404(Publication, pk=self.kwargs['pk'])
+            return self._object_cache
+
         return None
-
-    def get_session_key(self):
-        """Get appropriate session key based on mode"""
-        return 'edit_report_form_data' if self.is_edit_mode() else 'add_report_form_data'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'edit' if self.is_edit_mode() else 'add'
-        
-        if self.is_edit_mode():
-            context['publication'] = self.get_object()
-        else:
-            context['publication'] = None  # Ensure publication is always in context
-
-        # TODO: WE SHOULD BE HANDLING EVERYTHING WITH URLs NOW; NOT ACTION PARAMETERS
-        # Handle returning from person selection
-        if self.request.GET.get('action') == 'edit_continue':
-            context['action'] = 'edit'
-            print(f"❌ WARNING: Found action 'edit_continue', THIS SHOULD NOT HAPPEN!")
-        elif self.request.GET.get('action') == 'new':
-            context['action'] = 'add'
-            print(f"❌ WARNING: Found action 'new', THIS SHOULD NOT HAPPEN!")
-            
-        return context
-
+    
     def get_initial(self):
-        """Get initial form data based on mode and state"""
         if self.is_edit_mode():
             return self._get_edit_initial()
-        else:
-            return self._get_add_initial()
-
-    def _get_add_initial(self):
-        """Get initial data for Add mode"""
-        action = self.request.GET.get('action', 'new')
-        if self.request.GET.get('action', None) is not None:
-            print(f"❌ WARNING: Found action '{action}', THIS SHOULD NOT HAPPEN!")
-        print(f"🔍 DEBUG: _get_add_initial called, action: {action}")
-
-        if action == 'edit':  # Returning from person selection
-            session_data = self.request.session.get('add_report_form_data', {})
-            return self._normalize_session_data(session_data)
-        
         return {}
-
+    
     def _get_edit_initial(self):
-        """Get initial data for Edit mode - always from database"""
-        action = self.request.GET.get('action', 'edit')
-        if self.request.GET.get('action', None) is not None:
-            print(f"❌ WARNING: Found action '{action}', THIS SHOULD NOT HAPPEN!")
-        print(f"🔍 DEBUG: _get_edit_initial called, action: {action}")
-
-        if action == 'edit_continue':  # Returning from person selection (legacy)
-            session_data = self.request.session.get('edit_report_form_data', {})
-            return self._normalize_session_data(session_data)
-        
-        # Build initial data from the publication - no session complexity
         publication = self.get_object()
         if not publication:
             return {}
-            
+        
         initial_data = {
             'type': publication.type,
             'title': publication.title,
@@ -435,38 +349,17 @@ class AddEditReportView(BaseFormView):
             'year': publication.year,
             'abstract': publication.abstract,
             'comment': publication.comment,
+            'publication_topics': publication.publication_topics.all(),
+            'publication_keywords': publication.publication_keywords.all(),
         }
-        
-        # Prepare authors and supervisors
-        if publication.authorship_set.exists():
-            authors = publication.authorship_set.all().order_by('author_id')
-            author_pks = [auth.person.pk for auth in authors]  # Use integers, not strings
-            # For HeavySelect2TagWidget, set as list of PKs (not string representation)
-            initial_data['authors'] = author_pks
-            print(f'AddEditReportView:_get_edit_initial - Set initial authors as list: {author_pks}')
-            
-        if publication.supervisorship_set.exists():
-            supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
-            supervisor_pks = [sup.person.pk for sup in supervisors]  # Use integers, not strings
-            # For HeavySelect2TagWidget, set as list of PKs (not string representation)
-            initial_data['supervisors'] = supervisor_pks
-            print(f'AddEditReportView:_get_edit_initial - Set initial supervisors as list: {supervisor_pks}')
-        
-        # Prepare topics and keywords
-        initial_data['publication_topics'] = publication.publication_topics.all()
-        initial_data['publication_keywords'] = publication.publication_keywords.all()
-        
-        return initial_data
 
-    def _normalize_session_data(self, session_data):
-        """Normalize session data for form initialization"""
-        normalized_data = {}
-        for key, value in session_data.items():
-            if isinstance(value, list) and len(value) == 1:
-                normalized_data[key] = value[0]
-            else:
-                normalized_data[key] = value
-        return normalized_data
+        initial_data['authors'] = [auth.person.pk for auth in publication.authorship_set.all().order_by('author_id')]
+        print(f"ReportFormView initial data for authors: {initial_data['authors']}")
+    
+        initial_data['supervisors'] = [sup.person.pk for sup in publication.supervisorship_set.all().order_by('supervisor_id')]
+        print(f"ReportFormView initial data for supervisors: {initial_data['supervisors']}")
+
+        return initial_data
 
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form"""
@@ -482,804 +375,652 @@ class AddEditReportView(BaseFormView):
         return kwargs
 
     def get_form(self):
-        """Get form instance with proper setup"""
-        if self.is_final_save():
-            return self._get_final_save_form()
-        else:
-            return self._get_regular_form()
-
-    def _get_regular_form(self):
         """Get form for regular Add/Edit operations"""
         form = super().get_form()
-        
-        # Retrieve session data for authors and supervisors
-        session_key = self.get_session_key()
-        session_data = self.request.session.get(session_key, {})
-        session_authors = session_data.get('authors', [])
-        session_supervisors = session_data.get('supervisors', [])
-        
-        # Configure widget choices based on mode and data availability
-        if session_data:
-            # Coming back from person selection - use session data
-            form.fields['authors'].widget.choices = self._get_person_choices(session_authors)
-            form.fields['supervisors'].widget.choices = self._get_person_choices(session_supervisors)
-            print(f"AddEditReportView:_get_regular_form - Using session data: {len(session_authors)} authors, {len(session_supervisors)} supervisors")
-        elif self.is_edit_mode():
-            # Edit mode - get current authors and supervisors from publication
+            
+        # Configure widget choices based on initial data
+        if self.is_edit_mode():
             publication = self.get_object()
             if publication:
-                # Get current authors and supervisors
+                # Get current authors and supervisors from database
                 current_authors = publication.authorship_set.all().order_by('author_id')
                 current_supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
                 
-                # Convert to choices for widget
+                # Set widget choices
                 author_choices = [(str(auth.person.pk), str(auth.person)) for auth in current_authors]
                 supervisor_choices = [(str(sup.person.pk), str(sup.person)) for sup in current_supervisors]
                 
-                # Set widget choices to enable display of current values
                 form.fields['authors'].widget.choices = author_choices
                 form.fields['supervisors'].widget.choices = supervisor_choices
-                
-                print(f"AddEditReportView:_get_regular_form - Edit mode: Setting widget choices for {len(author_choices)} authors, {len(supervisor_choices)} supervisors")
+
+                print(f"🔍 DEBUG: AddEditReportView:get_form - Edit mode: Setting widget choices for {len(author_choices)} authors, {len(supervisor_choices)} supervisors")
         else:
-            # Add mode - start with empty choices
+            # Add mode - empty choices
             form.fields['authors'].widget.choices = []
             form.fields['supervisors'].widget.choices = []
-            print("AddEditReportView:_get_regular_form - Add mode: Empty widget choices")
-        
+            print(f"🔍 DEBUG: AddEditReportView:get_form - Add mode: Setting widget choices empty for authors, supervisors")
+
         return form
-
-    def _get_final_save_form(self):
-        """Get form for final save operations"""
-        print(f"🔍 DEBUG: _get_final_save_form called, request method: {self.request.method}")
-        
-        # If we already have POST data, keep it (for true form submissions)
-        if self.request.method == 'POST' and self.request.POST:
-            print(f"🔍 DEBUG: Using existing POST data from request with keys: {list(self.request.POST.keys())}")
-        else:
-            # TODO: WHEN DOES THIS HAPPEN???
-
-            # Pretend this is a POST request with session data
-            print(f"🔍 DEBUG: No POST data, using session data instead")
-            self.request.method = 'POST'
-            
-            # Check for updated form data from review page first
-            if 'updated_form_data' in self.request.session:
-                print(f"🔍 DEBUG: Using updated_form_data from session")
-                normalized_data = self._normalize_session_data(self.request.session.get('updated_form_data', {}))
-                self.request.POST = normalized_data
-            else:
-                # Fall back to regular session key
-                session_key = self.get_session_key()
-                print(f"🔍 DEBUG: Falling back to session key: {session_key}")
-                normalized_data = self._normalize_session_data(self.request.session.get(session_key, {}))
-                self.request.POST = normalized_data
-        
-        # Get form with proper instance for edit mode
-        form_kwargs = self.get_form_kwargs()
-        if self.is_edit_mode():
-            form_kwargs['instance'] = self.get_object()
-            
-        form_class = self.get_form_class()
-        return form_class(**form_kwargs)
-
-    def _get_person_choices(self, person_data=[]):
-        """Convert person data to choices for select2 widget"""
-        choices = []
-        for person in person_data:
-            if isinstance(person, int) or (isinstance(person, str) and person.isnumeric()):
-                person_obj = Person.objects.filter(pk=int(person)).first()
-                if person_obj:
-                    choices.append((person_obj.pk, str(person_obj)))
-            elif isinstance(person, str):  # New person name
-                choices.append((person, person))
-        return choices
-
-    def get(self, request, *args, **kwargs):
-        """Handle GET requests"""
-        print(f"🔍 DEBUG: We received a GET request!!!!!!!!")
-        print(f"🔍 DEBUG: AddEditReportView.get called for URL: {request.path}")
-        if self.is_final_save():
-            return self._handle_final_save_get(request)
-        else:
-            return self._handle_regular_get(request, *args, **kwargs)
-            
-    def post(self, request, *args, **kwargs):
-        """Handle POST requests with special handling for finalize URLs"""
-        print(f"🔍 DEBUG: AddEditReportView.post called for URL: {request.path}")
-        print(f"🔍 DEBUG: POST data keys: {list(request.POST.keys())}")
-        print(f"🔍 DEBUG: Files keys: {list(request.FILES.keys()) if request.FILES else 'No files'}")
-        
-        # Always treat POST to finalize URLs as final save operations
-        if 'finalize' in request.path:
-            print(f"🔍 DEBUG: POST to finalize URL detected - handling as final save")
-            
-            # Check if we should use session data
-            use_session_data = request.POST.get('use_session_data') == 'True'
-            if use_session_data and 'updated_form_data' in request.session:
-                print(f"🔍 DEBUG: Using session data from 'updated_form_data' key")
-                session_data = request.session.get('updated_form_data', {})
-                print(f"🔍 DEBUG: Session data: {session_data}")
-
-                # Create a publication instance directly
-                try:
-                    with transaction.atomic():
-                        # Get or create a publication object
-                        publication = self.get_object() if self.is_edit_mode() else Publication()
-                        
-                        # Update basic fields
-                        publication.title = request.POST.get('title', '')
-                        publication.number = request.POST.get('number', '')
-                        
-                        # Type field needs special handling
-                        type_id = request.POST.get('type')
-                        if type_id:
-                            try:
-                                publication.type = PubType.objects.get(pk=type_id)
-                            except (PubType.DoesNotExist, ValueError):
-                                print(f"🔍 DEBUG: Error finding PubType with ID: {type_id}")
-                        
-                        # Year field needs to be an integer
-                        year = request.POST.get('year', '')
-                        if year and year.isdigit():
-                            publication.year = int(year)
-                        
-                        publication.abstract = request.POST.get('abstract', '')
-                        publication.comment = request.POST.get('comment', '')
-                        
-                        # Set the modified by user
-                        publication.modified_by = request.user
-                        if not publication.pk:  # If new publication
-                            publication.created_by = request.user
-                        
-                        # Save publication to get an ID if it's new
-                        publication.save()
-                        
-                        # Set the object so get_success_url works
-                        self.object = publication
-                        
-                        # Handle authors
-                        publication.authorship_set.all().delete()
-                        authors = request.POST.getlist('authors', [])
-                        for i, author_pk in enumerate(authors):
-                            try:
-                                person = Person.objects.get(pk=int(author_pk))
-                                Authorship.objects.create(
-                                    publication=publication,
-                                    person=person,
-                                    author_id=i
-                                )
-                                print(f"🔍 DEBUG: Added author: {person}")
-                            except (Person.DoesNotExist, ValueError) as e:
-                                print(f"🔍 DEBUG: Error adding author {author_pk}: {e}")
-                        
-                        # Handle supervisors
-                        publication.supervisorship_set.all().delete()
-                        supervisors = request.POST.getlist('supervisors', [])
-                        for i, supervisor_pk in enumerate(supervisors):
-                            try:
-                                person = Person.objects.get(pk=int(supervisor_pk))
-                                Supervisorship.objects.create(
-                                    publication=publication,
-                                    person=person,
-                                    supervisor_id=i
-                                )
-                                print(f"🔍 DEBUG: Added supervisor: {person}")
-                            except (Person.DoesNotExist, ValueError) as e:
-                                print(f"🔍 DEBUG: Error adding supervisor {supervisor_pk}: {e}")
-                        
-                        # Handle topics
-                        publication.publication_topics.clear()
-                        topics = request.POST.getlist('publication_topics', [])
-                        if topics:
-                            for topic_pk in topics:
-                                try:
-                                    topic = Topic.objects.get(pk=int(topic_pk))
-                                    publication.publication_topics.add(topic)
-                                    print(f"🔍 DEBUG: Added topic: {topic}")
-                                except (Topic.DoesNotExist, ValueError) as e:
-                                    print(f"🔍 DEBUG: Error adding topic {topic_pk}: {e}")
-                        
-                        # Handle keywords
-                        publication.publication_keywords.clear()
-                        keywords = request.POST.getlist('publication_keywords', [])
-                        if keywords:
-                            for keyword_pk in keywords:
-                                try:
-                                    keyword = Keyword.objects.get(pk=int(keyword_pk))
-                                    publication.publication_keywords.add(keyword)
-                                    print(f"🔍 DEBUG: Added keyword: {keyword}")
-                                except (Keyword.DoesNotExist, ValueError) as e:
-                                    print(f"🔍 DEBUG: Error adding keyword {keyword_pk}: {e}")
-                        
-                        # Handle file upload
-                        has_file_in_session = request.POST.get('has_file_in_session') == 'True'
-                        if has_file_in_session:
-                            print(f"🔍 DEBUG: File data found in session")
-                            # Do special handling here if needed
-                            
-                        # Save again after all relations are set
-                        publication.save()
-                        
-                except Exception as e:
-                    print(f"🔍 DEBUG: Error during direct publication save: {str(e)}")
-                    print(f"🔍 DEBUG: {traceback.format_exc()}")
-                    return self.form_invalid(self.get_form())
-                
-                # After saving, handle file operations separately BEFORE clearing session data
-                try:
-                    # TODO: THESE LINES SEEM TO DO NOTHING...
-                    # # Create a dummy form for the file operations
-                    # form = self.get_form()
-                    # # Set the object manually since we created it directly
-                    # self.object = publication
-
-                    # Call the file operations method
-                    self._handle_file_operations_with_session_data(request)
-                except Exception as e:
-                    print(f"🔍 DEBUG: Error during file operations: {str(e)}")
-                    print(f"🔍 DEBUG: {traceback.format_exc()}")
-                
-                # Clear session data AFTER file operations are complete
-                if 'updated_form_data' in request.session:
-                    del request.session['updated_form_data']
-                    print(f"🔍 DEBUG: Cleared updated_form_data from session after file operations")
-                
-                # Redirect to success URL
-                return redirect(self.get_success_url())
-            else:
-                print(f"🔍 DEBUG: No session data found, trying normal form processing")
-
-                # Process the form and get the result
-                form = self.get_form()
-                
-                if form.is_valid():
-                    print(f"🔍 DEBUG: Form is valid, processing final save")
-                    return self.form_valid(form)
-                else:
-                    print(f"🔍 DEBUG: Form validation failed: {form.errors}")
-                    # Try to fix validation issues with session data
-                    if 'updated_form_data' in request.session:
-
-                        # TODO: WHEN DOES THIS HAPPEN???
-                        # We seem to have a flag that tells us not to use session data
-                        # but we choose to use it anyway???
-                        # It does not seem to be fully implemented either...
-                        
-                        # TODO: This section should be deleted.
-
-                        # print warning
-                        print(f"❌ WARNING: We should never end up here...")
-
-                        print(f"🔍 DEBUG: Attempting to save with session data despite validation errors")
-                        try:
-                            # Get the publication instance
-                            publication = self.get_object() if self.is_edit_mode() else Publication()
-                            # Set basic fields from session data
-                            session_data = request.session.get('updated_form_data', {})
-                            
-                            # Set fields (with safeguards)
-                            if 'title' in session_data and session_data['title']:
-                                publication.title = session_data['title'][0] if isinstance(session_data['title'], list) else session_data['title']
-                            
-                            # Process other fields...
-                            
-                            # Save the publication
-                            publication.save()
-                            self.object = publication
-                            
-                            # Clear session data
-                            del request.session['updated_form_data']
-                            
-                            # Redirect to success URL
-                            return redirect(self.get_success_url())
-                        except Exception as e:
-                            print(f"🔍 DEBUG: Error during fallback save: {str(e)}")
-                    
-                    return self.form_invalid(form)
-        else:
-            # For regular POST requests, use standard FormView processing
-            return super().post(request, *args, **kwargs)
-
-    def _handle_regular_get(self, request, *args, **kwargs):
-        """Handle regular GET requests"""
-        action = request.GET.get('action', 'new' if not self.is_edit_mode() else 'edit')
-        
-        if action == 'new' and not self.is_edit_mode():
-            # Clear session data for new Add operation
-            request.session.pop('add_report_form_data', None)
-        elif action == 'edit' and self.is_edit_mode():
-            # Clear session data for new Edit operation
-            request.session.pop('edit_report_form_data', None)
-            
-        return super().get(request, *args, **kwargs)
-
-    def _handle_final_save_get(self, request):
-        """Handle final save GET requests"""
-        session_key = self.get_session_key()
-        
-        if not request.session.get(session_key, {}):
-            # Redirect if no session data
-            if self.is_edit_mode():
-                return redirect('publications:reports')
-            else:
-                return redirect('publications:add_report')
-        
-        form = self.get_form()
-        
-        if hasattr(form, 'is_valid') and form.is_valid():
-            # Process the form and get the result
-            result = self.form_valid(form)
-            # If form_valid returns a redirect response, return it
-            if hasattr(result, 'status_code') and result.status_code in [301, 302]:
-                return result
-            # Otherwise, redirect to success URL manually
-            return redirect(self.get_success_url())
-        else:
-            # Redirect back with error
-            if self.is_edit_mode():
-                publication_id = self.request.session.get('edit_report_publication_id')
-                if publication_id:
-                    return redirect('publications:edit_report', pk=publication_id)
-                return redirect('publications:reports')
-            else:
-                return redirect('publications:add_report')
 
     def form_valid(self, form):
         """Unified form processing for both Add and Edit with workflow support"""
-        print(f"🔍 DEBUG: AddEditReportView.form_valid called")
+        print(f"🔍 DEBUG: ReportFormView.form_valid called")
         print(f"🔍 DEBUG: Form cleaned_data keys: {list(form.cleaned_data.keys())}")
-        print(f"🔍 DEBUG: Form contains data: {form.cleaned_data}")
+        print(f"🔍 DEBUG: Form contains data:")
+        for key, value in form.cleaned_data.items():
+            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
         
         # Debug the form data types
         for key, value in form.cleaned_data.items():
             print(f"🔍 DEBUG: Form field '{key}': {value} (type: {type(value).__name__})")
         
-        # Check if workflow forms need to redirect to disambiguation
-        if hasattr(form, 'has_workflow_redirect') and form.has_workflow_redirect():
-            print("🔍 DEBUG: Form has workflow redirect, calling form.get_workflow_redirect()")
-            return form.get_workflow_redirect()
+        # FIRST: Always store form data in session
+        session_data = self._convert_form_to_session_data(form)
         
-        # Always store form data in session and redirect to review view
-        print("🔍 DEBUG: Storing form data in session for review view")
-        
-        # Convert form data to session-compatible format and store it
-        session_data = {}
-        
-        # Copy POST data, converting values to simple lists of strings
-        for key, value_list in self.request.POST.lists():
-            # Skip empty file fields
-            if key == 'pdffile' and (not value_list or value_list == [''] or value_list[0] == ''):
-                print(f"🔍 DEBUG: Skipping empty pdffile field: {value_list}")
-                continue
-                
-            session_data[key] = value_list
-            print(f"🔍 DEBUG: Session data field '{key}': {value_list}")
-        
-        # Handle file uploads - store file ID in session for later linking
-        print(f"🔍 DEBUG: Checking for file uploads in request.FILES: {list(self.request.FILES.keys())}")
-        
-        # Track if we have any file handling to do
-        file_handled = False
-        
-        # First check for standard field name
+        # Handle file uploads
         if 'pdffile' in self.request.FILES:
             uploaded_file = self.request.FILES['pdffile']
             print(f"🔍 DEBUG: Found file upload: {uploaded_file.name} (size: {uploaded_file.size} bytes)")
-            
-            try:
-                # # Create a temporary publication object for file processing
-                # temp_publication = Publication()
-                # temp_publication.created_by = self.request.user
-                # temp_publication.modified_by = self.request.user
-                # temp_publication.title = "TEMP_" + str(time.time())  # Temporary title
-                # temp_publication.year = 2024  # Temporary year
-                # temp_publication.save()  # Save to get an ID
+            file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
+            session_data['uploaded_file_id'] = str(file_obj.id)
                 
-                # Process file and store in temp location
-                file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
-                
-                # Store the actual FileObject ID in session for later linking
-                session_data['uploaded_file_id'] = str(file_obj.id)
-                
-                print(f"🔍 DEBUG: Created FileObject with ID: {file_obj.id}")
-                file_handled = True
-                
-            except Exception as e:
-                print(f"🔍 DEBUG: Error storing uploaded file (pdffile in request.FILES): {e}")
-            
-            # Store file metadata as dictionary
-            session_data['pdffile'] = {
-                'name': uploaded_file.name,
-                'size': uploaded_file.size,
-                'content_type': uploaded_file.content_type,
-                'has_uploaded_file': True
-            }
-            print(f"🔍 DEBUG: Added file metadata to session data: {session_data['pdffile']}")
-            
-        # Also check for formset-style field name (form-0-pdffile)
-        elif 'form-0-pdffile' in self.request.FILES:
-            uploaded_file = self.request.FILES['form-0-pdffile']
-            print(f"🔍 DEBUG: Found file upload with formset name: {uploaded_file.name}")
-            
-            try:
-                # # Create a temporary publication object for file processing
-                # temp_publication = Publication()
-                # temp_publication.created_by = self.request.user
-                # temp_publication.modified_by = self.request.user
-                # temp_publication.title = "TEMP_" + str(time.time())  # Temporary title
-                # temp_publication.year = 2024  # Temporary year
-                # temp_publication.save()  # Save to get an ID
-                
-                # Process file and store in temp location
-                file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
-
-                # Store the actual FileObject ID in session for later linking
-                session_data['uploaded_file_id'] = str(file_obj.id)
-                
-                print(f"🔍 DEBUG: Created FileObject with ID: {file_obj.id}")
-                file_handled = True
-                
-            except Exception as e:
-                print(f"🔍 DEBUG: Error storing uploaded file (pdffile in formset): {e}")
-            
-            # Store file metadata as dictionary
-            session_data['pdffile'] = {
-                'name': uploaded_file.name,
-                'size': uploaded_file.size,
-                'content_type': uploaded_file.content_type,
-                'has_uploaded_file': True
-            }
-            print(f"🔍 DEBUG: Added formset file metadata to session data: {session_data['pdffile']}")
-        
-        # Check if we're in edit mode and preserving existing file (no new upload)
-        elif self.is_edit_mode():
-            publication = self.get_object()
-            if publication and publication.file:
-                print(f"🔍 DEBUG: Edit mode - preserving existing file: {publication.file.file.name}")
-                
-                # Store the existing file ID for preservation
-                session_data['existing_file_id'] = str(publication.file.id)
-                
-                # Store file metadata
-                session_data['pdffile'] = {
-                    'name': os.path.basename(publication.file.file.name),
-                    'size': os.path.getsize(publication.file.file.path) if publication.file.file else 0,
-                    'content_type': 'application/pdf',  # Assume PDF for now
-                    'has_existing_file': True
-                }
-                
-                print(f"🔍 DEBUG: Preserving existing file ID: {publication.file.id}")
-                file_handled = True
-        
-        if not file_handled:
-            print(f"🔍 DEBUG: No file upload or existing file found")
-        
-        # Ensure type field is stored as string (PK), not model instance
-        if 'type' in session_data and len(session_data['type']) == 1:
-            # Type should be a string representation of the PK
-            original_type = session_data['type'][0]
-            session_data['type'] = [str(session_data['type'][0])]
-            print(f"🔍 DEBUG: Converted type field from {original_type} to {session_data['type'][0]}")
-            
-        # Store the form data in session using the key that the review view expects
-        try:
-            # Use the special key that the review view checks for
-            self.request.session['updated_form_data'] = session_data
-            print("✅ Session data stored successfully for review view")
-            print(f"🔍 DEBUG: Session data includes uploaded_file_id: {'uploaded_file_id' in session_data}")
-            print(f"🔍 DEBUG: Session data includes existing_file_id: {'existing_file_id' in session_data}")
-            
-            # If file IDs are present, print them
-            if 'uploaded_file_id' in session_data:
-                print(f"🔍 DEBUG: uploaded_file_id value: {session_data['uploaded_file_id']}")
-            if 'existing_file_id' in session_data:
-                print(f"🔍 DEBUG: existing_file_id value: {session_data['existing_file_id']}")
-            
-            # Store publication ID for edit mode
-            if self.is_edit_mode():
-                obj = self.get_object()
-                if obj:
-                    self.request.session['edit_report_publication_id'] = obj.pk
-                    
-            # Redirect to the review view
-            view_name = 'publications:review_edit_report' if self.is_edit_mode() else 'publications:review_add_report'
-            if self.is_edit_mode():
-                return redirect(view_name, pk=self.kwargs['pk'])
-            else:
-                return redirect(view_name)
-                
-        except (TypeError, ValueError) as e:
-            print(f"❌ Failed to store session data: {e}")
-            print(f"❌❌❌❌❌ WE SHOULD NEVER GET HERE!!! ❌❌❌❌❌")
-
-            # RECONSIDER HOW TO HANDLE THIS SITUATION - FIND A BETTER WAY THAN THIS EXTENSIVE TRY BLOCK
-
-            # Fall back to original behavior if session storage fails
-            authors = form.cleaned_data['authors']
-            supervisors = form.cleaned_data['supervisors']
-            
-            # Handle person selection redirect if needed (fallback for legacy forms)
-            if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
-                print("🔍 DEBUG: Authors or supervisors are not QuerySets, calling _handle_person_selection_redirect")
-                return self._handle_person_selection_redirect(form)
-                
-            # Continue with direct save
-            print("🔍 DEBUG: Falling back to direct save without review")
-            self.object = form.save(commit=False)
-        
-            # Auto-generate report number for new publications
-            if not self.object.pk and not self.object.number:
-                if self.object.year:
-                    # Use retry logic to handle concurrency during auto-generation
-                    max_retries = 3
-                    for attempt in range(max_retries):
-                        try:
-                            with transaction.atomic():
-                                # Generate number atomically
-                                self.object.number = generate_next_report_number(self.object.year)
-                                self.object.save()
-                                break  # Success - exit retry loop
-                        except IntegrityError:
-                            if attempt < max_retries - 1:
-                                time.sleep(0.1)  # Brief delay before retry
-                                continue
-                            else:
-                                # If all retries fail, show error
-                                messages.error(
-                                    self.request, 
-                                    "Unable to assign report number due to high system load. Please try again."
-                                )
-                                return redirect('publications:add_report')
-                else:
-                    messages.error(self.request, "Cannot create report without a year")
-                    return redirect('publications:add_report')
-            else:
-                # Save existing publication (edit mode)
-                self.object.save()
-
-            # Handle file operations AFTER report number is assigned
-            self._handle_file_operations(form)
-
-            # Handle relationships
-            self._handle_authors_and_supervisors(authors, supervisors)
-            self._handle_topics_and_keywords(form)
-
-            # Clear session data for final save operations
-            if self.is_final_save():
-                session_key = self.get_session_key()
-                self.request.session.pop(session_key, None)
-                if self.is_edit_mode():
-                    self.request.session.pop('edit_report_publication_id', None)
-
-            # Return a redirect to the success URL
-            return HttpResponseRedirect(self.get_success_url())
-
-    def _handle_person_selection_redirect(self, form):
-        """Handle redirect to person selection using field-specific workflow approach"""
-        
-        print("🔍 DEBUG: _handle_person_selection_redirect called")
-        print(f"🔍 DEBUG: POST data keys: {list(self.request.POST.keys())}")
-        print(f"🔍 DEBUG: POST data: {dict(self.request.POST.lists())}")
-        
-        # Use raw POST data to avoid any form processing that might convert strings to model instances
-        # This ensures all data is JSON-serializable (strings, lists of strings)
-        session_data = {}
-        
-        # Copy raw POST data, converting values to simple lists of strings
-        for key, value_list in self.request.POST.lists():
-            print(f"🔍 DEBUG: Processing POST field '{key}': {value_list} (types: {[type(v).__name__ for v in value_list]})")
-            session_data[key] = value_list
-        
-        # Ensure type field is stored as string (PK), not model instance
-        if 'type' in session_data and len(session_data['type']) == 1:
-            # Type should be a string representation of the PK
-            original_type = session_data['type'][0]
-            session_data['type'] = [str(session_data['type'][0])]
-            print(f"🔍 DEBUG: Converted type field from {original_type} ({type(original_type).__name__}) to {session_data['type'][0]} (str)")
-        
-        # The person disambiguation workflow only modifies 'authors' and 'supervisors' fields
-        # All other fields remain as original string values from POST data
-        
-        print(f"🔍 DEBUG: Final session_data keys: {list(session_data.keys())}")
-        print(f"🔍 DEBUG: Session data types check:")
-        for key, value in session_data.items():
-            print(f"  - {key}: {type(value).__name__} containing {[type(v).__name__ for v in value] if isinstance(value, list) else type(value).__name__}")
-        
-        # Test JSON serialization to ensure it will work
-        try:
-            json.dumps(session_data)
-            print("✅ Session data is JSON serializable")
-        except (TypeError, ValueError) as e:
-            print(f"❌ Session data serialization failed: {e}")
-            print(f"Problematic data: {session_data}")
-            # Find the problematic object
-            for key, value in session_data.items():
-                try:
-                    json.dumps({key: value})
-                except (TypeError, ValueError) as field_error:
-                    print(f"❌ Problem with field '{key}': {field_error}")
-                    print(f"  Field value: {value}")
-                    print(f"  Field type: {type(value)}")
-                    if isinstance(value, list):
-                        for i, item in enumerate(value):
-                            print(f"    Item {i}: {item} (type: {type(item)})")
-            # This should not happen with our approach, but log for debugging
-        
-        # Store the original form data in session - guaranteed JSON-serializable
-        session_key = self.get_session_key()
-        print(f"🔍 DEBUG: About to store session data under key '{session_key}'")
-        
-        # Additional safety check before storing
-        try:
-            json.dumps(session_data)
-            self.request.session[session_key] = session_data
-            print("✅ Session data stored successfully")
-        except (TypeError, ValueError) as e:
-            print(f"❌ CRITICAL: Failed to store session data: {e}")
-            raise
-        
+        # Store in session BEFORE any redirects
+        self.request.session['form_data'] = session_data
         if self.is_edit_mode():
-            obj = self.get_object()
-            if obj:
-                self.request.session['edit_report_publication_id'] = obj.pk
-                print(f"🔍 DEBUG: Stored edit_report_publication_id: {obj.pk} (type: {type(obj.pk).__name__})")
-            
-        # Debug: Check all session keys before redirect
-        print(f"🔍 DEBUG: All session keys before redirect: {list(self.request.session.keys())}")
-        for key in self.request.session.keys():
-            try:
-                value = self.request.session[key]
-                print(f"🔍 DEBUG: Session['{key}']: {type(value).__name__}")
-                # Try to serialize each session item
-                json.dumps({key: value})
-                print(f"  ✅ Session['{key}'] is JSON serializable")
-            except (TypeError, ValueError) as e:
-                print(f"  ❌ Session['{key}'] is NOT JSON serializable: {e}")
-                print(f"     Value: {value}")
-                print(f"     Type: {type(value)}")
-            
-        action = 'edit' if self.is_edit_mode() else 'add'
-        print(f"🔍 DEBUG: AddEditReportView: redirecting to {self.select_persons_url}?action={action}")
-        return redirect(f"publications:{self.select_persons_url}?action={action}")
-
-    def _handle_file_operations(self, form):
-        """Handle PDF file upload/deletion"""
-        delete_pdf = form.cleaned_data.get('delete_pdf', False)
-        uploaded_file = form.cleaned_data.get('pdffile')
+            self.request.session['publication_id'] = self.kwargs['pk']
         
-        if delete_pdf and self.object.file:
-            if self.object.file.file:
-                self.object.file.file.delete()
-            self.object.file.delete()
-            self.object.file = None
-            
-        if uploaded_file:
-            if self.object.file:
-                if self.object.file.file:
-                    self.object.file.file.delete()
-                self.object.file.delete()
-            
-            file_obj = handle_publication_file_upload(self.object, uploaded_file)
-            self.object.file = file_obj
-            
-        self.object.save()
+        print(f"🔍 DEBUG: Session data stored: {session_data}")
 
-    def _handle_authors_and_supervisors(self, authors, supervisors):
-        """Handle author and supervisor relationships"""
+        # THEN: Check if workflow forms need to redirect to disambiguation
+        if hasattr(form, 'has_workflow_redirect') and form.has_workflow_redirect():
+            print("🔍 DEBUG: Form has workflow redirect, calling form.get_workflow_redirect()")
+            return form.get_workflow_redirect()
+        else:
+            print("🔍 DEBUG: No workflow redirect, proceeding with normal flow")
+
+        # Continue with normal flow - redirect to review
+        if self.is_edit_mode():
+            return redirect('publications:edit_report_review', pk=self.kwargs['pk'])
+        else:
+            return redirect('publications:add_report_review')
+    
+    def _convert_form_to_session_data(self, form):
+        """Convert form data to session-compatible format"""
+        session_data = {}
+        for key, value in self.request.POST.lists():
+            # Skip empty file field to avoid misinterpreting as an uploaded file
+            if key == 'pdffile' and (not value or value == [''] or all(v == '' for v in value)):
+                print(f"🔍 DEBUG: Skipping empty pdffile field: {value}")
+                continue
+            session_data[key] = value
+        return session_data
+
+
+
+@method_decorator(login_required, name='dispatch')
+class ReportReviewView(BaseView):
+    """Handles review of form data before final save"""
+    template_name = 'publications/add_edit_report_review.html'
+    
+    def is_edit_mode(self):
+        return 'pk' in self.kwargs
+    
+    def get_object(self):
+        if self.is_edit_mode():
+            return get_object_or_404(Publication, pk=self.kwargs['pk'])
+        return None
+    
+    def dispatch(self, request, *args, **kwargs):
+        print(f"🔍 DEBUG: ReportReviewView.dispatch - Method: {request.method}")
+        print(f"🔍 DEBUG: ReportReviewView.dispatch - Has form_data: {'form_data' in request.session}")
+        
+        if 'form_data' not in request.session:
+            print(f"🔍 DEBUG: No form_data, redirecting to form")
+            if self.is_edit_mode():
+                return redirect('publications:edit_report', pk=kwargs['pk'])
+            else:
+                return redirect('publications:add_report')
+        
+        print(f"🔍 DEBUG: Continuing to {request.method} method")
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Pass add/edit state on to the template
+        context['action'] = 'edit' if self.is_edit_mode() else 'add'
+
+        # Get the publication object if in edit mode
+        if self.is_edit_mode():
+            context['publication'] = self.get_object()
+            if not context['publication'].is_editable_by(self.request.user):
+                context['error'] = "You do not have permissions to edit this publication!"
+                return context
+        else:
+            context['publication'] = None
+
+        # Get review data from session
+        if 'form_data' not in self.request.session:
+            context['error'] = "No form data found in session. Please fill out the form first."
+            return context
+    
+        print(f"🔍 DEBUG: Session form_data: {self.request.session['form_data']}")
+        review_data, changed_fields = self._get_review_data()
+        context['review_data'] = review_data
+                 
+        # In add mode, consider all fields as "changed" from default
+        if not self.is_edit_mode():
+            # All fields are considered new in add mode
+            for field in review_data.keys():
+                if field not in ['pdffile', 'delete_pdf'] and review_data[field]:  # Skip empty fields
+                    changed_fields[field] = True
+                    
+        context['changed_fields'] = changed_fields
+            
+        return context
+
+    def _get_review_data(self):
+        """Convert session data into a clean format for display and track changed fields"""
+        session_data = self.request.session.get('form_data', {})
+        review_data = {}
+        
+        # Debug output to understand the format of session data
+        print(f"🔍 DEBUG:ReportReviewView:_get_review_data:  Review session data keys: {list(session_data.keys())}")
+        print(f"🔍 DEBUG:ReportReviewView:_get_review_data:  Full session data for debugging:")
+        for key, value in session_data.items():
+            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
+        # Convert basic fields
+        for field in ['title', 'year', 'number', 'abstract', 'comment']:
+            value = session_data.get(field, [])
+            review_data[field] = value[0] if isinstance(value, list) and value else value
+        
+        # Convert type
+        type_pk = session_data.get('type', [])
+        print(f"🔍 DEBUG: Processing type field. Raw value: {type_pk} (type: {type(type_pk).__name__})")
+        if isinstance(type_pk, list) and type_pk:
+            try:
+                pub_type = PubType.objects.get(pk=int(type_pk[0]))
+                print(f"🔍 DEBUG: Found PubType object: {pub_type} (ID: {pub_type.id}, type: {pub_type.type})")
+                # Pass the actual object rather than just the string
+                review_data['type'] = pub_type
+            except (PubType.DoesNotExist, ValueError):
+                print(f"🔍 DEBUG: Error finding PubType: {e}")
+                review_data['type'] = type_pk[0]
+        else:
+            print(f"🔍 DEBUG: type is not a list, using type value directly: {type_pk}")
+            review_data['type'] = type_pk
+        
+        # Convert authors/supervisors
+        review_data['authors'] = self._convert_model_ids_to_strings(Person, 'authors', session_data.get('authors', []))
+        review_data['supervisors'] = self._convert_model_ids_to_strings(Person, 'supervisors', session_data.get('supervisors', []))
+
+        # Convert topics and keywords
+        review_data['publication_topics'] = self._convert_model_ids_to_strings(Topic, 'topics', session_data.get('publication_topics', []))
+        review_data['publication_keywords'] = self._convert_model_ids_to_strings(Keyword, 'keywords', session_data.get('publication_keywords', []))
+
+        # Extract file IDs if they exist
+        review_data['uploaded_file_id'] = session_data.get('uploaded_file_id', None)
+        review_data['existing_file'] = self.get_object().file if self.is_edit_mode() else None
+        if review_data['existing_file']:
+            review_data['existing_file_id'] = review_data['existing_file'].pk
+        else:
+            review_data['existing_file_id'] = None
+        review_data['delete_pdf'] = session_data.get('delete_pdf', False)
+
+        # Add file IDs to review data if they exist
+        if review_data['uploaded_file_id']:
+            print(f"🔍 DEBUG: uploaded_file_id: {review_data['uploaded_file_id']} (type: {type(review_data['uploaded_file_id']).__name__ if review_data['uploaded_file_id'] else 'None'})")
+            review_data['uploaded_file'] = FileObject.objects.filter(pk=review_data['uploaded_file_id']).first()
+        if review_data['existing_file_id']:
+            print(f"🔍 DEBUG: existing_file_id: {review_data['existing_file_id']} (type: {type(review_data['existing_file_id']).__name__ if review_data['existing_file_id'] else 'None'})")
+            review_data['existing_file'] = FileObject.objects.filter(pk=review_data['existing_file_id']).first()
+
+        changed_fields = self._get_changed_fields(review_data=review_data)
+
+        return review_data, changed_fields
+        
+    def _convert_model_ids_to_strings(self, this_model, label, ids):
+        """Convert model IDs to string representations"""
+        items = []
+        for item_id in ids:
+            try:
+                item = this_model.objects.get(pk=int(item_id))
+                items.append(str(item))
+            except (this_model.DoesNotExist, ValueError) as e:
+                print(f"Error processing {label} from {this_model.__name__} PK {item_id}: {e}")
+                items.append(str(item_id))
+        return items
+
+    def _convert_person_ids_to_strings(self, person_ids):
+        """Convert person IDs to person objects"""
+        persons = []
+        for person_id in person_ids:
+            try:
+                person = Person.objects.get(pk=int(person_id))
+                persons.append(str(person))
+            except (Person.DoesNotExist, ValueError):
+                print(f"Error processing author PK {person_id}: {e}")
+                persons.append(str(person_id))
+        return persons
+    
+    def _get_changed_fields(self, review_data={}):
+        """Determine which fields changed (for edit mode)"""
+        if not self.is_edit_mode():
+            return {}
+
+        print(f"🔍 DEBUG: ReportReviewView._get_changed_fields called (in edit mode)")
+
+        changed_fields = {}
+
+        obj = self.get_object()
+        if obj:
+            # Check basic text fields
+            for field in ['title', 'year', 'number', 'abstract', 'comment']:
+                if field in review_data and hasattr(obj, field):
+                    # Get the current value from the database
+                    current_val = getattr(obj, field)
+                    # Handle None values
+                    if current_val is None:
+                        current_val = ""
+                    
+                    # Get the new value
+                    new_val = review_data.get(field, "")
+                    if str(current_val) != str(new_val) and new_val:
+                        changed_fields[field] = True
+            
+            # Check type changes - compare by PK/ID for most accurate comparison
+            if hasattr(obj, 'type') and 'type' in review_data:
+                # Extract the current type object from the database record
+                current_type_obj = obj.type
+                new_type_obj = review_data['type']
+                
+                # Debug the values we're comparing
+                print(f"🔍 DEBUG: Comparing Types: Current: {current_type_obj} | New: {new_type_obj}")
+                
+                # Get the IDs/PKs for comparison
+                current_id = getattr(current_type_obj, 'id', None)
+                new_id = getattr(new_type_obj, 'id', None)
+                
+                print(f"🔍 DEBUG: Type IDs - Current: {current_id} | New: {new_id}")
+                
+                # If we have valid IDs for both, compare by ID (most reliable)
+                if current_id is not None and new_id is not None:
+                    if int(current_id) != int(new_id):
+                        changed_fields['type'] = True
+                        print(f"🔍 DEBUG: Type marked as changed based on ID comparison: {current_id} ≠ {new_id}")
+                else:
+                    # No valid IDs, so compare by type code string
+                    current_type_code = current_type_obj.type if hasattr(current_type_obj, 'type') else str(current_type_obj)
+                    new_type_code = new_type_obj.type if hasattr(new_type_obj, 'type') else str(new_type_obj)
+                    
+                    # Normalize by converting to uppercase string for comparison
+                    current_type_str = str(current_type_code).upper()
+                    new_type_str = str(new_type_code).upper()
+                    
+                    print(f"🔍 DEBUG: Type strings - Current: '{current_type_str}' | New: '{new_type_str}'")
+                    
+                    if current_type_str != new_type_str:
+                        changed_fields['type'] = True
+                        print(f"🔍 DEBUG: Type marked as changed based on string comparison")
+                
+                # For debugging, log if type is unchanged
+                if 'type' not in changed_fields:
+                    print(f"🔍 DEBUG: Type field unchanged - values match")
+            
+            # Check authors, supervisors, topics and keywords changes
+            for field in ['authors', 'supervisors', 'publication_topics', 'publication_keywords']:
+                # For these M2M fields, we'll compare the string representations
+                if field in review_data:
+                    new_items = review_data[field]
+                    
+                    # Get current items
+                    current_items = []
+                    if field == 'authors' and hasattr(obj, 'authors'):
+                        current_items = [str(author) for author in obj.authors.all()]
+                    elif field == 'supervisors' and hasattr(obj, 'supervisors'):
+                        current_items = [str(supervisor) for supervisor in obj.supervisors.all()]
+                    elif field == 'publication_topics' and hasattr(obj, 'publication_topics'):
+                        current_items = [str(topic) for topic in obj.publication_topics.all()]
+                    elif field == 'publication_keywords' and hasattr(obj, 'publication_keywords'):
+                        current_items = [str(keyword) for keyword in obj.publication_keywords.all()]
+                    
+                    # Compare lists by creating sorted sets of string values
+                    if set(new_items) != set(current_items):
+                        changed_fields[field] = True
+            
+            # Check file changes - detect any changes in file state
+            has_new_file = 'uploaded_file_id' in review_data and review_data['uploaded_file_id'] is not None
+            has_delete_request = 'delete_pdf' in review_data and review_data['delete_pdf'] == True
+            
+            # If we have a file upload or delete request, mark as changed
+            if has_new_file or has_delete_request:
+                changed_fields['file'] = True
+                print(f"🔍 DEBUG: File marked as changed - has_new_file: {has_new_file}, has_delete_request: {has_delete_request}")
+
+        print(f"🔍 DEBUG: ReportReviewView._get_changed_fields - Review data keys: {list(review_data.keys())}")
+        print(f"🔍 DEBUG: ReportReviewView._get_changed_fields - Review data:")
+        for key, value in review_data.items():
+            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
+        print(f"🔍 DEBUG: ReportReviewView._get_changed_fields - Changed fields identified: {changed_fields}")
+
+        return changed_fields
+    
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests - show the review page"""
+        print(f"🔍 DEBUG: ReportReviewView.get called")
+        print(f"🔍 DEBUG: Session keys: {list(request.session.keys())}")
+        print(f"🔍 DEBUG: Has form_data: {'form_data' in request.session}")
+
+        print(f"🔍 DEBUG: form_data: {request.session.get('form_data', {})}")
+        print(f"🔍 DEBUG: updated_form_data: {request.session.get('updated_form_data', {})}")
+
+        print(f"🔍 DEBUG: Template name: {self.template_name}")
+
+        context = self.get_context_data(**kwargs)
+        print(f"🔍 DEBUG: Context keys: {list(context.keys())}")
+
+        # if context['changed_fields'] is empty, then redirect to report view
+        if not context['changed_fields']:
+            print(f"🔍 DEBUG: No changed fields, redirecting to report view")
+            if self.is_edit_mode():
+                return redirect('publications:report', pk=kwargs['pk'])
+            # else:
+            #     return redirect('publications:add_report')
+
+        response = render(request, self.template_name, context)
+        print(f"🔍 DEBUG: Response type: {type(response)}")
+        print(f"🔍 DEBUG: Response status: {response.status_code}")
+        print(f"🔍 DEBUG: About to return response")
+
+        #return render(request, self.template_name, context)
+        return response
+
+        # if not 'form_data' in request.session:
+        #     print(f"🔍 DEBUG: No form_data in session, redirecting to form")
+        #     if self.is_edit_mode():
+        #         return redirect('publications:edit_report', pk=kwargs['pk'])
+        #     else:
+        #         return redirect('publications:add_report')
+
+        # print(f"🔍 DEBUG: Form data exists, proceeding to render review page")
+
+
+    def post(self, request, *args, **kwargs):
+        """Handle form submission from review page"""
+        print(f"🔍 DEBUG: ReportReviewView.post called - THIS SHOULD NOT HAPPEN ON GET!")
+        print(f"🔍 DEBUG: POST data: {request.POST}")
+        if self.is_edit_mode():
+            return redirect('publications:edit_finalize', pk=kwargs['pk'])
+        else:
+            return redirect('publications:add_finalize')
+
+
+
+@method_decorator(login_required, name='dispatch')
+class ReportFinalizeView(BaseView):
+    """Handles final save of publication"""
+    
+    def get_form_class(self):
+        return WorkflowAddEditReportForm
+
+    def is_edit_mode(self):
+        return 'pk' in self.kwargs
+    
+    def get_object(self):
+        if self.is_edit_mode():
+            return get_object_or_404(Publication, pk=self.kwargs['pk'])
+        return None
+    
+    def get_form_kwargs(self):
+        """Return the keyword arguments for instantiating the form"""
+        kwargs = super().get_form_kwargs()
+        
+        # Add request object for workflow forms
+        kwargs['request'] = self.request
+        
+        # For edit mode, always pass the instance
+        if self.is_edit_mode():
+            kwargs['instance'] = self.get_object()
+            
+        return kwargs
+
+    def dispatch(self, request, *args, **kwargs):
+        if 'form_data' not in request.session:
+            if self.is_edit_mode():
+                return redirect('publications:edit_report', pk=kwargs['pk'])
+            else:
+                return redirect('publications:add_report')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        """Save the publication with session data"""
+
+        # 1. Get session data
+        session_data = self.request.session.get('form_data', {})
+        print(f"🔍 DEBUG: ReportFinalizeView:post - Session data found: {bool(session_data)}")
+        print(f"🔍 DEBUG: ReportFinalizeView:post - Session data keys: {list(session_data.keys())}")
+
+        if not session_data:
+            # No session data, redirect back
+            if self.is_edit_mode():
+                print(f"🔍 DEBUG: No session data, redirecting to edit_report")
+                return redirect('publications:edit_report', pk=kwargs['pk'])
+            else:
+                print(f"🔍 DEBUG: No session data, redirecting to add_report")
+                return redirect('publications:add_report')
+
+        # 2. Convert session data to form input format
+        form_input = self._session_data_to_form_input(session_data)
+
+        print(f"🔍 DEBUG: ReportFinalizeView:post - Form input prepared from session data:")
+        for key, value in form_input.items():
+            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
+        print(f"🔍 DEBUG: ReportFinalizeView:post - Form input prepared:")
+        for key, value in form_input.items():
+            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
+        # 2. Prepare form kwargs
+        form_kwargs = {'request': request}
+        if self.is_edit_mode():
+            form_kwargs['instance'] = self.get_object()
+
+        # 3. Create form instance with session data
+        form_class = self.get_form_class()
+        form = form_class(form_input, **form_kwargs)
+
+        print(f"🔍 DEBUG: ReportFinalizeView:post - Form instance created")
+
+        # 4. Validate and save
+        if form.is_valid():
+            print(f"🔍 DEBUG: Form is valid, proceeding to save publication")
+
+            try:
+                with transaction.atomic():
+                    publication = form.save(commit=False)
+                    publication.modified_by = request.user
+                    if not publication.pk:
+                        publication.created_by = request.user
+                    
+                    if not self.is_edit_mode() and 'year' in form_input and form_input['year']:
+                        publication.number = generate_next_report_number(form_input['year'])
+                       
+                    publication.save()
+                    self._handle_relationships(publication)
+                    self._handle_files(publication)
+                    publication.save()
+                    del request.session['form_data']            
+                return redirect('publications:report', pk=publication.pk)
+            except Exception as e:
+                messages.error(request, f'Error saving publication: {e}')
+                print(f"🔍 DEBUG: Error saving publication: {e}")
+                if self.is_edit_mode():
+                    return redirect('publications:edit_report_review', pk=kwargs['pk'])
+                else:
+                    return redirect('publications:add_report_review')
+        else:
+            # If invalid, redirect back to review
+            print(f"🔍 DEBUG: Form is invalid: {form.errors}")
+
+            # print all form values
+            print(f"🔍 DEBUG: Form cleaned_data:")
+            for key, value in form.cleaned_data.items():
+                print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
+            messages.error(request, 'Form data is invalid. Please check your input.')
+            if self.is_edit_mode():
+                return redirect('publications:edit_report_review', pk=kwargs['pk'])
+            else:
+                return redirect('publications:add_report_review')
+    
+    def _session_data_to_form_input(self, session_data):
+        """Convert session data to form input format"""
+        form_input = {}
+        for key, value in session_data.items():
+            if key in ['authors', 'supervisors', 'publication_topics', 'publication_keywords']:
+                form_input[key] = value
+            elif isinstance(value, list):
+                # If the value is a list, take the first item if it exists
+                if value:
+                    # take the first item if it exists
+                    # there should never be more than one item here
+                    form_input[key] = value[0]
+                    if len(value) > 1:
+                        print(f"🔍 DEBUG: Warning: Multiple values found for {key} in session data, using first value only: {value[0]}")
+                else:
+                    form_input[key] = None
+            else:
+                form_input[key] = value
+        return form_input
+
+
+    def _handle_relationships(self, publication):
+        """Handle authors, supervisors, topics, keywords"""
+        session_data = self.request.session['form_data']
+        
+        print(f"🔍 DEBUG: ReportFinalizeView:_handle_relationships called for publication {publication.pk}" )
+        print(f"🔍 DEBUG: Session data keys: {list(session_data.keys())}")
+        print(f"🔍 DEBUG: Session data:")
+        for key, value in session_data.items():
+            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
         # Authors
-        self.object.authorship_set.all().delete()
-        for i, author in enumerate(authors):
+        publication.authorship_set.all().delete()
+        for i, author_pk in enumerate(session_data.get('authors', [])):
+            person = Person.objects.get(pk=int(author_pk))
             Authorship.objects.create(
-                publication=self.object,
-                person=author,
+                publication=publication,
+                person=person,
                 author_id=i
             )
-            
-        # Supervisors
-        self.object.supervisorship_set.all().delete()
-        for i, supervisor in enumerate(supervisors):
+        
+        # Supervisors  
+        publication.supervisorship_set.all().delete()
+        for i, supervisor_pk in enumerate(session_data.get('supervisors', [])):
+            person = Person.objects.get(pk=int(supervisor_pk))
             Supervisorship.objects.create(
-                publication=self.object,
-                person=supervisor,
+                publication=publication,
+                person=person,
                 supervisor_id=i
             )
-
-    def _handle_topics_and_keywords(self, form):
-        """Handle topic and keyword relationships"""
-        self.object.publication_topics.set(form.cleaned_data.get('publication_topics', []))
-        self.object.publication_keywords.set(form.cleaned_data.get('publication_keywords', []))
-
-    def _handle_file_operations_with_session_data(self, request):
-        """Handle file operations using session data for the hybrid approach"""
-        print(f"🔍 DEBUG: _handle_file_operations_with_session_data called")
         
-        # Get session data
-        session_data = request.session.get('updated_form_data', {})
-        print(f"🔍 DEBUG: Session data keys: {list(session_data.keys())}")
-        print(f"🔍 DEBUG: Full session data: {session_data}")
-        
-        # Check if we have file data - first from POST data (from form)
-        uploaded_file_id = request.POST.get('uploaded_file_id')
-        existing_file_id = request.POST.get('existing_file_id')
-        # temp_publication_id = request.POST.get('temp_publication_id')
-        
-        # If not in POST data, check session data
-        if not uploaded_file_id:
-            uploaded_file_id = session_data.get('uploaded_file_id')
-        if not existing_file_id:
-            existing_file_id = session_data.get('existing_file_id')
-        # if not temp_publication_id:
-        #     temp_publication_id = session_data.get('temp_publication_id')
-        
-        print(f"🔍 DEBUG: uploaded_file_id from POST/session: {uploaded_file_id} (type: {type(uploaded_file_id).__name__ if uploaded_file_id else 'None'})")
-        print(f"🔍 DEBUG: existing_file_id from POST/session: {existing_file_id} (type: {type(existing_file_id).__name__ if existing_file_id else 'None'})")
-        # print(f"🔍 DEBUG: temp_publication_id from POST/session: {temp_publication_id} (type: {type(temp_publication_id).__name__ if temp_publication_id else 'None'})")
-        
-        # Handle uploaded file (new upload)
-        if uploaded_file_id:
-            print(f"🔍 DEBUG: Found uploaded file ID: {uploaded_file_id}")
-            
+        # Topics
+        publication.publication_topics.clear()
+        for topic_pk in session_data.get('publication_topics', []):
             try:
-                # Get the uploaded file object
-                uploaded_file_obj = FileObject.objects.get(pk=uploaded_file_id)
-                
-                print(f"🔍 DEBUG: Retrieved uploaded file: {uploaded_file_obj.file.name}")
-                print(f"🔍 DEBUG: Current uploaded file path: {uploaded_file_obj.file.path}")
-                
-                # Move the file from temp location to final location
-                final_file_obj = self._move_temp_file_to_final(uploaded_file_obj, self.object)
-                
-                # Link the final file to the publication
-                self.object.file = final_file_obj
-                self.object.save()
-                
-                print(f"🔍 DEBUG: File linked to publication: {final_file_obj.file.name}")
-                
-                # Clean up temporary objects
-                uploaded_file_obj.delete()
-                
-                print(f"🔍 DEBUG: Cleaned up temporary objects")
-                
-            except Exception as e:
-                print(f"🔍 DEBUG: _handle_file_operations_with_session_data: Error moving uploaded file: {e}")
-                print(f"🔍 DEBUG: {traceback.format_exc()}")
-                
-        # Handle existing file (edit mode - preserve existing file)
-        elif existing_file_id:
-            print(f"🔍 DEBUG: Found existing file ID: {existing_file_id}")
-            
+                topic = Topic.objects.get(pk=int(topic_pk))
+                publication.publication_topics.add(topic)
+            except Topic.DoesNotExist:
+                print(f"🔍 DEBUG: Topic with PK {topic_pk} does not exist, skipping")
+
+        # Keywords
+        publication.publication_keywords.clear()
+        for keyword_pk in session_data.get('publication_keywords', []):
             try:
-                # Get the existing file object and link it to the publication
-                existing_file_obj = FileObject.objects.get(pk=existing_file_id)
-                
-                print(f"🔍 DEBUG: Retrieved existing file: {existing_file_obj.file.name}")
-                
-                # Link the existing file to the publication (no move needed)
-                self.object.file = existing_file_obj
-                self.object.save()
-                
-                print(f"🔍 DEBUG: Existing file preserved and linked to publication")
-                
-            except Exception as e:
-                print(f"🔍 DEBUG: Error linking existing file: {e}")
-                print(f"🔍 DEBUG: {traceback.format_exc()}")
+                keyword = Keyword.objects.get(pk=int(keyword_pk))
+                publication.publication_keywords.add(keyword)
+            except Keyword.DoesNotExist:
+                print(f"🔍 DEBUG: Keyword with PK {keyword_pk} does not exist, skipping")
+
+    def _handle_files(self, publication):
+        """Handle file operations"""
+        session_data = self.request.session['form_data']
         
+        if 'uploaded_file_id' in session_data:
+            print(f"🔍 DEBUG: ReportFinalizeView:_handle_files called with uploaded_file_id")
+
+            uploaded_file_obj = FileObject.objects.get(pk=session_data['uploaded_file_id'])
+           
+            original_file_obj_backup = self._temporarily_rename_existing_file(publication)
+
+            try:
+                final_file_obj = self._move_temp_file_to_final(uploaded_file_obj, publication)
+                publication.file = final_file_obj
+                publication.save()
+            except:
+                print(f"🔍 DEBUG: Error moving file to final location, restoring existing file")  
+                self._restore_existing_file(publication, original_file_obj_backup)              
+                # reraise exception
+                raise
+
+            if original_file_obj_backup:
+                print(f"🔍 DEBUG: Deleting temporary file object: {original_file_obj_backup.pk}")
+                original_file_obj_backup.delete()  # Clean up the temporary file object
+            print(f"🔍 DEBUG: File moved successfully to publication {publication.pk}: {final_file_obj.pk}")
+        elif 'delete_pdf' in session_data and session_data['delete_pdf']:
+            print(f"🔍 DEBUG: Deleting existing file for publication {publication.pk}")
+            if publication.file:
+                # Store the file reference before deletion
+                file_to_delete = publication.file
+                
+                # First update the publication to remove the file reference
+                publication.file = None
+                publication.save(update_fields=['file'])
+                
+                # Delte the file on disk
+                if file_to_delete.file and os.path.exists(file_to_delete.file.path):
+                    print(f"🔍 DEBUG: Deleting file from disk: {file_to_delete.file.path}")
+                    os.remove(file_to_delete.file.path)
+
+                # Then delete the actual file object
+                file_to_delete.delete()
+
+    def _temporarily_rename_existing_file(self, publication):
+        """Will physically rename existing file on disk, forcing overwrite of any existing file 
+        with the same name"""
+        if publication.file:
+            print(f"🔍 DEBUG: Temporarily renaming existing file for publication {publication.pk}")
+            original_file_path = publication.file.file.path
+            print(f"🔍 DEBUG: Original file path: {original_file_path}")
+            # Create a temporary name to avoid conflicts
+            temp_file_path = original_file_path + '.old'
+            print(f"🔍 DEBUG: Temporary file path: {temp_file_path}")
+            # Rename the file
+            os.rename(original_file_path, temp_file_path)
+            print(f"🔍 DEBUG: Existing file renamed to temporary path: {temp_file_path}")
+            # Update the publication file reference
+            publication.file.file.name = temp_file_path
+            publication.file.save() 
+            return publication.file
         else:
-            print(f"🔍 DEBUG: No file data found in session or POST data")
-            # Also check for file metadata that might indicate a file was uploaded
-            pdffile_data = session_data.get('pdffile')
-            if pdffile_data:
-                print(f"🔍 DEBUG: Found pdffile metadata: {pdffile_data}")
-                print(f"🔍 DEBUG: POST data keys: {list(request.POST.keys())}")
-                print(f"🔍 DEBUG: Looking for temp IDs in POST data...")
-                for key, value in request.POST.items():
-                    if 'temp' in key:
-                        print(f"🔍 DEBUG: Found temp-related POST field: {key} = {value}")
-                print(f"❌ ERROR: No uploaded file ID found in session or POST data, but pdffile metadata exists")
-            else:
-                print(f"🔍 DEBUG: No pdffile metadata found either")
+            return None
 
+    def _restore_existing_file(self, publication, temp_file_object):
+        """Restore the existing file to its original name (needed if transactions fail)"""
+
+        print(f"🔍 DEBUG: Restoring existing file for publication {publication.pk}")
+        temp_file_path = temp_file_object.file.path
+        original_file_path = temp_file_path.replace('.old', '')
+        if os.path.exists(temp_file_path):
+            print(f"🔍 DEBUG: Restoring file from {temp_file_path} to {original_file_path}")
+            # Rename back to original
+            os.rename(temp_file_path, original_file_path)
+            # Update the publication file reference
+            publication.file.file.name = original_file_path
+            publication.file.save()
+        
     def _move_temp_file_to_final(self, temp_file_obj, publication):
         """Move a temporary file to its final location"""
                 
@@ -1340,691 +1081,6 @@ class AddEditReportView(BaseFormView):
         print(f"🔍 DEBUG: File moved successfully to: {final_file_obj.file.name}")
         
         return final_file_obj
-
-    def get_success_url(self):
-        """Get URL to redirect to after successful save"""
-        redirect_url = reverse('publications:report', kwargs={'pk': self.object.pk})
-        print(f"🔍 DEBUG: AddEditReportView.get_success_url - Publication ID: {self.object.pk}")
-        print(f"🔍 DEBUG: AddEditReportView.get_success_url - Redirecting to: {redirect_url}")
-        
-        # Clear any session data to prevent stale data issues
-        if 'updated_form_data' in self.request.session:
-            print(f"🔍 DEBUG: AddEditReportView.get_success_url - Clearing updated_form_data from session")
-            del self.request.session['updated_form_data']
-            
-        if self.is_edit_mode():
-            edit_key = self.get_session_key()
-            if edit_key in self.request.session:
-                print(f"🔍 DEBUG: AddEditReportView.get_success_url - Clearing {edit_key} from session")
-                del self.request.session[edit_key]
-        
-        return redirect_url
-
-
-@method_decorator(login_required, name='dispatch')
-class AddEditReportReviewView(BaseView):
-    """Review view for forms with workflow session data - displays as static content"""
-    model = Publication
-    template_name = 'publications/add_edit_report_review.html'
-    
-    def is_edit_mode(self):
-        """Check if we're in edit mode (has pk in URL)"""
-        return 'pk' in self.kwargs
-
-    def get_object(self):
-        """Get the publication to edit, or None for add mode"""
-        if self.is_edit_mode():
-            if hasattr(self, '_object_cache'):
-                return self._object_cache
-            self._object_cache = get_object_or_404(Publication, pk=self.kwargs['pk'])
-            return self._object_cache
-        return None
-
-    def dispatch(self, request, *args, **kwargs):
-        """Ensure session data exists, redirect to clean form if not"""
-        if not self._has_valid_session_data():
-            if self.is_edit_mode():
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                return redirect('publications:add_report')
-        return super().dispatch(request, *args, **kwargs)
-
-    def _has_valid_session_data(self):
-        """Check if we have valid session data for this view"""
-        return 'updated_form_data' in self.request.session
-
-    def get_context_data(self, **kwargs):
-        # Get base context but avoid FormView implementation
-        context = BaseView.get_context_data(self, **kwargs)
-        context['action'] = 'edit' if self.is_edit_mode() else 'add'
-        
-        if self.is_edit_mode():
-            context['publication'] = self.get_object()
-        else:
-            context['publication'] = None
-        
-        # Get the review data
-        review_data, changed_fields = self._get_review_data()
-        context['review_data'] = review_data
-        
-        # Add information about what changed
-        if 'updated_form_data' in self.request.session:
-            context['has_workflow_changes'] = True
-            
-            # Get the original field that was updated in workflow
-            workflow_field = self.request.session.get('workflow_updated_field', None)
-            if workflow_field:
-                # Add workflow field to changed fields
-                changed_fields[workflow_field] = True
-                
-        # In add mode, consider all fields as "changed" from default
-        if not self.is_edit_mode():
-            # All fields are considered new in add mode
-            for field in review_data.keys():
-                if field not in ['pdffile', 'delete_pdf'] and review_data[field]:  # Skip empty fields
-                    changed_fields[field] = True
-                    
-        context['changed_fields'] = changed_fields
-            
-        return context
-
-    def _get_review_data(self):
-        """Convert session data into a clean format for display and track changed fields"""
-        session_data = self.request.session.get('updated_form_data', {})
-        
-        # Debug output to understand the format of session data
-        print(f"🔍 DEBUG: Review session data keys: {list(session_data.keys())}")
-        print(f"🔍 DEBUG: Full session data for debugging:")
-        for key, value in session_data.items():
-            print(f"🔍 DEBUG:   '{key}': {value} (type: {type(value).__name__})")
-        
-        # Check for temp file data
-        if 'temp_file_id' in session_data:
-            print(f"🔍 DEBUG: temp_file_id found in session: {session_data['temp_file_id']}")
-        else:
-            print(f"🔍 DEBUG: temp_file_id NOT found in session")
-            
-        if 'temp_publication_id' in session_data:
-            print(f"🔍 DEBUG: temp_publication_id found in session: {session_data['temp_publication_id']}")
-        else:
-            print(f"🔍 DEBUG: temp_publication_id NOT found in session")
-        
-        if 'authors' in session_data:
-            print(f"🔍 DEBUG: Authors data: {session_data['authors']} (type: {type(session_data['authors']).__name__})")
-            if session_data['authors'] and isinstance(session_data['authors'], list):
-                print(f"🔍 DEBUG: First author: {session_data['authors'][0]} (type: {type(session_data['authors'][0]).__name__})")
-        
-        if 'supervisors' in session_data:
-            print(f"🔍 DEBUG: Supervisors data: {session_data['supervisors']} (type: {type(session_data['supervisors']).__name__})")
-            if session_data['supervisors'] and isinstance(session_data['supervisors'], list):
-                print(f"🔍 DEBUG: First supervisor: {session_data['supervisors'][0]} (type: {type(session_data['supervisors'][0]).__name__})")
-        
-        review_data = {}
-        # Dictionary to track changed fields
-        changed_fields = {}
-        
-        # Basic fields - get from session, convert lists to single values where needed
-        for field in ['title', 'year', 'number', 'abstract', 'comment']:
-            value = session_data.get(field, [])
-            if isinstance(value, list) and len(value) == 1:
-                review_data[field] = value[0]
-            elif isinstance(value, list) and len(value) > 1:
-                review_data[field] = ', '.join(str(v) for v in value)
-            else:
-                review_data[field] = value
-
-        # Type field - convert to display name
-        type_value = session_data.get('type', [])
-        print(f"🔍 DEBUG: Processing type field. Raw value: {type_value} (type: {type(type_value).__name__})")
-        
-        if isinstance(type_value, list) and len(type_value) == 1:
-            type_pk = type_value[0]
-            print(f"🔍 DEBUG: Type PK extracted from list: {type_pk} (type: {type(type_pk).__name__})")
-            
-            try:
-                pub_type = PubType.objects.get(pk=int(type_pk))
-                print(f"🔍 DEBUG: Found PubType object: {pub_type} (ID: {pub_type.id}, type: {pub_type.type})")
-                # Pass the actual object rather than just the string
-                review_data['type'] = pub_type
-            except (PubType.DoesNotExist, ValueError, TypeError) as e:
-                print(f"🔍 DEBUG: Error finding PubType: {e}")
-                review_data['type'] = type_pk
-        else:
-            print(f"🔍 DEBUG: Using type value directly: {type_value}")
-            review_data['type'] = type_value
-
-        # Authors and supervisors - convert PKs to Person names
-        authors_data = session_data.get('authors', [])
-        if authors_data:
-            authors = []
-            for author_pk in authors_data:
-                try:
-                    # Handle different formats of author_pk
-                    if isinstance(author_pk, str):
-                        if ',' in author_pk:
-                            # Handle comma-separated format (like "1,0,0,1")
-                            clean_pk = author_pk.replace(',', '')
-                            person = Person.objects.get(pk=int(clean_pk))
-                        elif author_pk.isdigit():
-                            # Handle normal digit string
-                            person = Person.objects.get(pk=int(author_pk))
-                        else:
-                            # If it's not a number, it might be a new person name
-                            raise ValueError(f"Not a valid person ID: {author_pk}")
-                    else:
-                        # Handle numeric types directly
-                        person = Person.objects.get(pk=int(author_pk))
-                    authors.append(str(person))
-                except (Person.DoesNotExist, ValueError, TypeError) as e:
-                    print(f"Error processing author PK {author_pk}: {e}")
-                    authors.append(str(author_pk))  # Fallback for new person names
-            review_data['authors'] = authors
-        else:
-            review_data['authors'] = []
-
-        # Handle supervisors - convert to list if it's a string
-        supervisors_data = session_data.get('supervisors', [])
-        print(f"🔍 DEBUG: Raw supervisors_data: {supervisors_data} (type: {type(supervisors_data).__name__})")
-        
-        # Convert string to list if needed
-        if isinstance(supervisors_data, str):
-            # Convert single string value to a list with one item
-            supervisors_data = [supervisors_data]
-            print(f"🔍 DEBUG: Converted supervisors_data to list: {supervisors_data}")
-        elif not isinstance(supervisors_data, list):
-            # Handle any other non-list type
-            supervisors_data = [str(supervisors_data)]
-            print(f"🔍 DEBUG: Converted non-list supervisors_data to list: {supervisors_data}")
-            
-        if supervisors_data:
-            supervisors = []
-            for supervisor_pk in supervisors_data:
-                try:
-                    # Handle different formats of supervisor_pk
-                    if isinstance(supervisor_pk, str):
-                        if ',' in supervisor_pk:
-                            # Handle comma-separated format (like "1,0,0,1")
-                            clean_pk = supervisor_pk.replace(',', '')
-                            person = Person.objects.get(pk=int(clean_pk))
-                        elif supervisor_pk.isdigit():
-                            # Handle normal digit string
-                            person = Person.objects.get(pk=int(supervisor_pk))
-                        else:
-                            # If it's not a number, it might be a new person name
-                            raise ValueError(f"Not a valid person ID: {supervisor_pk}")
-                    else:
-                        # Handle numeric types directly
-                        person = Person.objects.get(pk=int(supervisor_pk))
-                    supervisors.append(str(person))
-                except (Person.DoesNotExist, ValueError, TypeError) as e:
-                    print(f"Error processing supervisor PK {supervisor_pk}: {e}")
-                    supervisors.append(str(supervisor_pk))  # Fallback for new person names
-            review_data['supervisors'] = supervisors
-        else:
-            review_data['supervisors'] = []
-
-        # Topics and keywords - convert PKs to display names  
-        topics_data = session_data.get('publication_topics', [])
-        if topics_data:
-            topics = []
-            for topic_pk in topics_data:
-                try:
-                    topic = Topic.objects.get(pk=int(topic_pk))
-                    topics.append(str(topic))
-                except (Topic.DoesNotExist, ValueError, TypeError):
-                    topics.append(str(topic_pk))
-            review_data['publication_topics'] = topics
-        else:
-            review_data['publication_topics'] = []
-
-        keywords_data = session_data.get('publication_keywords', [])
-        if keywords_data:
-            keywords = []
-            for keyword_pk in keywords_data:
-                try:
-                    keyword = Keyword.objects.get(pk=int(keyword_pk))
-                    keywords.append(str(keyword))
-                except (Keyword.DoesNotExist, ValueError, TypeError):
-                    keywords.append(str(keyword_pk))
-            review_data['publication_keywords'] = keywords
-        else:
-            review_data['publication_keywords'] = []
-
-        # File fields for all modes - always add these keys to prevent template errors
-        # Initialize with default empty/false values
-        review_data['pdffile'] = None
-        review_data['delete_pdf'] = False
-        
-        # Handle file uploads for both add and edit modes
-        pdffile_data = session_data.get('pdffile')
-        print(f"🔍 DEBUG: pdffile_data from session: {pdffile_data} (type: {type(pdffile_data).__name__ if pdffile_data is not None else 'None'})")
-            
-        # Only add real file data if it's not empty
-        if pdffile_data and pdffile_data != [''] and pdffile_data != '':
-            # Handle dictionary format (with file metadata)
-            if isinstance(pdffile_data, dict):
-                review_data['pdffile'] = pdffile_data
-                print(f"🔍 DEBUG: Set pdffile in review_data from dict: {review_data['pdffile']}")
-            # Handle list format (session might store as list)
-            elif isinstance(pdffile_data, list) and len(pdffile_data) > 0:
-                if isinstance(pdffile_data[0], dict):
-                    review_data['pdffile'] = pdffile_data[0]
-                else:
-                    # Extract file name from list
-                    file_name = pdffile_data[0]
-                    review_data['pdffile'] = {'name': file_name}
-                print(f"🔍 DEBUG: Set pdffile in review_data from list: {review_data['pdffile']}")
-            else:
-                # Handle string or other format
-                review_data['pdffile'] = {'name': str(pdffile_data)}
-                print(f"🔍 DEBUG: Set pdffile in review_data from string: {review_data['pdffile']}")
-        
-        # Check for delete PDF flag separately (should work regardless of file upload)
-        delete_pdf_data = session_data.get('delete_pdf', [])
-        print(f"🔍 DEBUG: delete_pdf_data from session: {delete_pdf_data}")
-        
-        if delete_pdf_data and (isinstance(delete_pdf_data, bool) or 
-                             (isinstance(delete_pdf_data, list) and len(delete_pdf_data) > 0 and 
-                              delete_pdf_data[0] in ['True', 'on', '1'])):
-            review_data['delete_pdf'] = True
-            print(f"🔍 DEBUG: Set delete_pdf in review_data to True")
-        
-        # Extract file IDs if they exist
-        uploaded_file_id = session_data.get('uploaded_file_id')
-        existing_file_id = session_data.get('existing_file_id')
-        temp_publication_id = session_data.get('temp_publication_id')
-        
-        print(f"🔍 DEBUG: uploaded_file_id from session: {uploaded_file_id} (type: {type(uploaded_file_id).__name__ if uploaded_file_id else 'None'})")
-        print(f"🔍 DEBUG: existing_file_id from session: {existing_file_id} (type: {type(existing_file_id).__name__ if existing_file_id else 'None'})")
-        print(f"🔍 DEBUG: temp_publication_id from session: {temp_publication_id} (type: {type(temp_publication_id).__name__ if temp_publication_id else 'None'})")
-        
-        # Add file IDs to review data if they exist
-        if uploaded_file_id:
-            review_data['uploaded_file_id'] = uploaded_file_id
-            print(f"🔍 DEBUG: Added uploaded_file_id to review_data: {uploaded_file_id}")
-        
-        if existing_file_id:
-            review_data['existing_file_id'] = existing_file_id
-            print(f"🔍 DEBUG: Added existing_file_id to review_data: {existing_file_id}")
-        
-        if temp_publication_id:
-            review_data['temp_publication_id'] = temp_publication_id
-            print(f"🔍 DEBUG: Added temp_publication_id to review_data: {temp_publication_id}")
-        
-        # Detect which fields have changed compared to original data
-        if self.is_edit_mode():
-            obj = self.get_object()
-            if obj:
-                # Check basic text fields
-                for field in ['title', 'year', 'number', 'abstract', 'comment']:
-                    if field in review_data and hasattr(obj, field):
-                        # Get the current value from the database
-                        current_val = getattr(obj, field)
-                        # Handle None values
-                        if current_val is None:
-                            current_val = ""
-                        
-                        # Get the new value
-                        new_val = review_data.get(field, "")
-                        if str(current_val) != str(new_val) and new_val:
-                            changed_fields[field] = True
-                
-                # Check type changes - compare by PK/ID for most accurate comparison
-                if hasattr(obj, 'type') and 'type' in review_data:
-                    # Extract the current type object from the database record
-                    current_type_obj = obj.type
-                    new_type_obj = review_data['type']
-                    
-                    # Debug the values we're comparing
-                    print(f"🔍 DEBUG: Comparing Types: Current: {current_type_obj} | New: {new_type_obj}")
-                    
-                    # Get the IDs/PKs for comparison
-                    current_id = getattr(current_type_obj, 'id', None)
-                    new_id = getattr(new_type_obj, 'id', None)
-                    
-                    print(f"🔍 DEBUG: Type IDs - Current: {current_id} | New: {new_id}")
-                    
-                    # If we have valid IDs for both, compare by ID (most reliable)
-                    if current_id is not None and new_id is not None:
-                        if int(current_id) != int(new_id):
-                            changed_fields['type'] = True
-                            print(f"🔍 DEBUG: Type marked as changed based on ID comparison: {current_id} ≠ {new_id}")
-                    else:
-                        # No valid IDs, so compare by type code string
-                        current_type_code = current_type_obj.type if hasattr(current_type_obj, 'type') else str(current_type_obj)
-                        new_type_code = new_type_obj.type if hasattr(new_type_obj, 'type') else str(new_type_obj)
-                        
-                        # Normalize by converting to uppercase string for comparison
-                        current_type_str = str(current_type_code).upper()
-                        new_type_str = str(new_type_code).upper()
-                        
-                        print(f"🔍 DEBUG: Type strings - Current: '{current_type_str}' | New: '{new_type_str}'")
-                        
-                        if current_type_str != new_type_str:
-                            changed_fields['type'] = True
-                            print(f"🔍 DEBUG: Type marked as changed based on string comparison")
-                    
-                    # For debugging, log if type is unchanged
-                    if 'type' not in changed_fields:
-                        print(f"🔍 DEBUG: Type field unchanged - values match")
-                
-                # Check authors, supervisors, topics and keywords changes
-                for field in ['authors', 'supervisors', 'publication_topics', 'publication_keywords']:
-                    # For these M2M fields, we'll compare the string representations
-                    if field in review_data:
-                        new_items = review_data[field]
-                        
-                        # Get current items
-                        current_items = []
-                        if field == 'authors' and hasattr(obj, 'authors'):
-                            current_items = [str(author) for author in obj.authors.all()]
-                        elif field == 'supervisors' and hasattr(obj, 'supervisors'):
-                            current_items = [str(supervisor) for supervisor in obj.supervisors.all()]
-                        elif field == 'publication_topics' and hasattr(obj, 'publication_topics'):
-                            current_items = [str(topic) for topic in obj.publication_topics.all()]
-                        elif field == 'publication_keywords' and hasattr(obj, 'publication_keywords'):
-                            current_items = [str(keyword) for keyword in obj.publication_keywords.all()]
-                        
-                        # Compare lists by creating sorted sets of string values
-                        if set(new_items) != set(current_items):
-                            changed_fields[field] = True
-                
-                # Check file changes - detect any changes in file state
-                has_real_file = 'pdffile' in review_data and review_data['pdffile'] is not None
-                has_delete_request = 'delete_pdf' in review_data and review_data['delete_pdf'] == True
-                
-                # If we have a file upload or delete request, mark as changed
-                if has_real_file or has_delete_request:
-                    changed_fields['file'] = True
-                    print(f"🔍 DEBUG: File marked as changed - has_real_file: {has_real_file}, has_delete_request: {has_delete_request}")
-        
-        return review_data, changed_fields
-
-    def get(self, request, *args, **kwargs):
-        """Handle GET requests - show the review page"""
-        context = self.get_context_data(**kwargs)
-        return render(request, self.template_name, context)
-
-    def post(self, request, *args, **kwargs):
-        """Handle POST requests - process the acceptance and save"""
-        # Get session data and process it using the form
-        session_data = self.request.session.get('updated_form_data', {})
-        print(f"🔍 DEBUG: post - Session data found: {bool(session_data)}")
-        print(f"🔍 DEBUG: post - Session data keys: {list(session_data.keys())}")
-        print(f"🔍 DEBUG: post - request.FILES keys: {list(request.FILES.keys()) if request.FILES else 'No files in request'}")
-        
-        if not session_data:
-            # No session data, redirect back
-            if self.is_edit_mode():
-                print(f"🔍 DEBUG: No session data, redirecting to edit_report")
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                print(f"🔍 DEBUG: No session data, redirecting to add_report")
-                return redirect('publications:add_report')
-
-        # Create a form instance to process the session data
-        form_class = WorkflowAddEditReportForm
-        
-        # Convert session data to POST-like format for form processing
-        post_data = {}
-        
-        # Track if we have file data in session and request
-        has_file_data = False
-        file_data = None
-        file_in_request = False
-        file_key = 'pdffile'
-        
-        # First check if we have a file in the request
-        if 'pdffile' in request.FILES:
-            file_in_request = True
-            file_key = 'pdffile'
-            print(f"🔍 DEBUG: Found file in request.FILES['pdffile']: {request.FILES['pdffile'].name}")
-        elif 'form-0-pdffile' in request.FILES:
-            file_in_request = True
-            file_key = 'form-0-pdffile'
-            print(f"🔍 DEBUG: Found file in request.FILES['form-0-pdffile']: {request.FILES['form-0-pdffile'].name}")
-            
-        # Process session data
-        for key, value in session_data.items():
-            # Special handling for authors and supervisors - always ensure they are lists
-            if key in ['authors', 'supervisors']:
-                if isinstance(value, list):
-                    post_data[key] = value
-                else:
-                    post_data[key] = [value]  # Convert single value to list
-                print(f"🔍 DEBUG: POST processing {key}: {post_data[key]} (type: {type(post_data[key]).__name__})")
-            elif key == 'pdffile':
-                # Special handling for pdffile
-                has_file_data = True
-                if isinstance(value, dict):
-                    file_data = value
-                    print(f"🔍 DEBUG: Found file data in session (dict): {value}")
-                elif isinstance(value, list) and value:
-                    if isinstance(value[0], dict):
-                        file_data = value[0]
-                    else:
-                        file_data = {'name': str(value[0])}
-                    print(f"🔍 DEBUG: Found file data in session (list): {file_data}")
-                else:
-                    file_data = {'name': str(value)}
-                    print(f"🔍 DEBUG: Found file data in session (other): {file_data}")
-                post_data[key] = value
-            elif isinstance(value, list):
-                if len(value) == 1:
-                    post_data[key] = value[0]
-                else:
-                    post_data[key] = value
-            else:
-                post_data[key] = value
-                
-        # Add file handling flags
-        post_data['file_in_request'] = file_in_request
-        post_data['file_key'] = file_key
-        if has_file_data:
-            post_data['has_file_data_in_session'] = True
-            post_data['file_info_from_session'] = file_data
-            
-        # Create form with processed data
-        form_kwargs = {'request': request}
-        if self.is_edit_mode():
-            form_kwargs['instance'] = self.get_object()
-        
-        # For file processing, we need to handle request.FILES properly
-        # If there's a file in request, add it to the form data
-        files_dict = {}
-        if file_in_request:
-            # We don't add files directly to form to avoid validation issues
-            # Instead, we'll process the file manually in _handle_file_operations_with_session_data
-            print(f"🔍 DEBUG: Will process file from request.FILES['{file_key}'] during save")
-        else:
-            print(f"🔍 DEBUG: No file in request.FILES to process")
-        
-        # Create form with POST data (we'll handle files separately)
-        form = form_class(post_data, **form_kwargs)
-        print(f"🔍 DEBUG: Form created with data keys: {list(post_data.keys())}")
-        
-        # Check if form is valid
-        try:
-            is_valid = form.is_valid()
-            print(f"🔍 DEBUG: Form is valid: {is_valid}")
-            
-            # If form has validation errors, log them but continue
-            if not is_valid:
-                print(f"🔍 DEBUG: Form validation errors: {form.errors}")
-                for field, errors in form.errors.items():
-                    print(f"🔍 DEBUG: Field '{field}' errors: {errors}")
-            
-            # For review form, even if validation fails, we should proceed with saving
-            # because the data came from a previously valid form and has just been transformed
-            print(f"🔍 DEBUG: Proceeding with _save_publication")
-            return self._save_publication(form)
-        except Exception as e:
-            # Catch any validation or processing errors
-            print(f"🔍 DEBUG: Error during form processing: {str(e)}")
-            print(f"🔍 DEBUG: {traceback.format_exc()}")
-            messages.error(
-                request,
-                f"An error occurred while processing your form: {str(e)}"
-            )
-            
-            # Redirect back to form
-            if self.is_edit_mode():
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                return redirect('publications:add_report')
-            
-            # TODO: THE CODE BELOW IS NEVER REACHABLE!!!
-
-            # Get the object if in edit mode
-            if self.is_edit_mode():
-                obj = self.get_object()
-                if obj:
-                    # Process the object and session data directly
-                    
-                    print(f"🔍 DEBUG: Found object to edit: {obj}")
-                    
-                    # Extract authors and supervisors from session data
-                    authors_pks = session_data.get('authors', [])
-                    supervisors_pks = session_data.get('supervisors', [])
-                    
-                    # Convert to lists if needed
-                    if not isinstance(authors_pks, list):
-                        authors_pks = [authors_pks]
-                    if not isinstance(supervisors_pks, list):
-                        supervisors_pks = [supervisors_pks]
-                        
-                    print(f"🔍 DEBUG: Author PKs: {authors_pks}")
-                    print(f"🔍 DEBUG: Supervisor PKs: {supervisors_pks}")
-                    
-                    # Save the basic fields
-                    if 'title' in session_data:
-                        obj.title = session_data['title'][0] if isinstance(session_data['title'], list) else session_data['title']
-                    if 'year' in session_data:
-                        year_val = session_data['year'][0] if isinstance(session_data['year'], list) else session_data['year']
-                        obj.year = int(year_val) if year_val else None
-                    if 'number' in session_data:
-                        obj.number = session_data['number'][0] if isinstance(session_data['number'], list) else session_data['number']
-                    if 'abstract' in session_data:
-                        obj.abstract = session_data['abstract'][0] if isinstance(session_data['abstract'], list) else session_data['abstract']
-                    if 'comment' in session_data:
-                        obj.comment = session_data['comment'][0] if isinstance(session_data['comment'], list) else session_data['comment']
-                    
-                    # Save the publication
-                    obj.modified_by = self.request.user
-                    obj.save()
-                    
-                    # Handle authors
-                    obj.authorship_set.all().delete()
-                    for i, author_pk in enumerate(authors_pks):
-                        try:
-                            person = Person.objects.get(pk=int(author_pk))
-                            Authorship.objects.create(
-                                publication=obj,
-                                person=person,
-                                author_id=i
-                            )
-                            print(f"🔍 DEBUG: Added author: {person}")
-                        except Exception as e:
-                            print(f"🔍 DEBUG: Error adding author {author_pk}: {e}")
-                    
-                    # Handle supervisors
-                    obj.supervisorship_set.all().delete()
-                    for i, supervisor_pk in enumerate(supervisors_pks):
-                        try:
-                            person = Person.objects.get(pk=int(supervisor_pk))
-                            Supervisorship.objects.create(
-                                publication=obj,
-                                person=person,
-                                supervisor_id=i
-                            )
-                            print(f"🔍 DEBUG: Added supervisor: {person}")
-                        except Exception as e:
-                            print(f"🔍 DEBUG: Error adding supervisor {supervisor_pk}: {e}")
-                    
-                    # Clear ALL session data
-                    self._clear_session_data()
-                    
-                    # Redirect to the report page
-                    return HttpResponseRedirect(reverse('publications:report', kwargs={'pk': obj.pk}))
-                    
-            # If not edit mode or couldn't save directly, redirect back to form
-            if self.is_edit_mode():
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                return redirect('publications:add_report')
-
-    def _save_publication(self, form):
-        """Save the publication with form data"""
-        print(f"🔍 DEBUG: AddEditReportReviewView._save_publication called")
-        
-        # Set user information
-        if not form.instance.pk:
-            form.instance.created_by = self.request.user
-        form.instance.modified_by = self.request.user
-
-        authors = form.cleaned_data['authors']
-        supervisors = form.cleaned_data['supervisors']
-        
-        print(f"🔍 DEBUG: Authors from form: {authors} (type: {type(authors).__name__})")
-        print(f"🔍 DEBUG: Supervisors from form: {supervisors} (type: {type(supervisors).__name__})")
-
-        # In review mode, we should always have QuerySets by now
-        if (not isinstance(authors, QuerySet)) or (not isinstance(supervisors, QuerySet)):
-            print("🔍 DEBUG: ERROR: Review mode should have QuerySets")
-            # Redirect back to main edit form to restart process
-            if self.is_edit_mode():
-                return redirect('publications:edit_report', pk=self.kwargs['pk'])
-            else:
-                return redirect('publications:add_report')
-
-        # Save publication (without files yet)
-        self.object = form.save(commit=False)
-        
-        # Auto-generate report number for new publications
-        if not self.object.pk and not self.object.number:
-            if self.object.year:
-                
-                # Use retry logic to handle concurrency during auto-generation
-                max_retries = 3
-                for attempt in range(max_retries):
-                    try:
-                        with transaction.atomic():
-                            # Generate number atomically
-                            self.object.number = generate_next_report_number(self.object.year)
-                            self.object.save()
-                            break  # Success - exit retry loop
-                    except IntegrityError:
-                        if attempt < max_retries - 1:
-                            time.sleep(0.1)  # Brief delay before retry
-                            continue
-                        else:
-                            # If all retries fail, show error
-                            messages.error(
-                                self.request, 
-                                "Unable to assign report number due to high system load. Please try again."
-                            )
-                            return redirect('publications:add_report')
-            else:
-                messages.error(self.request, "Cannot create report without a year")
-                return redirect('publications:add_report')
-        else:
-            # Save existing publication (edit mode)
-            self.object.save()
-
-        # Handle file operations AFTER report number is assigned
-        self._handle_file_operations_with_session_data(self.request)
-
-        # Handle relationships
-        self._handle_authors_and_supervisors(authors, supervisors)
-        self._handle_topics_and_keywords(form)
-
-        # Clear ALL session data after successful save
-        self._clear_session_data()
-
-        # Always return a redirect to the success URL
-        success_url = self.get_success_url()
-        print(f"🔍 DEBUG: Redirecting to success URL: {success_url}")
-        return HttpResponseRedirect(success_url)
 
 
 @method_decorator(login_required, name='dispatch')

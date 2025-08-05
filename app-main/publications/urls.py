@@ -21,12 +21,22 @@ urlpatterns = [
     # path('logout/', views.LogoutView.as_view(), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('publications:frontpage')), name='logout'),
 
-    path('add/report/', views.AddEditReportView.as_view(), name='add_report'),
-    path('add/report/review/', views.AddEditReportReviewView.as_view(), name='review_add_report'),
-    path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
-    path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
-    path('report/<int:pk>/edit/review/', views.AddEditReportReviewView.as_view(), name='review_edit_report'),
-    path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
+    # Add report workflows
+    path('report/add/', views.ReportFormView.as_view(), name='add_report'),
+    path('report/add/review/', views.ReportReviewView.as_view(), name='add_report_review'),
+    path('report/add/finalize/', views.ReportFinalizeView.as_view(), name='add_report_finalize'),
+
+    # edit report workflows
+    path('report/<int:pk>/edit/', views.ReportFormView.as_view(), name='edit_report'),
+    path('report/<int:pk>/edit/review/', views.ReportReviewView.as_view(), name='edit_report_review'),
+    path('report/<int:pk>/edit/finalize/', views.ReportFinalizeView.as_view(), name='edit_report_finalize'),
+
+    # path('add/report/', views.AddEditReportView.as_view(), name='add_report'),
+    # path('add/report/review/', views.AddEditReportReviewView.as_view(), name='review_add_report'),
+    # path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
+    # path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
+    # path('report/<int:pk>/edit/review/', views.AddEditReportReviewView.as_view(), name='review_edit_report'),
+    # path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
     path('report/<int:pk>/delete/', views.DeleteReportView.as_view(), name='delete_report'),
     path('report/<int:pk>/change-number/', views.ChangeReportNumberView.as_view(), name='change_report_number'),
     path('report/<int:report_pk>/add-feature-by-coordinates/', views.AddFeatureCoordinatesView.as_view(), name='add_feature_coordinates'),

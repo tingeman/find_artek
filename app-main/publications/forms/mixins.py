@@ -159,6 +159,7 @@ class PersonWorkflowMixin:
         Returns the first field that needs disambiguation, or None if all are resolved.
         """
         if not self.request:
+            print("🔍 DEBUG: No request available for workflow check, skipping")
             return None
         
         # Import here to avoid circular imports
@@ -177,7 +178,8 @@ class PersonWorkflowMixin:
                     continue
                 
                 logger.debug(f"Raw field_data: {field_data}")
-                
+                print(f'🔍 DEBUG: Raw field_data: {field_data}')
+
                 # Process each item - simplified to handle the specific issue we've encountered
                 processed_field_data = []
                 for item in field_data:
@@ -190,26 +192,31 @@ class PersonWorkflowMixin:
                         processed_field_data.append(item)
                 
                 logger.debug(f"Processed field_data: {processed_field_data}")
-                
+                print(f'🔍 DEBUG: Processed field_data: {processed_field_data}')
+
                 # Nothing to disambiguate if empty
                 if not processed_field_data:
                     logger.debug("No items to disambiguate, skipping")
+                    print(f'🔍 DEBUG: No items to disambiguate, skipping')
                     continue
                 
                 logger.debug(f"Items needing disambiguation check: {processed_field_data}")
-                
+                print(f'🔍 DEBUG: Items needing disambiguation check: {processed_field_data}')
+
                 # Check if any names need disambiguation
                 names_needing_resolution = extract_person_names(
                     MockFormData(processed_field_data), field_name
                 )
                 
                 logger.debug(f"Names needing resolution: {names_needing_resolution}")
-                
+                print(f'🔍 DEBUG: Names needing resolution: {names_needing_resolution}')
+
                 # No filtering needed - we've already handled this properly
                 filtered_names = names_needing_resolution
                 
                 logger.debug(f"Names for disambiguation: {filtered_names}")
-                
+                print(f'🔍 DEBUG: Names for disambiguation: {filtered_names}')
+
                 if filtered_names:
                     return field_name, filtered_names
         
@@ -289,10 +296,15 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
         # QuerySet means data is already resolved from previous workflow
         if isinstance(authors_data, QuerySet):
             logger.debug(f"clean_authors: Already resolved QuerySet with {authors_data.count()} authors")
+            print(f"🔍 DEBUG: clean_authors: Already resolved QuerySet with {authors_data.count()} authors")
             return authors_data
         
         logger.debug(f"clean_authors: Processing authors_data: {authors_data}")
-        
+        print(f"🔍 DEBUG: clean_authors: Processing authors_data: {authors_data}")
+        print(f"🔍 DEBUG: clean_authors: authors_data type: {type(authors_data)}")
+
+        # TODO: CAN THIS BE SIMPLIFIED?
+
         # First, extract individual authors from the list (handling nested lists if necessary)
         processed_authors = []
         if isinstance(authors_data, list):
@@ -303,25 +315,32 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
                         parsed_items = ast.literal_eval(item)
                         if isinstance(parsed_items, list):
                             logger.debug(f"clean_authors: Parsed list from string: {parsed_items}")
+                            print(f"🔍 DEBUG: clean_authors: Parsed list from string: {parsed_items}")
                             processed_authors.extend(parsed_items)
                             continue
                     except (ValueError, SyntaxError) as e:
                         logger.warning(f"clean_authors: Failed to parse list string: {e}")
+                        print(f"🔍 WARNING: clean_authors: Failed to parse list string: {e}")
                         # Fall through to normal processing
                 
                 # Regular item - add as is
                 processed_authors.append(item)
         else:
             # Not a list - keep as is
+            # We need to print the type of the authors_data for debugging
+            print(f"🔍 DEBUG: clean_authors: authors_data is not a list, type: {type(authors_data)}")
             processed_authors = authors_data
         
         logger.debug(f"clean_authors: Processed authors: {processed_authors}")
-        
+        print(f"🔍 DEBUG: clean_authors: Processed authors: {processed_authors}")
+
         # Replace the original data with processed data to ensure correct format
         if isinstance(authors_data, list) and processed_authors != authors_data:
             self.cleaned_data['authors'] = processed_authors
             authors_data = processed_authors
         
+
+
         # Now get workflow results if any names need disambiguation
         workflow_result = self.check_person_disambiguation_needed(['authors'])
         
@@ -329,6 +348,7 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
             field_name, names_needing_resolution = workflow_result
             if names_needing_resolution:
                 logger.info(f"clean_authors: Found unresolved string data, triggering workflow for: {names_needing_resolution}")
+                print(f"🔍 INFO: clean_authors: Found unresolved string data, triggering workflow for: {names_needing_resolution}")
                 self._workflow_redirect = self.start_person_workflow(
                     'authors', names_needing_resolution
                 )
@@ -336,6 +356,7 @@ class WorkflowAddEditReportForm(PersonWorkflowMixin, AddEditReportForm):
                 return authors_data
         
         logger.debug(f"clean_authors: No workflow needed, returning: {authors_data}")
+        print(f"🔍 DEBUG: clean_authors: No workflow needed, returning: {authors_data}")
         return authors_data
     
     def clean_supervisors(self):
@@ -391,7 +412,8 @@ class WorkflowAddEditReportFinalSaveForm(PersonWorkflowMixin, AddEditReportFinal
     def clean_authors(self):
         """Enhanced clean_authors with automatic person creation"""
         logger.debug(f"WorkflowAddEditReportFinalSaveForm:clean_authors: {self.cleaned_data.get('authors')}")
-        
+        print(f"🔍 DEBUG: WorkflowAddEditReportFinalSaveForm:clean_authors: {self.cleaned_data.get('authors')}")
+
         # Call parent method first
         authors_data = super().clean_authors()
         

@@ -433,10 +433,10 @@ def complete_person_workflow(request):
         if match:
             publication_id = match.group(1)
             logger.debug(f"Redirecting to review view for publication {publication_id}")
-            return redirect('publications:review_edit_report', pk=publication_id)
+            return redirect('publications:edit_report_review', pk=publication_id)
     elif '/add/' in source_url:
         logger.debug("Redirecting to add review view")
-        return redirect('publications:review_add_report')
+        return redirect('publications:add_report_review')
     
     # Fallback to original source URL for unknown cases
     logger.debug(f"Fallback redirect to original source: {source_url}")

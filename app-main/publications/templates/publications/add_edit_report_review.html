@@ -77,13 +77,13 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
-                                        {% if has_workflow_changes and changed_fields and 'authors' in changed_fields %}
-                                            <span class="badge bg-success workflow-badge">
-                                                <i class="fas fa-sync-alt"></i> updated
-                                            </span>
-                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">No authors specified</em>
+                                    {% endif %}
+                                    {% if changed_fields and 'authors' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -100,13 +100,13 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
-                                        {% if has_workflow_changes and changed_fields and 'supervisors' in changed_fields %}
-                                            <span class="badge bg-success workflow-badge">
-                                                <i class="fas fa-sync-alt"></i> updated
-                                            </span>
-                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">No supervisors specified</em>
+                                    {% endif %}
+                                    {% if changed_fields and 'supervisors' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -116,9 +116,9 @@
                                 <td>
                                     {{ review_data.year|default:"Not specified" }}
                                     {% if changed_fields and 'year' in changed_fields %}
-                                    <span class="badge bg-success workflow-badge">
-                                        <i class="fas fa-sync-alt"></i> updated
-                                    </span>
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -129,9 +129,9 @@
                                     {% if review_data.number %}
                                         {{ review_data.number }}
                                         {% if changed_fields and 'number' in changed_fields %}
-                                        <span class="badge bg-success workflow-badge">
-                                            <i class="fas fa-sync-alt"></i> updated
-                                        </span>
+                                            <span class="badge bg-success workflow-badge">
+                                                <i class="fas fa-sync-alt"></i> updated
+                                            </span>
                                         {% endif %}
                                     {% else %}
                                         <em class="text-muted">Will be auto-generated</em>
@@ -151,14 +151,14 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
-                                        {% if changed_fields and 'publication_topics' in changed_fields %}
-                                        <span class="badge bg-success workflow-badge">
-                                            <i class="fas fa-sync-alt"></i> updated
-                                        </span>
-                                        {% endif %}
-                                    {% else %}
+                                     {% else %}
                                         <em class="text-muted">No topics specified</em>
                                     {% endif %}
+                                    {% if changed_fields and 'publication_topics' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span> 
+                                    {% endif %} 
                                 </td>
                             </tr>
 
@@ -174,41 +174,83 @@
                                                 ,
                                             {% endif %}
                                         {% endfor %}
-                                        {% if changed_fields and 'publication_keywords' in changed_fields %}
+                                    {% else %}
+                                        <em class="text-muted">No keywords specified</em>
+                                    {% endif %}
+                                    {% if changed_fields and 'publication_keywords' in changed_fields %}
                                         <span class="badge bg-success workflow-badge">
                                             <i class="fas fa-sync-alt"></i> updated
                                         </span>
-                                        {% endif %}
-                                    {% else %}
-                                        <em class="text-muted">No keywords specified</em>
                                     {% endif %}
                                 </td>
                             </tr>
 
-                            {% if review_data.pdffile and review_data.pdffile.name %}
+                            <!--- PDF file handling:
+                                    If review_data has existing_file_id, and changed_fields contains 'file', show the file name and size.
+                                    If review_data has existing_file_id, show badge bg-warning "Current file will be replaced"
+                                    If review_data does not have existing_file_id, show badge bg-success "New file will be associated"
+                            --->
+                            {% if review_data.uploaded_file_id %}
                                 <tr>
                                     <th scope="row">PDF File</th>
                                     <td>
-                                        <span class="badge bg-info">
-                                            <i class="fas fa-upload"></i> New file will be uploaded: {{ review_data.pdffile.name }}
-                                        </span>
-                                        {% if changed_fields and 'file' in changed_fields %}
-                                        <span class="badge bg-success workflow-badge">
-                                            <i class="fas fa-sync-alt"></i> updated
-                                        </span>
+                                        {% if review_data.existing_file_id and changed_fields and 'file' not in changed_fields %}
+                                            <a href="{{ review_data.uploaded_file.url }}" target="_blank">
+                                                <i class="fas fa-file-pdf"></i> {{ review_data.existing_file.file.name|basename }} ({{ review_data.existing_file.file.size|filesizeformat }})
+                                            </a>
+                                        {% elif review_data.uploaded_file_id %}
+                                            <a href="{{ review_data.uploaded_file.url }}" target="_blank">
+                                                <i class="fas fa-file-pdf"></i> {{ review_data.uploaded_file.file.name|basename }} ({{ review_data.uploaded_file.file.size|filesizeformat }})
+                                            </a>
+                                        {% else %}
+                                            <em class="text-muted">Problem with file handling - please try again later.</em>
                                         {% endif %}
+                                        {% if changed_fields and 'file' in changed_fields %}
+                                            {% if review_data.existing_file_id and review_data.uploaded_file_id %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i> Current file will be replaced!
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> New file will be associated
+                                                </span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% elif review_data.existing_file_id %}
+                                {% if review_data.delete_pdf %}
+                                    <tr>
+                                        <th scope="row">PDF File</th>
+                                        <td>
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-trash"></i> Current PDF file will be deleted
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <th scope="row">PDF File</th>
+                                        <td>
+                                            <a href="{{ review_data.existing_file.file.url }}" target="_blank">
+                                                <i class="fas fa-file-pdf"></i> {{ review_data.existing_file.file.name|basename }} ({{ review_data.existing_file.file.size|filesizeformat }})
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% else %}
+                                <tr>
+                                    <th scope="row">PDF File</th>
+                                    <td>
+                                        <em class="text-muted">No PDF file associated</em>
                                     </td>
                                 </tr>
                             {% endif %}
 
-                            {% if action == 'edit' and review_data.delete_pdf %}
+                            {% if review_data.temp_publication_id %}
                                 <tr>
-                                    <th scope="row">PDF File</th>
-                                    <td>
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-trash"></i> Current PDF file will be deleted
-                                        </span>
-                                    </td>
+                                    <th scope="row">Temporary ID</th>
+                                    <td>{{ review_data.temp_publication_id }}</td>
                                 </tr>
                             {% endif %}
 
@@ -228,13 +270,13 @@
                                         {% else %}
                                             {{ review_data.abstract }}
                                         {% endif %}
-                                        {% if changed_fields and 'abstract' in changed_fields %}
-                                        <span class="badge bg-success workflow-badge">
-                                            <i class="fas fa-sync-alt"></i> updated
-                                        </span>
-                                        {% endif %}
                                     {% else %}
                                         <em class="text-muted">No abstract provided</em>
+                                    {% endif %}
+                                    {% if changed_fields and 'abstract' in changed_fields %}
+                                        <span class="badge bg-success warning-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -245,9 +287,9 @@
                                     <td>
                                         {{ review_data.comment }}
                                         {% if changed_fields and 'comment' in changed_fields %}
-                                        <span class="badge bg-success workflow-badge">
-                                            <i class="fas fa-sync-alt"></i> updated
-                                        </span>
+                                            <span class="badge bg-success workflow-badge">
+                                                <i class="fas fa-sync-alt"></i> updated
+                                            </span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -270,7 +312,7 @@
                             {% endif %}
                         </div>
                         <div>
-                            <form method="post" enctype="multipart/form-data" style="display: inline;" action="{% if action == 'edit' %}{% url 'publications:edit_report_final_save' pk=publication.pk %}{% else %}{% url 'publications:publication_final_save' %}{% endif %}">
+                            <form method="post" enctype="multipart/form-data" style="display: inline;" action="{% if action == 'edit' %}{% url 'publications:edit_report_finalize' pk=publication.pk %}{% else %}{% url 'publications:add_report_finalize' %}{% endif %}">
                                 {% csrf_token %}
                                 <!-- File handling for the review form -->
                                 <input type="hidden" name="file_in_request" value="True">
@@ -459,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .workflow-badge i {
     margin-right: 4px;
 }
+
 
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
