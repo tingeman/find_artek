@@ -5,14 +5,17 @@
 services:
   webapp-find-artek:
     container_name: webapp-find-artek-devcon
+    volumes:
+      # Abstract volumes for static and media files.
+      # The 'rw' flag ensures staticfiles are read-write for devcontainer.
+      - staticfiles_data:/mnt/shared-project-data/staticfiles:rw
+      # Mount source code for live editing (current project only)
+      - .:/workspace:cached
+    working_dir: /workspace/app-main
     environment:
       MYSQL_HOST: find-artek-mariadb-service
       # Override Django project location to use mounted code
       DJANGO_PROJECT_DIR: "/workspace/app-main"
-    volumes:
-      # Mount source code for live editing (current project only)
-      - .:/workspace:cached
-    working_dir: /workspace/app-main
     command: sleep infinity # Keep container running for dev
     # Override the ports to avoid conflicts
     ports:
