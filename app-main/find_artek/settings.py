@@ -175,19 +175,19 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': 'debug.log',
-            'formatter': 'simple',
+            'formatter': 'verbose',
         },
         'api_file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': 'api.log',
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -195,14 +195,13 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
         },
         'api': {
-            'handlers': ['console', 'api_file'],
-            'level': 'DEBUG',
+            'handlers': ['api_file'],
+            'level': 'INFO',
             'propagate': True,
         },
-
     },
 }

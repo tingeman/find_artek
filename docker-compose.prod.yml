@@ -42,3 +42,8 @@ volumes:
       device: "//${NETWORK_DRIVE_HOST}/${NETWORK_DRIVE_SHARE}/media"
   find-artek-mariadb-data:
     name: find-artek-mariadb-prod
+
+
+networks:
+  docker_default:
+    external: true

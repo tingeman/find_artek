@@ -1,0 +1,193 @@
+{% extends 'publications/person_workflow_base.html' %}
+{% load static i18n %}
+
+{% block person_title %}Disambiguate Person - {{ clean_name }}{% endblock %}
+
+{% block person_headline %}Person Disambiguation{% endblock %}
+
+{% block workflow_content %}
+<div class="step-indicator">
+    <h4>Person Disambiguation - Step {{ step_number }} of {{ total_steps }}</h4>
+    <p class="mb-0 text-muted">Field: {{ field_name|title }}</p>
+</div>
+
+<div class="main-form-section">
+    <div class="alert alert-info mb-3">
+        <strong>Person Name:</strong> {{ clean_name }}
+    </div>
+    
+    <!-- Action buttons moved up -->
+    <div class="mb-4">
+        <div style="display: flex; flex-wrap: wrap; gap: 1em; justify-content: flex-start;">
+            <form method="post" style="width: 200px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_new">
+                <button type="submit" class="btn btn-success w-100 py-2">
+                    <i class="fas fa-plus"></i> Create New Person
+                </button>
+            </form>
+            <form method="post" style="width: 200px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="skip">
+                <button type="submit" class="btn btn-secondary w-100 py-2">
+                    <i class="fas fa-forward"></i> Use As-Is (Create Later)
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card-body">
+                    
+                    {% if exact_matches %}
+                    <div class="mb-4">
+                        <h4 class="mb-3">High Confidence Matches (95%+)</h4>
+                        <p class="text-muted">We found persons that closely match this name:</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="select_existing">
+                            <div class="list-group mb-3">
+                                {% for person in exact_matches %}
+                                <label class="list-group-item list-group-item-action">
+                                    <input type="radio" name="person_id" value="{{ person.id }}">
+                                    <div>
+                                        <strong>{{ person.get_full_name }}</strong>
+                                        <span class="badge bg-success ms-2">High Match</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            PK: {{ person.pk }}
+                                            {% if person.email %} | Email: {{ person.email }}{% endif %}
+                                            {% if person.id_number %} | ID: {{ person.id_number }}{% endif %}
+                                        </small>
+                                        {% if person.institution %}
+                                            <br><small class="text-muted">Institution: {{ person.institution }}</small>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-primary py-2 px-4 mt-2" onclick="return validatePersonSelection()">
+                                Select This Person
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
+                    {% if relaxed_matches %}
+                    <!-- Section Divider with reduced spacing -->
+                    <hr style="border-top: 1px solid #dee2e6; margin: 15px 0 10px 0;">
+                    <div class="mb-4">
+                        <h4 class="mb-3">Likely Matches (60-94%)</h4>
+                        <p class="text-muted">We found persons with similar names:</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="select_existing">
+                            <div class="list-group mb-3">
+                                {% for person in relaxed_matches %}
+                                <label class="list-group-item list-group-item-action">
+                                    <input type="radio" name="person_id" value="{{ person.id }}">
+                                    <div>
+                                        <strong>{{ person.get_full_name }}</strong>
+                                        <span class="badge bg-warning ms-2">Possible Match</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            PK: {{ person.pk }}
+                                            {% if person.email %} | Email: {{ person.email }}{% endif %}
+                                            {% if person.id_number %} | ID: {{ person.id_number }}{% endif %}
+                                        </small>
+                                        {% if person.institution %}
+                                            <br><small class="text-muted">Institution: {{ person.institution }}</small>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-warning py-2 px-4 mt-2" onclick="return validatePersonSelection()">
+                                Select This Person
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
+                    {% if all_matches %}
+                    <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #dee2e6;">
+                        <h4 class="mb-3">Additional Matches</h4>
+                        <details class="border rounded p-3">
+                            <summary class="fw-bold text-primary" style="cursor: pointer;">
+                                View All Matches with Details ({{ all_matches|length }} found)
+                            </summary>
+                            <div class="mt-3">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="select_existing">
+                                    <div class="list-group">
+                                        {% for match in all_matches %}
+                                        <label class="list-group-item list-group-item-action">
+                                            <input type="radio" name="person_id" value="{{ match.person.id }}">
+                                            <div>
+                                                <strong>{{ match.person.get_full_name }}</strong>
+                                                <span class="badge {% if match.confidence >= 0.95 %}bg-success{% elif match.confidence >= 0.8 %}bg-warning{% else %}bg-secondary{% endif %} ms-2">
+                                                    {{ match.confidence|floatformat:0 }}% - {{ match.match_type|title }}
+                                                </span>
+                                                <br>
+                                                <small class="text-muted">
+                                                    PK: {{ match.person.pk }}
+                                                    {% if match.person.email %} | Email: {{ match.person.email }}{% endif %}
+                                                    {% if match.person.id_number %} | ID: {{ match.person.id_number }}{% endif %}
+                                                </small>
+                                                {% if match.person.institution %}
+                                                    <br><small class="text-muted">Institution: {{ match.person.institution }}</small>
+                                                {% endif %}
+                                                {% if match.notes %}
+                                                    <br><small class="text-info">{{ match.notes }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-primary py-2 px-4 mt-3" onclick="return validatePersonSelection()">
+                                        Select From All Matches
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not exact_matches and not relaxed_matches %}
+                    <div class="alert alert-warning">
+                        <strong>No matching persons found.</strong><br>
+                        You can create a new person with this name.
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Separator before progress indicator -->
+                    <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6;"></div>
+                    
+                    <!-- Progress indicator -->
+                    <div class="mt-3 pt-3">
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" 
+                                 aria-valuenow="{{ step_number }}" aria-valuemin="0" aria-valuemax="{{ total_steps }}"
+                                 style="width: {% widthratio step_number total_steps 100 %}%">
+                                Step {{ step_number }} of {{ total_steps }}
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            Progress: {{ step_number }} of {{ total_steps }} persons processed
+                        </small>
+                    </div>
+</div>
+
+{% block person_scripts %}
+<script>
+function validatePersonSelection() {
+    const selectedRadio = document.querySelector('input[name="person_id"]:checked');
+    if (!selectedRadio) {
+        alert('Please select a person from the list.');
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}
+{% endblock %}

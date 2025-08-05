@@ -1,0 +1,240 @@
+{% comment %}
+JavaScript for AJAX person disambiguation workflow.
+Based on legacy add_report.html template.
+Add this to your report form template.
+{% endcomment %}
+
+<script>
+$(function() {
+    // Function to split names on common separators
+    function split(val) {
+        var terms = val.split(/[&;\n]\s*/).filter(function(e) {
+            return e.trim() !== "";
+        });
+        return terms;
+    }
+
+    // Function to extract last term from input
+    function extractLast(term) {
+        return split(term).pop();
+    }
+
+    // Function to update person fields after disambiguation
+    $.fn.updatePersons = function(dictionary) {
+        console.log("In updatePersons method...");
+        
+        // Iterate over all textareas (DOM objects in 'this')
+        this.each(function() {
+            // Get the text and split it to an array of strings
+            var terms = split(this.value);
+            
+            // Replace terms that exist in the dictionary
+            terms.forEach(function(term, i) {
+                if (term in dictionary) {
+                    terms[i] = dictionary[term];
+                }
+            });
+
+            // Write back the updated string
+            this.value = terms.join("\n");
+        });
+        return false;
+    };
+
+    // Main function to parse server response and handle dialogs
+    function parseResponse(submit_on_ok) {
+        // Make submit_on_ok an optional argument, which defaults to false
+        if (typeof submit_on_ok === 'undefined') {
+            submit_on_ok = false;
+        }
+
+        // Get the JSON response passed from the server
+        var response = $('#data_container').data('response');
+        $('#dialog').data('submit_on_ok', submit_on_ok);
+
+        // Handle iterations, so we know if this is the first time the
+        // function was called after request from server
+        var iteration = $('#data_container').data('iteration');
+        if (typeof iteration === 'undefined') {
+            iteration = 1;
+        } else {
+            iteration = iteration + 1;
+        }
+        $('#data_container').data('iteration', iteration);
+
+        console.log(response);
+
+        // all_ok is used to check if all name fields are correctly filled
+        var all_ok = [true, true, true];
+
+        // Check authors field, show dialog if ambiguous names available
+        if ('authors' in response) {
+            all_ok[0] = false;
+            if ('message' in response.authors && response.authors.message == 'ok') {
+                all_ok[0] = true;
+            } else if ('html' in response.authors && response.authors.html) {
+                $('#dialog').dialog('option', 'title', 'Choose authors:');
+                $('#dialog').html(response.authors.html);
+                $('#dialog').data('callbackFunction', parseResponse);
+                var result = $("#dialog").dialog("open");
+                return;
+            }
+        }
+
+        // Check supervisors field, show dialog if ambiguous names available
+        if ('supervisors' in response) {
+            all_ok[1] = false;
+            if ('message' in response.supervisors && response.supervisors.message == 'ok') {
+                all_ok[1] = true;
+            } else if ('html' in response.supervisors && response.supervisors.html) {
+                $('#dialog').dialog('option', 'title', 'Choose supervisors:');
+                $('#dialog').html(response.supervisors.html);
+                $('#dialog').data('callbackFunction', parseResponse);
+                var result = $("#dialog").dialog("open");
+                return;
+            }
+        }
+
+        // Check editors field if it exists
+        if ('editors' in response) {
+            all_ok[2] = false;
+            if ('message' in response.editors && response.editors.message == 'ok') {
+                all_ok[2] = true;
+            } else if ('html' in response.editors && response.editors.html) {
+                $('#dialog').dialog('option', 'title', 'Choose editors:');
+                $('#dialog').html(response.editors.html);
+                $('#dialog').data('callbackFunction', parseResponse);
+                var result = $("#dialog").dialog("open");
+                return;
+            }
+        }
+
+        // Now handle submission, or alert result to user
+        if (all_ok.every(function(itm) { return itm === true; })) {
+            if (iteration == 1) {
+                if (submit_on_ok == true) {
+                    console.log('All persons will process fine on server upon submit...');
+                    console.log('Now submitting...');
+                    $('#add-report-form').submit();
+                } else {
+                    alert('No ambiguous matches found in database for any of the specified names! All is fine!');
+                }
+            } else {
+                if (submit_on_ok == true) {
+                    console.log('All is ok, but changes have been made... submitting!');
+                    $('#add-report-form').submit();
+                } else {
+                    console.log('All is ok, but changes have been made... do not submit!');
+                    console.log('Ask user to resubmit');
+                    alert('Because changes were made, you are kindly requested to press the submit button again!');
+                }
+            }
+        } else {
+            alert('There seem to be still ambiguous names in some name fields (e.g. authors or supervisors) - please recheck!');
+        }
+    }
+
+    // Process Persons button click handler
+    $("#process-persons").button().click(function(event) {
+        event.preventDefault();
+        
+        // Get all text from text fields and convert to array of names
+        var persons = {
+            authors: split(document.getElementById('id_authors').value),
+            supervisors: split(document.getElementById('id_supervisors').value)
+        };
+
+        $('#data_container').data('iteration', 0); // Reset iterations
+
+        console.log(persons);
+        console.log(persons.authors);
+
+        // Submit for serverside checking of names/id-tags
+        $.ajax({
+            data: $.param(persons, false),
+            type: "GET",
+            url: "{% url 'publications:check_person_ajax' %}",
+            dataType: 'json',
+            success: function(response) {
+                if ('error' in response) {
+                    alert('The server returned the following error message: ' + response.error);
+                } else {
+                    console.log('Setting data to data_container...');
+                    $('#data_container').data('response', response);
+                    console.log('Calling parseResponse...');
+                    parseResponse(false); // false = don't submit form automatically
+                }
+                console.log('Now returning...');
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                alert(textStatus);
+            }
+        });
+    });
+
+    // Process Submit button click handler
+    $("#process-submit").button().click(function(event) {
+        event.preventDefault();
+        
+        // Get all text from text fields and convert to array of names
+        var persons = {
+            authors: split(document.getElementById('id_authors').value),
+            supervisors: split(document.getElementById('id_supervisors').value)
+        };
+
+        $('#data_container').data('iteration', 0); // Reset iterations
+
+        console.log(persons);
+        console.log(persons.authors);
+
+        // Submit for serverside checking of names/id-tags
+        $.ajax({
+            data: $.param(persons, false),
+            type: "GET",
+            url: "{% url 'publications:check_person_ajax' %}",
+            dataType: 'json',
+            success: function(response) {
+                if ('error' in response) {
+                    alert('The server returned the following error message: ' + response.error);
+                } else {
+                    console.log('Setting data to data_container...');
+                    $('#data_container').data('response', response);
+                    console.log('Calling parseResponse...');
+                    parseResponse(true); // true = submit form if everything is ok
+                }
+                console.log('Now returning...');
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                alert(textStatus);
+            }
+        });
+    });
+
+    // Initialize dialog
+    $("#dialog").dialog({
+        autoOpen: false,
+        height: 400,
+        width: 600,
+        modal: true,
+    });
+});
+</script>
+
+<!-- Hidden data container for AJAX responses -->
+<div id="data_container" style="display: none;"></div>
+
+<!-- Dialog container for person disambiguation -->
+<div id="dialog" title="Choose persons">No information</div>
+
+<!-- Add these buttons to your form -->
+<div class="form-actions">
+    <button type="button" id="process-persons">Process Persons</button>
+    <button type="button" id="process-submit">Submit</button>
+</div>
+
+<p><strong>Instructions:</strong></p>
+<ul>
+    <li>'Process Persons' button will check all persons against the database and show a dialog to resolve any ambiguous names.</li>
+    <li>'Submit' button will also check persons and then submit the form if everything is resolved.</li>
+    <li>When creating a new person, only the name will be stored. Use the person edit functionality to add more details later.</li>
+</ul>

@@ -81,7 +81,7 @@ urlpatterns = [
     path("select2/", include("django_select2.urls")),
    
     # include the primary publication
-    path("publications/", include("publications.urls")),
+    path("publications/", include("publications.urls", namespace="publications")),
         
     # cas login and logout
     path("login", django_cas_ng.views.LoginView.as_view(), name="cas_ng_login"),
@@ -92,7 +92,7 @@ urlpatterns = [
 
 
     # Root redirect pattern MUST BE LAST - catch-all for any unmatched URLs
-    path("", RedirectView.as_view(pattern_name="frontpage", permanent=True)),
+    path("", RedirectView.as_view(pattern_name="publications:frontpage", permanent=True)),
 
 ]
 
