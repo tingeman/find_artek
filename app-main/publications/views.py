@@ -2004,51 +2004,63 @@ class AddFeatureByMapView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         """Create and save the feature with geometry from the map"""
         try:
-            publication = self.get_publication()
-            print(f"Adding feature to publication {publication.pk}")
-            
             # Create feature object but don't save yet
             feature = form.save(commit=False)
             feature.created_by = self.request.user
-            feature.publication = publication
-            
-            # Process geometry from the hidden field
-            geojson_data = self.request.POST.get('map_geojson', '')
+
+            # Process geometry from the correct hidden field
+            geojson_data = self.request.POST.get('geojson_data', '')
             if geojson_data:
                 try:
                     # Parse the GeoJSON data
                     geojson = json.loads(geojson_data)
-                    
+
                     # Create a MultiPoint geometry from the coordinates
                     coordinates = []
                     if geojson.get('type') == 'FeatureCollection':
-                        for feature in geojson.get('features', []):
-                            if feature.get('geometry', {}).get('type') == 'Point':
-                                coords = feature['geometry']['coordinates']
+                        for f in geojson.get('features', []):
+                            if f.get('geometry', {}).get('type') == 'Point':
+                                coords = f['geometry']['coordinates']
                                 coordinates.append(coords)
-                    
+
                     if coordinates:
-                        # Create MultiPoint geometry (assuming SRID 4326 - WGS84)
-                        geom = MultiPoint(coordinates, srid=4326)
-                        feature.geom = geom
-                        print(f"Created MultiPoint with {len(coordinates)} points")
+                        print(f"DEBUG: Raw coordinates list: {coordinates}")
+                        points = []
+                        for idx, pair in enumerate(coordinates):
+                            print(f"DEBUG: Coordinate pair {idx}: {pair} (type: {type(pair)})")
+                            try:
+                                lon, lat = pair
+                                pt = Point(lon, lat)
+                                print(f"DEBUG: Created Point: {pt} (type: {type(pt)})")
+                                points.append(pt)
+                            except Exception as e:
+                                print(f"DEBUG: Error creating Point from {pair}: {e}")
+                        print(f"DEBUG: Points list for MultiPoint: {points}")
+                        print(f"DEBUG: Types in points list: {[type(p) for p in points]}")
+                        geom = MultiPoint(points, srid=4326)
+                        feature.points = geom
+                        print(f"Created MultiPoint with {len(points)} points")
                     else:
                         raise ValueError("No valid coordinates found in map data")
                 except Exception as e:
                     print(f"Error parsing GeoJSON: {str(e)}")
                     raise
-            
+
             # Save the feature
             feature.save()
             print(f"Feature saved with ID: {feature.pk}")
+            publication = self.get_publication()
+            feature.publications.add(publication) 
+            print(f"Feature added to publication {publication.pk}")
             
+
             messages.success(
                 self.request,
                 'Feature added successfully!'
             )
-            
-            return redirect('report', pk=publication.pk)
-            
+
+            return redirect('publications:report', pk=publication.pk)
+
         except Exception as e:
             print(f"ERROR: Exception while creating feature: {e}")
             print(traceback.format_exc())
