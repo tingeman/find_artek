@@ -247,12 +247,28 @@
 
     </div>
     
-    <!-- Add Feature by Coordinates Section -->
-    <div class="mb-3 text-center">
-        <a href="{% url 'publications:add_feature_coordinates' report_pk=publication.pk %}" class="btn btn-success">
-            📍 Add Feature by Coordinates
-        </a>
+    <!-- Feature Addition Section -->
+    {% if user.is_authenticated %}
+    <div class="mb-4">
+        <div class="dropdown">
+            <button class="btn btn-success dropdown-toggle" type="button" id="addFeatureDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus-circle"></i> Add Feature
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="addFeatureDropdown">
+                <li>
+                    <a class="dropdown-item" href="{% url 'publications:add_feature_coordinates' report_pk=publication.pk %}">
+                        <i class="fas fa-ruler-combined"></i> By Coordinates
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'publications:add_feature_by_map' report_pk=publication.pk %}">
+                        <i class="fas fa-map"></i> By Map
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
+    {% endif %}
     
     <div class="feature-table-box">
         <table>

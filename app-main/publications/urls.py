@@ -40,6 +40,7 @@ urlpatterns = [
     path('report/<int:pk>/delete/', views.DeleteReportView.as_view(), name='delete_report'),
     path('report/<int:pk>/change-number/', views.ChangeReportNumberView.as_view(), name='change_report_number'),
     path('report/<int:report_pk>/add-feature-by-coordinates/', views.AddFeatureCoordinatesView.as_view(), name='add_feature_coordinates'),
+    path('report/<int:report_pk>/add-feature-by-map/', views.AddFeatureByMapView.as_view(), name='add_feature_by_map'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
     path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
     path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
