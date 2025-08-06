@@ -17,3 +17,6 @@ setuptools
 werkzeug
 gunicorn
 pybtex
+xlrd
+latexcodec
+ldap3
