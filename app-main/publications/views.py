@@ -50,7 +50,8 @@ from find_artek.search import get_query
 from publications.forms import (
     LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
     PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
-    AddFeatureCoordinatesForm, PersonWorkflowMixin, UploadAppendixForm, ChangeReportNumberForm
+    AddFeatureByCoordinatesForm, AddFeatureByMap, PersonWorkflowMixin, 
+    UploadAppendixForm, ChangeReportNumberForm
 )
 from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
 from publications.library import get_client_ip, is_private
@@ -1856,7 +1857,7 @@ class GetNextReportNumberView(View):
 class AddFeatureCoordinatesView(BaseFormView):
     """View for adding a point feature with known coordinates"""
     template_name = 'publications/add_feature_coordinates.html'
-    form_class = AddFeatureCoordinatesForm
+    form_class = AddFeatureByCoordinatesForm
     
     def dispatch(self, request, *args, **kwargs):
         """Add debugging for all requests"""
@@ -1970,6 +1971,103 @@ class AddFeatureCoordinatesView(BaseFormView):
     def get_success_url(self):
         """Redirect to the publication detail page"""
         return reverse('publications:report', kwargs={'pk': self.kwargs['report_pk']})
+
+
+class AddFeatureByMapView(LoginRequiredMixin, FormView):
+    """View for adding a feature by clicking on a map"""
+    template_name = 'publications/add_feature_by_map.html'
+    form_class = AddFeatureByMap
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Override dispatch to get the publication"""
+        self.publication = self.get_publication()
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_publication(self):
+        """Get the publication object"""
+        report_pk = self.kwargs.get('report_pk')
+        return get_object_or_404(Publication, pk=report_pk)
+    
+    def get_context_data(self, **kwargs):
+        """Add publication to context"""
+        context = super().get_context_data(**kwargs)
+        context['publication'] = self.publication
+        # Add any MapBox or other API keys if needed
+        if hasattr(settings, 'MAPBOX_ACCESS_TOKEN'):
+            context['mapbox_access_token'] = settings.MAPBOX_ACCESS_TOKEN
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Process the form submission"""
+        return super().post(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        """Create and save the feature with geometry from the map"""
+        try:
+            publication = self.get_publication()
+            print(f"Adding feature to publication {publication.pk}")
+            
+            # Create feature object but don't save yet
+            feature = form.save(commit=False)
+            feature.created_by = self.request.user
+            feature.publication = publication
+            
+            # Process geometry from the hidden field
+            geojson_data = self.request.POST.get('map_geojson', '')
+            if geojson_data:
+                try:
+                    # Parse the GeoJSON data
+                    geojson = json.loads(geojson_data)
+                    
+                    # Create a MultiPoint geometry from the coordinates
+                    coordinates = []
+                    if geojson.get('type') == 'FeatureCollection':
+                        for feature in geojson.get('features', []):
+                            if feature.get('geometry', {}).get('type') == 'Point':
+                                coords = feature['geometry']['coordinates']
+                                coordinates.append(coords)
+                    
+                    if coordinates:
+                        # Create MultiPoint geometry (assuming SRID 4326 - WGS84)
+                        geom = MultiPoint(coordinates, srid=4326)
+                        feature.geom = geom
+                        print(f"Created MultiPoint with {len(coordinates)} points")
+                    else:
+                        raise ValueError("No valid coordinates found in map data")
+                except Exception as e:
+                    print(f"Error parsing GeoJSON: {str(e)}")
+                    raise
+            
+            # Save the feature
+            feature.save()
+            print(f"Feature saved with ID: {feature.pk}")
+            
+            messages.success(
+                self.request,
+                'Feature added successfully!'
+            )
+            
+            return redirect('report', pk=publication.pk)
+            
+        except Exception as e:
+            print(f"ERROR: Exception while creating feature: {e}")
+            print(traceback.format_exc())
+            messages.error(
+                self.request, 
+                f'An error occurred while creating the feature: {str(e)}. '
+                'Please try again or contact support.'
+            )
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        """Handle invalid form data"""
+        print(f"AddFeatureByMapView.form_invalid called. Errors: {form.errors}")
+        messages.error(
+            self.request, 
+            'There was a problem with your feature data. '
+            'Please correct the errors below and try again.'
+        )
+        return super().form_invalid(form)
 
 
 class DeleteReportView(BaseView):

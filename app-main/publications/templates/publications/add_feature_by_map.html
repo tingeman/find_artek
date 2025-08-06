@@ -1,0 +1,370 @@
+{% extends 'publications/base.html' %}
+{% load static %}
+
+{% block title %}Add Feature by Map{% endblock %}
+
+{% block dynamic_head_content %}
+<!-- Leaflet CSS and JavaScript -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+
+<!-- Leaflet Draw Plugin for drawing points -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+<style>
+    #map-container {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        margin-bottom: 20px;
+    }
+    #feature-map {
+        width: 100%;
+        height: 100%;
+    }
+    .map-info-box {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 4px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        max-width: 300px;
+    }
+    .point-info {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .point-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .point-item {
+        border-bottom: 1px solid #eee;
+        padding: 5px 0;
+    }
+    .point-item:last-child {
+        border-bottom: none;
+    }
+    .point-actions {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block main-content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Add Feature by Map</h1>
+    
+    <div class="alert alert-info">
+        <p><strong>Instructions:</strong></p>
+        <ul>
+            <li>Use the map controls to add points that make up your feature.</li>
+            <li>Click the marker button <i class="fa fa-map-marker"></i> in the top-left, then click on the map to place points.</li>
+            <li>You can add multiple points to create a multipoint feature.</li>
+            <li>Use the delete button to remove unwanted points.</li>
+            <li>Fill in the rest of the form details below the map.</li>
+        </ul>
+    </div>
+    
+    <form method="post" id="feature-form">
+        {% csrf_token %}
+        
+        <!-- Map container -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Feature Location</h5>
+            </div>
+            <div class="card-body">
+                <div id="map-container">
+                    <div id="feature-map"></div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="point-info">
+                            <h6>Selected Points</h6>
+                            <div id="points-count">No points selected</div>
+                            <div class="point-list" id="points-list"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="point-actions text-right">
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="clear-points">
+                                <i class="fa fa-trash"></i> Clear All Points
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden fields for the map data -->
+                {{ form.geojson_data }}
+                {{ form.map_srid }}
+                
+                {% if form.geojson_data.errors %}
+                <div class="alert alert-danger mt-2">
+                    {{ form.geojson_data.errors }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Feature details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Feature Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                            {{ form.name }}
+                            {% if form.name.help_text %}
+                            <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                            {% endif %}
+                            {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.type.id_for_label }}">{{ form.type.label }}</label>
+                            {{ form.type }}
+                            {% if form.type.help_text %}
+                            <small class="form-text text-muted">{{ form.type.help_text }}</small>
+                            {% endif %}
+                            {% if form.type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.type.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                            {{ form.date }}
+                            {% if form.date.help_text %}
+                            <small class="form-text text-muted">{{ form.date.help_text }}</small>
+                            {% endif %}
+                            {% if form.date.errors %}
+                            <div class="invalid-feedback d-block">{{ form.date.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.pos_quality.id_for_label }}">{{ form.pos_quality.label }}</label>
+                            {{ form.pos_quality }}
+                            {% if form.pos_quality.help_text %}
+                            <small class="form-text text-muted">{{ form.pos_quality.help_text }}</small>
+                            {% endif %}
+                            {% if form.pos_quality.errors %}
+                            <div class="invalid-feedback d-block">{{ form.pos_quality.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.area.id_for_label }}">{{ form.area.label }}</label>
+                            {{ form.area }}
+                            {% if form.area.help_text %}
+                            <small class="form-text text-muted">{{ form.area.help_text }}</small>
+                            {% endif %}
+                            {% if form.area.errors %}
+                            <div class="invalid-feedback d-block">{{ form.area.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.direction.id_for_label }}">{{ form.direction.label }}</label>
+                            {{ form.direction }}
+                            {% if form.direction.help_text %}
+                            <small class="form-text text-muted">{{ form.direction.help_text }}</small>
+                            {% endif %}
+                            {% if form.direction.errors %}
+                            <div class="invalid-feedback d-block">{{ form.direction.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                            {{ form.description }}
+                            {% if form.description.help_text %}
+                            <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                            {% endif %}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">{{ form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                            {{ form.comment }}
+                            {% if form.comment.help_text %}
+                            <small class="form-text text-muted">{{ form.comment.help_text }}</small>
+                            {% endif %}
+                            {% if form.comment.errors %}
+                            <div class="invalid-feedback d-block">{{ form.comment.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form actions -->
+        <div class="form-group mt-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa fa-save"></i> Save Feature
+            </button>
+            <a href="{% url 'publications:map' %}" class="btn btn-outline-secondary">
+                <i class="fa fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+{% block scripts %}
+<script>
+    // Initialize the map
+    document.addEventListener('DOMContentLoaded', function() {
+        // Create map centered on Greenland
+        const map = L.map('feature-map').setView([71.706, -42.604], 5);
+        
+        // Add base layers
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri',
+            maxZoom: 19
+        });
+        
+        const baseLayers = {
+            "OpenStreetMap": osm,
+            "Satellite": esriSatellite
+        };
+        
+        L.control.layers(baseLayers).addTo(map);
+        
+        // Initialize feature group to store drawn items
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        // Configure draw control options (point only)
+        const drawControl = new L.Control.Draw({
+            draw: {
+                polyline: false,
+                polygon: false,
+                circle: false,
+                rectangle: false,
+                circlemarker: false,
+                marker: {
+                    icon: L.icon({
+                        iconUrl: '{% static "publications/images/marker-icon.png" %}',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowUrl: '{% static "publications/images/marker-shadow.png" %}',
+                        shadowSize: [41, 41]
+                    })
+                }
+            },
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            }
+        });
+        map.addControl(drawControl);
+        
+        // Handle drawing events
+        map.on('draw:created', function(e) {
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
+            updateGeoJsonData();
+        });
+        
+        map.on('draw:edited', function(e) {
+            updateGeoJsonData();
+        });
+        
+        map.on('draw:deleted', function(e) {
+            updateGeoJsonData();
+        });
+        
+        // Function to update the GeoJSON hidden field
+        function updateGeoJsonData() {
+            const geojson = drawnItems.toGeoJSON();
+            document.getElementById('id_geojson_data').value = JSON.stringify(geojson);
+            
+            // Update points list and count
+            const pointsList = document.getElementById('points-list');
+            const pointsCount = document.getElementById('points-count');
+            const points = geojson.features.filter(f => f.geometry.type === 'Point');
+            
+            pointsCount.textContent = points.length === 1 
+                ? '1 point selected' 
+                : `${points.length} points selected`;
+            
+            // Clear and rebuild points list
+            pointsList.innerHTML = '';
+            points.forEach((point, index) => {
+                const coords = point.geometry.coordinates;
+                const lon = coords[0].toFixed(5);
+                const lat = coords[1].toFixed(5);
+                
+                const pointItem = document.createElement('div');
+                pointItem.className = 'point-item';
+                pointItem.innerHTML = `
+                    <small>Point ${index + 1}: [${lat}, ${lon}]</small>
+                `;
+                pointsList.appendChild(pointItem);
+            });
+        }
+        
+        // Clear points button
+        document.getElementById('clear-points').addEventListener('click', function() {
+            drawnItems.clearLayers();
+            updateGeoJsonData();
+        });
+        
+        // Set default SRID (WGS84 for Leaflet)
+        document.getElementById('id_map_srid').value = '4326';
+        
+        // Handle form submission
+        document.getElementById('feature-form').addEventListener('submit', function(e) {
+            // Check if points are drawn
+            const geojson = document.getElementById('id_geojson_data').value;
+            if (!geojson) {
+                e.preventDefault();
+                alert('Please add at least one point on the map');
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

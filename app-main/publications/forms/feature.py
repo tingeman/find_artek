@@ -5,9 +5,12 @@ from django.forms import ModelForm
 from publications.models import Feature
 from django.core.exceptions import ValidationError
 from django.contrib.gis.gdal import SpatialReference
+from django.contrib.gis.geos import Point, MultiPoint
+from django.utils.translation import gettext_lazy as _
+import json
 
 
-class AddFeatureCoordinatesForm(ModelForm):
+class AddFeatureByCoordinatesForm(ModelForm):
     """Form for adding a point feature with known coordinates"""
     
     # Coordinate fields
@@ -192,3 +195,183 @@ class AddFeatureCoordinatesForm(ModelForm):
                 pass  # SRID validation already handled above
                 
         return cleaned_data
+
+
+class AddFeatureByMap(ModelForm):
+    """
+    Form for adding a multipoint feature using Leaflet map input.
+    Allows users to select multiple points on a map which will be stored as a MultiPoint geometry.
+    """
+    
+    # Hidden field to store the GeoJSON data from the map
+    geojson_data = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False,
+    )
+    
+    # Hidden field to store the SRID automatically from the map
+    map_srid = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False,
+        initial="4326"  # Default to WGS84 (used by Leaflet)
+    )
+    
+    # Date field with proper widget (same as the coordinates form)
+    date = forms.DateField(
+        widget=forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={'type': 'date', 'class': 'form-control'}
+        ),
+        input_formats=['%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'],
+        required=True,
+        help_text=_("Date when the feature was observed/measured")
+    )
+
+    class Meta:
+        model = Feature
+        fields = ['name', 'type', 'area', 'date', 'direction', 'description', 
+                 'comment', 'pos_quality']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Feature name'}),
+            'type': forms.Select(attrs={'class': 'form-control'}),
+            'area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Area/Location'}),
+            'direction': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Direction/Orientation'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'pos_quality': forms.Select(attrs={'class': 'form-control'}),
+        }
+        help_texts = {
+            'name': _('Unique identifier or name for this feature'),
+            'type': _('Type of feature being registered'),
+            'area': _('General area or location description'),
+            'direction': _('Direction or orientation if applicable'),
+            'description': _('Detailed description of the feature'),
+            'comment': _('Additional comments or notes'),
+            'pos_quality': _('Quality/accuracy of the position measurement'),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make required fields obvious
+        self.fields['name'].required = True
+        self.fields['type'].required = True
+        self.fields['pos_quality'].required = True
+        self.fields['date'].required = True
+        
+        # Add help text for the map
+        self.geojson_help_text = _(
+            "Use the map to select points. Click to add points. "
+            "You can add multiple points which will be saved as a multipoint geometry."
+        )
+        
+    def clean_geojson_data(self):
+        """Validate GeoJSON data from the map"""
+        geojson_data = self.cleaned_data.get('geojson_data')
+        
+        if not geojson_data:
+            raise ValidationError(_('No points selected on the map. Please add at least one point.'))
+        
+        try:
+            data = json.loads(geojson_data)
+            
+            # Verify that we have a valid GeoJSON with points
+            if 'type' not in data or data['type'] != 'FeatureCollection':
+                raise ValidationError(_('Invalid GeoJSON data format'))
+                
+            if 'features' not in data or not data['features']:
+                raise ValidationError(_('No points found in the GeoJSON data'))
+            
+            # Check that we have at least one point
+            points_count = len(data['features'])
+            if points_count == 0:
+                raise ValidationError(_('No points selected on the map. Please add at least one point.'))
+            
+            # Validate each point's coordinates
+            for feature in data['features']:
+                if feature['geometry']['type'] != 'Point':
+                    raise ValidationError(_('Only point features are supported'))
+                    
+                coords = feature['geometry']['coordinates']
+                if len(coords) < 2:
+                    raise ValidationError(_('Invalid coordinates in GeoJSON'))
+                
+                # Basic validation for WGS84 coordinates
+                lon, lat = coords[0], coords[1]
+                if not (-180 <= lon <= 180):
+                    raise ValidationError(_('Longitude value out of range (-180 to 180)'))
+                if not (-90 <= lat <= 90):
+                    raise ValidationError(_('Latitude value out of range (-90 to 90)'))
+            
+            return geojson_data
+            
+        except json.JSONDecodeError:
+            raise ValidationError(_('Invalid GeoJSON format'))
+    
+    def clean(self):
+        """Cross-field validation"""
+        cleaned_data = super().clean()
+        geojson_data = cleaned_data.get('geojson_data')
+        date = cleaned_data.get('date')
+        name = cleaned_data.get('name')
+        pos_quality = cleaned_data.get('pos_quality')
+        
+        # Check that all required fields are provided
+        if not name:
+            self.add_error('name', _('Feature name is required'))
+        
+        if not pos_quality:
+            self.add_error('pos_quality', _('Position quality is required'))
+        
+        if not date:
+            self.add_error('date', _('Date is required'))
+        
+        if not geojson_data:
+            self.add_error('geojson_data', _('No points selected on the map'))
+                
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """
+        Override the save method to create a MultiPoint geometry from the GeoJSON data
+        before saving the model instance.
+        """
+        instance = super().save(commit=False)
+        
+        # Get GeoJSON data
+        geojson_data = self.cleaned_data.get('geojson_data')
+        if geojson_data:
+            try:
+                data = json.loads(geojson_data)
+                points = []
+                
+                # Extract point coordinates from GeoJSON
+                for feature in data['features']:
+                    if feature['geometry']['type'] == 'Point':
+                        coords = feature['geometry']['coordinates']
+                        # Create Point objects (x=lon, y=lat for WGS84)
+                        points.append(Point(coords[0], coords[1]))
+                
+                # Create MultiPoint geometry from the points
+                if points:
+                    multipoint = MultiPoint(points)
+                    
+                    # Set the geometry field - the exact field name depends on your model
+                    # Assuming your Feature model has a 'geometry' field
+                    instance.geometry = multipoint
+                    
+                    # Get SRID from the form (default is 4326 for WGS84)
+                    srid = self.cleaned_data.get('map_srid', '4326')
+                    try:
+                        instance.geometry.srid = int(srid)
+                    except ValueError:
+                        # Default to WGS84 if there's an issue
+                        instance.geometry.srid = 4326
+            
+            except (json.JSONDecodeError, KeyError, IndexError):
+                # If there's an error processing the GeoJSON, we'll let the form validation handle it
+                pass
+        
+        if commit:
+            instance.save()
+        
+        return instance

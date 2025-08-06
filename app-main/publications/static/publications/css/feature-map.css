@@ -1,0 +1,48 @@
+/**
+ * Styles for the Feature Map Selector
+ */
+
+#feature-map {
+    height: 500px; /* Set an appropriate height */
+    width: 100%;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    z-index: 1; /* Ensure proper stacking context for leaflet controls */
+}
+
+.points-list-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.map-controls {
+    display: flex;
+    gap: 10px;
+}
+
+/* Styling for the Leaflet popup buttons */
+.leaflet-popup-content .btn {
+    margin-top: 5px;
+}
+
+/* Custom styles for point list items */
+.btn-remove-point {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+}
+
+/* Make sure the Leaflet attribution is readable */
+.leaflet-control-attribution {
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* Ensure the map controls are visible */
+.leaflet-control-zoom {
+    border: 1px solid #ccc !important;
+}

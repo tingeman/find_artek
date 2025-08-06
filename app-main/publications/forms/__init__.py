@@ -15,7 +15,8 @@ from .publication import (
     ChangeReportNumberForm, UploadAppendixForm, DeleteReportForm
 )
 from .feature import (
-    AddFeatureCoordinatesForm
+    AddFeatureByCoordinatesForm,
+    AddFeatureByMap
 )
 from .mixins import (
     PersonWorkflowMixin, 
