@@ -163,7 +163,8 @@ AUTHENTICATION_BACKENDS = (
 USE_LDAP = True     # Allow LDAP lookups using e.g. LDAP3
 
 AUTH_LDAP_SERVER_URI = 'ldaps://win.dtu.dk'
-AUTH_LDAP_BIND_DN = 'cn=SUS-Artek_AD_Read,ou=Funktionskonti,ou=BYG,ou=Institutter,DC=win,DC=dtu,DC=dk'
+LDAP_BIND_USER = os.getenv('LDAP_BIND_USER')
+AUTH_LDAP_BIND_DN = f'cn={LDAP_BIND_USER},ou=Funktionskonti,ou=BYG,ou=Institutter,DC=win,DC=dtu,DC=dk'
 AUTH_LDAP_BIND_PASSWORD = os.getenv('LDAP_BIND_PASSWORD')
 AUTH_LDAP_USER_SEARCH_BASE = "ou=DTUBaseUsers,dc=win,dc=dtu,dc=dk"
 

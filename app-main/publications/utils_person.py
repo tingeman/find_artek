@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 # my_string = b"This is a bytestring"
 # my_unicode = "This is a Unicode string"
-from tkinter import ALL
+from http import server
 import ldap3
 import re
 import logging
-import latexcodec
+import codecs
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
@@ -106,12 +106,12 @@ def get_relaxed_name_kwargs(string='', person=None):
         # match first initial and last name lower case, no special characters
         if person.first():
             initial = pybtex_utils.bibtex_first_letter(person.first()[0])
-            initial = latexcodec.decode(initial, 'latex').lower()
+            initial = codecs.decode(initial.encode('utf-8'), 'latex').lower()
         else:
             initial = ''
 
         if person.last():
-            last = latexcodec.decode(' '.join(person.last()), 'latex').lower()
+            last = codecs.decode(' '.join(person.last()).encode('utf-8'), 'latex').lower()
         else:
             last = ''
 
@@ -145,7 +145,7 @@ def get_full_name_kwargs(string='', person=None, initials='', id_number=''):
             if part:
                 # If the name part is not empty
                 # get the unicode representation ...
-                part = latexcodec.decode(" ".join(part), 'latex')
+                part = codecs.decode(" ".join(part).encode('utf-8'), 'latex')
                 # ... and include it in query
                 kwargs[n] = part
 
@@ -208,9 +208,9 @@ def create_person_from_pybtex(person=None, user=None, save=True):
 
     if kwargs.get('first', None):
         initial = pybtex_utils.bibtex_first_letter(person.first()[0])
-        kwargs['first_relaxed'] = latexcodec.decode(initial, 'latex').lower()
+        kwargs['first_relaxed'] = codecs.decode(initial.encode('utf-8'), 'latex').lower()
     if kwargs.get('last', None):
-        kwargs['last_relaxed'] = latexcodec.decode(' '.join(person.last()), 'latex').lower()
+        kwargs['last_relaxed'] = codecs.decode(' '.join(person.last()).encode('utf-8'), 'latex').lower()
 
     p = models.Person(**kwargs)
 
@@ -570,8 +570,8 @@ def find_ldap_person(**kwargs):
     Returns a LDAP user instance.
 
     """
-    if (not 'USE_LDAP' in settings) or (not settings.USE_LDAP):
-        # we should not use ldap at all
+    if (not hasattr(settings, 'USE_LDAP') or (not settings.USE_LDAP)):
+        # we should not use ldap at all 
         logger.warning('LDAP is not enabled in settings, skipping LDAP search!')
         return []
     
@@ -586,8 +586,11 @@ def find_ldap_person(**kwargs):
     if len(kwargs.keys()) >= 1:
         searchstr = '(&{0})'.format(searchstr)
 
+    attributes = ['sn', 'givenName', 'department', 'company', 'title', 'employeeID', 'initials', 'name']
+
     # 3) Open connection, bind, and search for user
-    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, get_info=ALL)
+    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, get_info='ALL')
+    # conn = ldap3.Connection(server, user=settings.AUTH_LDAP_BIND_DN, password=settings.AUTH_LDAP_BIND_PASSWORD, auto_bind=True)
     with ldap3.Connection(
         server,
         user=settings.AUTH_LDAP_BIND_DN,
@@ -595,7 +598,8 @@ def find_ldap_person(**kwargs):
         auto_bind=True
     ) as conn:
         try:
-            result = conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, ldap3.SCOPE_SUBTREE, searchstr)
+            conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, searchstr, attributes=attributes)
+            result = conn.entries
         except Exception:
             result = []
             logger.warning(f'ldap search for {searchstr} failed!')

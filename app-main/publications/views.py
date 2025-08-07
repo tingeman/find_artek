@@ -2428,3 +2428,5 @@ def add_person_ajax(request):
             'error': f'Failed to create person: {str(e)}'
         }, status=500)
 
+
+

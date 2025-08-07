@@ -113,19 +113,27 @@ def xlsx_pubs(filepath, user=None):
             # If year is not given, and this is a report,
             # compose the year from the report number
             if (kwargs['type'].type in ['STUDENTREPORT', 'MASTERTHESIS', 'PHDTHESIS']):
-                if ('number' in kwargs.keys()) and  ('year' not in kwargs.keys()):
-                    # Construct report publication year from the report number
-                    if kwargs['number'][0:2] > '90':
-                        kwargs['year'] = '19'+kwargs['number'][0:2]
-                    else:
-                        kwargs['year'] = '20'+kwargs['number'][0:2]
-                elif ('year' in kwargs.keys()) and ('number' not in kwargs.keys()):
+                if 'number' in kwargs.keys():
+                    if 'year' not in kwargs.keys():
+                        # Construct report publication year from the report number
+                        if kwargs['number'][0:2] > '90':
+                            kwargs['year'] = '19'+kwargs['number'][0:2]
+                        else:
+                            kwargs['year'] = '20'+kwargs['number'][0:2]
+
+                    # check if that number already exists
+                    if models.Publication.objects.filter(number=kwargs['number']).exists():
+                        old_number = kwargs['number']
+                        kwargs['number'] = get_next_report_number(kwargs['year'])
+                        filemessages.append((messages.INFO, "Publication number '{0}' already exists, asigning next available number '{1}'.".format(old_number, kwargs['number'])))
+                        
+                elif ('year' in kwargs.keys()):
                     # generate report number based on year
                     kwargs['number'] = get_next_report_number(kwargs['year'])
 
             # Create or update publication
             instance, created = models.Publication.objects.get_or_create(
-                                    number=s.cell_value(row, number_col),
+                                    number=kwargs['number'],
                                     defaults=kwargs)
 
             report_counter += 1
@@ -135,9 +143,9 @@ def xlsx_pubs(filepath, user=None):
                 ### HANDLE M2M RELATIONSHIPS
 
                 # Handle authors, editors, supervisors etc. here!
-                for f in ['author', 'supervisor', 'editor']:
-                    names = m2m_dict.pop(f, None)
-                    personmessages = add_persons_to_publication(names, instance, f, current_user)
+                for field in ['author', 'supervisor', 'editor']:
+                    names = m2m_dict.pop(field, None)
+                    personmessages = add_persons_to_publication(names, instance, field, current_user)
                     for m in personmessages:
                         filemessages.append(m)
 
@@ -160,11 +168,11 @@ def xlsx_pubs(filepath, user=None):
 
                 if m2m_dict:
                     # handle authors, editors, supervisors etc. here!
-                    for f in ['author', 'supervisor', 'editor']:
-                        names = m2m_dict.pop(f, None)
-                        if len(getattr(instance, f).all()) == 0 and names:
+                    for field in ['author', 'supervisor', 'editor']:
+                        names = m2m_dict.pop(field, None)
+                        if len(getattr(instance, field).all()) == 0 and names:
                             # Add persons if no persons are registered already
-                            personmessages = add_persons_to_publication(names, instance, f, current_user)
+                            personmessages = add_persons_to_publication(names, instance, field, current_user)
                             for m in personmessages:
                                 filemessages.append(m)
                             updated = True
@@ -196,10 +204,6 @@ def add_persons_to_publication(names, pub, field, user):
     # return if no names passed
     if not names or not names.strip():
         return personmessages
-
-#    if getattr(pub, field).all():
-#        # Skip if field is already populated.
-#        return
 
     #define pubplication-person through-table
     through_tbl = getattr(models, field[0].upper() + field[1:] + 'ship')
