@@ -17,6 +17,7 @@ setuptools
 werkzeug
 gunicorn
 pybtex
-xlrd
+openpyxl
 latexcodec
 ldap3
+python-dateutil

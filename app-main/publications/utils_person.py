@@ -5,7 +5,7 @@ from http import server
 import ldap3
 import re
 import logging
-import codecs
+from publications.utils_basic import safe_latex_decode
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
@@ -106,12 +106,12 @@ def get_relaxed_name_kwargs(string='', person=None):
         # match first initial and last name lower case, no special characters
         if person.first():
             initial = pybtex_utils.bibtex_first_letter(person.first()[0])
-            initial = codecs.decode(initial.encode('utf-8'), 'latex').lower()
+            initial = safe_latex_decode(initial).lower()
         else:
             initial = ''
 
         if person.last():
-            last = codecs.decode(' '.join(person.last()).encode('utf-8'), 'latex').lower()
+            last = safe_latex_decode(' '.join(person.last())).lower()
         else:
             last = ''
 
@@ -121,7 +121,7 @@ def get_relaxed_name_kwargs(string='', person=None):
     return kwargs
 
 
-def get_full_name_kwargs(string='', person=None, initials='', id_number=''):
+def get_full_name_kwargs(string='', pybtex_person=None, initials='', id_number=''):
     """Creates a dictionary with the fields:
     'first', 'middle', 'last', 'prelast' and 'lineage'
     (and possibly 'initials' and 'person_id')
@@ -129,23 +129,31 @@ def get_full_name_kwargs(string='', person=None, initials='', id_number=''):
     Only non-empty fields will be included in the dictionary.
     The fields will be unicode strings.
 
+    Arguments:
+    string:         A string containing a name, e.g. "John von Neumann"
+    pybtex_person:  A pybtex Person instance, e.g. pybtexPerson("John von Neumann")
+    initials:       A string containing initials, e.g. "JvN"
+    id_number:      A string containing an ID number, e.g. "s123456"
+
+    Returns:
+    A dictionary with keys 'first', 'middle', 'last', 'prelast', 'lineage',
     """
     if string:
         # parse name string
-        person = pybtexPerson(string)
+        pybtex_person = pybtexPerson(string)
 
     # Define possible name parts to match
     names = ['first', 'middle', 'last', 'prelast', 'lineage']
     kwargs = {}
 
-    if person:
+    if pybtex_person:
         # loop through name parts
         for n in names:
-            part = getattr(person, n)()
+            part = getattr(pybtex_person, n)()
             if part:
                 # If the name part is not empty
                 # get the unicode representation ...
-                part = codecs.decode(" ".join(part).encode('utf-8'), 'latex')
+                part = safe_latex_decode(" ".join(part))
                 # ... and include it in query
                 kwargs[n] = part
 
@@ -190,27 +198,27 @@ def create_pybtex_person(*args, **kwargs):
 # ----------------------------------------------------------------------------
 
 
-def create_person_from_pybtex(person=None, user=None, save=True):
+def create_person_from_pybtex(pybtex_person=None, user=None, save=True):
     """Create Person object from pybtex instance
 
     """
-    if not person:
+    if not pybtex_person:
         raise ValueError('No person information passed!')
 
     if not user:
         raise ValueError('No user information passed!')
 
     # define name parts
-    kwargs = get_full_name_kwargs(person=person)
+    kwargs = get_full_name_kwargs(pybtex_person=pybtex_person)
 
     if not kwargs:
         raise ValueError('The pybtex person passed, contained no information')
 
     if kwargs.get('first', None):
-        initial = pybtex_utils.bibtex_first_letter(person.first()[0])
-        kwargs['first_relaxed'] = codecs.decode(initial.encode('utf-8'), 'latex').lower()
+        initial = pybtex_utils.bibtex_first_letter(pybtex_person.first()[0])
+        kwargs['first_relaxed'] = safe_latex_decode(initial).lower()
     if kwargs.get('last', None):
-        kwargs['last_relaxed'] = codecs.decode(' '.join(person.last()).encode('utf-8'), 'latex').lower()
+        kwargs['last_relaxed'] = safe_latex_decode(' '.join(pybtex_person.last())).lower()
 
     p = models.Person(**kwargs)
 
@@ -288,11 +296,11 @@ def add_persons_to_publication(names, pub, field, user):
     person_entity_list = [s for s in parse_name_list(names) if s]
 
     for id, s in enumerate(person_entity_list):
+        print(f"🔍 DEBUG: Processing person: {s}")
         multiple_match = False
         exact_match = False
         relaxed_match = False
-
-        print("🔍 DEBUG: Processing person: {0}".format(s))
+        
         p, match = get_person_from_string(s, user, save=False)
 
         if p:
@@ -494,19 +502,19 @@ def get_from_tag(s, user):
 def get_from_namestring(s, user):
     """Get or create person from namestring."""
 
-    person = pybtexPerson(s)
+    pybtex_person = pybtexPerson(s)
 
     if not (person.first() and person.last()):
         p = None
         match = None
     else:
         # Get existing persons using relaxed naming
-        p, match = get_person(person=person)
+        p, match = get_person(pybtex_person=pybtex_person)
 
     return p, match
 
 
-def get_person(string='', person=None, initials='', person_id='', id_number='', exact=False, relaxed=False):
+def get_person(string='', pybtex_person=None, initials='', person_id='', id_number='', exact=False, relaxed=False):
     """Searches Django database (not ldap) for matches against the arguments passed,
     ignores empty parts of name.
     If exact argument is True, only exact matches are returned
@@ -519,15 +527,19 @@ def get_person(string='', person=None, initials='', person_id='', id_number='', 
     exact=False and relaxed=False    Return only exact, if existing, otherwise relaxed.
 
     """
-    if not string and not person and not initials and not id_number:
+    if not string and not pybtex_person and not initials and not id_number:
         return ([], '')
 
-    kwargs = get_full_name_kwargs(string, person, initials, id_number)
-    print(f"🔍 DEBUG: {kwargs}")
-    match = 'db_exact'
+    kwargs = get_full_name_kwargs(string, pybtex_person, initials, id_number)
+    print(f"🔍 DEBUG: utils_person:get_person: {kwargs}")
     p = models.Person.objects.filter(**kwargs)
 
-    if not p:
+    if p:
+        # If we have an exact match, return it
+        print("🔍 DEBUG:    Exact match found.")
+        match = 'db_exact'
+        return (p, match)
+    elif not p:
         print("🔍 DEBUG:    No Exact match found.")
         match = None
 
@@ -535,7 +547,7 @@ def get_person(string='', person=None, initials='', person_id='', id_number='', 
         if not p or relaxed:
             # No exact match - we'll try relaxed match
             print('🔍 DEBUG:    Trying relaxed match...')
-            kwargs = get_relaxed_name_kwargs(string, person)
+            kwargs = get_relaxed_name_kwargs(string, pybtex_person)
             match = 'db_relaxed'
             p = models.Person.objects.filter(**kwargs)
 
@@ -569,12 +581,41 @@ def find_ldap_person(**kwargs):
     """Search LDAP for user with the attributes specified in kwargs.
     Returns a LDAP user instance.
 
+    kwargs: dictionary with attributes to search for, e.g.:
+    kwargs = {'initials': 'jvn', 'id_number': 's123456'}
+
+    LDAP object attributes explained (for DTU active directory):
+    - sn: Surname (last name)
+    - givenName: First name (includes middlenames)
+    - initials: Persons initials (not available for students)
+    - position: Job title (set to 'Studerende' for students)
+    - employeeID: Employee ID (not available for students)
+    - department: Department (not available for students)
+    - company: Company (set to 'Studerende' for students, otherwise 'DTU')
+
+    Relevant ldap attributes to person-model field mapping:
+
+    For students (ldap_object.company.value == 'Studerende'):
+    - (sn, givenName): Used to construct and parse name fields ('first', 'middle', 'last', 'prelast', 'lineage')
+    - name: Mapped to 'id_number'
+    - position: Set to 'student'
+
+    For employees (ldap_object.title.value is present):
+    - sn, givenName: Used to construct and parse name fields ('first', 'middle', 'last', 'prelast', 'lineage')
+    - title: Mapped to 'position'
+    - employeeID: Mapped to 'id_number'
+    - department: Mapped to 'department'
+    - initials: Mapped to 'initials'
+
+    ldap mail attribute is currently not used to avoid exposing online.
+
     """
     if (not hasattr(settings, 'USE_LDAP') or (not settings.USE_LDAP)):
         # we should not use ldap at all 
         logger.warning('LDAP is not enabled in settings, skipping LDAP search!')
         return []
-    
+    else:
+        print(f"🔍 DEBUG: utils_person:find_ldap_person: {kwargs}")
     # if not 'django_auth_ldap.backend.LDAPBackend' in settings.AUTHENTICATION_BACKENDS:
     #     return []
 
@@ -714,6 +755,31 @@ def get_person_info_from_ldap_object(ldap_object=None):
     - initials
     - id_number
 
+    LDAP object attributes explained (for DTU active directory):
+    - sn: Surname (last name)
+    - givenName: First name (includes middlenames)
+    - initials: Persons initials (not available for students)
+    - position: Job title (set to 'Studerende' for students)
+    - employeeID: Employee ID (not available for students)
+    - department: Department (not available for students)
+    - company: Company (set to 'Studerende' for students, otherwise 'DTU')
+
+    Relevant ldap attributes to person-model field mapping:
+
+    For students (ldap_object.company.value == 'Studerende'):
+    - (sn, givenName): Used to construct and parse name fields ('first', 'middle', 'last', 'prelast', 'lineage')
+    - name: Mapped to 'id_number' (contains the study number)
+    - position: Set to 'student'
+
+    For employees (ldap_object.title.value is present):
+    - sn, givenName: Used to construct and parse name fields ('first', 'middle', 'last', 'prelast', 'lineage')
+    - title: Mapped to 'position'
+    - employeeID: Mapped to 'id_number'
+    - department: Mapped to 'department'
+    - initials: Mapped to 'initials'
+
+    ldap mail attribute is currently not used to avoid exposing online.
+    
     """
     if not ldap_object:
         raise ValueError('No LDAP object information passed!')

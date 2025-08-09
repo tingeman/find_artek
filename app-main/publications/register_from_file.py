@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import xlrd
+import openpyxl
 import os.path
 import datetime
 import dateutil.parser
 import string
 import re
+import latexcodec
+import codecs
 
 from pybtex.database import Person as pybtexPerson
 
@@ -13,10 +15,10 @@ from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib import messages
 
-from publications import models, person_utils, utils
+from publications import models, utils_person
 
 from publications.utils_basic import CaseInsensitively
-from publications.utils_models import get_next_report_number
+from publications.utils_models import generate_next_report_number
 
 # from django.shortcuts import get_object_or_404  # Not used
 # import pdb  # Not used
@@ -34,107 +36,116 @@ def xlsx_pubs(filepath, user=None):
 
     filemessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
 
-    wb = xlrd.open_workbook(os.path.join(settings.MEDIA_ROOT, filepath), formatting_info=False)
+    # Load the workbook using openpyxl
+    wb = openpyxl.load_workbook(os.path.join(settings.MEDIA_ROOT, filepath), data_only=True)
 
     # Expected column names in the xlsx file.
-    col_names = ['number', 'year', 'title', 'type', 'topic', 'author', 'supervisor']
+    expected_col_names = ['number', 'year', 'title', 'type', 'topic', 'authors', 'supervisors']
     opt_col_names = ['abstract', 'comments', 'keywords']
-    
+
     # Iterate through each sheet in the workbook
     sheet_counter = 0
-    for s in wb.sheets():
-        current_sheet_name = wb.sheet_names()[s.number]
-        
+    for sheetname in wb.sheetnames:
+        ws = wb[sheetname]
+        current_sheet_name = sheetname
+
         # ignore empty sheets
-        if s.ncols == 0 and s.nrows == 0:
-            filemessages.append((messages.WARNING, "Sheet '{0}' is empty, nothing imported.".format(current_sheet_name)))
+        if ws.max_row < 2 or ws.max_column == 0:
+            filemessages.append((messages.WARNING, f"Sheet '{current_sheet_name}' is empty, nothing imported."))
             continue
 
         sheet_counter += 1
 
-        # Make list of column names
+        # Make list of column names from the first row
         col_names = []
-        for col in range(s.ncols):
-            if s.cell_type(0, col) == 1:
-                col_names.append(s.cell_value(0, col).strip())
-            else:
-                col_names.append(s.cell_value(0, col))
+        for cell in ws[1]:
+            col_names.append(str(cell.value).strip() if cell.value else "")
 
-        # ignore sheets that don't provide a title column
-        if not ('title' in col_names or 'booktitle' in col_names):
-            filemessages.append((messages.WARNING, f"Sheet '{current_sheet_name}' doesn't have a title column, nothing imported."))
+        # Ignore sheets that do not have the expected columns, include in the message the missing columns
+        if not all(col in col_names for col in expected_col_names):
+            missing_cols = [col for col in expected_col_names if col not in col_names]
+            filemessages.append((messages.WARNING, f"Sheet '{current_sheet_name}' is missing columns: {', '.join(missing_cols)}, nothing imported."))
             continue
 
-        number_col = col_names.index('number')
+        try:
+            number_col = col_names.index('number')
+        except ValueError:
+            number_col = None
 
-        # iterate over report entries
+        # iterate over report entries (skip header row)
         report_counter = 0
-        for row in range(1, s.nrows):
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            
+            number_val = row[number_col] if number_col is not None else None
+            
             print(" ")
-            print(f"🔍 DEBUG: processing report {s.cell_value(row, number_col)}")
+            print(f"🔍 DEBUG: processing report {number_val}")
+
+            print(f"🔍 DEBUG: row data: {row}")
 
             # create dictionary of field:value pairs
-            kwargs = dict()
-            for col in range(s.ncols):
-                if s.cell_value(row, col) and col_names[col]:
+            kwargs = {}
+            for idx, val in enumerate(row):
+                colname = col_names[idx]
+                if val and colname:
                     try:
-                        kwargs[col_names[col]] = s.cell_value(row, col).strip()
+                        kwargs[colname] = str(val).strip()
                     except Exception:
-                        kwargs[col_names[col]] = s.cell_value(row, col)
+                        kwargs[colname] = val
 
             # extract the foreignkey entries
-            fk_dict = dict()
-            for k in kwargs.keys():
-                if k in ['type', 'journal']:
-                    fk_dict[k] = kwargs.pop(k)
-
+            fk_dict = {k: kwargs.pop(k) for k in list(kwargs.keys()) if k in ['type', 'journal']}
             # extract the m2m entries
-            m2m_dict = dict()
-            for k in kwargs.keys():
-                if k in ['author', 'editor', 'supervisor', 'keywords',
-                         'topic', 'URLs']:
-                    m2m_dict[k] = kwargs.pop(k)
+            m2m_dict = {k: kwargs.pop(k) for k in list(kwargs.keys()) if k in ['authors', 'editors', 'supervisors', 'keywords', 'topic', 'URLs']}
 
             # handle user information
             kwargs['created_by'] = current_user
             kwargs['modified_by'] = current_user
 
-
             ### HANDLE FOREIGNKEY RELATIONSHIPS ###
 
-            # Handle the publication type
+            # handle publication type
             kwargs['type'] = models.PubType.objects.get(type=fk_dict.pop('type', 'STUDENTREPORT'))
 
             # handle journal if present
             if 'journal' in fk_dict and fk_dict['journal']:
                 kwargs['journal'] = models.Journal.objects.get(type=fk_dict.pop('journal'))
 
-
             # If year is not given, and this is a report,
             # compose the year from the report number
-            if (kwargs['type'].type in ['STUDENTREPORT', 'MASTERTHESIS', 'PHDTHESIS']):
-                if 'number' in kwargs.keys():
-                    if 'year' not in kwargs.keys():
-                        # Construct report publication year from the report number
+            if kwargs['type'].type in ['STUDENTREPORT', 'MASTERSTHESIS', 'PHDTHESIS', 'DIPLOMPROJEKT','BACHELORTHESIS']:
+                print(f"🔍 DEBUG: this is a {kwargs['type'].type}")
+                if 'number' in kwargs:
+                    print(f"🔍 DEBUG: Report number specified: {kwargs['number']}")
+                    if 'year' not in kwargs:
                         if kwargs['number'][0:2] > '90':
-                            kwargs['year'] = '19'+kwargs['number'][0:2]
+                            kwargs['year'] = '19' + kwargs['number'][0:2]
                         else:
-                            kwargs['year'] = '20'+kwargs['number'][0:2]
-
-                    # check if that number already exists
+                            kwargs['year'] = '20' + kwargs['number'][0:2]
                     if models.Publication.objects.filter(number=kwargs['number']).exists():
                         old_number = kwargs['number']
-                        kwargs['number'] = get_next_report_number(kwargs['year'])
-                        filemessages.append((messages.INFO, "Publication number '{0}' already exists, asigning next available number '{1}'.".format(old_number, kwargs['number'])))
-                        
-                elif ('year' in kwargs.keys()):
-                    # generate report number based on year
-                    kwargs['number'] = get_next_report_number(kwargs['year'])
+                        kwargs['number'] = generate_next_report_number(kwargs['year'])
+                        filemessages.append((messages.INFO, f"Publication number '{old_number}' already exists, assigning next available number '{kwargs['number']}'."))
+                        print(f"🔍 DEBUG: Number existed, assigned new report number: {kwargs['number']}")
+                elif 'year' in kwargs:
+                    print(f"🔍 DEBUG: Report number not specified, constructing from year: {kwargs['year']}")
+                    kwargs['number'] = generate_next_report_number(kwargs['year'])
+                    print(f"🔍 DEBUG: Constructed report number: {kwargs['number']}")
+                else:
+                    print(f"🔍 DEBUG: No report number or year specified, unable to construct report number. Skipping...!")
+                    continue
+            else:
+                filemessages.append((messages.WARNING, f"Only publications of type 'STUDENTREPORT', 'MASTERSTHESIS', 'PHDTHESIS', 'DIPLOMPROJEKT', or 'BACHELORTHESIS' are supported. Skipping report...!"))
+                print(f"🔍 DEBUG: Unsupported publication type: {kwargs['type'].type}. Skipping...!")
+                continue
+
+            print(f"🔍 DEBUG: kwargs: {kwargs}")
 
             # Create or update publication
             instance, created = models.Publication.objects.get_or_create(
-                                    number=kwargs['number'],
-                                    defaults=kwargs)
+                number=kwargs['number'],
+                defaults=kwargs
+            )
 
             report_counter += 1
             if created:
@@ -143,7 +154,7 @@ def xlsx_pubs(filepath, user=None):
                 ### HANDLE M2M RELATIONSHIPS
 
                 # Handle authors, editors, supervisors etc. here!
-                for field in ['author', 'supervisor', 'editor']:
+                for field in ['authors', 'supervisors', 'editors']:
                     names = m2m_dict.pop(field, None)
                     personmessages = add_persons_to_publication(names, instance, field, current_user)
                     for m in personmessages:
@@ -167,33 +178,31 @@ def xlsx_pubs(filepath, user=None):
                 instance.save()
 
                 if m2m_dict:
-                    # handle authors, editors, supervisors etc. here!
-                    for field in ['author', 'supervisor', 'editor']:
+                    for field in ['authors', 'supervisors', 'editors']:
                         names = m2m_dict.pop(field, None)
                         if len(getattr(instance, field).all()) == 0 and names:
-                            # Add persons if no persons are registered already
                             personmessages = add_persons_to_publication(names, instance, field, current_user)
                             for m in personmessages:
                                 filemessages.append(m)
                             updated = True
-                    #pdb.set_trace()
-                    # Handle the topics
                     topics = m2m_dict.pop('topic', None)
-                    if len(instance.topics.all()) == 0 and topics:
+                    if len(instance.publication_topics.all()) == 0 and topics:
                         add_topics_to_publication(topics, instance, current_user)
                         updated = True
 
                 if not updated:
-                    filemessages.append((messages.WARNING, "Publication '{0}' exists in database, no attributes changed.".format(instance.title)))
+                    filemessages.append((messages.WARNING, f"Publication '{instance.title}' exists in database, no attributes changed."))
                     print("🔍 DEBUG: No attributes updated!")
                 else:
-                    filemessages.append((messages.WARNING, "Publication '{0}' exists in database, some attributes were updated.".format(instance.title)))
+                    filemessages.append((messages.WARNING, f"Publication '{instance.title}' exists in database, some attributes were updated."))
                 instance.save()
 
-        if report_counter != s.nrows-1:
-            filemessages.append((messages.INFO, "{0} of {1} publications registered/updated from sheet '{2}'.".format(report_counter, s.nrows-1, current_sheet_name)))
+        total_rows = ws.max_row - 1
+        if report_counter != total_rows:
+            filemessages.append((messages.INFO, f"{report_counter} of {total_rows} publications registered/updated from sheet '{current_sheet_name}'."))
         else:
-            filemessages.append((messages.SUCCESS, "{0} of {1} publications registered/updated from sheet '{2}'.".format(report_counter, s.nrows-1, current_sheet_name)))
+            filemessages.append((messages.SUCCESS, f"{report_counter} of {total_rows} publications registered/updated from sheet '{current_sheet_name}'."))
+
     return filemessages
 
 
@@ -205,16 +214,18 @@ def add_persons_to_publication(names, pub, field, user):
     if not names or not names.strip():
         return personmessages
 
-    #define pubplication-person through-table
-    through_tbl = getattr(models, field[0].upper() + field[1:] + 'ship')
+    # define pubplication-person through-table
+    # Ensure capitalized (upper), singular form (e.g. 'Author'+ship, 'Editor'+ship, 'Supervisor'+ship)
+    through_tbl = getattr(models, field[0].upper() + field[1:-1] + 'ship')
 
     kwargs = dict()
 
     # Parse author names to a list, use only non-empty items
-    kwargs[field] = [s for s in person_utils.parse_name_list(names) if s]
+    person_entity_list = [s for s in utils_person.parse_name_list(names) if s]
+    kwargs[field] = person_entity_list
 
-    for id, s in enumerate(kwargs[field]):
-        print(f"🔍 DEBUG: Processing person: {s.encode('ascii', 'replace')}")
+    for id, s in enumerate(person_entity_list):
+        print(f"🔍 DEBUG: Processing person: {s}")
         exact_match = False
         multiple_match = False
         relaxed_match = False
@@ -223,13 +234,13 @@ def add_persons_to_publication(names, pub, field, user):
             # This is a study number...
 
             # See if it is in our own database
-            p, match = person_utils.get_person(id_number=s, exact=True)
+            p, match = utils_person.get_person(id_number=s, exact=True)
             if not p:
-                if 'USE_LDAP' in settings and settings.USE_LDAP:
+                if (hasattr(settings, 'USE_LDAP') and settings.USE_LDAP):
                     # Now see if it is in LDAP directory
-                    result = person_utils.find_ldap_person(name=s)
+                    result = utils_person.find_ldap_person(name=s)
                     if result:
-                        p = person_utils.get_or_create_person_from_ldap(person=result[0],
+                        p = utils_person.get_or_create_person_from_ldap(ldap_object=result[0],
                                                                     user=user)
                         exact_match = True
                         print("🔍 DEBUG:    LDAP match")
@@ -237,7 +248,7 @@ def add_persons_to_publication(names, pub, field, user):
                         print("🔍 DEBUG:    WARNING: No match found. Not added!")
                         msgstr = "{0} identified by '{1}' was not found in " \
                                 "database. Please add {0} manually!"
-                        msgstr = msgstr.format(field.title(), s)
+                        msgstr = msgstr.format(field[:-1].title(), s)
                         personmessages.append((messages.WARNING, msgstr))
                         continue
                 else:
@@ -245,7 +256,7 @@ def add_persons_to_publication(names, pub, field, user):
                     print("🔍 DEBUG:    (LDAP access not activated in settings)")
                     msgstr = "{0} identified by '{1}' was not found in " \
                              "database. Please add {2} manually!"
-                    msgstr = msgstr.format(field.title(), s, field.lower())
+                    msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
                     personmessages.append((messages.WARNING, msgstr))
                     continue
             else:
@@ -254,13 +265,13 @@ def add_persons_to_publication(names, pub, field, user):
             # this is an entry with only consecutive letters = initials
 
             # See if it is in our own database
-            p, match = person_utils.get_person(initials=s, exact=True)
+            p, match = utils_person.get_person(initials=s, exact=True)
             if not p:
-                if 'USE_LDAP' in settings and settings.USE_LDAP:
+                if hasattr(settings, 'USE_LDAP') and settings.USE_LDAP:
                     # Now see if it is in LDAP directory
-                    result = person_utils.find_ldap_person(initials=s)
+                    result = utils_person.find_ldap_person(initials=s)
                     if result:
-                        p = person_utils.get_or_create_person_from_ldap(person=result[0],
+                        p = utils_person.get_or_create_person_from_ldap(ldap_object=result[0],
                                                                     user=user)
                         exact_match = True
                         print("🔍 DEBUG:    LDAP match")
@@ -268,7 +279,7 @@ def add_persons_to_publication(names, pub, field, user):
                         print("🔍 DEBUG:    WARNING: No match found. Not added!")
                         msgstr = "{0} identified by '{1}' was not found in " \
                                 "database. Please add {2} manually!"
-                        msgstr = msgstr.format(field.title(), s, field.lower())
+                        msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
                         personmessages.append((messages.WARNING, msgstr))
                         continue
                 else:
@@ -276,27 +287,27 @@ def add_persons_to_publication(names, pub, field, user):
                     print("🔍 DEBUG:    (LDAP access not activated in settings)")
                     msgstr = "{0} identified by '{1}' was not found in " \
                              "database. Please add {2} manually!"
-                    msgstr = msgstr.format(field.title(), s, field.lower())
+                    msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
                     personmessages.append((messages.WARNING, msgstr))
                     continue
             else:
                 print("🔍 DEBUG:    DB match")
         else:
             # otherwise... this is just a name...
-            person = pybtexPerson(s)
+            pybtex_person = pybtexPerson(s)
 
-            if not (person.first() and person.last()):
+            if not (pybtex_person.first() and pybtex_person.last()):
                 msgstr = "The {0} name '{1}' does not contain enough " \
                          "information to add it to the database (must " \
                          "contain at least given and sur names)."
-                msgstr = msgstr.format(field.lower(), s)
+                msgstr = msgstr.format(field[:-1].lower(), s)
                 personmessages.append((messages.ERROR, msgstr))
                 continue
 
-            print(f"🔍 DEBUG:    Processing person {id}: {utils.unidecode(str(person))}")
+            print(f"🔍 DEBUG:    Processing person {id}: {pybtex_person}")
 
             # Get existing persons using relaxed naming
-            p, match = person_utils.get_person(person=person)
+            p, match = utils_person.get_person(pybtex_person=pybtex_person)
 
             if len(p) > 1:
                 # More than one exact return, flag multiple_match
@@ -309,7 +320,7 @@ def add_persons_to_publication(names, pub, field, user):
                 relaxed_match = True
 
             # Create new person, also if matched
-            p = person_utils.create_person_from_pybtex(person=person, user=user)
+            p = utils_person.create_person_from_pybtex(pybtex_person=pybtex_person, user=user)
 
         if p:
             # add the person to the author/supervisor/editor-relationship
@@ -318,7 +329,7 @@ def add_persons_to_publication(names, pub, field, user):
                               exact_match=exact_match,
                               multiple_match=multiple_match,
                               relaxed_match=relaxed_match,
-                              **{field+'_id': id})
+                              **{field[:-1]+'_id': id})
             tmp.save()
 
     return personmessages
@@ -332,13 +343,13 @@ def add_topics_to_publication(topics, pub, user):
     # Topics cannot be added if they do not exist... drop it
     # remove any remaining model bound topics that were not in post
 
-    mtop = [t.topic for t in pub.topics.all()]  # list of model bound topic
+    existing_model_topics = [t.topic for t in pub.publication_topics.all()]  # list of model bound topic
 
     topics = [word.strip(string.punctuation) for word in topics.split()]
 
     for t in topics:
-        if CaseInsensitively(t) in mtop:
-            mtop.remove(CaseInsensitively(t))
+        if CaseInsensitively(t) in existing_model_topics:
+            existing_model_topics.remove(CaseInsensitively(t))
             continue
 
         mt = models.Topic.objects.filter(topic__iexact=t)
@@ -348,12 +359,12 @@ def add_topics_to_publication(topics, pub, user):
             mt = [mt]
 
         # add only the first topic returned
-        pub.topics.add(mt[0])
+        pub.publication_topics.add(mt[0])
 
     # Now remove any remaining topic
-    if mtop:
-        for t in mtop:
-            pub.topics.remove(r.topics.get(topic=t))
+    if existing_model_topics:
+        for t in existing_model_topics:
+            pub.publication_topics.remove(pub.publication_topics.get(topic=t))
 
     pub.save()
 

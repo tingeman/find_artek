@@ -12,6 +12,9 @@ urlpatterns = [
     path('reports/', views.ReportsView.as_view(), name='reports'),
     path('persons/', views.PersonsView.as_view(), name='persons'),
 
+    # Excel file upload for adding publications
+    path('add/reports_from_file/', views.AddReportsFromFileUploadView.as_view(), name='add_reports_from_file_upload'),
+
     path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
     path('report/<int:pk>/appendix/upload/', views.UploadAppendixView.as_view(), name='upload_appendix'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),

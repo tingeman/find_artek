@@ -134,7 +134,7 @@ class MyReportsClass {
             // create <a href="#" >Analyse af nytteværdien og udviklingspotentialet for en grønlandsk bygd</a>
             const reportTitleLink = document.createElement('a');
             reportTitleLink.href = URL_PREFIX + `/publications/report/${report.id}/`; // TODO: use debugger to find out what to put here
-            reportTitleLink.innerText = report.title;
+            reportTitleLink.innerText = report.title && report.title.trim() ? report.title : '[no title]';
             reportTitleDiv.appendChild(reportTitleLink);
 
             // THIS PART IS NOW DONE

@@ -5,6 +5,9 @@ These do NOT depend on Django models or database access.
 
 import re
 from unidecode import unidecode
+import codecs
+import latexcodec  
+import logging
 
 # Find "[tag:value]" items allowing for whitespace, extract tag and value.
 re_tag_items = re.compile(r'\[\s*(?P<tag>[a-zA-Z]*?)\s*[:=]\s*(?P<value>.*?)\s*\]')
@@ -69,3 +72,15 @@ def dk_unidecode(string):
     for old, new in kwargs.items():
         string = string.replace(old, new)
     return unidecode(string)
+
+logger = logging.getLogger(__name__)
+def safe_latex_decode(s):
+    try:
+        # Only decode if string contains LaTeX markup (heuristic: contains backslash or curly braces)
+        if isinstance(s, str) and ('\\' in s or '{' in s or '}' in s):
+            return codecs.decode(s.encode('utf-8'), 'latex')
+        else:
+            return s
+    except Exception as e:
+        logger.warning(f"latex decode failed for '{s}': {e}")
+        return s

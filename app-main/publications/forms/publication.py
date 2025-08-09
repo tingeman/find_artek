@@ -494,6 +494,45 @@ class UploadAppendixForm(forms.Form):
         return files
     
 
+class ImportPublicationFileForm(forms.Form):
+    FILE_TYPE_CHOICES = [
+        ("xlsx", "Excel (.xlsx)"),
+        ("bibtex", "BibTeX (.bib)"),
+        ("csv", "CSV (.csv)")
+    ]
+
+    file_type = forms.ChoiceField(
+        choices=FILE_TYPE_CHOICES,
+        initial="xlsx",
+        widget=forms.Select(attrs={
+            "class": "form-control",
+            "disabled": False  # Only xlsx enabled for now
+        })
+    )
+
+    file = forms.FileField(
+        required=True,
+        widget=forms.ClearableFileInput(attrs={
+            "class": "form-control",
+            "accept": ".xlsx"
+        }),
+        help_text="Upload an Excel (.xlsx) file. Only .xlsx is supported currently."
+    )
+
+    def clean_file_type(self):
+        value = self.cleaned_data["file_type"]
+        if value != "xlsx":
+            raise ValidationError("Only Excel (.xlsx) import is supported at this time.")
+        return value
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get("file")
+        if uploaded_file:
+            if not uploaded_file.name.lower().endswith(".xlsx"):
+                raise ValidationError("Only .xlsx files are supported.")
+        return uploaded_file
+
+
 class DeleteReportForm(forms.Form):
     """Form for confirming publication deletion"""
     action = forms.CharField(widget=forms.HiddenInput(), required=False)
@@ -504,3 +543,6 @@ class DeleteReportForm(forms.Form):
         if action not in ['delete', 'cancel']:
             raise ValidationError('Invalid action')
         return action
+
+
+
