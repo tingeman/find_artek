@@ -4,7 +4,7 @@ DEBUG = True
 
 FORCE_SCRIPT_NAME = ''
 URL_PREFIX = ''
-#STATIC_URL = ''
+STATIC_URL = '/static/'
 #MEDIA_URL = ''
 
 # Override LOGGING for development: DEBUG level, log to both console and file

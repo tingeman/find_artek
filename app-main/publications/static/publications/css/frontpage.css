@@ -1,5 +1,8 @@
 
 
+main {
+    overflow: visible !important;
+}
 
 
 .grid-container {
@@ -71,6 +74,10 @@
 }
 
 .fmitem form button .fmtext {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;   /* Align content to the top/left */
     text-align: left;
     width: 200px;
     padding-left: 10px;
@@ -99,6 +106,8 @@
 
 
 /* 
+
+
 .fmitem form button .fmtext {
     flex-grow: 1; 
     display: flex; 
@@ -108,18 +117,52 @@
     text-align: left; 
 }
 
+*/
+
 .fmitem form button .fmtext span {
     display: block; 
     padding: 0px;
 }
 
+
+
 .fmitem form button .fmtext .topic {
     font-size: medium;
     font-weight: bold;
     text-align: left; 
-    padding: 0.5em;
+    /* padding: 0.5em; */
     margin: 0; 
-} */
+}
+
+.fminfobox .topic {
+    font-size: medium;
+    font-weight: bold;
+    text-align: left; 
+    /* padding: 0.5em; */
+    margin: 0; 
+}
 
 
+.fmitem form button .fmtext .text {
+    font-size: 0.7em;
+    font-weight: normal;
+    text-align: left; 
+    /* padding: 0.5em; */
+    margin: 0; 
+}
 
+
+.fminfobox .text {
+    font-size: 0.7em;
+    font-weight: normal;
+    text-align: left; 
+    /* padding: 0.5em; */
+    margin: 0; 
+}
+
+
+#q,
+.fminfobox input[type="submit"] {
+    font-size: 0.7em;
+    /* You can adjust the value as needed, e.g. 0.8em or 12px */
+}

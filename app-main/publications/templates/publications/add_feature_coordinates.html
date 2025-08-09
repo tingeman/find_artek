@@ -18,41 +18,110 @@
 {% endblock %}
 
 {% block main-content %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-10 mx-auto">
-            <h2>Add Feature by Coordinates</h2>
+<div class="row">
+    <div class="col-12">
+        <div class="publication-info">
+            <h4>Adding a Point Feature to Publication {{ publication.number }}</h4>
+            <p><strong>Publication:</strong> {{ publication.title }}</p>
+            <p>This form allows you to register a point feature using known coordinates. 
+               The feature will be automatically associated with the selected publication.</p>
+            <p><small class="text-muted"><span style="color: red;">*</span> indicates required fields</small></p>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
             
-            <div class="publication-info">
-                <h4>Adding a Point Feature to Publication {{ publication.number }}</h4>
-                <p><strong>Publication:</strong> {{ publication.title }}</p>
-                <p>This form allows you to register a point feature using known coordinates. 
-                   The feature will be automatically associated with the selected publication.</p>
-                <p><small class="text-muted"><span style="color: red;">*</span> indicates required fields</small></p>
+            <!-- Feature Basic Information -->
+            <div class="form-group mb-3 row required-field">
+                <label for="{{ form.name.id_for_label }}" class="col-sm-3 col-form-label">{{ form.name.label }}</label>
+                <div class="col-sm-9">
+                    {{ form.name }}
+                    {% if form.name.help_text %}
+                        <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                    {% endif %}
+                    {% if form.name.errors %}
+                        <div class="text-danger">
+                            {% for error in form.name.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
 
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
+            <div class="form-group mb-3 row required-field">
+                <label for="{{ form.type.id_for_label }}" class="col-sm-3 col-form-label">{{ form.type.label }}</label>
+                <div class="col-sm-9">
+                    {{ form.type }}
+                    {% if form.type.help_text %}
+                        <small class="form-text text-muted">{{ form.type.help_text }}</small>
+                    {% endif %}
+                    {% if form.type.errors %}
+                        <div class="text-danger">
+                            {% for error in form.type.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
 
-            <form method="post" class="mt-4">
-                {% csrf_token %}
+            <!-- Coordinate Information -->
+            <div class="coordinate-section">
+                <h5>Coordinate Information</h5>
                 
-                <!-- Feature Basic Information -->
                 <div class="form-group mb-3 row required-field">
-                    <label for="{{ form.name.id_for_label }}" class="col-sm-3 col-form-label">{{ form.name.label }}</label>
+                    <label for="{{ form.pos_quality.id_for_label }}" class="col-sm-3 col-form-label">{{ form.pos_quality.label }}</label>
                     <div class="col-sm-9">
-                        {{ form.name }}
-                        {% if form.name.help_text %}
-                            <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                        {{ form.pos_quality }}
+                        {% if form.pos_quality.help_text %}
+                            <small class="form-text text-muted">{{ form.pos_quality.help_text }}</small>
                         {% endif %}
-                        {% if form.name.errors %}
+                        {% if form.pos_quality.errors %}
                             <div class="text-danger">
-                                {% for error in form.name.errors %}
+                                {% for error in form.pos_quality.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3 row required-field">
+                    <label for="{{ form.x_coordinate.id_for_label }}" class="col-sm-3 col-form-label" id="x-coordinate-label">{{ form.x_coordinate.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.x_coordinate }}
+                        {% if form.x_coordinate.help_text %}
+                            <small class="form-text text-muted" id="x-coordinate-help">{{ form.x_coordinate.help_text }}</small>
+                        {% endif %}
+                        {% if form.x_coordinate.errors %}
+                            <div class="text-danger">
+                                {% for error in form.x_coordinate.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3 row required-field">
+                    <label for="{{ form.y_coordinate.id_for_label }}" class="col-sm-3 col-form-label" id="y-coordinate-label">{{ form.y_coordinate.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.y_coordinate }}
+                        {% if form.y_coordinate.help_text %}
+                            <small class="form-text text-muted" id="y-coordinate-help">{{ form.y_coordinate.help_text }}</small>
+                        {% endif %}
+                        {% if form.y_coordinate.errors %}
+                            <div class="text-danger">
+                                {% for error in form.y_coordinate.errors %}
                                     <small>{{ error }}</small>
                                 {% endfor %}
                             </div>
@@ -61,15 +130,52 @@
                 </div>
 
                 <div class="form-group mb-3 row required-field">
-                    <label for="{{ form.type.id_for_label }}" class="col-sm-3 col-form-label">{{ form.type.label }}</label>
+                    <label for="{{ form.spatial_reference_system.id_for_label }}" class="col-sm-3 col-form-label">{{ form.spatial_reference_system.label }}</label>
                     <div class="col-sm-9">
-                        {{ form.type }}
-                        {% if form.type.help_text %}
-                            <small class="form-text text-muted">{{ form.type.help_text }}</small>
+                        {{ form.spatial_reference_system }}
+                        {% if form.spatial_reference_system.help_text %}
+                            <small class="form-text text-muted">{{ form.spatial_reference_system.help_text|safe }}</small>
                         {% endif %}
-                        {% if form.type.errors %}
+                        {% if form.spatial_reference_system.errors %}
                             <div class="text-danger">
-                                {% for error in form.type.errors %}
+                                {% for error in form.spatial_reference_system.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Detailed SRID examples - at same level as form fields -->
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <strong>Common SRID Examples:</strong><br>
+                        <strong>Global:</strong> <code>4326</code> (WGS84 Lat/Lon)<br>
+                        <strong>Greenland (WGS84):</strong> <code>32618-32624</code> (UTM zones)<br>
+                        <strong>Greenland (GR96):</strong> <code>3182</code>, <code>3183</code> (UTM 22N, 23N)<br>
+                        <strong>Denmark:</strong> <code>25832</code>, <code>25833</code> (ETRS89 UTM)<br>
+                        <strong>Norway:</strong> <code>25832-25836</code> (ETRS89 UTM zones)<br>
+                        <strong>Canada:</strong> <code>32607-32622</code> (WGS84 UTM zones)<br>
+                        <a href="https://spatialreference.org/" target="_blank" class="text-decoration-none">spatialreference.org</a> | 
+                        <a href="https://epsg.io/" target="_blank" class="text-decoration-none">epsg.io</a>
+                    </small>
+                </div>
+            </div>
+
+            <!-- Additional Feature Information -->
+            <div class="additional-info-section">
+                <h5>Additional Information</h5>
+                
+                <div class="form-group mb-3 row">
+                    <label for="{{ form.area.id_for_label }}" class="col-sm-3 col-form-label">{{ form.area.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.area }}
+                        {% if form.area.help_text %}
+                            <small class="form-text text-muted">{{ form.area.help_text }}</small>
+                        {% endif %}
+                        {% if form.area.errors %}
+                            <div class="text-danger">
+                                {% for error in form.area.errors %}
                                     <small>{{ error }}</small>
                                 {% endfor %}
                             </div>
@@ -77,191 +183,81 @@
                     </div>
                 </div>
 
-                <!-- Coordinate Information -->
-                <div class="coordinate-section">
-                    <h5>Coordinate Information</h5>
-                    
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.pos_quality.id_for_label }}" class="col-sm-3 col-form-label">{{ form.pos_quality.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.pos_quality }}
-                            {% if form.pos_quality.help_text %}
-                                <small class="form-text text-muted">{{ form.pos_quality.help_text }}</small>
-                            {% endif %}
-                            {% if form.pos_quality.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.pos_quality.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.x_coordinate.id_for_label }}" class="col-sm-3 col-form-label" id="x-coordinate-label">{{ form.x_coordinate.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.x_coordinate }}
-                            {% if form.x_coordinate.help_text %}
-                                <small class="form-text text-muted" id="x-coordinate-help">{{ form.x_coordinate.help_text }}</small>
-                            {% endif %}
-                            {% if form.x_coordinate.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.x_coordinate.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.y_coordinate.id_for_label }}" class="col-sm-3 col-form-label" id="y-coordinate-label">{{ form.y_coordinate.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.y_coordinate }}
-                            {% if form.y_coordinate.help_text %}
-                                <small class="form-text text-muted" id="y-coordinate-help">{{ form.y_coordinate.help_text }}</small>
-                            {% endif %}
-                            {% if form.y_coordinate.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.y_coordinate.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.spatial_reference_system.id_for_label }}" class="col-sm-3 col-form-label">{{ form.spatial_reference_system.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.spatial_reference_system }}
-                            {% if form.spatial_reference_system.help_text %}
-                                <small class="form-text text-muted">{{ form.spatial_reference_system.help_text|safe }}</small>
-                            {% endif %}
-                            {% if form.spatial_reference_system.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.spatial_reference_system.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Detailed SRID examples - at same level as form fields -->
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <strong>Common SRID Examples:</strong><br>
-                            <strong>Global:</strong> <code>4326</code> (WGS84 Lat/Lon)<br>
-                            <strong>Greenland (WGS84):</strong> <code>32618-32624</code> (UTM zones)<br>
-                            <strong>Greenland (GR96):</strong> <code>3182</code>, <code>3183</code> (UTM 22N, 23N)<br>
-                            <strong>Denmark:</strong> <code>25832</code>, <code>25833</code> (ETRS89 UTM)<br>
-                            <strong>Norway:</strong> <code>25832-25836</code> (ETRS89 UTM zones)<br>
-                            <strong>Canada:</strong> <code>32607-32622</code> (WGS84 UTM zones)<br>
-                            <a href="https://spatialreference.org/" target="_blank" class="text-decoration-none">spatialreference.org</a> | 
-                            <a href="https://epsg.io/" target="_blank" class="text-decoration-none">epsg.io</a>
-                        </small>
+                <div class="form-group mb-3 row required-field">
+                    <label for="{{ form.date.id_for_label }}" class="col-sm-3 col-form-label">{{ form.date.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.date }}
+                        {% if form.date.help_text %}
+                            <small class="form-text text-muted">{{ form.date.help_text }}</small>
+                        {% endif %}
+                        {% if form.date.errors %}
+                            <div class="text-danger">
+                                {% for error in form.date.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <!-- Additional Feature Information -->
-                <div class="additional-info-section">
-                    <h5>Additional Information</h5>
-                    
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.area.id_for_label }}" class="col-sm-3 col-form-label">{{ form.area.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.area }}
-                            {% if form.area.help_text %}
-                                <small class="form-text text-muted">{{ form.area.help_text }}</small>
-                            {% endif %}
-                            {% if form.area.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.area.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.date.id_for_label }}" class="col-sm-3 col-form-label">{{ form.date.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.date }}
-                            {% if form.date.help_text %}
-                                <small class="form-text text-muted">{{ form.date.help_text }}</small>
-                            {% endif %}
-                            {% if form.date.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.date.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.direction.id_for_label }}" class="col-sm-3 col-form-label">{{ form.direction.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.direction }}
-                            {% if form.direction.help_text %}
-                                <small class="form-text text-muted">{{ form.direction.help_text }}</small>
-                            {% endif %}
-                            {% if form.direction.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.direction.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.description.id_for_label }}" class="col-sm-3 col-form-label">{{ form.description.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.description }}
-                            {% if form.description.help_text %}
-                                <small class="form-text text-muted">{{ form.description.help_text }}</small>
-                            {% endif %}
-                            {% if form.description.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.description.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.comment.id_for_label }}" class="col-sm-3 col-form-label">{{ form.comment.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.comment }}
-                            {% if form.comment.help_text %}
-                                <small class="form-text text-muted">{{ form.comment.help_text }}</small>
-                            {% endif %}
-                            {% if form.comment.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.comment.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                <div class="form-group mb-3 row">
+                    <label for="{{ form.direction.id_for_label }}" class="col-sm-3 col-form-label">{{ form.direction.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.direction }}
+                        {% if form.direction.help_text %}
+                            <small class="form-text text-muted">{{ form.direction.help_text }}</small>
+                        {% endif %}
+                        {% if form.direction.errors %}
+                            <div class="text-danger">
+                                {% for error in form.direction.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <!-- Form Actions -->
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Create Feature</button>
-                    <a href="{% url 'publications:report' publication.pk %}" class="btn btn-secondary">Cancel</a>
+                <div class="form-group mb-3 row">
+                    <label for="{{ form.description.id_for_label }}" class="col-sm-3 col-form-label">{{ form.description.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.description }}
+                        {% if form.description.help_text %}
+                            <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <div class="text-danger">
+                                {% for error in form.description.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
-            </form>
-        </div>
+
+                <div class="form-group mb-3 row">
+                    <label for="{{ form.comment.id_for_label }}" class="col-sm-3 col-form-label">{{ form.comment.label }}</label>
+                    <div class="col-sm-9">
+                        {{ form.comment }}
+                        {% if form.comment.help_text %}
+                            <small class="form-text text-muted">{{ form.comment.help_text }}</small>
+                        {% endif %}
+                        {% if form.comment.errors %}
+                            <div class="text-danger">
+                                {% for error in form.comment.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create Feature</button>
+                <a href="{% url 'publications:report' publication.pk %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
