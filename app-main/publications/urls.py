@@ -56,6 +56,9 @@ urlpatterns = [
     path("workflow/person/disambiguate/", disambiguate_person_step, name="disambiguate_person_step"),
     path("workflow/person/complete/", complete_person_workflow, name="complete_person_workflow"),
 
+    # Bulk delete publications
+    path('reports/bulk-delete/', views.BulkDeletePublicationsView.as_view(), name='bulk_delete_publications'),
+
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
     #path("test/create/<int:pk>/", views.TestPublicationCreateViewNEW.as_view(), name="test-publication-create"),
