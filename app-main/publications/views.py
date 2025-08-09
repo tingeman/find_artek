@@ -1,21 +1,14 @@
-
-# Standard library imports
-import ast
-
 # === Standard library imports ===
+import os
 import ast
 import datetime
 import json
-import os
 import pdb
 import re
 import shutil
 import tempfile
 import time
 import traceback
-
-# === Third-party imports ===
-from django_select2.views import AutoResponseView
 
 # === Django imports ===
 from django.conf import settings
@@ -37,15 +30,22 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.http import require_http_methods
-from django.views.generic import TemplateView
-from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView, UpdateView, FormView, DeleteView
+from django.views.generic import TemplateView, DetailView, CreateView, UpdateView, FormView, DeleteView
+
+# Add imports for filtering helpers
+from django.db.models import Q, CharField
+from django.db.models.functions import Cast
+
+
 
 # === Django GIS imports ===
 from django.contrib.gis.geos import Point, MultiPoint
-from urllib3 import request
+
+# === Third-party imports ===
+from django_select2.views import AutoResponseView
 
 # === Project-specific imports ===
+from .register_from_file import xlsx_pubs
 from find_artek.search import get_query
 from publications.forms import (
     LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
@@ -53,6 +53,7 @@ from publications.forms import (
     AddFeatureByCoordinatesForm, AddFeatureByMap, PersonWorkflowMixin, 
     UploadAppendixForm, ChangeReportNumberForm
 )
+from publications.forms.publication import ImportPublicationFileForm
 from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
 from publications.library import get_client_ip, is_private
 from publications.models import (
@@ -64,6 +65,7 @@ from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
     handle_session_appendix_uploads, rename_publication_files
 )
+from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
 # Create your views here.
@@ -2428,3 +2430,108 @@ def add_person_ajax(request):
             'error': f'Failed to create person: {str(e)}'
         }, status=500)
 
+
+
+@method_decorator(login_required, name='dispatch')
+class AddReportsFromFileUploadView(BaseFormView):
+    template_name = "publications/add_reports_from_file_upload.html"
+    form_class = ImportPublicationFileForm
+
+    def form_valid(self, form):
+        uploaded_file = form.cleaned_data["file"]
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            for chunk in uploaded_file.chunks():
+                f.write(chunk)
+
+        # Call the parsing function
+        filemessages = xlsx_pubs(file_path, user=self.request.user)
+        for level, msg in filemessages:
+            messages.add_message(self.request, level, msg)
+
+        # Redirect back to the same page to show messages
+        return redirect("publications:add_reports_from_file_upload")
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Please correct the errors below.")
+        context = self.get_context_data(form=form)
+        return render(self.request, self.template_name, context)
+
+
+
+class BulkDeletePublicationsView(LoginRequiredMixin, UserPassesTestMixin, View):
+    template_name = 'publications/bulk_delete_publications.html'
+
+    def test_func(self):
+        # Require permission to delete publications
+        return self.request.user.has_perm('publications.delete_publication')
+
+    def get_queryset(self, request):
+        qs = Publication.objects.all().prefetch_related('authors')
+
+        # Filters
+        year_q = request.GET.get('year', '').strip()
+        number_q = request.GET.get('number', '').strip()
+        title_q = request.GET.get('title', '').strip()
+        author_q = request.GET.get('author', '').strip()
+
+        if year_q:
+            # Allow partial match on year by casting to CharField
+            qs = qs.annotate(year_str=Cast('year', CharField())).filter(year_str__icontains=year_q)
+        if number_q:
+            qs = qs.filter(number__icontains=number_q)
+        if title_q:
+            qs = qs.filter(title__icontains=title_q)
+        if author_q:
+            qs = qs.filter(
+                Q(authors__first__icontains=author_q) |
+                Q(authors__middle__icontains=author_q) |
+                Q(authors__prelast__icontains=author_q) |
+                Q(authors__last__icontains=author_q)
+            )
+        return qs.order_by('-year', '-number', 'title').distinct()
+
+    def get(self, request):
+        publications = self.get_queryset(request)
+        context = {
+            'publications': publications,
+            'filters': {
+                'year': request.GET.get('year', ''),
+                'number': request.GET.get('number', ''),
+                'title': request.GET.get('title', ''),
+                'author': request.GET.get('author', ''),
+            },
+            'confirm': False,
+            'selected_ids': [],
+        }
+        return render(request, self.template_name, context)
+	
+    def post(self, request):
+        if 'cancel' in request.POST:
+            messages.info(request, 'Bulk delete cancelled.')
+            return redirect('publications:bulk_delete_publications')
+
+        selected_ids = request.POST.getlist('selected_publications')
+        if not selected_ids:
+            messages.warning(request, 'No publications selected.')
+            return redirect('publications:bulk_delete_publications')
+
+        # If confirm flag is present, perform deletion
+        if request.POST.get('confirm') == 'yes':
+            qs = Publication.objects.filter(pk__in=selected_ids)
+            count = qs.count()
+            qs.delete()
+            messages.success(request, f'Deleted {count} publication(s).')
+            return redirect('publications:bulk_delete_publications')
+
+        # Otherwise, render confirmation
+        publications = Publication.objects.filter(pk__in=selected_ids).prefetch_related('authors')
+        context = {
+            'confirm': True,
+            'publications_to_delete': publications,
+            'count': publications.count(),
+            'selected_ids': selected_ids,
+        }
+        return render(request, self.template_name, context)

@@ -12,6 +12,9 @@ urlpatterns = [
     path('reports/', views.ReportsView.as_view(), name='reports'),
     path('persons/', views.PersonsView.as_view(), name='persons'),
 
+    # Excel file upload for adding publications
+    path('add/reports_from_file/', views.AddReportsFromFileUploadView.as_view(), name='add_reports_from_file_upload'),
+
     path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
     path('report/<int:pk>/appendix/upload/', views.UploadAppendixView.as_view(), name='upload_appendix'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
@@ -52,6 +55,9 @@ urlpatterns = [
     # Multi-step person disambiguation workflow
     path("workflow/person/disambiguate/", disambiguate_person_step, name="disambiguate_person_step"),
     path("workflow/person/complete/", complete_person_workflow, name="complete_person_workflow"),
+
+    # Bulk delete publications
+    path('reports/bulk-delete/', views.BulkDeletePublicationsView.as_view(), name='bulk_delete_publications'),
 
 
     #path("test/create/", views.TestPublicationCreateView.as_view(), name="test-publication-create"),
