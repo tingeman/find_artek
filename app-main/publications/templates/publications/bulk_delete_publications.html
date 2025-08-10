@@ -111,15 +111,15 @@
                 <td>{{ pub.number }}</td>
                 <td>{{ pub.title|default:"[no title]" }}</td>
                 <td>
-                  {% with authors=pub.authors.all %}
-                    {% if authors %}
-                      {% for a in authors %}
-                        {{ a.last }}, {{ a.first }}{% if not forloop.last %}; {% endif %}
-                      {% endfor %}
-                    {% else %}
-                      —
-                    {% endif %}
-                  {% endwith %}
+                {% with authors=pub.authors.all %}
+                  {% if authors %}
+                    {% for a in authors %}
+                      {{ a.first|slice:":1" }}.&nbsp;{{ a.last }}{% if not forloop.last %}{% if forloop.revcounter == 2 %} & {% else %}, {% endif %}{% endif %}
+                    {% endfor %}
+                  {% else %}
+                    —
+                  {% endif %}
+                {% endwith %}
                 </td>
               </tr>
             {% empty %}
