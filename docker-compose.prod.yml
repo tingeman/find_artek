@@ -32,7 +32,7 @@ volumes:
     driver: local
     driver_opts:
       type: cifs
-      o: "username=${NETWORK_DRIVE_USER},password=${NETWORK_DRIVE_PASSWORD},ro"
+      o: "username=${NETWORK_DRIVE_USER},password=${NETWORK_DRIVE_PASSWORD},rw"
       device: "//${NETWORK_DRIVE_HOST}/${NETWORK_DRIVE_SHARE}/staticfiles"
   media_data:
     driver: local
