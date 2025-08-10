@@ -290,12 +290,14 @@ class ReportView(BaseDetailView):
         context = super().get_context_data(**kwargs)
         associated_features = Feature.objects.filter(publications=self.object)
         user = self.request.user
-        can_edit_features = self.object.is_editable_by(user) if user.is_authenticated else False
-        can_delete_features = self.object.is_deletable_by(user) if user.is_authenticated else False
+        can_edit_publication = self.object.is_editable_by(user) if user.is_authenticated else False
+        can_delete_publication = self.object.is_deletable_by(user) if user.is_authenticated else False
+        can_verify_publication = self.object.is_verifiable_by(user) if user.is_authenticated else False
         context.update({
             'associated_features': associated_features,
-            'can_edit_features': can_edit_features,
-            'can_delete_features': can_delete_features,
+            'can_edit_publication': can_edit_publication,
+            'can_delete_publication': can_delete_publication,
+            'can_verify_publication': can_verify_publication,
         })
         context['invalidate_feature_cache'] = self.request.session.pop('invalidate_feature_cache', False)
         print(context)
@@ -1106,7 +1108,7 @@ class VerifyReportView(BaseView):
     def get(self, request, *args, **kwargs):
         publication = self.get_object()
         if not publication:
-            return redirect('/pubs/publist/')
+            return redirect('publications:reports')
 
         if not publication.is_verifiable_by(request.user):
             error = "You do not have permissions to verify this report!"
@@ -1116,7 +1118,7 @@ class VerifyReportView(BaseView):
         publication.verified = True
         publication.save()
         messages.success(request, f"Report ({publication.id}) '{publication.number}' was verified.")
-        return redirect(f'/pubs/detail/{publication.id}')
+        return redirect('publications:report', pk=publication.pk)
 
 
 class UnverifyReportView(BaseView):
@@ -1138,7 +1140,7 @@ class UnverifyReportView(BaseView):
     def get(self, request, *args, **kwargs):
         publication = self.get_object()
         if not publication:
-            return redirect('/pubs/publist/')
+            return redirect('publications:reports')
 
         if not publication.is_verifiable_by(request.user):
             error = "You do not have permissions to unverify this report!"
@@ -1148,7 +1150,7 @@ class UnverifyReportView(BaseView):
         publication.verified = False
         publication.save()
         messages.success(request, f"Report ({publication.id}) '{publication.number}' was unverified.")
-        return redirect(f'/pubs/detail/{publication.id}')
+        return redirect('publications:report', pk=publication.pk)
 
 
 @method_decorator(login_required, name='dispatch')

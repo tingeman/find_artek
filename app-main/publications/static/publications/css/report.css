@@ -147,6 +147,8 @@ spand > p {
 .abstract-btn {
     display: inline;
     text-decoration: underline;
+    border: none;
+    background: none;
 }
 
 .abstract-btn:hover {
@@ -235,7 +237,7 @@ td > a:link {
     color: black;
 }
 
-/* Action buttons styles */
+/* Action buttons styles
 .btn {
     display: inline-block;
     padding: 6px 12px;
@@ -294,12 +296,12 @@ td > a:link {
     color: #fff;
     background-color: #6c757d;
     border-color: #6c757d;
-}
+} */
 
-.me-2 {
+/* .me-2 {
     margin-right: 0.5rem;
 }
 
 .ms-2 {
     margin-left: 0.5rem;
-}
+} */
