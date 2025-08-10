@@ -67,7 +67,7 @@ def thumb_file(value):
 
     if not default_storage.exists(fpath):
         furl = os.path.join(settings.STATIC_URL,'publications',
-                        'images','preview_not_available.png')
+                        'img','preview_not_available.png')
 
     furl = furl.replace('\\', '/')
     

@@ -1,7 +1,7 @@
 {% extends 'publications/base.html' %}
 {% load static %}
 
-{% block title %}Add Feature by Map{% endblock %}
+{% block headline %}Add Feature by Map{% endblock %}
 
 {% block dynamic_head_content %}
 <!-- Leaflet CSS and JavaScript -->
@@ -155,8 +155,6 @@ code {
 {% endblock %}
 
 {% block main-content %}
-<div class="container mt-4">
-    <h1 class="mb-4">Add Feature by Map</h1>
     
     <div class="alert alert-info">
         <p><strong>Instructions:</strong></p>
@@ -283,20 +281,6 @@ code {
                             {% endif %}
                         </div>
                     </div>
-<script>
-// Prepopulate position quality with 'approximate' if not already set
-document.addEventListener('DOMContentLoaded', function() {
-    var posQuality = document.getElementById('id_pos_quality');
-    if (posQuality && !posQuality.value) {
-        for (var i = 0; i < posQuality.options.length; i++) {
-            if (posQuality.options[i].value.toLowerCase() === 'approximate') {
-                posQuality.selectedIndex = i;
-                break;
-            }
-        }
-    }
-});
-</script>
                     <div class="form-group mb-3 row required-field">
                         <label for="{{ form.date.id_for_label }}" class="col-sm-3 col-form-label">{{ form.date.label }}</label>
                         <div class="col-sm-9">
@@ -378,6 +362,20 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 {% block scripts %}
+<script>
+// Prepopulate position quality with 'approximate' if not already set
+document.addEventListener('DOMContentLoaded', function() {
+    var posQuality = document.getElementById('id_pos_quality');
+    if (posQuality && !posQuality.value) {
+        for (var i = 0; i < posQuality.options.length; i++) {
+            if (posQuality.options[i].value.toLowerCase() === 'approximate') {
+                posQuality.selectedIndex = i;
+                break;
+            }
+        }
+    }
+});
+</script>
 <script>
     // Initialize the map
     document.addEventListener('DOMContentLoaded', function() {

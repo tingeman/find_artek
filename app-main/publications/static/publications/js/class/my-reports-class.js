@@ -180,20 +180,18 @@ class MyReportsClass {
             // ----------------- Handle reportDownloadLink starts here ----------------- //
 
 
-            // Creates:
-            //         <a href="#">
-            //             <img src="/static/find_artek_static/staticfiles/publications/img/pdf_16x16.png" alt="pdf-logo">
-            //         </a>
-            const pdfLogoLink = document.createElement('a');
-            pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
-            pdfLogoLink.download = ''
-            const pdfLogo = document.createElement('img');
-            pdfLogo.src = URL_PREFIX + '/static/publications/img/pdf_16x16.png';
-            pdfLogo.alt = 'pdf-logo';
-            pdfLogoLink.appendChild(pdfLogo);
-
-            // Append pdfLogoLink to reportDownloadLink
-            reportDownloadLink.appendChild(pdfLogoLink);
+            // Only add PDF logo if there is a file to download
+            if (report.link_to_pdf_associated_with_this_publication) {
+                const pdfLogoLink = document.createElement('a');
+                pdfLogoLink.href = report.link_to_pdf_associated_with_this_publication;
+                pdfLogoLink.download = '';
+                const pdfLogo = document.createElement('img');
+                pdfLogo.src = URL_PREFIX + '/static/publications/img/pdf_16x16.png';
+                pdfLogo.alt = 'pdf-logo';
+                pdfLogoLink.appendChild(pdfLogo);
+                // Append pdfLogoLink to reportDownloadLink
+                reportDownloadLink.appendChild(pdfLogoLink);
+            }
 
 
             // Append reportDownloadLink to reportRow

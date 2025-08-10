@@ -99,23 +99,25 @@ spand > p {
     min-height: 412px;
 }
 
-.map-box {
+/* .map-box {
     display: flex;
     flex-direction: grid;
     justify-content: space-between;
     min-height: 500px;
-}
+} */
 
-.map-box-inner {
+/* .map-box-inner {
     border: 1px solid black;
     margin-right: 10px;
     margin-bottom: 30px;
     max-height: 100%;
     width: 600px;
-    /* overflow: hidden; */
-}
+    # overflow: hidden;
+} 
+    */
 
-.color-guide-box {
+
+/* .color-guide-box {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -135,6 +137,8 @@ spand > p {
     padding-left: 5px;
     
 }
+
+ */
 
 .color-guide-box-inner-presentation {
     border: 1px solid black;
@@ -305,3 +309,66 @@ td > a:link {
 .ms-2 {
     margin-left: 0.5rem;
 } */
+
+/* Fix for consistent card header padding */
+.card-header {
+    padding: 0.75rem 1.25rem !important; /* Use !important to override any bootstrap styles */
+}
+
+.card-header h5 {
+    margin-bottom: 0 !important;
+}
+
+.card-header .btn {
+    padding: 0.375rem 0.75rem !important;
+}
+
+/* Bibliographic data styling */
+.content-wrapper {
+    position: relative;
+}
+
+.preview-image-container {
+    float: right;
+    width: 283px;
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.preview-image-container img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+}
+
+.bibliographic-data {
+    max-width: calc(100% - 300px); /* Allow room for the image */
+}
+
+.property-label {
+    flex-shrink: 0;
+}
+
+.property-value {
+    flex-grow: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .preview-image-container {
+        float: none;
+        width: 100%;
+        margin-left: 0;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .preview-image-container img {
+        max-width: 283px;
+    }
+    
+    .bibliographic-data {
+        max-width: 100%; /* Full width on smaller screens */
+    }
+}
+
