@@ -1086,6 +1086,71 @@ class ReportFinalizeView(BaseView):
         return final_file_obj
 
 
+
+class VerifyReportView(BaseView):
+    """
+    View for verifying a report. Sets the 'verified' flag on a Publication if the user has permission.
+    """
+    template_name = 'publications/access_denied.html'
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self):
+        pub_id = self.kwargs.get('pub_id')
+        if pub_id:
+            return get_object_or_404(Publication, pk=pub_id)
+        return None
+
+    def get(self, request, *args, **kwargs):
+        publication = self.get_object()
+        if not publication:
+            return redirect('/pubs/publist/')
+
+        if not publication.is_verifiable_by(request.user):
+            error = "You do not have permissions to verify this report!"
+            context = {'pub': publication, 'error': error}
+            return render(request, self.template_name, context)
+
+        publication.verified = True
+        publication.save()
+        messages.success(request, f"Report ({publication.id}) '{publication.number}' was verified.")
+        return redirect(f'/pubs/detail/{publication.id}')
+
+
+class UnverifyReportView(BaseView):
+    """
+    View for unverifying a report. Sets the 'verified' flag to False if the user has permission.
+    """
+    template_name = 'publications/access_denied.html'
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self):
+        pub_id = self.kwargs.get('pub_id')
+        if pub_id:
+            return get_object_or_404(Publication, pk=pub_id)
+        return None
+
+    def get(self, request, *args, **kwargs):
+        publication = self.get_object()
+        if not publication:
+            return redirect('/pubs/publist/')
+
+        if not publication.is_verifiable_by(request.user):
+            error = "You do not have permissions to unverify this report!"
+            context = {'pub': publication, 'error': error}
+            return render(request, self.template_name, context)
+
+        publication.verified = False
+        publication.save()
+        messages.success(request, f"Report ({publication.id}) '{publication.number}' was unverified.")
+        return redirect(f'/pubs/detail/{publication.id}')
+
+
 @method_decorator(login_required, name='dispatch')
 class PersonSelectView(BaseView):
     template_name = 'publications/persons_select.html'

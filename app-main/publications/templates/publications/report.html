@@ -163,20 +163,33 @@
         </div>
         
         {% if user.is_authenticated %}
-        <div class="row">
-            <span class="property">Actions</span>
-            <span class="value">
-                <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-sm btn-outline-primary me-2" title="Edit this publication">
-                    ✏️ Edit
-                </a>
-                {% if user.is_superuser or publication.created_by == user or perms.publications.delete_publication %}
-                <a href="{% url 'publications:delete_report' pk=publication.pk %}" class="btn btn-sm btn-outline-danger" title="Delete this publication" 
-                   onclick="return confirm('Are you sure you want to delete this publication? This action cannot be undone.');">
-                    🗑️ Delete
-                </a>
-                {% endif %}
-            </span>
-        </div>
+            <div class="row">
+                <span class="property">Actions</span>
+                <span class="value">
+                    {% if user.is_superuser or (user.is_authenticated and publication.is_editable_by(user)) %}
+                    <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-sm btn-outline-primary me-2" title="Edit this publication">
+                        ✏️ Edit
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or (user.is_authenticated and publication.is_deletable_by(user)) %}
+                    <a href="{% url 'publications:delete_report' pk=publication.pk %}" class="btn btn-sm btn-outline-danger" title="Delete this publication" 
+                    onclick="return confirm('Are you sure you want to delete this publication? This action cannot be undone.');">
+                        🗑️ Delete
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or (user.is_authenticated and publication.is_verifiable_by(user)) %}
+                        {% if publication.verified %}
+                            <a href="{% url 'publications:unverify_report' pub_id=publication.pk %}" class="btn btn-sm btn-warning" title="Unverify this report">
+                                ❌ Unverify
+                            </a>
+                        {% else %}
+                            <a href="{% url 'publications:verify_report' pub_id=publication.pk %}" class="btn btn-sm btn-success" title="Verify this report">
+                                ✅ Verify
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </span>
+            </div>
         {% endif %}
     </div>
 
