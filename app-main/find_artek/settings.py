@@ -38,6 +38,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 CAS_SERVER_URL = 'https://auth2.dtu.dk/dtu/' # with multifactor
 CAS_VERSION = '2'
 
+LOGIN_URL = '/login'
 
 
 ALLOWED_HOSTS = [

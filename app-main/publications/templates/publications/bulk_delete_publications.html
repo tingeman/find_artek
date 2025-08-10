@@ -1,10 +1,9 @@
 {% extends "publications/base.html" %}
 {% load static %}
 
-{% block main-content %}
-<div class="container mt-4">
-  <h2>Bulk Delete Publications</h2>
+{% block headline %}Bulk Delete Publications{% endblock %}
 
+{% block main-content %}
   {% if messages %}
     <div class="mt-3">
       {% for message in messages %}
@@ -98,9 +97,46 @@
               <th>Year</th>
               <th>No.</th>
               <th>Title</th>
+            </tr>
+          </thead>          
+          <tbody>
+            {% for pub in publications %}
+              <tr>
+                <td>
+                  <input type="checkbox" name="selected_publications" value="{{ pub.pk }}" class="row-check" />
+                </td>
+                <td class="small-text">{{ pub.year }}</td>
+                <td class="small-text">{{ pub.number }}</td>
+                <td class="small-text">
+                  <a href="{% url 'publications:report' pk=pub.pk %}" target="_blank" class="title-line">{{ pub.title|default:"[no title]" }}</a><br/>
+                  <span class="authors-line">
+                  {% with authors=pub.authors.all %}
+                    {% if authors %}
+                      {% for a in authors %}
+                        {{ a.first|slice:":1" }}.&nbsp;{{ a.last }}{% if not forloop.last %}{% if forloop.revcounter == 2 %} & {% else %}, {% endif %}{% endif %}
+                      {% endfor %}
+                    {% else %}
+                      [no authors registered]
+                    {% endif %}
+                  {% endwith %}
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-center small-text">No publications match the filters.</td></tr>
+            {% endfor %}
+          </tbody>
+          <!-- <thead>
+            <tr>
+              <th style="width: 2rem;">
+                <input type="checkbox" id="select-all" />
+              </th>
+              <th>Year</th>
+              <th>No.</th>
+              <th>Title</th>
               <th>Authors</th>
             </tr>
-          </thead>
+          </thead>          
           <tbody>
             {% for pub in publications %}
               <tr>
@@ -125,7 +161,32 @@
             {% empty %}
               <tr><td colspan="5" class="text-center">No publications match the filters.</td></tr>
             {% endfor %}
-          </tbody>
+            {% for pub in publications %}
+              <tr>
+                <td>
+                  <input type="checkbox" name="selected_publications" value="{{ pub.pk }}" class="row-check" />
+                </td>
+                <td>{{ pub.year }}</td>
+                <td>{{ pub.number }}</td>
+                <td>{{ pub.title|default:"[no title]" }}</td>
+                <td>
+                {% with authors=pub.authors.all %}
+                  {% if authors %}
+                    {% for a in authors %}
+                      {{ a.first|slice:":1" }}.&nbsp;{{ a.last }}{% if not forloop.last %}{% if forloop.revcounter == 2 %} & {% else %}, {% endif %}{% endif %}
+                    {% endfor %}
+                  {% else %}
+                    —
+                  {% endif %}
+                {% endwith %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-center">No publications match the filters.</td></tr>
+            {% endfor %}
+          </tbody> -->
+
+
         </table>
       </div>
 
@@ -135,7 +196,6 @@
       </div>
     </form>
   {% endif %}
-</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -147,4 +207,39 @@
     });
   });
 </script>
+
+<style>
+.small-text {
+  font-size: 0.85em;
+}
+.authors-line {
+  font-size: 0.85em;
+  color: #555;
+}
+
+.title-line {
+  font-weight: 400;
+  font-style: italic;
+}
+
+.table-striped > tbody > tr {
+  padding-top: 0.4em !important;
+  padding-bottom: 0.4em !important;
+}
+
+.table > tbody > tr > td {
+  padding-top: 0.4em !important;
+  padding-bottom: 0.4em !important;
+}
+
+/* Smaller font for filter inputs and buttons */
+#f-year, #f-number, #f-title, #f-author {
+  font-size: 0.85em;
+  padding: 0.25em 0.5em;
+}
+.btn-primary, .btn-outline-secondary {
+  font-size: 0.85em;
+  padding: 0.25em 0.75em;
+}
+</style>
 {% endblock %}

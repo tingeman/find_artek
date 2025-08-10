@@ -170,7 +170,7 @@ $(document).ready(function() {
             var year = $(this).val();
             if (year && year.length === 4) {
                 $.ajax({
-                    url: '{% url "publications:get_next_report_number" %}',
+                    url: '{% url "api:get_next_report_number" %}',
                     data: { 'year': year },
                     dataType: 'json',
                     success: function(data) {

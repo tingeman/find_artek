@@ -69,7 +69,7 @@ urlpatterns = [
     path('admin-cas-login/', AdminCasLoginView.as_view(), name='admin-cas-login'),
 
     # api/*
-    path('api/', include('api.urls')),
+    path('api/', include(('api.urls', 'api'), namespace='api')),
 
     #swagger ui
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

@@ -19,6 +19,7 @@ from django.db.models import Case, When, Value, IntegerField
 
 from publications.models import Publication, FileObject, Appendenciesship
 
+
 def create_ordered_queryset(model_class, pk_list):
     # ...existing code from utils.py...
     if not pk_list:
@@ -31,6 +32,7 @@ def create_ordered_queryset(model_class, pk_list):
         preserved_order=preserved_order
     ).order_by('preserved_order')
     return queryset
+
 
 def handle_appendix_file_upload(publication, uploaded_file):
     # ...existing code from utils.py...
@@ -47,6 +49,7 @@ def handle_appendix_file_upload(publication, uploaded_file):
         description=f"Appendix file for report {publication.number} ({publication.year})"
     )
     return file_obj
+
 
 def handle_session_appendix_uploads(request, publication):
     # ...existing code from utils.py...
@@ -81,10 +84,27 @@ def handle_session_appendix_uploads(request, publication):
         del request.session[session_key]
     return created_files
 
+
 def generate_next_report_number(year, exclude_ids=None):
-    # ...existing code from utils.py...
-    year_suffix = str(year)[-2:]
+    """
+    Generate the next available report number for a given year.
+    Report numbers are in the format YY-NN, where YY is the last two digits of the year,
+    and NN is a two-digit increment starting from 01. The function ensures uniqueness
+    by checking existing numbers in the database and skipping any numbers already used.
+
+    Args:
+        year (int): The year for which to generate the report number.
+        exclude_ids (list, optional): List of publication IDs to exclude from the search (useful for batch updates).
+
+    Returns:
+        str: The next available report number in the format YY-NN.
+
+    Raises:
+        Exception: If all numbers up to YY-999 are taken for the given year.
+    """
+    year_suffix = str(year)[-2:]  # Get last two digits of the year
     with transaction.atomic():
+        # Query for publications in the given year with numbers starting with the year suffix
         queryset = Publication.objects.filter(
             year=year,
             number__startswith=f"{year_suffix}-"
@@ -93,6 +113,7 @@ def generate_next_report_number(year, exclude_ids=None):
             queryset = queryset.exclude(id__in=exclude_ids)
         existing_numbers = queryset.values_list('number', flat=True)
         used_increments = set()
+        # Parse existing numbers and collect used increments
         for number in existing_numbers:
             if number and '-' in number:
                 try:
@@ -100,8 +121,9 @@ def generate_next_report_number(year, exclude_ids=None):
                     if prefix == year_suffix and increment.isdigit():
                         used_increments.add(int(increment))
                 except (ValueError, AttributeError):
-                    continue
+                    continue  # Skip malformed numbers
         next_increment = 1
+        # Find the next available increment
         while next_increment <= 999:
             candidate_number = f"{year_suffix}-{next_increment:02d}"
             exists = Publication.objects.filter(
@@ -111,18 +133,37 @@ def generate_next_report_number(year, exclude_ids=None):
             if not exists:
                 return candidate_number
             next_increment += 1
+        # If all numbers are taken, raise an exception
         raise Exception(f"No available report numbers for year {year} (all numbers up to {year_suffix}-999 are taken)")
 
+
 def generate_batch_report_numbers(publications_by_year):
-    # ...existing code from utils.py...
+    """
+    Generate unique report numbers for a batch of publications grouped by year.
+    Each publication is assigned a number in the format YY-NN, where YY is the last two digits of the year
+    and NN is a two-digit increment starting from 01. The function ensures uniqueness by checking existing
+    numbers in the database and avoiding duplicates within the batch.
+
+    Args:
+        publications_by_year (dict): Dictionary mapping year (int) to a list of Publication objects for that year.
+
+    Returns:
+        dict: Mapping of publication IDs to their assigned report numbers (str).
+
+    Raises:
+        Exception: If all numbers up to YY-999 are taken for a given year.
+    """
     result = {}
     for year, publications in publications_by_year.items():
         if not publications:
-            continue
+            continue  # Skip years with no publications
+        # Sort publications by ID for deterministic assignment
         publications = sorted(publications, key=lambda p: p.id or 0)
         with transaction.atomic():
+            # IDs of publications being updated (to avoid excluding their current numbers)
             updating_ids = [pub.id for pub in publications if pub.id]
-            year_suffix = str(year)[-2:]
+            year_suffix = str(year)[-2:]  # Last two digits of the year
+            # Query for existing report numbers for the year, excluding those being updated
             existing_queryset = Publication.objects.filter(
                 year=year,
                 number__startswith=f"{year_suffix}-"
@@ -130,23 +171,28 @@ def generate_batch_report_numbers(publications_by_year):
             if updating_ids:
                 existing_queryset = existing_queryset.exclude(id__in=updating_ids)
             existing_numbers = set(existing_queryset.values_list('number', flat=True))
-            assigned_in_batch = set()
+            assigned_in_batch = set()  # Track numbers assigned in this batch to avoid duplicates
             for publication in publications:
                 next_increment = 1
                 while True:
+                    # Format candidate number as YY-NN
                     candidate_number = f"{year_suffix}-{next_increment:02d}"
+                    # Check if candidate number exists in DB or already assigned in batch
                     existing_check = Publication.objects.filter(
                         year=year,
                         number=candidate_number
                     ).select_for_update().exists()
                     if not existing_check and candidate_number not in assigned_in_batch:
+                        # Assign candidate number to publication
                         result[publication.id] = candidate_number
                         assigned_in_batch.add(candidate_number)
                         break
                     next_increment += 1
                     if next_increment > 999:
+                        # All numbers for this year are taken
                         raise Exception(f"No available report numbers for year {year} (tried up to {year_suffix}-999)")
     return result
+
 
 def validate_report_number_format(number):
     # ...existing code from utils.py...
@@ -156,6 +202,7 @@ def validate_report_number_format(number):
     if not re.match(pattern, number):
         return False, "Report number must be in format YY-NN (e.g., 25-01)"
     return True, None
+
 
 def rename_publication_files(publication, old_number, new_number):
     # ...existing code from utils.py...
@@ -207,6 +254,7 @@ def rename_publication_files(publication, old_number, new_number):
         results['success'] = False
         results['errors'].append(f"Error during file renaming: {str(e)}")
     return results
+
 
 def handle_publication_file_upload(uploaded_file, user, publication=None):
     print(f"🔍 DEBUG: handle_publication_file_upload - Starting file processing")

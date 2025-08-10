@@ -46,7 +46,7 @@ urlpatterns = [
     path('report/<int:report_pk>/add-feature-by-map/', views.AddFeatureByMapView.as_view(), name='add_feature_by_map'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
     path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
-    path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
+    # path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
     
     # AJAX endpoints for person disambiguation workflow
     path("ajax/person/check/", views.check_person_ajax, name="check_person_ajax"),

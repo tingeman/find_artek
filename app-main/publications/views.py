@@ -1791,68 +1791,47 @@ class ChangeReportNumberView(BaseFormView):
         return context
     
     def form_valid(self, form):
+        print("🔍 DEBUG: ChangeReportNumberView.form_valid called")
         publication = self.get_object()
         old_number = publication.number
         new_number = form.cleaned_data['new_number']
-        
+        print(f"🔍 DEBUG: old_number={old_number}, new_number={new_number}")
+        print(f"🔍 DEBUG: form.cleaned_data={form.cleaned_data}")
         try:
             with transaction.atomic():
-                # First rename files
+                print("🔍 DEBUG: Starting file renaming...")
                 rename_results = rename_publication_files(publication, old_number, new_number)
-                
+                print(f"🔍 DEBUG: rename_results={rename_results}")
                 if not rename_results['success']:
-                    # If file renaming failed, show errors
+                    print("🔍 DEBUG: File renaming failed, errors:", rename_results['errors'])
                     for error in rename_results['errors']:
                         messages.error(self.request, f"File renaming error: {error}")
                     return self.form_invalid(form)
-                
-                # Update publication number in database
+                print("🔍 DEBUG: Updating publication number in database...")
                 publication.number = new_number
                 publication.modified_by = self.request.user
-                publication.save(update_fields=['number', 'modified_by', 'modified'])
-                
-                # Show success message with file details
+                publication.save(update_fields=['number', 'modified_by'])
+                print("🔍 DEBUG: Publication updated and saved.")
                 messages.success(
                     self.request, 
                     f"Report number changed from {old_number} to {new_number}"
                 )
-                
                 if rename_results['renamed_files']:
+                    print(f"🔍 DEBUG: Renamed files: {rename_results['renamed_files']}")
+                    print(f"🔍 DEBUG: Renamed directories: {rename_results['directories_renamed']}")
                     messages.info(
                         self.request,
                         f"Renamed {len(rename_results['renamed_files'])} files and {len(rename_results['directories_renamed'])} directories"
                     )
-                
+                print("🔍 DEBUG: Redirecting to publication report view...")
                 return redirect('publications:report', pk=publication.pk)
-                
         except Exception as e:
+            print(f"🔍 DEBUG: Exception in form_valid: {type(e).__name__}: {str(e)}")
             messages.error(
                 self.request, 
                 f"Error changing report number: {str(e)}"
             )
             return self.form_invalid(form)
-
-
-class GetNextReportNumberView(View):
-    """
-    AJAX view to get the next available report number for a given year.
-    Used for auto-updating the report number field when year changes.
-    """
-    
-    def get(self, request):
-        year = request.GET.get('year')
-        
-        if not year:
-            return JsonResponse({'error': 'Year parameter is required'}, status=400)
-        
-        try:
-            year = int(year)
-            next_number = generate_next_report_number(year)
-            return JsonResponse({'number': next_number})
-        except (ValueError, TypeError):
-            return JsonResponse({'error': 'Invalid year format'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': f'Error generating report number: {str(e)}'}, status=500)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -2455,6 +2434,9 @@ class AddReportsFromFileUploadView(BaseFormView):
         return redirect("publications:add_reports_from_file_upload")
 
     def form_invalid(self, form):
+        print("🔍 DEBUG: ChangeReportNumberView.form_invalid called")
+        print(f"🔍 DEBUG: form.errors={form.errors}")
+        print(f"🔍 DEBUG: form.cleaned_data={getattr(form, 'cleaned_data', None)}")
         messages.error(self.request, "Please correct the errors below.")
         context = self.get_context_data(form=form)
         return render(self.request, self.template_name, context)
@@ -2507,7 +2489,7 @@ class BulkDeletePublicationsView(LoginRequiredMixin, UserPassesTestMixin, View):
             'selected_ids': [],
         }
         return render(request, self.template_name, context)
-	
+    
     def post(self, request):
         if 'cancel' in request.POST:
             messages.info(request, 'Bulk delete cancelled.')

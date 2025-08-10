@@ -1,20 +1,26 @@
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from .serializers import PublicationSerializer, FeatureSerializer, PersonSerializer
-from publications.models import Publication, Topic, Feature, Person
-from rest_framework.exceptions import NotFound
-# limit to only GET /report/ and GET /report/{id}/
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
-from django.db.models import Case, When, IntegerField
-
-import http.client
-import json
 import logging
+import json
+import http.client
+
+from django.db.models import Case, When, IntegerField
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status, viewsets
+from rest_framework.decorators import api_view
+from rest_framework.exceptions import NotFound
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from find_artek.search import get_query
+from publications.models import Publication, Topic, Feature, Person
+from publications import utils_models
+from .serializers import PublicationSerializer, FeatureSerializer, PersonSerializer
+
+
+# Get a logger instance for your app
+logger = logging.getLogger('api')
+logger.warning("views.py is loaded")
 
 # Get a logger instance for your app
 logger = logging.getLogger('api')
@@ -228,3 +234,65 @@ class GetPersonViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         queryset = Person.objects.all().order_by('last', 'first')
     
         return queryset
+
+
+# class GetNextReportNumberView(View):
+#     """
+#     AJAX view to get the next available report number for a given year.
+#     Used for auto-updating the report number field when year changes.
+#     """
+    
+#     def get(self, request):
+#         year = request.GET.get('year')
+        
+#         if not year:
+#             return JsonResponse({'error': 'Year parameter is required'}, status=400)
+        
+#         try:
+#             year = int(year)
+#             next_number = generate_next_report_number(year)
+#             return JsonResponse({'number': next_number})
+#         except (ValueError, TypeError):
+#             return JsonResponse({'error': 'Invalid year format'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': f'Error generating report number: {str(e)}'}, status=500)
+
+class GetNextReportNumberView(APIView):
+    """
+    API endpoint to get the next available report number for a given year.
+    Used for auto-updating the report number field when year changes.
+    """
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                name='year',
+                in_=openapi.IN_QUERY,
+                description="Year for which to get the next available report number.",
+                type=openapi.TYPE_INTEGER,
+                required=True,
+            ),
+        ],
+        responses={
+            200: openapi.Response('Next available report number', openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'number': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )),
+            400: 'Year parameter is required or invalid format',
+            500: 'Error generating report number'
+        }
+    )
+    def get(self, request):
+        year = request.GET.get('year')
+        if not year:
+            return Response({'error': 'Year parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            year = int(year)
+            next_number = utils_models.generate_next_report_number(year)
+            return Response({'number': next_number}, status=status.HTTP_200_OK)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid year format'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': f'Error generating report number: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -6,12 +6,27 @@
 
 thead {
     background-color: var(--primary-background-color);
-    color: black;
+    /* color: black;
+    border-top: 1px solid black !important;
+    border-bottom: 1px solid black !important;
+    border-left: 1px solid black !important;
+    border-right: 1px solid black !important; */
 }
 
-tr {
-    border: 1px solid;
+/* thead tr {
+    border-bottom: 1px solid black !important;
+} */
+
+th {
+    /* border: none !important; Remove borders from header cells */
+    padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
+
+/* tr {
+    border: 1px solid;
+} */
 
 table {
     border-collapse: collapse;
@@ -23,12 +38,6 @@ table {
 
 table > * {
     font-size: small;
-}
-
-th {
-    padding-left: 5px;
-    padding-top: 5px;
-    padding-bottom: 5px;
 }
 
 td {
