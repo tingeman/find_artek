@@ -33,6 +33,15 @@
 <!-- {% block headline %}Report details{% endblock %} -->
 
 {% block main-content %}
+  {% if messages %}
+    <div class="container mt-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   <!-- Section 1: Bibliographic Details & Preview -->
   <div class="row mb-4">

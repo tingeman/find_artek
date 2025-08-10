@@ -21,6 +21,16 @@
 
 {% block main-content %}
 
+  {% if messages %}
+    <div class="container mt-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
 <p class="headline-description">{% trans "Access ARTEKs student reports. Please choose below: topic based access, geographical access, or search in title/abstract." %}</p>
 
 <div class="grid-container">
