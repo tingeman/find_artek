@@ -571,7 +571,14 @@ class ReportReviewView(BaseView):
             review_data['existing_file_id'] = review_data['existing_file'].pk
         else:
             review_data['existing_file_id'] = None
-        review_data['delete_pdf'] = session_data.get('delete_pdf', False)
+        # Fix: Normalize delete_pdf to boolean
+        raw_delete_pdf = session_data.get('delete_pdf', False)
+        print(f"🔍 DEBUG: Raw delete_pdf value: {raw_delete_pdf} (type: {type(raw_delete_pdf).__name__})")
+        if isinstance(raw_delete_pdf, list):
+            # If it's a list, take the first element
+            raw_delete_pdf = raw_delete_pdf[0] if raw_delete_pdf else False
+        review_data['delete_pdf'] = raw_delete_pdf in [True, 'true', 'True', 'on', '1']
+
 
         # Add file IDs to review data if they exist
         if review_data['uploaded_file_id']:
@@ -886,6 +893,9 @@ class ReportFinalizeView(BaseView):
         for key, value in session_data.items():
             if key in ['authors', 'supervisors', 'publication_topics', 'publication_keywords']:
                 form_input[key] = value
+            elif key == 'delete_pdf':
+                # Normalize delete_pdf to boolean
+                form_input[key] = value in [True, 'true', 'True', 'on', '1']
             elif isinstance(value, list):
                 # If the value is a list, take the first item if it exists
                 if value:
@@ -972,8 +982,12 @@ class ReportFinalizeView(BaseView):
 
             if original_file_obj_backup:
                 print(f"🔍 DEBUG: Deleting temporary file object: {original_file_obj_backup.pk}")
-                original_file_obj_backup.delete()  # Clean up the temporary file object
-            print(f"🔍 DEBUG: File moved successfully to publication {publication.pk}: {final_file_obj.pk}")
+                try:
+                    original_file_obj_backup.delete()  # Clean up the temporary file object
+                    print(f"🔍 DEBUG: File moved successfully to publication {publication.pk}: {final_file_obj.pk}")
+                except Exception as e:
+                    print(f"🔍 DEBUG: Error deleting temporary file object: {e}")
+                    pass
         elif 'delete_pdf' in session_data and session_data['delete_pdf']:
             print(f"🔍 DEBUG: Deleting existing file for publication {publication.pk}")
             if publication.file:
@@ -1003,10 +1017,14 @@ class ReportFinalizeView(BaseView):
             temp_file_path = original_file_path + '.old'
             print(f"🔍 DEBUG: Temporary file path: {temp_file_path}")
             # Rename the file
-            os.rename(original_file_path, temp_file_path)
-            print(f"🔍 DEBUG: Existing file renamed to temporary path: {temp_file_path}")
-            # Update the publication file reference
-            publication.file.file.name = temp_file_path
+            try:
+                os.rename(original_file_path, temp_file_path)
+                print(f"🔍 DEBUG: Existing file renamed to temporary path: {temp_file_path}")
+                # Update the publication file reference
+                publication.file.file.name = temp_file_path
+            except OSError as e:
+                print(f"🔍 DEBUG: Error renaming file: {e}")
+                publication.file.file = None  # Clear the file reference
             publication.file.save() 
             return publication.file
         else:
@@ -1016,15 +1034,16 @@ class ReportFinalizeView(BaseView):
         """Restore the existing file to its original name (needed if transactions fail)"""
 
         print(f"🔍 DEBUG: Restoring existing file for publication {publication.pk}")
-        temp_file_path = temp_file_object.file.path
-        original_file_path = temp_file_path.replace('.old', '')
-        if os.path.exists(temp_file_path):
-            print(f"🔍 DEBUG: Restoring file from {temp_file_path} to {original_file_path}")
-            # Rename back to original
-            os.rename(temp_file_path, original_file_path)
-            # Update the publication file reference
-            publication.file.file.name = original_file_path
-            publication.file.save()
+        if temp_file_object.file:
+            temp_file_path = temp_file_object.file.path
+            original_file_path = temp_file_path.replace('.old', '')
+            if os.path.exists(temp_file_path):
+                print(f"🔍 DEBUG: Restoring file from {temp_file_path} to {original_file_path}")
+                # Rename back to original
+                os.rename(temp_file_path, original_file_path)
+                # Update the publication file reference
+                publication.file.file.name = original_file_path
+                publication.file.save()
         
     def _move_temp_file_to_final(self, temp_file_obj, publication):
         """Move a temporary file to its final location"""
