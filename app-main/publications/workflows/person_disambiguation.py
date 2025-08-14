@@ -11,19 +11,20 @@ for easy comparison and switching between the two.
 Note: This module deliberately avoids circular imports by not importing any workflow modules.
 """
 
+import ast
 import re
 import logging
 import string
 from typing import List, Dict, Tuple, Optional, Union, Any, Set
 
 from django.db.models import Q
+from django.urls import reverse
 from unidecode import unidecode
 
 # Import utility functions that we'll need
 from publications.utils_basic import dk_unidecode, CaseInsensitively
 from publications import models
 from publications.utils_person import NameNormalizer
-
 
 
 # TODO: Figure out where these functions should live!
@@ -769,9 +770,6 @@ class PersonDisambiguationService:
     
     This service manages the state of the disambiguation workflow in the session
     and provides methods for resolving person name ambiguities.
-    
-    Note: This is a skeleton implementation. The full implementation will follow
-    after the PersonMatcher is approved and tested.
     """
     
     def __init__(self, request):
@@ -779,12 +777,300 @@ class PersonDisambiguationService:
         self.request = request
         self.session = request.session
         self.matcher = PersonMatcher()
+        self._ensure_workflow_session()
     
-    # Placeholder for future implementation
+    def _ensure_workflow_session(self):
+        """Initialize workflow session if not exists"""
+        if 'person_workflow' not in self.session:
+            self.session['person_workflow'] = {
+                'pending_persons': [],
+                'resolved_persons': {},
+                'original_form_data': {},
+                'current_step': 0,
+                'field_name': None,
+                'source_url': None
+            }
     
-    # Methods to implement:
-    # - start_workflow
-    # - get_current_step
-    # - process_step
-    # - is_complete
-    # - get_resolved_data
+    def start_workflow(self, field_name, person_names, original_form_data, source_url=None):
+        """
+        Start new disambiguation workflow for a field.
+        
+        Args:
+            field_name: Name of the field containing person data (e.g., 'authors')
+            person_names: List of person names to disambiguate
+            original_form_data: Original form data to update with resolved persons
+            source_url: URL to return to after workflow completion
+        """
+        self.session['person_workflow'] = {
+            'pending_persons': person_names,
+            'resolved_persons': {},
+            'original_form_data': original_form_data,
+            'current_step': 0,
+            'field_name': field_name,
+            'source_url': source_url or self.request.path
+        }
+        self.session.modified = True
+    
+    def get_current_person(self):
+        """Get the current person name being processed"""
+        workflow = self.session['person_workflow']
+        step = workflow['current_step']
+        pending = workflow['pending_persons']
+        
+        if step < len(pending):
+            return pending[step]
+        return None
+    
+    def get_current_step_info(self):
+        """Get information about the current step"""
+        workflow = self.session['person_workflow']
+        current_step = workflow['current_step']
+        total_steps = len(workflow['pending_persons'])
+        
+        return {
+            'current_step': current_step + 1,  # 1-based for display
+            'total_steps': total_steps,
+            'progress_percent': int((current_step / total_steps) * 100) if total_steps > 0 else 0
+        }
+    
+    def resolve_current_person(self, resolution_data):
+        """
+        Resolve the current person and advance to the next step.
+        
+        Args:
+            resolution_data: The resolved person data (ID, new person data, or skip marker)
+        """
+        workflow = self.session['person_workflow']
+        current_person = self.get_current_person()
+        
+        if current_person:
+            workflow['resolved_persons'][current_person] = resolution_data
+            workflow['current_step'] += 1
+            self.session.modified = True
+    
+    def is_workflow_active(self):
+        """Check if a workflow is currently active"""
+        return 'person_workflow' in self.session and self.session['person_workflow']['pending_persons']
+    
+    def is_workflow_complete(self):
+        """Check if all steps in the workflow are complete"""
+        if not self.is_workflow_active():
+            return False
+            
+        workflow = self.session['person_workflow']
+        return workflow['current_step'] >= len(workflow['pending_persons'])
+    
+    def get_matches_for_current_person(self):
+        """Get matches for the current person using PersonMatcher"""
+        current_person = self.get_current_person()
+        if not current_person:
+            return []
+            
+        # Use PersonMatcher to find matches
+        return self.matcher.find_matches(current_person)
+    
+    def extract_persons_needing_disambiguation(self, form_data, field_name):
+        """
+        Extract person names from form data that need disambiguation.
+        
+        Args:
+            form_data: Form data containing person names
+            field_name: Name of the field containing person data
+            
+        Returns:
+            List of person names that need disambiguation
+        """
+        # Extract raw person data from form
+        person_data = self._extract_raw_person_data(form_data, field_name)
+        
+        # Filter to names needing disambiguation
+        names_needing_resolution = []
+        for name in person_data:
+            # Skip empty strings or non-string values
+            if not name or not isinstance(name, str) or not name.strip():
+                continue
+                
+            # Skip already resolved names (with SKIP: prefix or valid IDs)
+            if self._is_already_resolved(name):
+                continue
+                
+            # Check if matches exist
+            matches = self.matcher.find_matches(name)   # TODO: Why do we do this?? output is not used...
+            names_needing_resolution.append(name)
+            
+        return names_needing_resolution
+    
+    def _extract_raw_person_data(self, form_data, field_name):
+        """Extract raw person data from form data, handling various formats"""
+
+        # Get field values from form data
+        if hasattr(form_data, 'getlist'):
+            field_values = form_data.getlist(field_name)
+        else:
+            field_values = form_data.get(field_name, [])
+            
+        # Ensure we have a list
+        if field_values is None:
+            field_values = []
+        elif isinstance(field_values, str):
+            field_values = [field_values]
+            
+        # Process each value, handling potential nested structures
+        processed_values = []
+        for value in field_values:
+            if not value:
+                continue
+                
+            # Handle string representation of lists
+            if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
+                try:
+                    parsed_items = ast.literal_eval(value)   # TODO: What delimiters does this accept?
+                    if isinstance(parsed_items, list):
+                        processed_values.extend(parsed_items)
+                        continue
+                except (ValueError, SyntaxError):
+                    # If parsing fails, treat as normal string
+                    processed_values.append(value)
+            else:
+                # Regular value
+                processed_values.append(value)
+                
+        return processed_values
+    
+    def _is_already_resolved(self, name):
+        """Check if a name is already resolved and doesn't need disambiguation"""
+        # Check for skip marker
+        if name.startswith('SKIP:'):
+            return True
+            
+        # Check for ID tag
+        id_tag = self._get_tag(name, 'id')
+        if id_tag == 0:
+            # Marked for creation - no disambiguation needed
+            return True
+        elif id_tag and id_tag != 'ldap':
+            # Check if ID exists
+            try:
+                models.Person.objects.get(id=id_tag)
+                return True
+            except models.Person.DoesNotExist:
+                return False
+                
+        # Check if name is a numeric ID
+        if name.isdigit():
+            try:
+                models.Person.objects.get(id=int(name))
+                return True
+            except models.Person.DoesNotExist:
+                return False
+                
+        return False
+    
+    def _get_tag(self, string, tag_name):
+        """Extract tag value from string like '[id:123]' -> 123"""
+
+        # TODO: We should only have one function/class that handles
+        #       extraction of tags. Maybe call NameNormalizer?
+
+        pattern = r'\[' + tag_name + r':([^\]]+)\]'
+        match = re.search(pattern, string)
+        if match:
+            value = match.group(1)
+            if value == '0':
+                return 0
+            elif value == 'ldap':
+                return 'ldap'
+            else:
+                try:
+                    return int(value)
+                except ValueError:
+                    return None
+        return None
+    
+    def _remove_tags(self, string):
+        """Remove all tags like '[id:123]' from string"""
+
+        # TODO: We should only have one function/class that handles
+        #       extraction of tags. Maybe call NameNormalizer?
+
+        return re.sub(r'\[[^\]]+\]', '', string).strip()
+    
+    def update_form_data_with_resolved_persons(self):
+        """
+        Update form data with resolved persons.
+        
+        Returns:
+            Updated form data dictionary
+        """
+        if not self.is_workflow_complete():
+            return None
+            
+        workflow = self.session['person_workflow']
+        resolved_persons = workflow['resolved_persons']
+        original_form_data = workflow['original_form_data']
+        field_name = workflow['field_name']
+        
+        # Create a copy of the original form data
+        updated_form_data = original_form_data.copy()
+        
+        # Extract original field values
+        original_values = self._extract_raw_person_data(original_form_data, field_name)
+        
+        # Replace with resolved values
+        resolved_values = []
+        for value in original_values:
+            if value in resolved_persons:
+                resolved_values.append(resolved_persons[value])
+            else:
+                resolved_values.append(value)
+                
+        # Update the form data
+        updated_form_data[field_name] = resolved_values
+        
+        return updated_form_data
+    
+    def finalize_workflow(self):
+        """
+        Complete the workflow and prepare form data for form submission.
+        
+        Returns:
+            Tuple of (updated_form_data, redirect_url)
+        """
+        if not self.is_workflow_complete():
+            return None, None
+            
+        # Get updated form data
+        updated_form_data = self.update_form_data_with_resolved_persons()
+        
+        # Store in session for the form to access
+        self.request.session['updated_form_data'] = updated_form_data
+        self.request.session['workflow_updated_field'] = self.session['person_workflow']['field_name']
+        self.request.session.modified = True
+        
+        # Get redirect URL
+        redirect_url = self.session['person_workflow']['source_url']
+        
+        # TODO: This redirect logic seems problematic, as it is hard-coded
+        #       Couldn't this logic live in the code from which the workflow
+        #       is initiated, which could pass either the final redirect url
+        #       or the reverse key and relevant kwargs...?
+
+        # Determine specific redirect URL based on context
+        if '/report/' in redirect_url and '/edit/' in redirect_url:
+            match = re.search(r'/report/(\d+)/edit/', redirect_url)
+            if match:
+                publication_id = match.group(1)
+                redirect_url = reverse('publications:edit_report_review', kwargs={'pk': publication_id})
+        elif '/add/' in redirect_url:
+            redirect_url = reverse('publications:add_report_review')
+        
+        # Clear workflow
+        self.clear_workflow()
+        
+        return updated_form_data, redirect_url
+    
+    def clear_workflow(self):
+        """Clear the workflow from session"""
+        if 'person_workflow' in self.session:
+            del self.session['person_workflow']
+            self.session.modified = True
