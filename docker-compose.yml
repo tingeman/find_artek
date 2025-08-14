@@ -11,7 +11,6 @@ services:
     # env_file is specified in override files to use correct .env file
     volumes:
       # Abstract volumes for static and media files.
-      # The 'ro' flag ensures staticfiles are read-only for the app.
       - staticfiles_data:/mnt/shared-project-data/staticfiles:rw
       - media_data:/mnt/shared-project-data/media:rw
     networks:

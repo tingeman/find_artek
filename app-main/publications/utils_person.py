@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # my_string = b"This is a bytestring"
 # my_unicode = "This is a Unicode string"
-from http import server
 import ldap3
 import re
 import logging
-from publications.utils_basic import safe_latex_decode
+from unidecode import unidecode
+from typing import Dict, List
+
+from publications.utils_basic import safe_latex_decode, get_tag, get_emails
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
@@ -18,12 +20,242 @@ from pybtex.bibtex import utils as pybtex_utils     # functions for splitting st
 from find_artek import settings
 from publications import models
 
-from publications.utils_basic import get_tag, remove_tags
+from publications.utils_basic import get_tag, extract_tags, remove_tags, remove_emails
 
 logger = logging.getLogger(__name__)
 
 re_name_sep_words = re.compile(r'\s*[;&\n]+\s*|\s+and\s+|\s+AND\s+|\s+og\s+|\s+OG\s+')
 re_space_sep = re.compile(r'(?<!,)\s(?!,)')  # used to find spaces that are not connected to commas
+
+
+
+
+class NameNormalizer:
+    """
+    A utility class for normalizing person names consistently across the application.
+    
+    This class handles character substitutions, accent removal, and other normalization
+    tasks to ensure consistent matching between variants of the same name.
+    
+    The class is used both when storing normalized names in the database and when
+    preparing search queries, ensuring the same algorithm is used in both cases.
+    """
+    
+    # Danish specific character substitutions
+    DANISH_CHARS = {
+        'æ': 'ae', 'Æ': 'Ae', 
+        'ø': 'oe', 'Ø': 'Oe', 
+        'å': 'aa', 'Å': 'Aa'
+    }
+    
+    # # Common substitution patterns for other languages
+    # COMMON_SUBSTITUTIONS = {
+    #     # German
+    #     'ä': 'ae', 'Ä': 'Ae',
+    #     'ö': 'oe', 'Ö': 'Oe',
+    #     'ü': 'ue', 'Ü': 'Ue',
+    #     'ß': 'ss',
+    #     # French
+    #     'ç': 'c', 'Ç': 'C',
+    #     # Spanish
+    #     'ñ': 'n', 'Ñ': 'N',
+    # }
+    
+    @classmethod
+    def get_tags(cls, name: str) -> Dict[str, str]:
+        """
+        Extract tags from a name string.
+        
+        Args:
+            name: The name string to extract tags from
+            
+        Returns:
+            Dictionary with tag names as keys and their values as values
+        """
+        tags = extract_tags(name)
+        return {tag.lower(): value for tag, value in tags}
+
+    @classmethod
+    def get_emails(cls, searchstr: str) -> List[str]:
+        """
+        Extract email addresses from a name string.
+        
+        Args:
+            searchstr: The name string to extract emails from
+            
+        Returns:
+            List of email addresses found in the name string
+        """
+        emails = get_emails(searchstr)
+        return emails if emails else []
+
+    @classmethod
+    def clean_name(cls, name: str) -> str:
+        """
+        Clean a name string by removing tags and normalizing it.
+        
+        Args:
+            name: The name string to clean
+            
+        Returns:
+            Cleaned named (no tags, and stripped of whitespace)
+        """
+        if not name:
+            return ""
+        
+        # Remove any tags from the name
+        name = remove_tags(name)
+        name = remove_emails(name)
+        
+        return name.strip()  # Remove leading/trailing whitespace
+
+    @classmethod
+    def normalize_name(cls, name: str) -> str:
+        """
+        Normalize a name by removing accents and replacing special characters.
+        
+        Args:
+            name: The name to normalize
+            
+        Returns:
+            Normalized name string suitable for relaxed matching
+        """
+        if not name:
+            return ""
+
+        name = cls.clean_name(name)  # Remove any tags from the name
+
+        # Apply Danish-specific substitutions first
+        for char, replacement in cls.DANISH_CHARS.items():
+            name = name.replace(char, replacement)
+            
+        # # Apply other common substitutions
+        # for char, replacement in cls.COMMON_SUBSTITUTIONS.items():
+        #     name = name.replace(char, replacement)
+            
+        # Remove remaining accents using unidecode
+        name = unidecode(name)
+        
+        # We don't convert to lowercase - it will upset name parsing in pybtex
+        # # Convert to lowercase for case-insensitive matching
+        # name = name.lower()
+        
+        # Remove extra whitespace
+        name = ' '.join(name.split())
+        
+        return name
+
+    @classmethod
+    def normalize_components(cls, **kwargs) -> Dict[str, str]:
+        """
+        Normalize name components by applying normalization to each component.
+        """
+        normalized = {}
+        for key, value in kwargs.items():
+            if value:
+                # Normalize the name component
+                if isinstance(value, str):
+                    # Apply Danish-specific substitutions first
+                    for char, replacement in cls.DANISH_CHARS.items():
+                        value = value.replace(char, replacement)
+
+                    value = unidecode(value) # Remove accents and special characters
+                    
+                    # We don't convert to lowercase - it will upset name parsing in pybtex
+                    #value = value.lower()  # Convert to lowercase
+                    normalized[key] = value
+
+        return normalized
+
+    @classmethod
+    def get_name_components(cls, namestr: str, initials: str = '', id_number: str = '') -> Dict[str, str]:
+        """
+        Parse a name string using pybtex and return all name components.
+        Args:
+            namestr: The full name string to parse.
+            initials: Optional initials to include.
+            id_number: Optional id_number to include.
+        Returns:
+            Dictionary with keys: first, middle, last, prelast, lineage, initials, id_number
+        """
+        from pybtex.database import Person as pybtexPerson
+        from publications.utils_basic import safe_latex_decode
+
+        namestr = cls.clean_name(namestr)  # Remove any tags from the name
+
+        # Parse name string
+        pybtex_person = pybtexPerson(namestr) if namestr else None
+        names = ['first', 'middle', 'last', 'prelast', 'lineage']
+        components = {}
+        if pybtex_person:
+            for n in names:
+                part = getattr(pybtex_person, n)()
+                if part:
+                    part = safe_latex_decode(" ".join(part))
+                    components[n] = part
+        if initials:
+            components['initials'] = initials
+        if id_number:
+            components['id_number'] = id_number
+
+        return components
+
+    @classmethod
+    def get_relaxed_name_components(cls, namestr: str) -> Dict[str, str]:
+        """
+        Get relaxed name components (first_relaxed, last_relaxed) from a full name.
+        
+        Args:
+            namestr: Full person name (e.g., "John Smith")
+            
+        Returns:
+            Dictionary with keys first_relaxed and last_relaxed
+        """
+        if not namestr:
+            return {"first_relaxed": "", "last_relaxed": ""}
+
+        # Notice: pybtexPerson uses case-sensitive names so we cannot pass the normalized name
+        name_components = cls.get_name_components(namestr)
+
+        if not name_components:
+            return {"first_relaxed": "", "last_relaxed": ""}
+
+        normalized_components = cls.normalize_components(**name_components)
+
+        # Get first letter of first name for first_relaxed
+        first_relaxed = normalized_components.get("first", "")[0:1]
+
+        # Get last part for last_relaxed
+        last_relaxed = normalized_components.get("last", "")
+
+        return {
+            "first_relaxed": first_relaxed,
+            "last_relaxed": last_relaxed
+        }
+    
+    @classmethod
+    def update_person_relaxed_fields(cls, person: 'models.Person') -> None:
+        """
+        Update the first_relaxed and last_relaxed fields of a Person object.
+        
+        Args:
+            person: Person object to update
+            
+        Note:
+            This does not save the object, it only updates the fields.
+        """
+        # Handle first name
+        if person.first:
+            person.first_relaxed = cls.normalize_name(person.first)[0:1]
+            
+        # Handle last name
+        if person.last:
+            person.last_relaxed = cls.normalize_name(person.last)
+        
+        # Return the updated person (without saving)
+        return person
+
+
 
 
 # ----------------------------------------------------------------------------
@@ -504,7 +736,7 @@ def get_from_namestring(s, user):
 
     pybtex_person = pybtexPerson(s)
 
-    if not (person.first() and person.last()):
+    if not (pybtex_person.first() and pybtex_person.last()):
         p = None
         match = None
     else:
@@ -650,7 +882,7 @@ def find_ldap_person(**kwargs):
 
 
 def get_or_create_person_from_ldap(ldap_object=None, user=None, save=True):
-    """Create Person object from pybtex instance
+    """Create Person object from an ldap object.
 
        ldap_object is an entry returned from an ldap search.
         It is a class instance with possibly a long range of attributes.
@@ -720,7 +952,7 @@ def get_or_create_person_from_ldap(ldap_object=None, user=None, save=True):
     else:
         p = p[0]  # pick the first if multiple mathces... there shouldn't be multiple!
 
-    return [p]
+    return p
 
 def update_person_from_ldap_object(person, ldap_object, user=None, save=True):
 
@@ -805,3 +1037,4 @@ def get_person_info_from_ldap_object(ldap_object=None):
         kwargs['initials'] = ldap_object.initials.value
 
     return kwargs
+
