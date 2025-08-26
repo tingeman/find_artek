@@ -18,11 +18,11 @@ from .feature import (
     AddFeatureByCoordinatesForm,
     AddFeatureByMap
 )
-from .mixins import (
-    PersonWorkflowMixin, 
-    clean_authors_with_workflow, 
-    clean_supervisors_with_workflow, 
-    clean_editors_with_workflow,
-    WorkflowAddEditReportForm, 
-    WorkflowAddEditReportFinalSaveForm
-)
+# from .mixins import (
+#     PersonWorkflowMixin, 
+#     clean_authors_with_workflow, 
+#     clean_supervisors_with_workflow, 
+#     clean_editors_with_workflow,
+#     WorkflowAddEditReportForm, 
+#     WorkflowAddEditReportFinalSaveForm
+# )

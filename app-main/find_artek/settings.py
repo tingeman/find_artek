@@ -213,5 +213,10 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'publications': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
     },
 }

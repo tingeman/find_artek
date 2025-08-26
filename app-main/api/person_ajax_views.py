@@ -12,6 +12,7 @@ from publications.models import Person
 from publications.forms import AddPersonForm
 import re
 
+# TODO: Change to use NameNormalizer
 
 def get_tag(string, tag_name):
     """Extract tag value from string like '[id:123]' -> 123"""

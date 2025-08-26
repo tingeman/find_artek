@@ -76,6 +76,19 @@ class NameNormalizer:
         return {tag.lower(): value for tag, value in tags}
 
     @classmethod
+    def remove_tags(cls, name: str) -> str:
+        """
+        Remove tags from a name string.
+        
+        Args:
+            name: The name string to remove tags from
+            
+        Returns:
+            Name string without tags
+        """
+        return remove_tags(name)
+
+    @classmethod
     def get_emails(cls, searchstr: str) -> List[str]:
         """
         Extract email addresses from a name string.

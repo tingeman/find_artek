@@ -70,6 +70,9 @@ I recommend building a cohesive service-based architecture with the `PersonDisam
 
 Build out the `PersonDisambiguationService` as a comprehensive service for handling all person disambiguation:
 
+tingeman: Done (see workflows/person_disambiguation.py)
+tingeman: TODO still need to remove old service from workflows/person.py
+
 ```python
 class PersonDisambiguationService:
     """
@@ -382,6 +385,10 @@ class PersonDisambiguationService:
 
 Replace the complex `PersonWorkflowMixin` with a simplified version that uses the service:
 
+tingeman: DONE (see workflows/person_disambiguation.py)
+tingeman: TODO still need to remove old mixin from forms/mixins.py
+
+
 ```python
 class PersonDisambiguationMixin:
     """
@@ -524,6 +531,10 @@ class PersonDisambiguationMixin:
 
 Replace the current disambiguation view with a simplified version:
 
+
+tingeman: TODO I want this as a class based view, like everything else. Is it identical to the existing view? No it is not identical... But should be refactored to class based view!
+tingeman: TODO Where does this view live best? In views.py? In workflow/person_diambiguation.py?
+
 ```python
 @login_required
 def disambiguate_person_step(request):
@@ -538,17 +549,18 @@ def disambiguate_person_step(request):
     
     # Initialize service
     service = PersonDisambiguationService(request)
-    
+    # request contains session data, which holds information about any active disambiguation workflow.
+
     # Check if workflow is active
     if not service.is_workflow_active():
         messages.error(request, "No active disambiguation workflow.")
-        return redirect('publications:add_report')
+        return redirect('publications:add_report')    # TODO: where should we redirect to? I don't think it should be add_report...? The service should provide this information!
     
     # Get current person name
     current_person = service.get_current_person()
     if not current_person:
         messages.error(request, "No person to disambiguate.")
-        return redirect('publications:add_report')
+        return redirect('publications:add_report')    # TODO: where should we redirect to? I don't think it should be add_report...? The service should provide this information!
     
     # Process POST request
     if request.method == 'POST':
@@ -583,6 +595,8 @@ def disambiguate_person_step(request):
                 
                 messages.success(request, f'Created new person: {person.get_full_name()}')
                 
+
+                # TODO: Code deduplication needed, move this outside if-else block
                 if service.is_workflow_complete():
                     return redirect('publications:complete_person_workflow')
                 else:
@@ -601,7 +615,8 @@ def disambiguate_person_step(request):
     
     # GET request - show disambiguation form
     matches = service.get_matches_for_current_person()
-    clean_name = service._remove_tags(current_person)
+    clean_name = service._remove_tags(current_person)    # TODO: Shouldn't we use clean_name method of NameNormalizer? And this was already done somewhere in get_matches_for_current_person. Why do we have to do it again?
+
     step_info = service.get_current_step_info()
     
     context = {
@@ -615,8 +630,13 @@ def disambiguate_person_step(request):
     }
     
     return render(request, 'publications/person_disambiguation_step.html', context)
+```
+
+tingeman: TODO I want this as a class based view, like everything else. Is it identical to the existing view? No it is not identical... But should be refactored to class based view!
+tingeman: TODO Where does this view live best? In views.py? In workflow/person_diambiguation.py?
 
 
+```python
 @login_required
 def complete_person_workflow(request):
     """
@@ -666,6 +686,8 @@ class PersonMatcher:
         self.normalizer = NameNormalizer()
         self.confidence_threshold = 0.5
     
+
+    # tingeman: This method already exists
     def find_matches(self, searchstr: str) -> List[Dict[str, Any]]:
         """
         Find potential matches for a person name.
@@ -710,6 +732,7 @@ class PersonMatcher:
         
         return unique_results
     
+    # tingeman: This method already exists
     def get_best_match(self, name: str) -> Optional[Dict[str, Any]]:
         """
         Get the best match for a given person name.
@@ -723,6 +746,7 @@ class PersonMatcher:
         matches = self.find_matches(name)
         return matches[0] if matches else None
     
+    # tingeman: This method already exists.
     def is_new_person(self, name: str) -> bool:
         """
         Check if a name likely refers to a new person (no good matches).
@@ -741,6 +765,9 @@ class PersonMatcher:
 ### 5. Template Updates
 
 Update the person disambiguation template to work with the new service:
+
+tingeman: TODO needs checking/updating of template.
+
 
 ```html
 {% extends "publications/base.html" %}
@@ -839,6 +866,8 @@ Update the person disambiguation template to work with the new service:
 
 Update your report forms to use the new simplified mixin:
 
+tingeman: TODO is this a full form implementation? No, I think not...
+
 ```python
 from publications.forms.mixins import PersonDisambiguationMixin
 
@@ -847,6 +876,10 @@ class WorkflowAddEditReportForm(PersonDisambiguationMixin, AddEditReportForm):
     Enhanced AddEditReportForm with person disambiguation workflow.
     """
     
+    # TODO: how does this work in practice...?
+    #       - clean_authors is called and initiates workflow for authors field?
+
+
     def clean_authors(self):
         """Enhanced clean_authors with workflow support"""
         authors_data = super().clean_authors()
@@ -855,10 +888,14 @@ class WorkflowAddEditReportForm(PersonDisambiguationMixin, AddEditReportForm):
         if not hasattr(self, 'person_service') or not self.person_service:
             return authors_data
         
+        # TODO: Consider if we should always just start the workflow.
+        #       It could just return None for the redirect url if nothing to do.
+
         # Check if disambiguation is needed
         if self.check_disambiguation_needed('authors'):
             self._workflow_redirect = self.start_disambiguation_workflow('authors')
-        
+            # If disambiguation is needed, _workflow_redirect holds the redirect to the disambiguation view
+
         return authors_data
     
     def clean_supervisors(self):
@@ -869,6 +906,11 @@ class WorkflowAddEditReportForm(PersonDisambiguationMixin, AddEditReportForm):
         if not hasattr(self, 'person_service') or not self.person_service:
             return supervisors_data
         
+        # TODO: Will this new call to start_disambiguation_workflow overwrite the session data for person_workflow
+        #       and thus loose the state of the author workflow?
+
+        # TODO: Where/when is the _workflow_redirect attribute accessed?
+
         # Check if disambiguation is needed
         if self.check_disambiguation_needed('supervisors'):
             self._workflow_redirect = self.start_disambiguation_workflow('supervisors')

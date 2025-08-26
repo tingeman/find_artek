@@ -1,4 +1,8 @@
 """Forms related to publications."""
+import datetime
+import ast
+import json
+import re
 
 from django import forms
 from django.forms import ModelForm
@@ -9,10 +13,7 @@ from django.db.models import QuerySet
 from publications.models import Publication, Person, Feature, Topic, Keyword
 from publications.utils_models import create_ordered_queryset, validate_report_number_format
 from publications.forms.person import PersonHeavySelect2TagWidget
-import datetime
-import ast
-import json
-import re
+from publications.mixins.disambiguation import PersonDisambiguationFormMixin
 
 import logging
 logger = logging.getLogger(__name__)
@@ -545,4 +546,54 @@ class DeleteReportForm(forms.Form):
         return action
 
 
+class DisambiguationWorkflowAddEditReportForm(PersonDisambiguationFormMixin, AddEditReportForm):
+    """
+    Enhanced AddEditReportForm with person disambiguation workflow.
+    Uses the improved PersonDisambiguationFormMixin from workflows module.
+    """
+    
+    def clean(self):
+        """Process all fields at once to properly queue multiple workflows"""
+        cleaned_data = super().clean()
+        
+        # Skip if no service
+        if not hasattr(self, 'person_service') or not self.person_service:
+            return cleaned_data
+        
+        # TODO: Clearing session data should be moved to the dispatch or post method of the FormView
+        #       So that it happens before the form is validated.
+        #       This solution works for now....
 
+        # Clear any old disambiguation data
+        self.person_service.clear_session_data()
+        logger.debug("DisambiguationWorkflowAddEditReportForm: Cleared all disambiguation data in session") 
+        logger.debug("DisambiguationWorkflowAddEditReportForm: Starting workflows for authors and supervisors") 
+
+        # Start workflows for both fields at once
+        self._workflow_redirect = self.start_disambiguation_workflow(['authors', 'supervisors'])
+        
+        return cleaned_data
+
+
+class DisambiguationWorkflowAddEditReportFinalSaveForm(PersonDisambiguationFormMixin, AddEditReportFinalSaveForm):
+    """
+    Enhanced final save form with workflow support using the improved PersonDisambiguationFormMixin.
+
+    This form handles the final save after all persons are resolved, using the
+    newer and cleaner implementation from person_disambiguation.py.
+    """
+    
+    def clean(self):
+        """Process person fields with disambiguation workflow support"""
+        cleaned_data = super().clean()
+        
+        # Skip if no service
+        if not hasattr(self, 'person_service') or not self.person_service:
+            return cleaned_data
+        
+        # Check if any fields still need disambiguation
+        workflow_redirect = self.start_disambiguation_workflow(['authors', 'supervisors'])
+        if workflow_redirect:
+            self._workflow_redirect = workflow_redirect
+        
+        return cleaned_data
