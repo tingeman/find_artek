@@ -15,3 +15,6 @@ LOGGING['loggers']['django']['handlers'] = ['file', 'console']
 LOGGING['loggers']['django']['level'] = 'INFO'
 LOGGING['loggers']['api']['handlers'] = ['api_file', 'console']
 LOGGING['loggers']['api']['level'] = 'DEBUG'
+LOGGING['loggers']['publications']['handlers'] = ['file', 'console']
+LOGGING['loggers']['publications']['level'] = 'DEBUG'
+LOGGING['loggers']['publications']['propagate'] = False

@@ -3,7 +3,7 @@
     "dockerComposeFile": [
         "../docker-compose.yml",
         "../docker-compose.develop.yml", 
-        "docker-compose.yml"
+        "docker-compose.devcon.yml"
     ],
     "service": "webapp-find-artek",
     "workspaceFolder": "/workspace",

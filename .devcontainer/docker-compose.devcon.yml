@@ -1,0 +1,63 @@
+# .devcontainer override file
+# Provides configurations for VS Code Dev Container
+# This file extends docker-compose.yml and docker-compose.develop.yml
+
+services:
+  webapp-find-artek:
+    container_name: webapp-find-artek-devcon
+    volumes:
+      # Mount source code for live editing (current project only)
+      - /home/thin/code/00_static_data/find_artek_static/staticfiles:/mnt/shared-project-data/staticfiles:rw
+      - /home/thin/code/00_static_data/find_artek_static/media:/mnt/shared-project-data/media:rw
+      - /home/thin/code/find_artek_DEVELOP:/workspace
+    working_dir: /workspace/app-main
+    environment:
+      MYSQL_HOST: find-artek-mariadb-service
+      # Override Django project location to use mounted code
+      DJANGO_PROJECT_DIR: "/workspace/app-main"
+    command: sleep infinity # Keep container running for dev
+    # Override the ports to avoid conflicts
+    ports:
+      - "8100:8099"  # Use different port for dev container
+
+  find-artek-mariadb-service:
+    container_name: fa-mariadb-service-devcon
+    volumes:
+      - find-artek-mariadb-data-devcon:/var/lib/mysql
+      - ./docker/mariadb-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+
+  find-artek-phpmyadmin-service:
+    container_name: fa-phpmyadmin-service-devcon
+    # Override port to avoid conflicts
+    ports:
+      - "6002:80"
+  
+
+volumes:
+  find-artek-mariadb-data-devcon:
+    name: find-artek-mariadb-data-devcon
+    external: true
+    # Use a different name for dev container
+    # it should be managed by docker
+
+
+
+# Copy data from the main mariadb volume to the dev container volume
+#
+# docker run --rm \
+#   -v find-artek-mariadb-data:/from \
+#   -v find-artek-mariadb-data-devcon:/to \
+#   alpine ash -c "cd /to && rm -rf ./* && cd /from && cp -av . /to"
+#
+# docker volume ls | grep find-artek-mariadb-data-devcon
+# docker volume inspect find-artek-mariadb-data-devcon
+
+
+# NEWVOL="find-artek-mariadb-data-devcon"
+
+# docker run --rm \
+#   -v find-artek-mariadb-dev:/from \
+#   -v ${NEWVOL}:/to \
+#   alpine sh -lc 'rm -rf /to/* && cp -a /from/. /to/ && chown -R 999:999 /to'
+

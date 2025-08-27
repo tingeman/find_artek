@@ -1,209 +1,42 @@
 # === Standard library imports ===
 import os
-import ast
-import datetime
-import json
-import pdb
-import re
 import shutil
-import tempfile
-import time
-import traceback
 
 # === Django imports ===
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core import serializers
-from django.core.exceptions import ValidationError
-from django.core.files.storage import default_storage
-from django.db import transaction, IntegrityError
-from django.db.models import QuerySet
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.db import transaction
+
 from django.shortcuts import get_object_or_404, render, redirect
-from django.template import RequestContext
-from django.template.loader import render_to_string
-from django.urls import reverse, reverse_lazy
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.http import require_http_methods
-from django.views.generic import TemplateView, DetailView, CreateView, UpdateView, FormView, DeleteView
 
 # Add imports for filtering helpers
 from django.db.models import Q, CharField
 from django.db.models.functions import Cast
 
-
-
-# === Django GIS imports ===
-from django.contrib.gis.geos import Point, MultiPoint
-
-# === Third-party imports ===
-from django_select2.views import AutoResponseView
-
 # === Project-specific imports ===
-from .register_from_file import xlsx_pubs
-from find_artek.search import get_query
-from publications.forms import (
-    LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
-    PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
-    AddFeatureByCoordinatesForm, AddFeatureByMap, PersonWorkflowMixin, 
-    UploadAppendixForm, ChangeReportNumberForm
+from publications.forms import ChangeReportNumberForm
+
+from publications.forms.publication import (
+    DisambiguationWorkflowAddEditReportForm, 
+    DisambiguationWorkflowAddEditReportFinalSaveForm
 )
-from publications.forms.publication import ImportPublicationFileForm
-from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
-from publications.library import get_client_ip, is_private
+
 from publications.models import (
     Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
     Keyword, FileObject
 )
-from publications.utils_basic import CaseInsensitively
+
 from publications.utils_models import (
-    handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
-    handle_session_appendix_uploads, rename_publication_files
+    handle_publication_file_upload, generate_next_report_number, rename_publication_files
 )
-from publications.workflows.person import disambiguate_person_step, complete_person_workflow
-from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
-# Create your views here.
+from publications.views.base_views import BaseView, BaseDetailView, BaseFormView 
 
-
-class BaseView(View):
-    base_template = "publications/base.html"
-
-    def get_context_data(self, **kwargs):
-        # context = super().get_context_data(**kwargs)    # View class has no method get_context_data
-        context = {
-            'base_template': self.base_template,
-            # Other common context variables...
-        }
-        print('In BaseView')
-        print(context.keys())
-        return context
-    
-    def get(self, request, **kwargs):
-        context = self.get_context_data(**kwargs)
-        return render(request, self.base_template, context)
-
-
-
-class BaseDetailView(DetailView, BaseView):
-    def get_context_data(self, **kwargs):
-        # Get the context from BaseView
-        context = super().get_context_data(**kwargs)
-        # Get the context from BaseView
-        base_context = BaseView.get_context_data(self, **kwargs)
-        # Combine the contexts
-        context.update(base_context)
-        return context
-
-class BaseFormView(FormView, BaseView):
-    def get_context_data(self, **kwargs):
-        # Get the context from BaseView
-        context = super().get_context_data(**kwargs)
-        # Get the context from BaseView
-        base_context = BaseView.get_context_data(self, **kwargs)
-        # Combine the contexts
-        context.update(base_context)
-        return context
-
-
-
-
-
-
-
-
-class FrontPageView(BaseView):
-
-    template_name = 'publications/frontpage.html'
-
-    def get(self, request, **kwargs):
-
-        context = {
-        }
-
-        context.update(self.get_context_data(**kwargs))
-        return render(request, self.template_name, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class MapView(BaseView): 
-    template_name = 'publications/map.html'
-    def get(self, request, **kwargs):
-
-        context = {
-        }
-        context.update(self.get_context_data(**kwargs))
-
-        return render(request, self.template_name, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+from publications.mixins.disambiguation import PersonDisambiguationViewReaderMixin, PersonDisambiguationViewProcessorMixin
 
 
 
@@ -223,60 +56,6 @@ class ReportsView(BaseView):
 
         # Render the template with the context
         return render(request, self.template_name, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class PersonsView(BaseView):
-    template_name = 'publications/persons.html'
-
-    def get(self, request, **kwargs):
-        
-        person_list = Person.objects.all().order_by('last', 'first')  # .order_by('-year').order_by('number')
-
-        context = {
-            'pers_list': person_list,
-        }
-
-        context.update(self.get_context_data(**kwargs))
-
-        return render(request, self.template_name, context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -312,15 +91,18 @@ class ReportView(BaseDetailView):
         return super().get(request, *args, **kwargs)
 
 
+
 @method_decorator(login_required, name='dispatch')
-class ReportFormView(BaseFormView):
+class ReportFormView(PersonDisambiguationViewReaderMixin, BaseFormView):
     """Unified view for both adding and editing reports"""
     model = Publication
     template_name = 'publications/add_edit_report.html'
     select_persons_url = 'select-persons'
     
     def get_form_class(self):
-        return WorkflowAddEditReportForm
+        klass = DisambiguationWorkflowAddEditReportForm
+        print(f"DEBUG ReportFormView.get_form_class: returning {klass.__name__}")
+        return klass
     
     def is_edit_mode(self):
         return 'pk' in self.kwargs
@@ -369,20 +151,19 @@ class ReportFormView(BaseFormView):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form"""
         kwargs = super().get_form_kwargs()
-        
+        print(f"DEBUG ReportFormView.get_form_kwargs: session keys={list(self.request.session.keys())}")
         # Add request object for workflow forms
         kwargs['request'] = self.request
-        
         # For edit mode, always pass the instance
         if self.is_edit_mode():
             kwargs['instance'] = self.get_object()
-            
+        print(f"DEBUG ReportFormView.get_form_kwargs: kwargs keys={list(kwargs.keys())}")
         return kwargs
 
     def get_form(self):
         """Get form for regular Add/Edit operations"""
         form = super().get_form()
-            
+        print(f"DEBUG ReportFormView.get_form: form class={form.__class__.__name__}, mixins={form.__class__.__mro__}")
         # Configure widget choices based on initial data
         if self.is_edit_mode():
             publication = self.get_object()
@@ -390,38 +171,26 @@ class ReportFormView(BaseFormView):
                 # Get current authors and supervisors from database
                 current_authors = publication.authorship_set.all().order_by('author_id')
                 current_supervisors = publication.supervisorship_set.all().order_by('supervisor_id')
-                
                 # Set widget choices
                 author_choices = [(str(auth.person.pk), str(auth.person)) for auth in current_authors]
                 supervisor_choices = [(str(sup.person.pk), str(sup.person)) for sup in current_supervisors]
-                
                 form.fields['authors'].widget.choices = author_choices
                 form.fields['supervisors'].widget.choices = supervisor_choices
-
                 print(f"🔍 DEBUG: AddEditReportView:get_form - Edit mode: Setting widget choices for {len(author_choices)} authors, {len(supervisor_choices)} supervisors")
         else:
             # Add mode - empty choices
             form.fields['authors'].widget.choices = []
             form.fields['supervisors'].widget.choices = []
             print(f"🔍 DEBUG: AddEditReportView:get_form - Add mode: Setting widget choices empty for authors, supervisors")
-
         return form
 
     def form_valid(self, form):
         """Unified form processing for both Add and Edit with workflow support"""
-        print(f"🔍 DEBUG: ReportFormView.form_valid called")
-        print(f"🔍 DEBUG: Form cleaned_data keys: {list(form.cleaned_data.keys())}")
-        print(f"🔍 DEBUG: Form contains data:")
-        for key, value in form.cleaned_data.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-        
-        # Debug the form data types
-        for key, value in form.cleaned_data.items():
-            print(f"🔍 DEBUG: Form field '{key}': {value} (type: {type(value).__name__})")
-        
+        print(f"DEBUG ReportFormView.form_valid: called with form class={form.__class__.__name__}, mixins={form.__class__.__mro__}")
+        print(f"DEBUG ReportFormView.form_valid: session keys={list(self.request.session.keys())}")
+        print(f"DEBUG ReportFormView.form_valid: cleaned_data={form.cleaned_data}")
         # FIRST: Always store form data in session
         session_data = self._convert_form_to_session_data(form)
-        
         # Handle file uploads
         if 'pdffile' in self.request.FILES:
             uploaded_file = self.request.FILES['pdffile']
@@ -429,6 +198,8 @@ class ReportFormView(BaseFormView):
             file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
             session_data['uploaded_file_id'] = str(file_obj.id)
                 
+        # TODO: Could/should we make a mixin for handling session storage of form data?
+
         # Store in session BEFORE any redirects
         self.request.session['form_data'] = session_data
         if self.is_edit_mode():
@@ -436,10 +207,10 @@ class ReportFormView(BaseFormView):
         
         print(f"🔍 DEBUG: Session data stored: {session_data}")
 
-        # THEN: Check if workflow forms need to redirect to disambiguation
-        if hasattr(form, 'has_workflow_redirect') and form.has_workflow_redirect():
-            print("🔍 DEBUG: Form has workflow redirect, calling form.get_workflow_redirect()")
-            return form.get_workflow_redirect()
+        # Check if disambiguation workflow is needed
+        if hasattr(form, '_workflow_redirect') and form._workflow_redirect:
+            print("🔍 DEBUG: Form has workflow redirect, returning redirect")
+            return form._workflow_redirect
         else:
             print("🔍 DEBUG: No workflow redirect, proceeding with normal flow")
 
@@ -463,7 +234,7 @@ class ReportFormView(BaseFormView):
 
 
 @method_decorator(login_required, name='dispatch')
-class ReportReviewView(BaseView):
+class ReportReviewView(PersonDisambiguationViewReaderMixin, BaseView):
     """Handles review of form data before final save"""
     template_name = 'publications/add_edit_report_review.html'
     
@@ -480,13 +251,13 @@ class ReportReviewView(BaseView):
         print(f"🔍 DEBUG: ReportReviewView.dispatch - Has form_data: {'form_data' in request.session}")
         
         if 'form_data' not in request.session:
-            print(f"🔍 DEBUG: No form_data, redirecting to form")
+            print(f"🔍 DEBUG: ReportReviewView.dispatch - No form_data, redirecting to form")
             if self.is_edit_mode():
                 return redirect('publications:edit_report', pk=kwargs['pk'])
             else:
                 return redirect('publications:add_report')
         
-        print(f"🔍 DEBUG: Continuing to {request.method} method")
+        print(f"🔍 DEBUG: ReportReviewView.dispatch - Continuing to {request.method} method")
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -509,7 +280,7 @@ class ReportReviewView(BaseView):
             context['error'] = "No form data found in session. Please fill out the form first."
             return context
     
-        print(f"🔍 DEBUG: Session form_data: {self.request.session['form_data']}")
+        print(f"🔍 DEBUG: ReportReviewView.get_context_data - Session form_data: {self.request.session['form_data']}")
         review_data, changed_fields = self._get_review_data()
         context['review_data'] = review_data
                  
@@ -549,7 +320,7 @@ class ReportReviewView(BaseView):
                 print(f"🔍 DEBUG: Found PubType object: {pub_type} (ID: {pub_type.id}, type: {pub_type.type})")
                 # Pass the actual object rather than just the string
                 review_data['type'] = pub_type
-            except (PubType.DoesNotExist, ValueError):
+            except (PubType.DoesNotExist, ValueError) as e:
                 print(f"🔍 DEBUG: Error finding PubType: {e}")
                 review_data['type'] = type_pk[0]
         else:
@@ -596,6 +367,12 @@ class ReportReviewView(BaseView):
         """Convert model IDs to string representations"""
         items = []
         for item_id in ids:
+            if isinstance(item_id, str) and item_id.startswith('CREATE:'):
+                # Just display the name part with a "New:" prefix to indicate it will be created later
+                item_name = item_id[7:]  # Remove the CREATE: prefix
+                items.append(f"{item_name} [new]")
+                continue
+                
             try:
                 item = this_model.objects.get(pk=int(item_id))
                 items.append(str(item))
@@ -606,16 +383,22 @@ class ReportReviewView(BaseView):
 
     def _convert_person_ids_to_strings(self, person_ids):
         """Convert person IDs to person objects"""
-        persons = []
+        items = []
         for person_id in person_ids:
+            if isinstance(person_id, str) and person_id.startswith('CREATE:'):
+                # Just display the name part with a "New:" prefix to indicate it will be created later
+                person_name = person_id[7:]  # Remove the CREATE: prefix
+                items.append(f"{person_name} [new]")
+                continue
+
             try:
                 person = Person.objects.get(pk=int(person_id))
-                persons.append(str(person))
-            except (Person.DoesNotExist, ValueError):
+                items.append(str(person))
+            except (Person.DoesNotExist, ValueError) as e:
                 print(f"Error processing author PK {person_id}: {e}")
-                persons.append(str(person_id))
-        return persons
-    
+                items.append(str(person_id))
+        return items
+
     def _get_changed_fields(self, review_data={}):
         """Determine which fields changed (for edit mode)"""
         if not self.is_edit_mode():
@@ -722,29 +505,30 @@ class ReportReviewView(BaseView):
     def get(self, request, *args, **kwargs):
         """Handle GET requests - show the review page"""
         print(f"🔍 DEBUG: ReportReviewView.get called")
-        print(f"🔍 DEBUG: Session keys: {list(request.session.keys())}")
-        print(f"🔍 DEBUG: Has form_data: {'form_data' in request.session}")
+        print(f"           Session keys: {list(request.session.keys())}")
+        print(f"           Has form_data: {'form_data' in request.session}")
 
-        print(f"🔍 DEBUG: form_data: {request.session.get('form_data', {})}")
-        print(f"🔍 DEBUG: updated_form_data: {request.session.get('updated_form_data', {})}")
+        print(f"           form_data: {request.session.get('form_data', {})}")
+        print(f"           person_disambiguation.resolved_form_data: {request.session.get('person_disambiguation', {}).get('resolved_form_data', {})}")
+        print(f"           person_disambiguation.resolved_field_values: {request.session.get('person_disambiguation', {}).get('resolved_field_values', {})}")
 
-        print(f"🔍 DEBUG: Template name: {self.template_name}")
+        print(f"           Template name: {self.template_name}")
 
         context = self.get_context_data(**kwargs)
-        print(f"🔍 DEBUG: Context keys: {list(context.keys())}")
+        print(f"           Context keys: {list(context.keys())}")
 
         # if context['changed_fields'] is empty, then redirect to report view
         if not context['changed_fields']:
-            print(f"🔍 DEBUG: No changed fields, redirecting to report view")
+            print(f"🔍 DEBUG: ReportReviewView.get - No changed fields, redirecting to report view")
             if self.is_edit_mode():
                 return redirect('publications:report', pk=kwargs['pk'])
             # else:
             #     return redirect('publications:add_report')
 
         response = render(request, self.template_name, context)
-        print(f"🔍 DEBUG: Response type: {type(response)}")
-        print(f"🔍 DEBUG: Response status: {response.status_code}")
-        print(f"🔍 DEBUG: About to return response")
+        print(f"🔍 DEBUG: ReportReviewView.get - Response type: {type(response)}")
+        print(f"🔍 DEBUG: ReportReviewView.get - Response status: {response.status_code}")
+        print(f"🔍 DEBUG: ReportReviewView.get - About to return response")
 
         #return render(request, self.template_name, context)
         return response
@@ -762,20 +546,20 @@ class ReportReviewView(BaseView):
     def post(self, request, *args, **kwargs):
         """Handle form submission from review page"""
         print(f"🔍 DEBUG: ReportReviewView.post called - THIS SHOULD NOT HAPPEN ON GET!")
-        print(f"🔍 DEBUG: POST data: {request.POST}")
+        print(f"           POST data: {request.POST}")
         if self.is_edit_mode():
-            return redirect('publications:edit_finalize', pk=kwargs['pk'])
+            return redirect('publications:edit_report_finalize', pk=kwargs['pk'])
         else:
-            return redirect('publications:add_finalize')
+            return redirect('publications:add_report_finalize')
 
 
 
 @method_decorator(login_required, name='dispatch')
-class ReportFinalizeView(BaseView):
+class ReportFinalizeView(PersonDisambiguationViewProcessorMixin, BaseView):
     """Handles final save of publication"""
     
     def get_form_class(self):
-        return WorkflowAddEditReportForm
+        return DisambiguationWorkflowAddEditReportFinalSaveForm
 
     def is_edit_mode(self):
         return 'pk' in self.kwargs
@@ -808,6 +592,12 @@ class ReportFinalizeView(BaseView):
     
     def post(self, request, *args, **kwargs):
         """Save the publication with session data"""
+        
+        try:
+            response = super().post(request, *args, **kwargs)
+        except Exception as e:
+            print(f"🔍 DEBUG: Error occurred in ReportFinalizeView:post - {e}")
+            pass
 
         # 1. Get session data
         session_data = self.request.session.get('form_data', {})
@@ -827,10 +617,6 @@ class ReportFinalizeView(BaseView):
         form_input = self._session_data_to_form_input(session_data)
 
         print(f"🔍 DEBUG: ReportFinalizeView:post - Form input prepared from session data:")
-        for key, value in form_input.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-
-        print(f"🔍 DEBUG: ReportFinalizeView:post - Form input prepared:")
         for key, value in form_input.items():
             print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
 
@@ -924,23 +710,39 @@ class ReportFinalizeView(BaseView):
         # Authors
         publication.authorship_set.all().delete()
         for i, author_pk in enumerate(session_data.get('authors', [])):
-            person = Person.objects.get(pk=int(author_pk))
-            Authorship.objects.create(
-                publication=publication,
-                person=person,
-                author_id=i
-            )
+            if isinstance(author_pk, str) and author_pk.startswith('CREATE:'):
+                # Skip CREATE: prefixed values - they should have been processed by now
+                # If not, log an error:
+                print(f"🔍 DEBUG: Found unprocessed CREATE: value in authors: {author_pk}")
+                continue
+            try:
+                person = Person.objects.get(pk=int(author_pk))
+                Authorship.objects.create(
+                    publication=publication,
+                    person=person,
+                    author_id=i
+                )
+            except:
+                print(f"🔍 DEBUG: Error creating authorship for person PK {author_pk}, skipping")
         
         # Supervisors  
         publication.supervisorship_set.all().delete()
         for i, supervisor_pk in enumerate(session_data.get('supervisors', [])):
-            person = Person.objects.get(pk=int(supervisor_pk))
-            Supervisorship.objects.create(
-                publication=publication,
-                person=person,
-                supervisor_id=i
-            )
-        
+            if isinstance(supervisor_pk, str) and supervisor_pk.startswith('CREATE:'):
+                # Skip CREATE: prefixed values - they should have been processed by now
+                # If not, log an error:
+                print(f"🔍 DEBUG: Found unprocessed CREATE: value in supervisors: {supervisor_pk}")
+                continue
+            try:
+                person = Person.objects.get(pk=int(supervisor_pk))
+                Supervisorship.objects.create(
+                    publication=publication,
+                    person=person,
+                    supervisor_id=i
+                )
+            except:
+                print(f"🔍 DEBUG: Error creating supervisorship for person PK {supervisor_pk}, skipping")
+
         # Topics
         publication.publication_topics.clear()
         for topic_pk in session_data.get('publication_topics', []):
@@ -1108,6 +910,7 @@ class ReportFinalizeView(BaseView):
 
 
 
+
 class VerifyReportView(BaseView):
     """
     View for verifying a report. Sets the 'verified' flag on a Publication if the user has permission.
@@ -1171,682 +974,6 @@ class UnverifyReportView(BaseView):
         messages.success(request, f"Report ({publication.id}) '{publication.number}' was unverified.")
         return redirect('publications:report', pk=publication.pk)
 
-
-@method_decorator(login_required, name='dispatch')
-class PersonSelectView(BaseView):
-    template_name = 'publications/persons_select.html'
-    
-    def __init__(self, *args, **kwargs):
-        print('In PersonSelectView:__init__')
-        super().__init__(*args, **kwargs)
-
-    def get_session_config(self):
-        """Get session configuration based on the action parameter"""
-        action = self.request.GET.get('action', 'add')
-        
-        if action == 'edit':
-            return {
-                'session_key': 'edit_report_form_data',
-                'redirect_url': 'publications:edit_report_final_save',
-                'action': 'edit'
-            }
-        else:
-            return {
-                'session_key': 'add_report_form_data', 
-                'redirect_url': 'publications:publication_final_save',
-                'action': 'add'
-            }
-
-    def get(self, request):
-        print('In PersonSelectView:get')
-        
-        config = self.get_session_config()
-        session_data = self.request.session.get(config['session_key'], {})
-        authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])   
-
-        if authors:
-            authors_form = AuthorSelectForm(authors=authors)
-        else:
-            authors_form = None
-
-        if supervisors:
-            supervisors_form = SupervisorSelectForm(supervisors=supervisors)
-        else:
-            supervisors_form = None
-
-        return render(request, self.template_name, {
-            'authors_form': authors_form,
-            'supervisors_form': supervisors_form,
-            'action': config['action']
-        })
-
-    def post(self, request):
-        print(f"PersonSelectView:post: request.post data: {request.POST}")
-
-        config = self.get_session_config()
-        session_data = self.request.session.get(config['session_key'], {})
-        authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])  
-
-        print(f"PersonSelectView:post: authors data: {authors}")
-        print(f"PersonSelectView:post: supervisors data: {supervisors}")
-
-        if authors:
-            authors_form = AuthorSelectForm(request.POST, authors=authors)
-        else:
-            authors_form = None
-
-        if supervisors:
-            supervisors_form = SupervisorSelectForm(request.POST, supervisors=supervisors)
-        else:
-            supervisors_form = None
-
-        # print(f"PersonSelectView:post: authors_form: {authors_form}")
-        # print(f"PersonSelectView:post: supervisors_form: {supervisors_form}")
-
-        author_form_valid = False
-        if (authors_form is not None) and (authors_form.is_valid()):
-            print(f"PersonSelectView:post: authors_form cleaned data: {authors_form.cleaned_data}")
-            selected_authors = []
-            for key, value in authors_form.cleaned_data.items():
-                if key.startswith("author_"):
-                    if value == 'create_new':
-                        print(f"  - Create new author: {key}: {value}")
-                        # Create a new Person instance
-                        name = authors[int(key.split('_')[1])]
-                        person = Person.objects.create(name=name)
-                        selected_authors.append(person.pk)
-                        print(f"  - created new author: {person}")
-                    else:
-                        # Use the selected Person primary key
-                        print(f"  - Select existing author: {key}: {value}")
-                        selected_authors.append(int(value))
-
-            # Update the session with the selected author primary keys
-            session_data['authors'] = selected_authors
-            print(f"PersonSelectView:post: selected authors: {selected_authors}")
-            author_form_valid = True
-        elif authors_form is not None:
-            print(f"PersonSelectView:post: authors_form not valid")
-            print(f"  - form errors: {authors_form.errors}")
-            print(f"  - form non_field_errors: {authors_form.non_field_errors()}")
-        else:
-            print(f"PersonSelectView:post: authors_form is None")
-            author_form_valid = True
-
-        supervisor_form_valid = False
-        if (supervisors_form is not None) and (supervisors_form.is_valid()):
-            print(f"PersonSelectView:post: supervisors_form cleaned data: {supervisors_form.cleaned_data}")
-            selected_supervisors = []
-            for key, value in supervisors_form.cleaned_data.items():
-                if key.startswith("supervisor_"):
-                    if value == 'create_new':
-                        print(f"  - Create new supervisor: {key}: {value}")
-                        # Create a new Person instance
-                        name = supervisors[int(key.split('_')[1])]
-                        person = Person.objects.create(name=name)
-                        selected_supervisors.append(person.pk)
-                        print(f"  - created new supervisor: {person}")
-                    else:
-                        # Use the selected Person primary key
-                        print(f"Select existing supervisor: {key}: {value}")
-                        selected_supervisors.append(int(value))
-
-            # Update the session with the selected supervisor primary keys
-            session_data['supervisors'] = selected_supervisors
-            print(f"PersonSelectView:post: selected supervisors: {selected_supervisors}")
-            supervisor_form_valid = True
-        elif supervisors_form is not None:
-            print(f"PersonSelectView:post: supervisors_form not valid")
-            print(f"  - form errors: {supervisors_form.errors}")
-            print(f"  - form non_field_errors: {supervisors_form.non_field_errors()}")
-        else:
-            print(f"PersonSelectView:post: supervisors_form is None")
-            supervisor_form_valid = True
-
-        # Update the session data with the new author and supervisor selections
-        self.request.session[config['session_key']] = session_data
-        self.request.session.modified = True
-
-        print(f"PersonSelectView:post: session data: {self.request.session.get(config['session_key'])}")
-
-        if author_form_valid and supervisor_form_valid:
-            print(f"PersonSelectView:post: redirecting to {config['redirect_url']}")
-            return redirect(config['redirect_url'])
-        else:
-            print(f"PersonSelectView:post: forms are invalid, redirecting back to select_persons")
-            return render(request, self.template_name, {
-                'authors_form': authors_form,
-                'supervisors_form': supervisors_form,
-                'action': config['action']
-            })
-          
-
-
-
-
-
-
-
-          
-
-
-
-
-
-class PersonAutocompleteView(View):
-    
-    re_studynumber = re.compile(r'^s\d{1,6}$')
-
-    def get(self, request, *args, **kwargs):
-        term = request.GET.get("term", "")
-        
-        if term:
-            # if the string in term starts with 's' followed by 1 to 6 numbers then...
-            if self.re_studynumber.match(term):
-                queryset = Person.objects.filter(id_number__iexact=term).order_by('first')
-            else:
-                fields_to_search = ['first_relaxed', 'last_relaxed',
-                                    'first', 'middle', 'prelast', 'last', 'lineage',
-                                    'initials']
-                query = get_query(term, fields_to_search)
-
-                queryset = Person.objects.filter(query).order_by('first')
-        else:
-            queryset = Person.objects.all()
-
-        results = [
-            {"id": person.pk, "text": str(person)} for person in queryset
-        ]
-        
-        # print debug message to console displaying the number of results
-        print(f"Term requested: {term}")
-        print(f"Number of results: {len(results)}")
-
-        return JsonResponse({"results": results})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class PersonView(BaseDetailView):
-    model = Person
-    template_name = 'publications/person.html'
-    context_object_name = 'person'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class FeatureView(BaseDetailView):
-    model = Feature
-    template_name = 'publications/feature.html'
-    context_object_name = 'feature'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        geometry = self.object.points or self.object.lines or self.object.polys
-        context.update({'geometry': geometry})
-        return context
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# class LoginView(BaseView):
-    
-    
-#     template_view = 'publications/login.html'
-
-#     # Check what is the IP address of the user
-#     def get(self, request, **kwargs):
-        
-    
-
-#         form = LoginForm()
-#         context = {'form': form}
-#         context.update(self.get_context_data(**kwargs))
-#         return render(request, self.template_view, context)
-
-#     def post(self, request, **kwargs):
-        
-#         ip = get_client_ip(request)
-
-
-#         # Check if the IP address is in the list of allowed IP addresses
-#         if not is_private(ip):
-#                 return render(request, 'publications/access_denied.html', context = {'error': 'Your IP address is not allowed to access this page!'})
-                
-#         form = LoginForm(request.POST)
-#         if form.is_valid():
-#             username = form.cleaned_data['username']
-#             password = form.cleaned_data['password']
-
-
-
-
-#             user = authenticate(request, username=username, password=password)
-
-
-
-
-#             if user is not None:
-#                 login(request, user)
-#                 return redirect('frontpage')  # or wherever you want to redirect after successful login
-#             else:
-#                 form.add_error(None, 'Authentication failed')
-
-#         context = {'form': form}
-#         context.update(self.get_context_data(**kwargs))
-#         return render(request, self.template_view, context)
-
-
-
-
-
-
-class LogoutView(BaseView):
-    def get(self, request, **kwargs):
-        logout(request)
-        return redirect('publications:frontpage')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def map_data(request):
-#     features = Feature.objects.all()
-#     # q: in debug mode, how to loop through features and print out the attributes?
-#     # for feature in features:
-#     #     print(feature)
-#     serialized_features = serializers.serialize('json', features)
-#     return JsonResponse(serialized_features, safe=False)
-
-
-class UploadAppendixView(BaseView):
-    """
-    View for uploading multiple appendix files to a publication.
-    Uses session-based batch management for file handling.
-    
-    Note: For very large files (>100MB), we may need to implement 
-    a secondary upload scheme with chunked uploads or direct storage.
-    """
-    template_name = 'publications/upload_appendix.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        publication_id = self.kwargs['pk']
-        
-        # Get the publication
-        publication = get_object_or_404(Publication, id=publication_id)
-        context['publication'] = publication
-        
-        # Import forms here to avoid circular imports
-        context['form'] = UploadAppendixForm()
-        
-        # Get session files for this publication
-        session_key = f'appendix_upload_{publication_id}'
-        # Note: request is not available in get_context_data, will handle in get method
-        context['session_files'] = []
-        
-        # Get existing appendices
-        context['existing_appendices'] = publication.appendices.all()
-        
-        return context
-    
-    def get(self, request, **kwargs):
-        self.request = request  # Store request for context access
-        self.kwargs = kwargs    # Store kwargs for context access
-        context = self.get_context_data(**kwargs)
-        
-        # Add session files here where we have access to request
-        publication_id = kwargs['pk']
-        session_key = f'appendix_upload_{publication_id}'
-        context['session_files'] = request.session.get(session_key, [])
-        
-        return render(request, self.template_name, context)
-    
-    def post(self, request, *args, **kwargs):
-        """Handle different POST actions: upload, remove, submit, cancel"""
-        publication_id = self.kwargs['pk']
-        publication = get_object_or_404(Publication, id=publication_id)
-        action = request.POST.get('action', 'upload')
-        
-        if action == 'upload':
-            return self.handle_file_upload(request, publication)
-        elif action == 'remove':
-            return self.handle_file_removal(request, publication)
-        elif action == 'submit':
-            return self.handle_submit(request, publication)
-        elif action == 'cancel':
-            return self.handle_cancel(request, publication)
-        else:
-            return self.get(request, *args, **kwargs)
-    
-    def handle_file_upload(self, request, publication):
-        """Add uploaded files to session storage"""
-        
-        form = UploadAppendixForm(request.POST, request.FILES)
-        
-        if form.is_valid():
-            files = request.FILES.getlist('appendix_files')
-            session_key = f'appendix_upload_{publication.id}'
-            session_files = request.session.get(session_key, [])
-            
-            for uploaded_file in files:
-                # Save to temporary file
-                temp_file = tempfile.NamedTemporaryFile(delete=False)
-                try:
-                    for chunk in uploaded_file.chunks():
-                        temp_file.write(chunk)
-                    temp_file.close()
-                    
-                    # Store file info in session
-                    file_info = {
-                        'filename': uploaded_file.name,
-                        'temp_path': temp_file.name,
-                        'size': uploaded_file.size,
-                        'content_type': uploaded_file.content_type,
-                    }
-                    session_files.append(file_info)
-                    
-                except Exception as e:
-                    # Clean up on error
-                    try:
-                        os.unlink(temp_file.name)
-                    except OSError:
-                        pass
-                    # Add error message
-                    messages.error(request, f'Error uploading {uploaded_file.name}: {e}')
-            
-            # Update session
-            request.session[session_key] = session_files
-            request.session.modified = True
-            
-            messages.success(request, f'Successfully uploaded {len(files)} file(s)')
-        
-        return redirect('publications:upload_appendix', pk=publication.id)
-    
-    def handle_file_removal(self, request, publication):
-        """Remove a file from session storage"""
-        
-        file_index = int(request.POST.get('file_index', -1))
-        session_key = f'appendix_upload_{publication.id}'
-        session_files = request.session.get(session_key, [])
-        
-        if 0 <= file_index < len(session_files):
-            file_to_remove = session_files.pop(file_index)
-            
-            # Clean up temporary file
-            temp_path = file_to_remove.get('temp_path')
-            if temp_path and os.path.exists(temp_path):
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
-            
-            # Update session
-            request.session[session_key] = session_files
-            request.session.modified = True
-            
-            messages.success(request, f'Removed {file_to_remove["filename"]}')
-        
-        return redirect('publications:upload_appendix', pk=publication.id)
-    
-    def handle_submit(self, request, publication):
-        """Commit all session files to the publication"""
-        
-        try:
-            created_files = handle_session_appendix_uploads(request, publication)
-            
-            if created_files:
-                messages.success(
-                    request, 
-                    f'Successfully attached {len(created_files)} appendix file(s) to publication {publication.number}'
-                )
-            else:
-                messages.info(request, 'No files were uploaded')
-                
-            # Redirect to publication detail page
-            return redirect('publications:report', pk=publication.id)
-            
-        except Exception as e:
-            messages.error(request, f'Error processing files: {e}')
-            return redirect('publications:upload_appendix', pk=publication.id)
-    
-    def handle_cancel(self, request, publication):
-        """Cancel upload and clean up session files"""
-        
-        session_key = f'appendix_upload_{publication.id}'
-        session_files = request.session.get(session_key, [])
-        
-        # Clean up temporary files
-        for file_info in session_files:
-            temp_path = file_info.get('temp_path')
-            if temp_path and os.path.exists(temp_path):
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
-        
-        # Clear session
-        if session_key in request.session:
-            del request.session[session_key]
-        
-        messages.info(request, 'Upload cancelled')
-        
-        # Redirect to publication detail page
-        return redirect('publications:report', pk=publication.id)
 
 
 class ChangeReportNumberView(BaseFormView):
@@ -1919,234 +1046,6 @@ class ChangeReportNumberView(BaseFormView):
             )
             return self.form_invalid(form)
 
-
-@method_decorator(login_required, name='dispatch')
-class AddFeatureCoordinatesView(BaseFormView):
-    """View for adding a point feature with known coordinates"""
-    template_name = 'publications/add_feature_coordinates.html'
-    form_class = AddFeatureByCoordinatesForm
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Add debugging for all requests"""
-        print(f"AddFeatureCoordinatesView.dispatch: {request.method} request received")
-        print(f"POST data: {request.POST}")
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_publication(self):
-        """Get the publication this feature will be associated with"""
-        report_pk = self.kwargs.get('report_pk')
-        return get_object_or_404(Publication, pk=report_pk)
-    
-    def get_context_data(self, **kwargs):
-        print("AddFeatureCoordinatesView.get_context_data called")
-        context = super().get_context_data(**kwargs)
-        context['publication'] = self.get_publication()
-        return context
-    
-    def post(self, request, *args, **kwargs):
-        """Handle POST requests with debugging"""
-        print(f"AddFeatureCoordinatesView.post called with data: {request.POST}")
-        return super().post(request, *args, **kwargs)
-    
-    def form_valid(self, form):
-        """Process valid form and create the feature"""
-        print(f"AddFeatureCoordinatesView.form_valid called with cleaned_data: {form.cleaned_data}")
-        
-        try:
-            print("Step 1: Getting publication...")
-            publication = self.get_publication()
-            print(f"Publication: {publication}")
-            
-            print("Step 2: Creating feature instance...")
-            # Create the feature instance
-            feature = form.save(commit=False)
-            feature.created_by = self.request.user
-            feature.modified_by = self.request.user
-            
-            print(f"Feature instance created: {feature}")
-            print(f"Feature date: {feature.date}")
-            
-            print("Step 3: Getting coordinate data...")
-            # Get coordinate data
-            x_coord = form.cleaned_data['x_coordinate']
-            y_coord = form.cleaned_data['y_coordinate']
-            srid = int(form.cleaned_data['spatial_reference_system'])
-            print(f"Coordinates: x={x_coord}, y={y_coord}, srid={srid}")
-            
-            print("Step 4: Creating Point geometry...")
-            # Create the geometry
-            point = Point(float(x_coord), float(y_coord), srid=srid)
-            print(f"Point created: {point}")
-            
-            print("Step 5: Converting to MultiPoint...")
-            # Convert to MultiPoint for storage (following the old system pattern)
-            feature.points = MultiPoint(point, srid=srid)
-            print(f"MultiPoint created: {feature.points}")
-            
-            print("Step 6: Saving feature...")
-            # Save the feature
-            feature.save()
-            print("Feature saved successfully")
-
-            print("Step 7: Associating with publication...")
-            # Associate with the publication
-            feature.publications.add(publication)
-            print("Feature associated with publication")
-
-            # Set flag to trigger session cache clearing
-            self.request.session['invalidate_feature_cache'] = True              
-
-            print("Step 8: Adding success messages...")
-            messages.success(
-                self.request, 
-                f'Feature "{feature.name}" has been successfully created and associated with '
-                f'publication {publication.number}.'
-            )
-            
-            # Check if coordinates seem reasonable and add informational message
-            if hasattr(form, 'coordinate_warnings') and form.coordinate_warnings:
-                messages.warning(
-                    self.request,
-                    'Please verify the feature location is correct. Some coordinate values '
-                    'generated warnings during validation.'
-                )
-            else:
-                messages.info(
-                    self.request,
-                    'Please verify that the geographical location of the feature is correct.'
-                )
-            
-            print("Step 9: Redirecting...")
-            return redirect('publications:report', pk=publication.pk)
-            
-        except Exception as e:
-            print(f"ERROR in form_valid: {type(e).__name__}: {str(e)}")
-            print(f"Traceback: {traceback.format_exc()}")
-            messages.error(
-                self.request,
-                f'Error creating feature geometry: {str(e)}. Please check your coordinates and SRID.'
-            )
-            return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        """Handle invalid form with debugging"""
-        print(f"AddFeatureCoordinatesView.form_invalid called")
-        print(f"Form errors: {form.errors}")
-        print(f"Form non_field_errors: {form.non_field_errors}")
-        return super().form_invalid(form)
-    
-    def get_success_url(self):
-        """Redirect to the publication detail page"""
-        return reverse('publications:report', kwargs={'pk': self.kwargs['report_pk']})
-
-
-class AddFeatureByMapView(LoginRequiredMixin, FormView):
-    """View for adding a feature by clicking on a map"""
-    template_name = 'publications/add_feature_by_map.html'
-    form_class = AddFeatureByMap
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Override dispatch to get the publication"""
-        self.publication = self.get_publication()
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_publication(self):
-        """Get the publication object"""
-        report_pk = self.kwargs.get('report_pk')
-        return get_object_or_404(Publication, pk=report_pk)
-    
-    def get_context_data(self, **kwargs):
-        """Add publication to context"""
-        context = super().get_context_data(**kwargs)
-        context['publication'] = self.publication
-        # Add any MapBox or other API keys if needed
-        if hasattr(settings, 'MAPBOX_ACCESS_TOKEN'):
-            context['mapbox_access_token'] = settings.MAPBOX_ACCESS_TOKEN
-        return context
-    
-    def post(self, request, *args, **kwargs):
-        """Process the form submission"""
-        return super().post(request, *args, **kwargs)
-    
-    def form_valid(self, form):
-        """Create and save the feature with geometry from the map"""
-        try:
-            # Create feature object but don't save yet
-            feature = form.save(commit=False)
-            feature.created_by = self.request.user
-
-            # Process geometry from the correct hidden field
-            geojson_data = self.request.POST.get('geojson_data', '')
-            if geojson_data:
-                try:
-                    # Parse the GeoJSON data
-                    geojson = json.loads(geojson_data)
-
-                    # Create a MultiPoint geometry from the coordinates
-                    coordinates = []
-                    if geojson.get('type') == 'FeatureCollection':
-                        for f in geojson.get('features', []):
-                            if f.get('geometry', {}).get('type') == 'Point':
-                                coords = f['geometry']['coordinates']
-                                coordinates.append(coords)
-
-                    if coordinates:
-                        print(f"DEBUG: Raw coordinates list: {coordinates}")
-                        points = []
-                        for idx, pair in enumerate(coordinates):
-                            print(f"DEBUG: Coordinate pair {idx}: {pair} (type: {type(pair)})")
-                            try:
-                                lon, lat = pair
-                                pt = Point(lon, lat)
-                                print(f"DEBUG: Created Point: {pt} (type: {type(pt)})")
-                                points.append(pt)
-                            except Exception as e:
-                                print(f"DEBUG: Error creating Point from {pair}: {e}")
-                        print(f"DEBUG: Points list for MultiPoint: {points}")
-                        print(f"DEBUG: Types in points list: {[type(p) for p in points]}")
-                        geom = MultiPoint(points, srid=4326)
-                        feature.points = geom
-                        print(f"Created MultiPoint with {len(points)} points")
-                    else:
-                        raise ValueError("No valid coordinates found in map data")
-                except Exception as e:
-                    print(f"Error parsing GeoJSON: {str(e)}")
-                    raise
-
-            # Save the feature
-            feature.save()
-            print(f"Feature saved with ID: {feature.pk}")
-            publication = self.get_publication()
-            feature.publications.add(publication) 
-            print(f"Feature added to publication {publication.pk}")
-            
-
-            messages.success(
-                self.request,
-                'Feature added successfully!'
-            )
-
-            return redirect('publications:report', pk=publication.pk)
-
-        except Exception as e:
-            print(f"ERROR: Exception while creating feature: {e}")
-            print(traceback.format_exc())
-            messages.error(
-                self.request, 
-                f'An error occurred while creating the feature: {str(e)}. '
-                'Please try again or contact support.'
-            )
-            return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        """Handle invalid form data"""
-        print(f"AddFeatureByMapView.form_invalid called. Errors: {form.errors}")
-        messages.error(
-            self.request, 
-            'There was a problem with your feature data. '
-            'Please correct the errors below and try again.'
-        )
-        return super().form_invalid(form)
 
 
 class DeleteReportView(BaseView):
@@ -2262,271 +1161,6 @@ class DeleteReportView(BaseView):
         # Adjust this logic based on your thumbnail generation implementation
         base_path, ext = os.path.splitext(file_path)
         return f"{base_path}_thumb.png"
-
-
-class DeleteFeatureView(LoginRequiredMixin, UserPassesTestMixin, DeleteView, BaseView):
-    model = Feature
-    template_name = 'publications/feature_confirm_delete.html'
-    context_object_name = 'feature'
-
-    def test_func(self):
-        # User must have permission to delete the feature (customize as needed)
-        feature = self.get_object()
-        # Example: allow if user has global or own-feature delete permission
-        return self.request.user.has_perm('publications.delete_feature') or \
-               self.request.user.has_perm('publications.delete_own_feature')
-
-    def get_success_url(self):
-        # Redirect to the report page after deletion
-        # Assumes feature is associated with at least one publication
-        
-        # Set flag to invalidate feature cache
-        self.request.session['invalidate_feature_cache'] = True
-
-        pubs = self.object.publications.all()
-        if pubs.exists():
-            return reverse_lazy('publications:report', kwargs={'pk': pubs.first().pk})
-        return reverse_lazy('publications:reports')
-
-    def get_context_data(self, **kwargs):
-        # Ensure self.object is set before using it
-        if not hasattr(self, 'object') or self.object is None:
-            self.object = self.get_object()
-        context = super().get_context_data(**kwargs)
-        # Ensure base_template is always present
-        context['base_template'] = getattr(self, 'base_template', 'publications/base.html')
-        pubs = self.object.publications.all()
-        if pubs.exists():
-            context['cancel_url'] = reverse_lazy('publications:report', kwargs={'pk': pubs.first().pk})
-        else:
-            context['cancel_url'] = reverse_lazy('publications:reports')
-        return context
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Delete associated files from DB and disk
-        for fileobj in self.object.files.all():
-            if fileobj.file:
-                fileobj.file.delete(save=False)  # Delete from disk
-            fileobj.delete()  # Delete FileObject from DB
-        # Optionally, handle images or other related objects here
-
-        return super().delete(request, *args, **kwargs)
-
-
-# AJAX Functions for Person Disambiguation Workflow
-# Based on legacy Django 1.6 implementation
-
-def get_tag(string, tag_name):
-    """Extract tag value from string like '[id:123]' -> 123"""
-    pattern = r'\[' + tag_name + r':([^\]]+)\]'
-    match = re.search(pattern, string)
-    if match:
-        value = match.group(1)
-        if value == '0':
-            return 0
-        elif value == 'ldap':
-            return 'ldap'
-        else:
-            try:
-                return int(value)
-            except ValueError:
-                return None
-    return None
-
-
-def remove_tags(string):
-    """Remove all tags like '[id:123]' from string"""
-    return re.sub(r'\[[^\]]+\]', '', string).strip()
-
-
-def get_person_matches(name_string, exact=True, relaxed=True):
-    """
-    Find person matches in database.
-    Returns (queryset, match_type) tuple.
-    """
-    clean_name = remove_tags(name_string).strip()
-    
-    if not clean_name:
-        return (Person.objects.none(), None)
-    
-    # Try exact match first
-    if exact:
-        exact_matches = Person.objects.filter(name__iexact=clean_name)
-        if exact_matches.exists():
-            return (exact_matches, 'db_exact')
-    
-    # Try relaxed match (split on common separators)
-    if relaxed:
-        name_parts = re.split(r'[,\s]+', clean_name)
-        if len(name_parts) >= 2:
-            # Try matching first and last name components
-            first_part = name_parts[0].strip()
-            last_part = name_parts[-1].strip()
-            
-            relaxed_matches = Person.objects.filter(
-                name__icontains=first_part
-            ).filter(
-                name__icontains=last_part
-            )
-            
-            if relaxed_matches.exists():
-                return (relaxed_matches, 'db_relaxed')
-    
-    return (Person.objects.none(), None)
-
-
-@require_http_methods(["GET"])
-@login_required
-def check_person_ajax(request):
-    """
-    AJAX endpoint to check person names and provide disambiguation options.
-    Based on legacy check_person_ajax view.
-    """
-    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({'error': 'AJAX requests only'}, status=400)
-    
-    def process_field(field_name):
-        """Process a field (authors, supervisors, etc.) and return disambiguation data"""
-        persons_needing_choice = []
-        
-        for name in request.GET.getlist(f'{field_name}[]'):
-            if not name.strip():
-                continue
-                
-            # Check if name has an ID tag
-            person_id = get_tag(name, 'id')
-            
-            if person_id == 0:
-                # Person marked for creation - no disambiguation needed
-                continue
-            elif person_id and person_id != 'ldap':
-                # Existing person ID - verify it exists
-                try:
-                    Person.objects.get(id=person_id)
-                    continue  # Valid existing person
-                except Person.DoesNotExist:
-                    # Invalid ID, treat as new name
-                    pass
-            
-            # No valid ID tag, need to check for matches
-            matches, match_type = get_person_matches(name)
-            
-            if match_type:
-                # Found matches - need user choice
-                person_data = {
-                    'name': name,
-                    'p_exact': list(matches) if match_type == 'db_exact' else [],
-                    'p_relaxed': list(matches) if match_type == 'db_relaxed' else [],
-                    'p_ldap': []  # LDAP not implemented in modern version
-                }
-                persons_needing_choice.append(person_data)
-            else:
-                # No matches - will create new person
-                person_data = {
-                    'name': name,
-                    'p_exact': [],
-                    'p_relaxed': [],
-                    'p_ldap': []
-                }
-                persons_needing_choice.append(person_data)
-        
-        if persons_needing_choice:
-            # Render disambiguation form
-            context = {
-                'name_field': field_name,
-                'persons': persons_needing_choice
-            }
-            html = render_to_string(
-                'publications/ajax/choose_person_form.html',
-                {'data': context},
-                request=request
-            )
-            return {'html': html, 'message': 'choice_needed'}
-        else:
-            # All persons are valid
-            return {'html': '', 'message': 'ok'}
-    
-    response = {}
-    
-    # Process each field type
-    if 'authors[]' in request.GET:
-        response['authors'] = process_field('authors')
-    if 'supervisors[]' in request.GET:
-        response['supervisors'] = process_field('supervisors')
-    if 'editors[]' in request.GET:
-        response['editors'] = process_field('editors')
-    
-    if not response:
-        return JsonResponse({'error': 'No person fields specified'}, status=400)
-    
-    return JsonResponse(response)
-
-
-@require_http_methods(["POST"])
-@login_required
-def add_person_ajax(request):
-    """
-    AJAX endpoint to create new persons.
-    Based on legacy add_person_ajax view.
-    """
-    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({'error': 'AJAX requests only'}, status=400)
-    
-    # Simple person creation - just name required
-    name = request.POST.get('name', '').strip()
-    if not name:
-        return JsonResponse({'error': 'Name is required'}, status=400)
-    
-    try:
-        person = Person.objects.create(
-            name=name,
-            created_by=request.user,
-            modified_by=request.user
-        )
-        
-        return JsonResponse({
-            'success': f'Person "{person.name}" created successfully with ID {person.id}',
-            'person_id': person.id,
-            'person_name': person.name
-        })
-    except Exception as e:
-        return JsonResponse({
-            'error': f'Failed to create person: {str(e)}'
-        }, status=500)
-
-
-
-@method_decorator(login_required, name='dispatch')
-class AddReportsFromFileUploadView(BaseFormView):
-    template_name = "publications/add_reports_from_file_upload.html"
-    form_class = ImportPublicationFileForm
-
-    def form_valid(self, form):
-        uploaded_file = form.cleaned_data["file"]
-        upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
-        os.makedirs(upload_dir, exist_ok=True)
-        file_path = os.path.join(upload_dir, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            for chunk in uploaded_file.chunks():
-                f.write(chunk)
-
-        # Call the parsing function
-        filemessages = xlsx_pubs(file_path, user=self.request.user)
-        for level, msg in filemessages:
-            messages.add_message(self.request, level, msg)
-
-        # Redirect back to the same page to show messages
-        return redirect("publications:add_reports_from_file_upload")
-
-    def form_invalid(self, form):
-        print("🔍 DEBUG: ChangeReportNumberView.form_invalid called")
-        print(f"🔍 DEBUG: form.errors={form.errors}")
-        print(f"🔍 DEBUG: form.cleaned_data={getattr(form, 'cleaned_data', None)}")
-        messages.error(self.request, "Please correct the errors below.")
-        context = self.get_context_data(form=form)
-        return render(self.request, self.template_name, context)
-
 
 
 class BulkDeletePublicationsView(LoginRequiredMixin, UserPassesTestMixin, View):

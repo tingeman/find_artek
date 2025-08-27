@@ -1,0 +1,360 @@
+--------------------------------------------------
+From django web view:
+--------------------------------------------------
+
+Traceback (most recent call last):
+  File "/app/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/utils/decorators.py", line 46, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/views/generic/base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/app-main/publications/views/disambiguation_views.py", line 46, in get
+    is_active, current_person, redirect_url, error_message = self._get_workflow_state(service)
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/app-main/publications/views/disambiguation_views.py", line 141, in _get_workflow_state
+    if service.is_workflow_complete():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/app-main/publications/services/disambiguation.py", line 249, in is_workflow_complete
+    workflow = pd['workflows'][pd['current_index']]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Exception Type: IndexError at /publications/workflow/person/disambiguate/
+Exception Value: list index out of range
+
+
+
+
+
+
+
+--------------------------------------------------
+From Terminal output:
+--------------------------------------------------
+
+
+WARNING "GET /publications/report/591/ HTTP/1.1" 404 4282
+In BaseView
+dict_keys(['base_template'])
+INFO "GET /publications/reports/ HTTP/1.1" 200 9122
+WARNING Not Found: /find/static/publications/font/Mona_Sans/Mona-Sans.ttf
+WARNING "GET /find/static/publications/font/Mona_Sans/Mona-Sans.ttf HTTP/1.1" 404 3708
+WARNING Not Found: /find/static/publications/font/roboto/Roboto-Light.ttf
+WARNING "GET /find/static/publications/font/roboto/Roboto-Light.ttf HTTP/1.1" 404 3708
+DEBUG PersonDisambiguationReaderMixin: GET - not processing workflows
+DEBUG ReportFormView.get_form_class: returning DisambiguationWorkflowAddEditReportForm
+DEBUG ReportFormView.get_form_kwargs: session keys=['_auth_user_id', '_auth_user_backend', '_auth_user_hash', 'publication_id', 'workflow_updated_field', 'person_disambiguation']
+DEBUG ReportFormView.get_form_kwargs: kwargs keys=['initial', 'prefix', 'request']
+DEBUG In AddEditReportForm:__init__
+DEBUG AddEditReportForm:__init__: delete_pdf field before configuration: widget=CheckboxInput
+DEBUG AddEditReportForm:__init__:ADD MODE - No instance
+DEBUG AddEditReportForm:__init__: delete_pdf field after configuration: widget=HiddenInput
+DEBUG PersonDisambiguationService.__init__: Found 0 workflows, current_index=0
+DEBUG ReportFormView.get_form: form class=DisambiguationWorkflowAddEditReportForm, mixins=(<class 'publications.forms.publication.DisambiguationWorkflowAddEditReportForm'>, <class 'publications.mixins.disambiguation.PersonDisambiguationFormMixin'>, <class 'publications.forms.publication.AddEditReportForm'>, <class 'django.forms.models.ModelForm'>, <class 'django.forms.models.BaseModelForm'>, <class 'django.forms.forms.BaseForm'>, <class 'django.forms.utils.RenderableFormMixin'>, <class 'django.forms.utils.RenderableMixin'>, <class 'django.db.models.utils.AltersData'>, <class 'object'>)
+🔍 DEBUG: AddEditReportView:get_form - Add mode: Setting widget choices empty for authors, supervisors
+In BaseView
+dict_keys(['base_template'])
+DEBUG PersonHeavySelect2TagWidget:format_value: None
+DEBUG PersonHeavySelect2TagWidget:get_context: name=authors, value=None
+DEBUG PersonHeavySelect2TagWidget:format_value: None
+DEBUG PersonHeavySelect2TagWidget:get_context: name=supervisors, value=None
+INFO "GET /publications/report/add/ HTTP/1.1" 200 32930
+WARNING Not Found: /find/static/publications/font/Mona_Sans/Mona-Sans.ttf
+WARNING "GET /find/static/publications/font/Mona_Sans/Mona-Sans.ttf HTTP/1.1" 404 3708
+WARNING Not Found: /find/static/publications/font/roboto/Roboto-Light.ttf
+WARNING "GET /find/static/publications/font/roboto/Roboto-Light.ttf HTTP/1.1" 404 3708
+Term requested: thi
+Number of results: 5
+INFO "GET /publications/test/autocomplete/person/?term=thi&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 284
+Term requested: thin
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=thin&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 71
+Term requested: Sør
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8r&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 2006
+Term requested: Søre
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8re&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 2006
+Term requested: Søren
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 2006
+Term requested: Søren 
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 2006
+Term requested: Søren T
+Number of results: 15
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20T&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 928
+Term requested: Søren Te
+Number of results: 14
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Te&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 855
+Term requested: Søren Tes
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Tes&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test 
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test B
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20B&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test Br
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20Br&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test Bru
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20Bru&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test Brun
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20Brun&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test Bru
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20Bru&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test Br
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20Br&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test B
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20B&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 69
+Term requested: Søren Test 
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test%20&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test3
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test3
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 680
+Term requested: Søren Test2
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test2&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test2 
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test2%20&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test2 B
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test2%20B&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test2 Br
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test2%20Br&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test2 Bru
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test2%20Bru&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: Søren Test2 Brun
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test2%20Brun&field_id=IjBhZjNmYTUzLWIyMGYtNGQ0ZS04NGE3LTQyOWJiMTY4ZGUxYiI%3A1uqTdM%3AdEnGeWkNZxGNEE69AtrskriZuHqFiYmQvZj7GZATsvc HTTP/1.1" 200 15
+Term requested: pee
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=pee&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 69
+Term requested: peej
+Number of results: 1
+INFO "GET /publications/test/autocomplete/person/?term=peej&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 69
+Term requested: Sør
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8r&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 2006
+Term requested: Søre
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8re&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 2006
+Term requested: Søren
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 2006
+Term requested: Søren 
+Number of results: 33
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 2006
+Term requested: Søren T
+Number of results: 15
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20T&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 928
+Term requested: Søren Te
+Number of results: 14
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Te&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 855
+Term requested: Søren Tes
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Tes&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 680
+Term requested: Søren Test
+Number of results: 11
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 680
+Term requested: Søren Test3
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 15
+Term requested: Søren Test3 
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3%20&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 15
+Term requested: Søren Test3 B
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3%20B&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 15
+Term requested: Søren Test3 Br
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3%20Br&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 15
+Term requested: Søren Test3 Bru
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3%20Bru&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 15
+Term requested: Søren Test3 Brun
+Number of results: 0
+INFO "GET /publications/test/autocomplete/person/?term=S%C3%B8ren%20Test3%20Brun&field_id=ImY1MTY1MWM2LTBmZTUtNDg3Zi05ZjU0LTBlMGZiY2E3NzFiNyI%3A1uqTdM%3AnDcYBYqq5LVRG94qoStnrFKjvxMswbDYLN_9V1-u8E4 HTTP/1.1" 200 15
+DEBUG PersonDisambiguationReaderMixin: POST - not processing workflows
+DEBUG ReportFormView.get_form_class: returning DisambiguationWorkflowAddEditReportForm
+DEBUG ReportFormView.get_form_kwargs: session keys=['_auth_user_id', '_auth_user_backend', '_auth_user_hash', 'publication_id', 'workflow_updated_field', 'person_disambiguation']
+DEBUG ReportFormView.get_form_kwargs: kwargs keys=['initial', 'prefix', 'data', 'files', 'request']
+DEBUG In AddEditReportForm:__init__
+DEBUG AddEditReportForm:__init__: delete_pdf field before configuration: widget=CheckboxInput
+DEBUG AddEditReportForm:__init__:ADD MODE - No instance
+DEBUG AddEditReportForm:__init__: delete_pdf field after configuration: widget=HiddenInput
+DEBUG PersonDisambiguationService.__init__: Found 0 workflows, current_index=0
+DEBUG ReportFormView.get_form: form class=DisambiguationWorkflowAddEditReportForm, mixins=(<class 'publications.forms.publication.DisambiguationWorkflowAddEditReportForm'>, <class 'publications.mixins.disambiguation.PersonDisambiguationFormMixin'>, <class 'publications.forms.publication.AddEditReportForm'>, <class 'django.forms.models.ModelForm'>, <class 'django.forms.models.BaseModelForm'>, <class 'django.forms.forms.BaseForm'>, <class 'django.forms.utils.RenderableFormMixin'>, <class 'django.forms.utils.RenderableMixin'>, <class 'django.db.models.utils.AltersData'>, <class 'object'>)
+🔍 DEBUG: AddEditReportView:get_form - Add mode: Setting widget choices empty for authors, supervisors
+DEBUG In AddEditReportForm:is_valid
+DEBUG PersonHeavySelect2TagWidget:value_from_datadict: ['1001', 'Søren Test2 Brun']
+DEBUG AddEditReportForm:clean_authors: ['1001', 'Søren Test2 Brun']
+DEBUG AddEditReportForm:clean_authors:Parsed string format: ['1001', 'Søren Test2 Brun']
+DEBUG AddEditReportForm:clean_authors:Final parsed_authors: ['1001', 'Søren Test2 Brun']
+DEBUG AddEditReportForm:clean_authors:Not all numeric
+DEBUG PersonHeavySelect2TagWidget:value_from_datadict: ['996', 'Søren Test3 Brun']
+DEBUG AddEditReportForm:clean_supervisors: ['996', 'Søren Test3 Brun']
+DEBUG AddEditReportForm:clean_supervisors:Parsed string format: ['996', 'Søren Test3 Brun']
+DEBUG AddEditReportForm:clean_supervisors:Final parsed_supervisors: ['996', 'Søren Test3 Brun']
+DEBUG AddEditReportForm:clean_supervisors:Not all numeric
+DEBUG PersonDisambiguationMixin.clean: called
+DEBUG PersonDisambiguationMixin.clean: initial cleaned_data={'title': 'Test', 'type': <PubType: STUDENTREPORT>, 'number': None, 'year': 2025, 'abstract': '', 'comment': '', 'authors': ['1001', 'Søren Test2 Brun'], 'supervisors': ['996', 'Søren Test3 Brun'], 'publication_topics': <QuerySet []>, 'publication_keywords': <QuerySet []>, 'pdffile': None, 'delete_pdf': False}
+DEBUG PersonDisambiguationMixin.clean: returning cleaned_data={'title': 'Test', 'type': <PubType: STUDENTREPORT>, 'number': None, 'year': 2025, 'abstract': '', 'comment': '', 'authors': ['1001', 'Søren Test2 Brun'], 'supervisors': ['996', 'Søren Test3 Brun'], 'publication_topics': <QuerySet []>, 'publication_keywords': <QuerySet []>, 'pdffile': None, 'delete_pdf': False}
+DEBUG PersonDisambiguationService:clear_session_data: Canceled all disambiguation workflows and cleared session data
+DEBUG DisambiguationWorkflowAddEditReportForm: Cleared all disambiguation data in session
+DEBUG DisambiguationWorkflowAddEditReportForm: Starting workflows for authors and supervisors
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Called with field_names=['authors', 'supervisors']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: cleaned_data keys=['title', 'type', 'number', 'year', 'abstract', 'comment', 'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile', 'delete_pdf']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: authors data=['1001', 'Søren Test2 Brun'] (type=<class 'list'>)
+DEBUG PersonDisambiguationFormMixin:PersonDisambiguationFormMixin:start_disambiguation_workflow: field_name=authors, field_data=['1001', 'Søren Test2 Brun'] (type=<class 'list'>)
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Creating MockFormData for authors with data=['1001', 'Søren Test2 Brun']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Calling extract_persons_needing_disambiguation for authors
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: authors names_needing_resolution=['Søren Test2 Brun']
+DEBUG PersonDisambiguationFormMixin:PersonDisambiguationFormMixin:start_disambiguation_workflow: names_needing_resolution for authors=['Søren Test2 Brun']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Starting workflow for authors with names=['Søren Test2 Brun']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: original_form_data keys=['csrfmiddlewaretoken', 'title', 'type', 'number', 'year', 'abstract', 'comment', 'authors', 'supervisors', 'pdffile', 'delete_pdf']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: original_form_data[authors]=['1001', 'Søren Test2 Brun']
+DEBUG PersonDisambiguationMixin.is_edit_mode: editing=False
+DEBUG PersonDisambiguationService:start_workflow: Set current_index to 0
+DEBUG PersonDisambiguationService:start_workflow: Started workflow for authors with 1 persons
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Workflow started for authors
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: supervisors data=['996', 'Søren Test3 Brun'] (type=<class 'list'>)
+DEBUG PersonDisambiguationFormMixin:PersonDisambiguationFormMixin:start_disambiguation_workflow: field_name=supervisors, field_data=['996', 'Søren Test3 Brun'] (type=<class 'list'>)
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Creating MockFormData for supervisors with data=['996', 'Søren Test3 Brun']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Calling extract_persons_needing_disambiguation for supervisors
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: supervisors names_needing_resolution=['Søren Test3 Brun']
+DEBUG PersonDisambiguationFormMixin:PersonDisambiguationFormMixin:start_disambiguation_workflow: names_needing_resolution for supervisors=['Søren Test3 Brun']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Starting workflow for supervisors with names=['Søren Test3 Brun']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: original_form_data keys=['csrfmiddlewaretoken', 'title', 'type', 'number', 'year', 'abstract', 'comment', 'authors', 'supervisors', 'pdffile', 'delete_pdf']
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: original_form_data[supervisors]=['996', 'Søren Test3 Brun']
+DEBUG PersonDisambiguationMixin.is_edit_mode: editing=False
+DEBUG PersonDisambiguationService:start_workflow: Added workflow for supervisors with 1 persons (queue position: 1)
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Workflow started for supervisors
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Workflow(s) started, returning redirect to disambiguate_person_step
+DEBUG PersonDisambiguationFormMixin:start_disambiguation_workflow: Workflows started, returning redirect
+DEBUG ReportFormView.form_valid: called with form class=DisambiguationWorkflowAddEditReportForm, mixins=(<class 'publications.forms.publication.DisambiguationWorkflowAddEditReportForm'>, <class 'publications.mixins.disambiguation.PersonDisambiguationFormMixin'>, <class 'publications.forms.publication.AddEditReportForm'>, <class 'django.forms.models.ModelForm'>, <class 'django.forms.models.BaseModelForm'>, <class 'django.forms.forms.BaseForm'>, <class 'django.forms.utils.RenderableFormMixin'>, <class 'django.forms.utils.RenderableMixin'>, <class 'django.db.models.utils.AltersData'>, <class 'object'>)
+DEBUG ReportFormView.form_valid: session keys=['_auth_user_id', '_auth_user_backend', '_auth_user_hash', 'publication_id', 'workflow_updated_field', 'person_disambiguation']
+DEBUG ReportFormView.form_valid: cleaned_data={'title': 'Test', 'type': <PubType: STUDENTREPORT>, 'number': None, 'year': 2025, 'abstract': '', 'comment': '', 'authors': ['1001', 'Søren Test2 Brun'], 'supervisors': ['996', 'Søren Test3 Brun'], 'publication_topics': <QuerySet []>, 'publication_keywords': <QuerySet []>, 'pdffile': None, 'delete_pdf': False}
+🔍 DEBUG: Skipping empty pdffile field: ['']
+🔍 DEBUG: Session data stored: {'csrfmiddlewaretoken': ['qZ6d4c7UkmGewsf3O5lnFMmYwAriEI7jFYm4PRHcZOSpoKE8pbPWxvBJeehG2oRg'], 'title': ['Test'], 'type': ['1'], 'number': [''], 'year': ['2025'], 'abstract': [''], 'comment': [''], 'authors': ['1001', 'Søren Test2 Brun'], 'supervisors': ['996', 'Søren Test3 Brun'], 'delete_pdf': ['']}
+🔍 DEBUG: Form has workflow redirect, returning redirect
+INFO "POST /publications/report/add/ HTTP/1.1" 302 0
+DEBUG PersonDisambiguationService.__init__: Found 2 workflows, current_index=0
+DEBUG     Workflow 0: field=authors, step=0/1, complete=False, pending=['Søren Test2 Brun']
+DEBUG     Workflow 1: field=supervisors, step=0/1, complete=False, pending=['Søren Test3 Brun']
+DEBUG _get_workflow_state: Found active workflow with current_person=Søren Test2 Brun
+🔍 DEBUG: PersonMatcher:namestring: {'first__iexact': 'Søren', 'middle__iexact': 'Test2', 'last__iexact': 'Brun'}
+🔍 DEBUG:    No Exact match found.
+🔍 DEBUG: PersonMatcher:namestring: {'first__iexact': 'Søren', 'middle__iexact': 'Test2', 'last__iexact': 'Brun'}
+🔍 DEBUG:    No Exact match found.
+🔍 DEBUG:    Trying first-last match...
+In BaseView
+dict_keys(['base_template'])
+INFO "GET /publications/workflow/person/disambiguate/ HTTP/1.1" 200 16894
+WARNING Not Found: /find/static/publications/font/Mona_Sans/Mona-Sans.ttf
+WARNING "GET /find/static/publications/font/Mona_Sans/Mona-Sans.ttf HTTP/1.1" 404 3708
+WARNING Not Found: /find/static/publications/font/roboto/Roboto-Light.ttf
+WARNING "GET /find/static/publications/font/roboto/Roboto-Light.ttf HTTP/1.1" 404 3708
+DEBUG PersonDisambiguationService.__init__: Found 2 workflows, current_index=0
+DEBUG     Workflow 0: field=authors, step=0/1, complete=False, pending=['Søren Test2 Brun']
+DEBUG     Workflow 1: field=supervisors, step=0/1, complete=False, pending=['Søren Test3 Brun']
+DEBUG _get_workflow_state: Found active workflow with current_person=Søren Test2 Brun
+DEBUG POST: action=create_new, current_person=Søren Test2 Brun
+DEBUG POST: create_new, person_name=Søren Test2 Brun
+DEBUG POST: About to call service.resolve_current_person with CREATE:Søren Test2 Brun
+DEBUG PersonDisambiguationService:resolve_current_person: Called with resolution_data=CREATE:Søren Test2 Brun
+DEBUG PersonDisambiguationService:resolve_current_person: current_person=Søren Test2 Brun
+DEBUG PersonDisambiguationService:resolve_current_person: Setting resolved_persons[Søren Test2 Brun] = CREATE:Søren Test2 Brun
+DEBUG PersonDisambiguationService:resolve_current_person: Incremented current_step to 1
+DEBUG PersonDisambiguationService:resolve_current_person: session.modified set to True
+DEBUG POST: After resolve_current_person, session={'_auth_user_id': '1', '_auth_user_backend': 'django_cas_ng.backends.CASBackend', '_auth_user_hash': '631bc67ebf3bad5b03c5ffaedc693c95c9b666ef247fd53209218346853f0ef3', 'publication_id': 591, 'workflow_updated_field': 'authors', 'person_disambiguation': {'workflows': [{'pending_persons': ['Søren Test2 Brun'], 'resolved_persons': {'Søren Test2 Brun': 'CREATE:Søren Test2 Brun'}, 'current_step': 1, 'field_name': 'authors', 'source_url': '/publications/report/add/', 'review_url': '/publications/report/add/review/'}, {'pending_persons': ['Søren Test3 Brun'], 'resolved_persons': {}, 'current_step': 0, 'field_name': 'supervisors', 'source_url': '/publications/report/add/', 'review_url': '/publications/report/add/review/'}], 'current_index': 0, 'original_form_data': {'csrfmiddlewaretoken': ['qZ6d4c7UkmGewsf3O5lnFMmYwAriEI7jFYm4PRHcZOSpoKE8pbPWxvBJeehG2oRg'], 'title': ['Test'], 'type': ['1'], 'number': [''], 'year': ['2025'], 'abstract': [''], 'comment': [''], 'authors': ['1001', 'Søren Test2 Brun'], 'supervisors': ['996', 'Søren Test3 Brun'], 'pdffile': [''], 'delete_pdf': ['']}, 'resolved_field_values': {}}, 'form_data': {'csrfmiddlewaretoken': ['qZ6d4c7UkmGewsf3O5lnFMmYwAriEI7jFYm4PRHcZOSpoKE8pbPWxvBJeehG2oRg'], 'title': ['Test'], 'type': ['1'], 'number': [''], 'year': ['2025'], 'abstract': [''], 'comment': [''], 'authors': ['1001', 'Søren Test2 Brun'], 'supervisors': ['996', 'Søren Test3 Brun'], 'delete_pdf': ['']}}
+DEBUG POST: Workflow complete after create_new
+INFO "POST /publications/workflow/person/disambiguate/ HTTP/1.1" 302 0
+DEBUG PersonDisambiguationService.__init__: Found 2 workflows, current_index=0
+DEBUG     Workflow 0: field=authors, step=1/1, complete=True, pending=['Søren Test2 Brun']
+DEBUG     Workflow 1: field=supervisors, step=0/1, complete=False, pending=['Søren Test3 Brun']
+DEBUG CompletePersonWorkflowView.get: Starting workflow completion
+DEBUG PersonDisambiguationService:finalize_workflow: Finalizing workflow 0 for field authors
+DEBUG PersonDisambiguationService:finalize_workflow: Stored resolved data for field authors
+DEBUG PersonDisambiguationService:advance_to_next_workflow: Moving from workflow 0 to 1
+DEBUG PersonDisambiguationService:finalize_workflow: Advanced to next workflow, redirecting to disambiguation step
+DEBUG CompletePersonWorkflowView.get: finalize_workflow returned redirect_url=/publications/workflow/person/disambiguate/
+DEBUG CompletePersonWorkflowView.get: All workflows complete, redirecting to /publications/workflow/person/disambiguate/
+INFO "GET /publications/workflow/person/complete/ HTTP/1.1" 302 0
+DEBUG PersonDisambiguationService.__init__: Found 2 workflows, current_index=1
+DEBUG     Workflow 0: field=authors, step=1/1, complete=True, pending=['Søren Test2 Brun']
+DEBUG     Workflow 1: field=supervisors, step=0/1, complete=False, pending=['Søren Test3 Brun']
+DEBUG DisambiguatePersonStepView.get: Removed 1 completed workflows
+ERROR Internal Server Error: /publications/workflow/person/disambiguate/
+Traceback (most recent call last):
+  File "/app/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/utils/decorators.py", line 46, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/venv/lib/python3.12/site-packages/django/views/generic/base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/app-main/publications/views/disambiguation_views.py", line 46, in get
+    is_active, current_person, redirect_url, error_message = self._get_workflow_state(service)
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/app-main/publications/views/disambiguation_views.py", line 141, in _get_workflow_state
+    if service.is_workflow_complete():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/app-main/publications/services/disambiguation.py", line 249, in is_workflow_complete
+    workflow = pd['workflows'][pd['current_index']]
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+IndexError: list index out of range
+ERROR "GET /publications/workflow/person/disambiguate/ HTTP/1.1" 500 106387
+DEBUG PersonDisambiguationService.__init__: Found 2 workflows, current_index=1
+DEBUG     Workflow 0: field=authors, step=1/1, complete=True, pending=['Søren Test2 Brun']
+DEBUG     Workflow 1: field=supervisors, step=0/1, complete=False, pending=['Søren Test3 Brun']
+INFO "GET /publications/workflow/person/status/ HTTP/1.1" 200 1398
