@@ -13,6 +13,40 @@ thead {
     border-right: 1px solid black !important; */
 }
 
+/* Stronger header rules to override framework defaults and ensure the
+   header uses the site's primary background color (top menu color). */
+.table thead,
+.table thead tr,
+.table thead th,
+body main .table.table-striped thead th,
+.table.table-striped thead th {
+    background: var(--primary-background-color) !important;
+    background-image: none !important;
+    color: var(--primary-color, black) !important;
+}
+
+/* Specific override for the reports table used in reports.html */
+#main .table.table-striped.align-middle thead th {
+    background: var(--primary-background-color) !important;
+    background-image: none !important;
+    color: var(--primary-color, black) !important;
+    font-weight: 600 !important;
+}
+
+/* Remove global solid borders from striped tables and apply subtle separators */
+.table.table-striped,
+.table.table-striped tbody,
+.table.table-striped thead,
+.table.table-striped tbody tr,
+.table.table-striped td,
+.table.table-striped th {
+    border: none !important;
+}
+
+.table.table-striped tbody td {
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
 /* thead tr {
     border-bottom: 1px solid black !important;
 } */

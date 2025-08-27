@@ -168,14 +168,63 @@ spand > p {
     width: 100%;
 }
 
-thead {
-    background-color: var(--primary-background-color);
-    color: black;
+/* Ensure table headers match the site's primary background and remain visible
+   across different Bootstrap versions. Use more specific selectors and
+   !important to override framework defaults if necessary. */
+.table thead,
+.table thead tr,
+.table thead th,
+body main .table.table-striped thead th,
+.table.table-striped thead th {
+    /* Force exact header background to match the top menu/header. Use
+       background instead of background-color to override gradients and
+       framework defaults, and remove any background-image that Bootstrap
+       might apply. */
+    background: #b0c4de !important;
+    background-image: none !important;
+    color: #000000 !important;
 }
 
-tr {
-    border: 1px solid;
+.table thead th,
+body main .table.table-striped thead th,
+.table.table-striped thead th {
+    border-bottom: 2px solid rgba(0,0,0,0.08);
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    text-align: left;
+    font-weight: 600; /* match header emphasis */
+}
 
+/* Extra-high-specificity rule for reports table header (matches reports.html table classes)
+   This targets the exact table used in reports.html and ensures the header won't
+   display white due to framework overrides. */
+#main .table.table-striped.align-middle thead th {
+    background: var(--primary-background-color) !important;
+    background-image: none !important;
+    color: var(--primary-color, black) !important;
+    font-weight: 600 !important;
+}
+
+/* Avoid applying a global border to all table rows which conflicts with
+   Bootstrap table styling. Keep borders only for the details-box area. */
+.details-box tr {
+    border: 1px solid;
+}
+
+/* Ensure Bootstrap-style tables (striped) do not receive global solid borders
+   and instead use subtle separators like the reports list. This targets the
+   specific table classes used by reports and features lists. */
+.table.table-striped,
+.table.table-striped tbody,
+.table.table-striped thead,
+.table.table-striped tbody tr,
+.table.table-striped td,
+.table.table-striped th {
+    border: none !important;
+}
+
+.table.table-striped tbody td {
+    border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
 table {

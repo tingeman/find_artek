@@ -10,6 +10,15 @@
 
 {% block dynamic_head_content %}
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
+  <style>
+    /* Page-scoped override to ensure the features table header matches the reports list */
+    #main .table.table-striped.align-middle thead th {
+      background: var(--primary-background-color) !important;
+      background-image: none !important;
+      color: var(--primary-color, black) !important;
+      font-weight: 600 !important;
+    }
+  </style>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
     {% if invalidate_feature_cache %}
@@ -264,7 +273,8 @@
             </div>
           </div>
           <div class="feature-table-box mt-4">
-            <table class="table table-striped">
+            <div class="table-responsive">
+            <table class="table table-striped align-middle">
               <thead>
                 <tr>
                   <th>ID</th>

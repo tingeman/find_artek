@@ -64,7 +64,7 @@
 :root {
     --primary-font-family: "Mona Sans", "Roboto", Verdana, Geneva, sans-serif;
     --primary-color: black;
-    --primary-background-color: #B0C4DE;
+    --primary-background-color: #b0c4de;
     --message-border-width: 1px;
     --primary-site-width: 80%;
     --primary-site-width-max: 900px;
