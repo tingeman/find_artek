@@ -79,17 +79,17 @@ class PersonDisambiguationFormMixin:
 
     def dispatch(self, request, *args, **kwargs):
         """
-        Hook into dispatch to process any completed workflows before rendering the form.
+        Hook into dispatch to process any finalized workflows before rendering the form.
         """
-        # Process any completed workflows if this is a GET request
+        # Process any finalized workflows if this is a GET request
         if request.method == 'GET' and hasattr(self, 'person_service'):
-            self.person_service.process_completed_workflows()
-            
+            self.person_service.process_finalized_workflows()
+
         return super().dispatch(request, *args, **kwargs)
 
 
     def clean(self):
-        """Process any completed workflow data from session"""
+        """Process any finalized workflow data from session"""
         logger.debug('PersonDisambiguationMixin.clean: called')
         cleaned_data = super().clean()    # This calls the clean method of the parent class
         logger.debug(f'PersonDisambiguationMixin.clean: initial cleaned_data={cleaned_data}')
@@ -97,7 +97,7 @@ class PersonDisambiguationFormMixin:
         if not self.request or not self.person_service:
             logger.debug('PersonDisambiguationMixin.clean: no request or person_service, returning cleaned_data')
             return cleaned_data
-        # Check if we have updated form data from completed workflow
+        # Check if we have updated form data from finalized workflow
         if 'updated_form_data' in self.request.session:
             updated_data = self.request.session.pop('updated_form_data')
             updated_fields = self.request.session.get('workflow_updated_fields', [])
@@ -363,36 +363,6 @@ class PersonDisambiguationFormMixin:
         ```
         """
         return getattr(self, '_workflow_redirect', None)
-    
-
-
-# class PersonDisambiguationViewMixin(ContextMixin):
-#     """
-#     View mixin that processes person disambiguation workflows before rendering forms.
-    
-#     This mixin should be used with form views that need to handle person disambiguation.
-#     It ensures that any completed workflows (such as newly created persons) are properly
-#     processed before the form is displayed.
-    
-#     Usage:
-#         class MyFormView(PersonDisambiguationViewMixin, FormView):
-#             # Your view implementation
-#     """
-
-#     def post(self, request, *args, **kwargs):
-#         """
-#         Process any completed person workflows after form submission.
-#         This is especially important for review pages where user confirms changes.
-#         """
-#         # Initialize the disambiguation service
-#         service = PersonDisambiguationService(request)
-        
-#         # Process any completed workflows (will create new persons if needed)
-#         if service.process_completed_workflows():
-#             logger.debug("PersonDisambiguationViewMixin: Processed completed workflows in POST")
-        
-#         # Continue with normal POST processing
-#         return super().post(request, *args, **kwargs)
 
 
 class BasePersonDisambiguationViewMixin(ContextMixin):
@@ -413,14 +383,14 @@ class PersonDisambiguationViewReaderMixin(BasePersonDisambiguationViewMixin):
     
     def get(self, request, *args, **kwargs):
         """
-        Get method just checks workflow state without processing completed workflows.
+        Get method just checks workflow state without processing finalized workflows.
         """
         logger.debug("PersonDisambiguationReaderMixin: GET - not processing workflows")
         return super().get(request, *args, **kwargs)
         
     def post(self, request, *args, **kwargs):
         """
-        Post method just checks workflow state without processing completed workflows.
+        Post method just checks workflow state without processing finalized workflows.
         """
         logger.debug("PersonDisambiguationReaderMixin: POST - not processing workflows")
         return super().post(request, *args, **kwargs)
@@ -428,7 +398,7 @@ class PersonDisambiguationViewReaderMixin(BasePersonDisambiguationViewMixin):
 class PersonDisambiguationViewProcessorMixin(BasePersonDisambiguationViewMixin):
     """
     Mixin that processes person disambiguation workflows.
-    This creates new persons from any completed workflows.
+    This creates new persons from any finalized workflows.
     Use this only on the view that should trigger person creation (ReportReviewView.post).
     """
     
@@ -441,13 +411,13 @@ class PersonDisambiguationViewProcessorMixin(BasePersonDisambiguationViewMixin):
         
     def post(self, request, *args, **kwargs):
         """
-        Post method processes completed workflows, creating new persons.
+        Post method processes finalized workflows, creating new persons.
         """
-        logger.debug("PersonDisambiguationProcessorMixin: POST - processing completed workflows")
+        logger.debug("PersonDisambiguationProcessorMixin: POST - processing finalized workflows")
         service = self.get_disambiguation_service()
         
         # This will create any new Person objects marked with CREATE:
-        if service.process_completed_workflows():
+        if service.process_finalized_workflows():
             logger.debug("PersonDisambiguationProcessorMixin: Created new persons from disambiguation workflow")
         else:
             logger.debug("PersonDisambiguationProcessorMixin: No person creation needed")

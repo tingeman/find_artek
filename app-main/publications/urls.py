@@ -12,7 +12,7 @@ from publications.views.publication_views import (
     BulkDeletePublicationsView
 )
 from publications.views.disambiguation_views import (
-    DisambiguatePersonStepView, CompletePersonWorkflowView,
+    DisambiguatePersonStepView, FinalizePersonWorkflowView,
     ClearDisambiguationWorkflowsView, DisambiguationWorkflowStatusView
 )
 
@@ -71,7 +71,7 @@ urlpatterns = [
     
     # Multi-step person disambiguation workflow
     path("workflow/person/disambiguate/", DisambiguatePersonStepView.as_view(), name="disambiguate_person_step"),
-    path("workflow/person/complete/", CompletePersonWorkflowView.as_view(), name="complete_person_workflow"),
+    path("workflow/person/finalize/", FinalizePersonWorkflowView.as_view(), name="finalize_person_workflow"),
     path('workflow/person/clear/', ClearDisambiguationWorkflowsView.as_view(), name='clear_disambiguation_workflows'),
     path('workflow/person/status/', DisambiguationWorkflowStatusView.as_view(), name='disambiguation_workflow_status'),
     

@@ -1,4 +1,5 @@
 import logging
+import ast
 
 from django.shortcuts import render, redirect
 
@@ -56,6 +57,26 @@ class PersonDisambiguationService:
             items = [v.strip() for v in value.split(',')]
         return [v for v in items if v]
 
+    def _get_tag(self, string, tag_name):
+        """Extract tag value from string like '[id:123]' -> 123, using NameNormalizer."""
+        tags = self.matcher.normalizer.get_tags(string)
+        if tag_name not in tags:
+            return None
+        value = tags[tag_name]
+        if value == '0':
+            return 0
+        elif value == 'ldap':
+            return 'ldap'
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return value
+    
+    def _remove_tags(self, string):
+        """Remove all tags like '[id:123]' from string, using NameNormalizer."""
+        return self.matcher.normalizer.remove_tags(string)
+    
+
     def _ensure_workflow_session(self):
         """
         Initialize workflow session if not exists
@@ -74,12 +95,88 @@ class PersonDisambiguationService:
                 'workflows': [],
                 'current_index': None,  # Set to None initially, will be set when starting a workflow
                 'original_form_data': None,
-                'resolved_field_values': {}
-                # Other keys added during processing:
-                # - resolved_form_data: Complete form data with resolved fields
-                # - workflow_updated_fields: List of field names that were updated
+                'resolved_field_values': {},
+                'resolved_form_data': {},        # Complete form data with resolved fields
+                'workflow_updated_fields': [],   # List of field names that were updated
             }
+
+    def is_workflow_active(self, id=None, workflow=None):
+        """
+        Check a person disambiguation workflow is currently active.
+        If neither id nor workflow is provided, checks the current workflow.
         
+        Args:
+            id: Optional index of the workflow to check. 
+            workflow: Optional workflow dictionary to check directly. If provided, 'id' is ignored.
+        Returns:
+            True if there is at least one workflow with unresolved persons, False otherwise.
+        """
+        pd = self.session.get('person_disambiguation', {})
+        workflows = pd.get('workflows', [])
+        current_index = pd.get('current_index', None)
+        
+        if workflow is not None:
+            # Check specific workflow provided
+            if 'pending_persons' not in workflow or 'current_step' not in workflow:
+                raise ValueError("Invalid workflow structure")
+        elif id is not None:
+            # Check specific workflow by index
+            if id < 0 or id >= len(workflows):
+                raise ValueError("Invalid workflow id")
+            workflow = workflows[id]
+        else:
+            if workflows is None or len(workflows) == 0:
+                raise ValueError("No workflows available to check")
+            elif current_index is None:
+                raise ValueError("No workflow index to access")
+            elif current_index<0 or current_index >= len(workflows):
+                raise ValueError("Current index out of range")
+            workflow = workflows[current_index]
+
+        pending = workflow.get('pending_persons', [])
+        current_step = workflow.get('current_step', 0)
+        return current_step < len(pending)
+
+    def is_workflow_finalized(self, id=None, workflow=None):
+        """
+        Check if all steps in a particular workflow are complete.
+        If neither id nor workflow is provided, checks the current active workflow.
+
+        Args:
+            id: Optional index of the workflow to check. If None, checks the current active workflow.
+            workflow: Optional workflow dictionary to check directly. If provided, 'id' is ignored.
+        """
+        return not self.is_workflow_active(id=id, workflow=workflow)
+
+    def is_name_resolved(self, name):
+        """Check if a name is already resolved and doesn't need disambiguation"""
+        # Check for skip marker
+        if name.startswith('SKIP:'):
+            return True
+            
+        # Check for ID tag
+        id_tag = self._get_tag(name, 'id')
+        if id_tag == 0:
+            # Marked for creation - no disambiguation needed
+            return True
+        elif id_tag and id_tag != 'ldap':
+            # Check if ID exists
+            try:
+                models.Person.objects.get(id=id_tag)
+                return True
+            except models.Person.DoesNotExist:
+                return False
+                
+        # Check if name is a numeric ID
+        if name.isdigit():
+            try:
+                models.Person.objects.get(id=int(name))
+                return True
+            except models.Person.DoesNotExist:
+                return False
+                
+        return False
+
     def get_resolved_form_data(self):
         """
         Merge all updated fields into the original form data.
@@ -135,7 +232,7 @@ class PersonDisambiguationService:
             field_name: Name of the field containing person data (e.g., 'authors')
             person_names: List of person names to disambiguate
             original_form_data: Original form data to update with resolved persons
-            source_url: URL to return to after workflow completion
+            source_url: URL to return to after workflow is finalized
             review_url: URL to redirect to when disambiguation is complete
         """
         pd = self.session['person_disambiguation']
@@ -163,174 +260,8 @@ class PersonDisambiguationService:
             logger.debug(f"PersonDisambiguationService:start_workflow: Added workflow for {field_name} with {len(person_names)} persons (queue position: {len(pd['workflows'])-1})")
 
         self.session.modified = True
-    
-    def get_current_person(self):
-        """Get the current person name being processed"""
-        pd = self.session['person_disambiguation']
-        if pd['current_index'] is None:
-            return None
-            
-        workflow = pd['workflows'][pd['current_index']]
-        step = workflow['current_step']
-        pending = workflow['pending_persons']
-        
-        if step < len(pending):
-            return pending[step]
-        return None
-    
-    def get_current_step_info(self):
-        """Get information about the current step"""
-        pd = self.session['person_disambiguation']
-        if pd['current_index'] is None:
-            return {
-                'current_step': 0,
-                'total_steps': 0,
-                'progress_percent': 0
-            }
-            
-        workflow = pd['workflows'][pd['current_index']]
-        current_step = workflow['current_step']
-        total_steps = len(workflow['pending_persons'])
-        
-        return {
-            'current_step': current_step + 1,  # 1-based for display
-            'total_steps': total_steps,
-            'progress_percent': int((current_step / total_steps) * 100) if total_steps > 0 else 0
-        }
-    
-    def resolve_current_person(self, resolution_data):
-        """
-        Resolve the current person and advance to the next step.
-        
-        Args:
-            resolution_data: The resolved person data (ID, new person data, or skip marker)
-        """
-        logger.debug(f'PersonDisambiguationService:resolve_current_person: Called with resolution_data={resolution_data}')
-        pd = self.session['person_disambiguation']
-        if pd['current_index'] is None:
-            logger.debug('PersonDisambiguationService:resolve_current_person: current_index is None, returning')
-            return
-        workflow = pd['workflows'][pd['current_index']]
-        current_person = self.get_current_person()
-        logger.debug(f'PersonDisambiguationService:resolve_current_person: current_person={current_person}')
-        if current_person:
-            logger.debug(f'PersonDisambiguationService:resolve_current_person: Setting resolved_persons[{current_person}] = {resolution_data}')
-            workflow['resolved_persons'][current_person] = resolution_data
-            workflow['current_step'] += 1
-            logger.debug(f'PersonDisambiguationService:resolve_current_person: Incremented current_step to {workflow["current_step"]}')
-            self.session.modified = True
-            logger.debug(f'PersonDisambiguationService:resolve_current_person: session.modified set to True')
-    
-    def is_workflow_active(self):
-        """
-        Check if any person disambiguation workflow is currently active.
 
-        Returns:
-            True if there is at least one workflow with unresolved persons, False otherwise.
-        """
-        pd = self.session.get('person_disambiguation', {})
-        workflows = pd.get('workflows', [])
-        current_index = pd.get('current_index')
-        
-        if current_index is None or not workflows or current_index >= len(workflows):
-            return False
-            
-        workflow = workflows[current_index]
-        pending = workflow.get('pending_persons', [])
-        current_step = workflow.get('current_step', 0)
-        return current_step < len(pending)
-    
-    def is_workflow_complete(self):
-        """Check if all steps in the workflow are complete"""
-        pd = self.session.get('person_disambiguation', {})
-        if not pd.get('workflows') or pd.get('current_index') is None:
-            return False
-            
-        workflow = pd['workflows'][pd['current_index']]
-        return workflow['current_step'] >= len(workflow['pending_persons'])
-        
-    def advance_to_next_workflow(self):
-        """
-        Move to the next workflow in the queue after completing the current one.
-        Returns True if there was a next workflow to move to, False otherwise.
-        """
-        pd = self.session.get('person_disambiguation', {})
-        if not pd.get('workflows'):
-            return False
-            
-        current_index = pd.get('current_index')
-        if current_index is None:
-            # No active workflow, start with the first one if any
-            if pd['workflows']:
-                pd['current_index'] = 0
-                self.session.modified = True
-                logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: Setting current_index to 0")
-                return True
-            return False
-            
-        # Check if there are more workflows after this one
-        next_index = current_index + 1
-        if next_index < len(pd['workflows']):
-            pd['current_index'] = next_index
-            self.session.modified = True
-            logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: Moving from workflow {current_index} to {next_index}")
-            return True
 
-        logger.debug("PersonDisambiguationService:advance_to_next_workflow: No more workflows available")
-        return False
-
-    def has_completed_workflows(self):
-        """
-        Returns True if there is at least one completed workflow in the session.
-        """
-        pd = self.session.get('person_disambiguation', {})
-        workflows = pd.get('workflows', [])
-        if not workflows:
-            return False
-        # A workflow is completed if its current_step >= number of pending_persons
-        for wf in workflows:
-            if wf.get('current_step', 0) >= len(wf.get('pending_persons', [])):
-                return True
-        return False
-        
-    def get_matches_for_current_person(self):
-        """Get matches for the current person using PersonMatcher"""
-        current_person = self.get_current_person()
-        if not current_person:
-            return []
-            
-        # Use PersonMatcher to find matches
-        return self.matcher.find_matches(current_person)
-    
-    def extract_persons_needing_disambiguation(self, form_data, field_name):
-        """
-        Extract person names from form data that need disambiguation.
-        
-        Args:
-            form_data: Form data containing person names
-            field_name: Name of the field containing person data
-            
-        Returns:
-            List of person names that need disambiguation
-        """
-        # Extract raw person data from form
-        person_data = self._extract_raw_person_data(form_data, field_name)
-        
-        # Filter to names needing disambiguation
-        names_needing_resolution = []
-        for name in person_data:
-            # Skip empty strings or non-string values
-            if not name or not isinstance(name, str) or not name.strip():
-                continue
-                
-            # Skip already resolved names (with SKIP: prefix or valid IDs)
-            if self._is_already_resolved(name):
-                continue
-            
-            names_needing_resolution.append(name)
-            
-        return names_needing_resolution
-    
     def _extract_raw_person_data(self, form_data, field_name):
         """
         Extract a list of person names from form-like data for a given field.
@@ -374,7 +305,6 @@ class PersonDisambiguationService:
             # Handle string representation of lists
             if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
                 try:
-                    import ast
                     parsed_items = ast.literal_eval(value)
                     if isinstance(parsed_items, list):
                         processed_values.extend(parsed_items)
@@ -387,54 +317,151 @@ class PersonDisambiguationService:
             else:
                 processed_values.append(value)
         return processed_values
-    
-    def _is_already_resolved(self, name):
-        """Check if a name is already resolved and doesn't need disambiguation"""
-        # Check for skip marker
-        if name.startswith('SKIP:'):
-            return True
-            
-        # Check for ID tag
-        id_tag = self._get_tag(name, 'id')
-        if id_tag == 0:
-            # Marked for creation - no disambiguation needed
-            return True
-        elif id_tag and id_tag != 'ldap':
-            # Check if ID exists
-            try:
-                models.Person.objects.get(id=id_tag)
-                return True
-            except models.Person.DoesNotExist:
-                return False
-                
-        # Check if name is a numeric ID
-        if name.isdigit():
-            try:
-                models.Person.objects.get(id=int(name))
-                return True
-            except models.Person.DoesNotExist:
-                return False
-                
-        return False
-    
-    def _get_tag(self, string, tag_name):
-        """Extract tag value from string like '[id:123]' -> 123, using NameNormalizer."""
-        tags = self.matcher.normalizer.get_tags(string)
-        if tag_name not in tags:
+
+
+    def get_current_person(self):
+        """Get the current person name being processed"""
+        pd = self.session['person_disambiguation']
+        if pd['current_index'] is None:
             return None
-        value = tags[tag_name]
-        if value == '0':
-            return 0
-        elif value == 'ldap':
-            return 'ldap'
-        try:
-            return int(value)
-        except (ValueError, TypeError):
-            return value
+            
+        workflow = pd['workflows'][pd['current_index']]
+        step = workflow['current_step']
+        pending = workflow['pending_persons']
+        
+        if step < len(pending):
+            return pending[step]
+        return None
     
-    def _remove_tags(self, string):
-        """Remove all tags like '[id:123]' from string, using NameNormalizer."""
-        return self.matcher.normalizer.remove_tags(string)
+    def get_current_step_info(self):
+        """Get information about the current step"""
+        pd = self.session['person_disambiguation']
+        if pd['current_index'] is None:
+            return {
+                'current_step': 0,
+                'total_steps': 0,
+                'progress_percent': 0
+            }
+            
+        workflow = pd['workflows'][pd['current_index']]
+        current_step = workflow['current_step']
+        total_steps = len(workflow['pending_persons'])
+        
+        return {
+            'current_step': current_step + 1,  # 1-based for display
+            'total_steps': total_steps,
+            'progress_percent': int((current_step / total_steps) * 100) if total_steps > 0 else 0
+        }
+    
+    def resolve_current_person(self, resolution_data):
+        """
+        Resolve the current person and advance to the next step.
+        
+        Args:
+            resolution_data: The resolved person data (ID, new person data, or skip marker)
+        """
+        logger.debug(f'PersonDisambiguationService:resolve_current_person: Called with resolution_data={resolution_data}')
+
+        pd = self.session['person_disambiguation']
+        if pd['current_index'] is None:
+            logger.debug('PersonDisambiguationService:resolve_current_person: current_index is None, returning')
+            return
+
+        workflow = pd['workflows'][pd['current_index']]
+        current_person = self.get_current_person()
+
+        if current_person:
+            logger.debug(f'PersonDisambiguationService:resolve_current_person: Setting resolved_persons[{current_person}] = {resolution_data}')
+            workflow['resolved_persons'][current_person] = resolution_data
+            workflow['current_step'] += 1
+            logger.debug(f'PersonDisambiguationService:resolve_current_person: Incremented current_step to {workflow["current_step"]}')
+            self.session.modified = True
+        else:
+            logger.debug('PersonDisambiguationService:resolve_current_person: No current person to resolve')
+        
+    def advance_to_next_workflow(self):
+        """
+        Move to the next workflow in the queue after finalizing the current one.
+        Returns True if there was a next workflow to move to, False otherwise.
+        """
+        pd = self.session.get('person_disambiguation', {})
+        if not pd.get('workflows'):
+            return False
+            
+        current_index = pd.get('current_index')
+        if current_index is None:
+            # No active workflow, start with the first one if any
+            if pd['workflows']:
+                pd['current_index'] = 0
+                self.session.modified = True
+                logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: No current_index, setting to 0")
+                return True
+            logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: No workflows available")            
+            return False
+            
+        # Check if there are more workflows after this one
+        next_index = current_index + 1
+        if next_index < len(pd['workflows']):
+            pd['current_index'] = next_index
+            self.session.modified = True
+            logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: Moving from workflow {current_index} to {next_index}")
+            return True
+
+        logger.debug("PersonDisambiguationService:advance_to_next_workflow: No more workflows available")
+        return False
+
+    def has_finalized_workflows(self):
+        """
+        Returns True if there is at least one finalized  workflow in the session.
+        """
+        pd = self.session.get('person_disambiguation', {})
+        workflows = pd.get('workflows', [])
+        if not workflows:
+            return False
+        # A workflow is finalized if its current_step >= number of pending_persons
+        for wf in workflows:
+            if self.is_workflow_finalized(workflow=wf):
+                return True
+        return False
+        
+    def get_matches_for_current_person(self):
+        """Get matches for the current person using PersonMatcher"""
+        current_person = self.get_current_person()
+        if not current_person:
+            return []
+            
+        # Use PersonMatcher to find matches
+        return self.matcher.find_matches(current_person)
+    
+    def extract_persons_needing_disambiguation(self, form_data, field_name):
+        """
+        Extract person names from form data that need disambiguation.
+        
+        Args:
+            form_data: Form data containing person names
+            field_name: Name of the field containing person data
+            
+        Returns:
+            List of person names that need disambiguation
+        """
+        # Extract raw person data from form
+        person_data = self._extract_raw_person_data(form_data, field_name)
+        
+        # Filter to names needing disambiguation
+        names_needing_resolution = []
+        for name in person_data:
+            # Skip empty strings or non-string values
+            if not name or not isinstance(name, str) or not name.strip():
+                continue
+                
+            # Skip already resolved names (with SKIP: prefix or valid IDs)
+            if self.is_name_resolved(name):
+                continue
+            
+            names_needing_resolution.append(name)
+            
+        return names_needing_resolution
+    
 
     def update_form_data_with_resolved_persons(self):
         """
@@ -443,7 +470,7 @@ class PersonDisambiguationService:
         Returns:
             Updated form data dictionary
         """
-        if not self.is_workflow_complete():
+        if not self.is_workflow_finalized():
             return None
 
         pd = self.session['person_disambiguation']
@@ -473,12 +500,12 @@ class PersonDisambiguationService:
     
     def finalize_workflow(self):
         """
-        Complete the workflow and prepare form data for form submission.
+        Finalize the workflow and prepare form data for form submission.
         
         Returns:
             Tuple of (updated_form_data, redirect_url)
         """
-        if not self.is_workflow_complete():
+        if not self.is_workflow_finalized():
             return None, None
 
         # Get the current workflow
@@ -519,23 +546,23 @@ class PersonDisambiguationService:
 
     # Removed compatibility method get_form_data() as part of standardization
         
-    def process_completed_workflows(self):
+    def process_finalized_workflows(self):
         """
-        Process any completed workflows in the session.
+        Process any finalized workflows in the session.
         Creates new Person objects for any 'CREATE:' markers.
         Returns True if any processing was done, False otherwise.
         """
 
-        logger.debug("PersonDisambiguationService:process_completed_workflows: called")
+        logger.debug("PersonDisambiguationService:process_finalized_workflows: called")
 
-        if not self.has_completed_workflows():
-            logger.debug("PersonDisambiguationService:process_completed_workflows: No completed workflows found.")
+        if not self.has_finalized_workflows():
+            logger.debug("PersonDisambiguationService:process_finalized_workflows: No finalized workflows found.")
             return False
             
         resolved_form_data = self.get_resolved_form_data()
-        logger.debug(f"PersonDisambiguationService:process_completed_workflows: resolved_form_data={resolved_form_data}")
+        logger.debug(f"PersonDisambiguationService:process_finalized_workflows: resolved_form_data={resolved_form_data}")
         if not resolved_form_data:
-            logger.debug("PersonDisambiguationService:process_completed_workflows: No resolved_form_data found.")
+            logger.debug("PersonDisambiguationService:process_finalized_workflows: No resolved_form_data found.")
             return False
             
         changes_made = False
@@ -544,102 +571,59 @@ class PersonDisambiguationService:
         person_fields = ['authors', 'supervisors', 'editors']
         for field_name in person_fields:
             if field_name not in resolved_form_data:
-                logger.debug(f"PersonDisambiguationService:process_completed_workflows: Field '{field_name}' not in resolved_form_data.")
+                logger.debug(f"PersonDisambiguationService:process_finalized_workflows: Field '{field_name}' not in resolved_form_data.")
                 continue
 
             field_value = resolved_form_data[field_name]
-            logger.debug(f"PersonDisambiguationService:process_completed_workflows: Checking field '{field_name}' with value {field_value}")
+            logger.debug(f"PersonDisambiguationService:process_finalized_workflows: Checking field '{field_name}' with value {field_value}")
             for i, value in enumerate(field_value):
-                logger.debug(f"PersonDisambiguationService:process_completed_workflows: Checking value '{value}' at index {i} in field '{field_name}'")
+                logger.debug(f"PersonDisambiguationService:process_finalized_workflows: Checking value '{value}' at index {i} in field '{field_name}'")
                 if isinstance(value, str) and value.startswith('CREATE:'):
                     person_name = value[7:]  # Remove 'CREATE:' prefix
-                    logger.debug(f"PersonDisambiguationService:process_completed_workflows: Found CREATE marker for '{person_name}' in field '{field_name}' at index {i}")
+                    logger.debug(f"PersonDisambiguationService:process_finalized_workflows: Found CREATE marker for '{person_name}' in field '{field_name}' at index {i}")
 
                     # Create the person
                     from publications.models import Person
                     new_person = Person.objects.create(name=person_name)
-                    logger.debug(f"PersonDisambiguationService:process_completed_workflows: Created new person: {new_person.get_full_name()} (ID: {new_person.pk})")
+                    logger.debug(f"PersonDisambiguationService:process_finalized_workflows: Created new person: {new_person.get_full_name()} (ID: {new_person.pk})")
 
                     # Replace the CREATE: marker with the new person's ID
                     field_value[i] = str(new_person.id)
                     changes_made = True
 
         if changes_made:
-            logger.debug("PersonDisambiguationService:process_completed_workflows: Changes made, updating session form_data.")
+            logger.debug("PersonDisambiguationService:process_finalized_workflows: Changes made, updating session form_data.")
             # Store the updated form data with the new person IDs
             self.store_resolved_form_data_in_session(resolved_form_data)
-            # Clear completed workflows after processing
-            self.clear_completed_workflows()
-            logger.debug("PersonDisambiguationService:process_completed_workflows: Cleared completed workflows after processing.")
+            # Clear finalized workflows after processing
+            self.clear_finalized_workflows()
+            logger.debug("PersonDisambiguationService:process_finalized_workflows: Cleared finalized workflows after processing.")
         else:
-            logger.debug("PersonDisambiguationService:process_completed_workflows: No CREATE markers found, no changes made.")
+            logger.debug("PersonDisambiguationService:process_finalized_workflows: No CREATE markers found, no changes made.")
 
         return changes_made
 
 
-    def has_completed_workflows(self):
+    def has_finalized_workflows(self):
         """
-        Returns True if there is at least one completed workflow in the session.
-        A workflow is completed if its current_step >= number of pending_persons.
+        Returns True if there is at least one finalized workflow in the session.
+        A workflow is finalized if its current_step >= number of pending_persons.
         """
         pd = self.session.get('person_disambiguation', {})
         workflows = pd.get('workflows', [])
         if not workflows:
             return False
-        # A workflow is completed if its current_step >= number of pending_persons
+        # A workflow is finalized if its current_step >= number of pending_persons
         for wf in workflows:
-            if wf.get('current_step', 0) >= len(wf.get('pending_persons', [])):
+            if self.is_workflow_finalized(workflow=wf):
                 return True
         return False
 
-    def clean_completed_workflows(self):
-        """
-        Remove all completed workflows from the session.
-        Updates current_index accordingly.
-        Returns the number of workflows removed.
-        """
-        pd = self.session.get('person_disambiguation', {})
-        if not pd.get('workflows'):
-            return 0
-            
-        original_count = len(pd['workflows'])
-        current_index = pd.get('current_index')
-        
-        # Filter out completed workflows
-        active_workflows = []
-        for i, wf in enumerate(pd['workflows']):
-            if wf.get('current_step', 0) < len(wf.get('pending_persons', [])):
-                active_workflows.append(wf)
-        
-        # If no workflows remain, set current_index to None
-        if not active_workflows:
-            pd['workflows'] = []
-            pd['current_index'] = None
-            self.session.modified = True
-            return original_count
-            
-        # Update workflows list
-        pd['workflows'] = active_workflows
-        
-        # Adjust current_index if needed
-        if current_index is not None:
-            # Count completed workflows before the current one
-            completed_before = 0
-            for i in range(current_index):
-                if i < original_count and pd['workflows'][i].get('current_step', 0) >= len(pd['workflows'][i].get('pending_persons', [])):
-                    completed_before += 1
-            
-            # Adjust current_index by subtracting completed workflows before it
-            pd['current_index'] = max(0, current_index - completed_before)
-        
-        self.session.modified = True
-        return original_count - len(active_workflows)
 
-
-    def clear_completed_workflows(self):
+    def clear_finalized_workflows(self):
         """
-        Clear only the completed workflows from the session.
-        A workflow is considered complete if its current_step >= number of pending_persons.
+        Clear only the finalized workflows from the session.
+        A workflow is considered finalized if its current_step >= number of pending_persons.
         """
         pd = self.session.get('person_disambiguation', {})
         workflows = pd.get('workflows', [])
@@ -647,18 +631,19 @@ class PersonDisambiguationService:
         # Create a new list with only incomplete workflows
         incomplete_workflows = []
         for wf in workflows:
-            if wf.get('current_step', 0) < len(wf.get('pending_persons', [])):
+            if not self.is_workflow_finalized(workflow=wf):
                 incomplete_workflows.append(wf)
         
         # Replace the workflows list with only incomplete workflows
         pd['workflows'] = incomplete_workflows
-        
-        # Adjust current_index if needed
+
+        # If no workflows remain, reset current_index
         if not incomplete_workflows:
+            pd['current_index'] = None
+        else:
             pd['current_index'] = 0
-        elif pd.get('current_index', 0) >= len(incomplete_workflows):
-            pd['current_index'] = max(0, len(incomplete_workflows) - 1)
-        
+        self.session.modified = True
+
         # Clear resolved form data since it's no longer valid
         if 'resolved_form_data' in pd:
             del pd['resolved_form_data']
@@ -667,8 +652,6 @@ class PersonDisambiguationService:
         
         self.session.modified = True
         
-        logger.debug(f"PersonDisambiguationService:clear_completed_workflows: Cleared completed workflows. Remaining: {len(incomplete_workflows)}")
-
 
     def clear_single_workflow(self, field_name=None, index=None):
         """
@@ -688,49 +671,28 @@ class PersonDisambiguationService:
             )
             if target_index is None:
                 return  # No workflow for this field_name
+        elif index is not None:
+            # Use index if provided, otherwise use current_index
+            target_index = index
         else:
-            # Use current_index or provided index
-            target_index = pd.get('current_index', 0) if index is None else index
+            target_index = pd.get('current_index', None)
 
-        if workflows and 0 <= target_index < len(workflows):
-            del workflows[target_index]
-            # Adjust index if needed
-            if pd.get('current_index', 0) >= len(workflows):
-                pd['current_index'] = max(0, len(workflows) - 1) if workflows else None
-            self.session.modified = True
+        if workflows:
+            if target_index is None:
+                return  # No workflow for this field_name
+            elif 0 <= target_index < len(workflows):
+                workflows.pop(target_index)
+                # set current_index to the first remaining workflow that is not finalized
+                pd['current_index'] = next(
+                    (i for i, wf in enumerate(workflows) if not self.is_workflow_finalized(wf)),
+                    None
+                )
+                self.session.modified = True
+            else:
+                raise ValueError("Invalid workflow index")
+            
 
-    def clear_workflow(self):
-        """Clear all person disambiguation workflow data from the session."""
-        # Clear the compartmentalized person_disambiguation data
-        if 'person_disambiguation' in self.session:
-            del self.session['person_disambiguation']
-
-        logger.debug("PersonDisambiguationService:clear_workflow: Clearing all workflow data")
-
-        # Clear any legacy keys that might still be present from very old code
-        for key in [
-            'person_workflows',
-            'current_workflow_index',
-            'person_workflow',
-        ]:
-            if key in self.session:
-                del self.session[key]
-                logger.debug(f"    Cleared legacy session key: {key}")
-                
-        # If person_disambiguation was recreated by _ensure_workflow_session,
-        # we need to make sure any old keys in it are cleared too
-        pd = self.session.get('person_disambiguation', {})
-        for key in ['resolved_form_data', 'workflow_updated_fields']:
-            if key in pd:
-                del pd[key]
-                logger.debug(f"    Cleared namespaced key: {key}")
-
-        self.session.modified = True
-        
-        # Reinitialize empty workflow structure
-        self._ensure_workflow_session()
-
-    def clear_session_data(self):
+    def clear_all(self):
         """
         Cancel all disambiguation workflows.
         This should be called when the user explicitly cancels the process.
@@ -744,7 +706,7 @@ class PersonDisambiguationService:
         logger.debug("PersonDisambiguationService:clear_session_data: Canceled all disambiguation workflows and cleared session data")
 
 
-    def clear_workflows(self):
+    def clear_workflows_only(self):
         """
         Clear only the workflows, keeping original form data for reuse.
         Use when canceling disambiguation but wanting to return to the form.
@@ -753,11 +715,8 @@ class PersonDisambiguationService:
         
         # Store original form data before clearing workflows
         original_form_data = self.session['person_disambiguation'].get('original_form_data', None)
-        self.clear_session_data()
-
+        self.clear_all()
         self.session['person_disambiguation']['original_form_data'] = original_form_data
-        
         self.session.modified = True
-        logger.debug("PersonDisambiguationService:clear_workflows: Cleared workflows while preserving original form data")
 
         return True

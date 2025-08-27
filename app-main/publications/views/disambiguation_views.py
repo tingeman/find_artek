@@ -89,9 +89,9 @@ class DisambiguatePersonStepView(BaseView):
             logger.debug(f'POST: select_existing, person_id={person_id}')
             if person_id:
                 service.resolve_current_person(person_id)
-                # If all persons are resolved, complete the workflow
-                if service.is_workflow_complete():
-                    return redirect('publications:complete_person_workflow')
+                # If all persons are resolved, finalize the workflow
+                if service.is_workflow_finalized():
+                    return redirect('publications:finalize_person_workflow')
                 else:
                     return redirect('publications:disambiguate_person_step')
             else:
@@ -106,11 +106,11 @@ class DisambiguatePersonStepView(BaseView):
                 service.resolve_current_person(f"CREATE:{person_name}")
                 logger.debug(f'POST: After resolve_current_person, session={dict(request.session)}')
                 messages.success(request, f'Marked new person for creation: {person_name}')
-                if service.is_workflow_complete():
-                    logger.debug('POST: Workflow complete after create_new')
-                    return redirect('publications:complete_person_workflow')
+                if service.is_workflow_finalized():
+                    logger.debug('POST: Workflow finalized after create_new')
+                    return redirect('publications:finalize_person_workflow')
                 else:
-                    logger.debug('POST: Workflow NOT complete after create_new, redirecting to next step')
+                    logger.debug('POST: Workflow NOT finalized after create_new, redirecting to next step')
                     return redirect('publications:disambiguate_person_step')
             except Exception as e:
                 logger.exception(f"Error creating person: {e}")
@@ -159,9 +159,9 @@ class DisambiguatePersonStepView(BaseView):
         
 
 @method_decorator(login_required, name='dispatch')
-class CompletePersonWorkflowView(BaseView):
+class FinalizePersonWorkflowView(BaseView):
     """
-    View to complete the person disambiguation workflow.
+    View to finalize the person disambiguation workflow.
 
     This class-based view finalizes the workflow, updates the form data with
     resolved persons, and redirects back to the form or a fallback page.
@@ -172,30 +172,30 @@ class CompletePersonWorkflowView(BaseView):
         Handle GET requests to finalize the workflow and redirect appropriately.
         """
         service = PersonDisambiguationService(request)
-        logger.debug("CompletePersonWorkflowView.get: Starting workflow completion")
+        logger.debug("FinalizePersonWorkflowView.get: Starting workflow finalization")
 
-        # Check if workflow is complete
-        if not service.is_workflow_complete():
-            logger.debug("CompletePersonWorkflowView.get: Current workflow not complete")
-            messages.error(request, "Current disambiguation workflow not complete.")
+        # Check if workflow is finalized
+        if not service.is_workflow_finalized():
+            logger.debug("FinalizePersonWorkflowView.get: Current workflow not finalized")
+            messages.error(request, "Current disambiguation workflow not finalized.")
             return redirect('publications:disambiguate_person_step')
 
         # Finalize workflow and get redirect URL
         updated_form_data, redirect_url = service.finalize_workflow()
-        logger.debug(f"CompletePersonWorkflowView.get: finalize_workflow returned redirect_url={redirect_url}")
+        logger.debug(f"FinalizePersonWorkflowView.get: finalize_workflow returned redirect_url={redirect_url}")
 
         if not redirect_url:
             # Fallback to frontpage
-            logger.debug("CompletePersonWorkflowView.get: No redirect URL, redirecting to frontpage")
-            messages.error(request, "Error completing workflow.")
+            logger.debug("FinalizePersonWorkflowView.get: No redirect URL, redirecting to frontpage")
+            messages.error(request, "Error finalizing workflow.")
             return redirect('publications:frontpage')
 
         if redirect_url == 'publications:disambiguate_person_step':
-            logger.debug("CompletePersonWorkflowView.get: More workflows to process, redirecting to next disambiguation step")
+            logger.debug("FinalizePersonWorkflowView.get: More workflows to process, redirecting to next disambiguation step")
             messages.success(request, "Moving to next disambiguation step.")
             return redirect(redirect_url)
-            
-        logger.debug(f"CompletePersonWorkflowView.get: All workflows complete, redirecting to {redirect_url}")
+
+        logger.debug(f"FinalizePersonWorkflowView.get: All workflows finalized, redirecting to {redirect_url}")
         messages.success(request, "Person disambiguation complete.")
         return redirect(redirect_url)
     
@@ -276,7 +276,6 @@ class DisambiguationWorkflowStatusView(BaseView):
             field_name = wf.get('field_name', 'unknown')
             pending_count = len(wf.get('pending_persons', []))
             resolved_count = len(wf.get('resolved_persons', {}))
-            total_count = pending_count + resolved_count
             
             if pending_count > 0:
                 status['fields_pending'].append({
@@ -284,8 +283,7 @@ class DisambiguationWorkflowStatusView(BaseView):
                     'workflow_index': i,
                     'pending_count': pending_count,
                     'resolved_count': resolved_count,
-                    'total_count': total_count,
-                    'completion_percent': int(100 * resolved_count / total_count) if total_count > 0 else 0
+                    'completion_percent': int(100 * resolved_count / pending_count) if pending_count > 0 else 0
                 })
             else:
                 status['fields_completed'].append({
