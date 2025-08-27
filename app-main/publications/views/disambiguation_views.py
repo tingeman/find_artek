@@ -119,7 +119,7 @@ class DisambiguatePersonStepView(BaseView):
         elif action == 'skip':
             logger.debug(f'POST: skip, current_person={current_person}')
             service.resolve_current_person(f"SKIP:{current_person}")
-            if service.is_workflow_complete():
+            if service.is_workflow_finalized():
                 return redirect('publications:complete_person_workflow')
             else:
                 return redirect('publications:disambiguate_person_step')
@@ -133,7 +133,7 @@ class DisambiguatePersonStepView(BaseView):
         Returns a tuple (is_active, current_person, redirect_url or None, error_message or None)
         """
         # Try to advance to next workflow if the current one is complete
-        if service.is_workflow_complete():
+        if service.is_workflow_finalized():
             logger.debug("_get_workflow_state: Current workflow is complete, trying to advance")
             service.advance_to_next_workflow()
         
@@ -222,21 +222,23 @@ class ClearDisambiguationWorkflowsView(BaseView):
         redirect_url = request.GET.get('redirect')
         if not redirect_url and workflows and workflows[0].get('source_url'):
             redirect_url = workflows[0].get('source_url')
-        
+
         # Log current state
         logger.debug(f"ClearDisambiguationWorkflowsView: Found {workflow_count} workflows to clear")
-        
-        # Use service method to clear workflows (preserving original form data)
-        service.clear_workflows()
+
+        # Use service method to clear workflows (preserving original form data).
+        # clear_workflows_only preserves original_form_data so the user can
+        # return to the form with their entered values intact.
+        service.clear_workflows_only()
 
         logger.debug("ClearDisambiguationWorkflowsView: Cleared all disambiguation workflows")
-        
+
         # Add preserve_form_data flag to the redirect URL if present
         if redirect_url:
             separator = '&' if '?' in redirect_url else '?'
             redirect_url = f"{redirect_url}{separator}preserve_form_data=1"
             return redirect(redirect_url)
-            
+
         # Default redirect to frontpage
         return redirect('publications:frontpage')
 

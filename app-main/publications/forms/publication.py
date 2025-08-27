@@ -565,7 +565,7 @@ class DisambiguationWorkflowAddEditReportForm(PersonDisambiguationFormMixin, Add
         #       This solution works for now....
 
         # Clear any old disambiguation data
-        self.person_service.clear_session_data()
+        self.person_service.clear_all()
         logger.debug("DisambiguationWorkflowAddEditReportForm: Cleared all disambiguation data in session") 
         logger.debug("DisambiguationWorkflowAddEditReportForm: Starting workflows for authors and supervisors") 
 

@@ -100,6 +100,29 @@ class PersonDisambiguationService:
                 'workflow_updated_fields': [],   # List of field names that were updated
             }
 
+    def _get_session_data(self):
+        """Return the canonical person_disambiguation dict from the session.
+
+        Ensures the namespace exists and returns it. Use this instead of
+        accessing self.session['person_disambiguation'] or get(...).
+        """
+        self._ensure_workflow_session()
+        return self.session['person_disambiguation']
+
+    def _save(self):
+        """Mark the session as modified so Django will save it."""
+        # Using Django session API: setting modified ensures the session is saved.
+        self.session.modified = True
+
+    def _current_workflow(self):
+        """Return a tuple (workflow_dict, index) for the current workflow or (None, None)."""
+        pd = self._get_session_data()
+        idx = pd.get('current_index')
+        workflows = pd.get('workflows', [])
+        if idx is None or idx < 0 or idx >= len(workflows):
+            return None, None
+        return workflows[idx], idx
+
     def is_workflow_active(self, id=None, workflow=None):
         """
         Check a person disambiguation workflow is currently active.
@@ -111,26 +134,26 @@ class PersonDisambiguationService:
         Returns:
             True if there is at least one workflow with unresolved persons, False otherwise.
         """
-        pd = self.session.get('person_disambiguation', {})
+        pd = self._get_session_data()
         workflows = pd.get('workflows', [])
         current_index = pd.get('current_index', None)
-        
+
         if workflow is not None:
             # Check specific workflow provided
             if 'pending_persons' not in workflow or 'current_step' not in workflow:
-                raise ValueError("Invalid workflow structure")
+                return False
         elif id is not None:
             # Check specific workflow by index
             if id < 0 or id >= len(workflows):
-                raise ValueError("Invalid workflow id")
+                return False
             workflow = workflows[id]
         else:
-            if workflows is None or len(workflows) == 0:
-                raise ValueError("No workflows available to check")
-            elif current_index is None:
-                raise ValueError("No workflow index to access")
-            elif current_index<0 or current_index >= len(workflows):
-                raise ValueError("Current index out of range")
+            if not workflows:
+                return False
+            if current_index is None:
+                return False
+            if current_index < 0 or current_index >= len(workflows):
+                return False
             workflow = workflows[current_index]
 
         pending = workflow.get('pending_persons', [])
@@ -182,46 +205,45 @@ class PersonDisambiguationService:
         Merge all updated fields into the original form data.
         Returns the resolved form data dict.
         """
-        pd = self.session['person_disambiguation']
- 
-        # Ensure resolved_field_values exists
-        if 'resolved_field_values' not in pd:
-            pd['resolved_field_values'] = {}
+        pd = self._get_session_data()
 
-        workflows = pd['workflows']
+        # Ensure resolved_field_values exists
+        pd.setdefault('resolved_field_values', {})
+
+        workflows = pd.get('workflows', [])
         if not workflows:
             return {}
-            
+
         # Otherwise, rebuild it from the field values
-        resolved_form_data = pd['original_form_data'].copy() or {}
+        resolved_form_data = (pd.get('original_form_data') or {}).copy()
         for wf in workflows:
-            field = wf['field_name']
-            if field in pd['resolved_field_values']:
+            field = wf.get('field_name')
+            if field in pd.get('resolved_field_values', {}):
                 resolved_form_data[field] = pd['resolved_field_values'][field]
-                
+
         logger.debug("Built resolved form data from resolved_field_values")
         return resolved_form_data
     
         
     def store_resolved_form_data_in_session(self, resolved_form_data):
-        """
-        Store the resolved form data and updated fields in the session.
+        """Store the resolved form data and updated fields in the session.
+
         All data is stored within the 'person_disambiguation' namespace.
 
-        Finally the session form_data is updated
+        Finally the session form_data is updated (top-level) so views can pick it up.
         """
-        pd = self.session['person_disambiguation']
-        workflows = pd['workflows']
-        
+        pd = self._get_session_data()
+        workflows = pd.get('workflows', [])
+
         # Store within the person_disambiguation namespace only
         pd['resolved_form_data'] = resolved_form_data
-        pd['workflow_updated_fields'] = [wf['field_name'] for wf in workflows]
+        pd['workflow_updated_fields'] = [wf.get('field_name') for wf in workflows]
 
-        # Update session form_data
+        # Update session form_data (top-level) so views can pick it up
         self.request.session['form_data'] = resolved_form_data
 
-        self.session.modified = True
-        logger.debug("Stored resolved_form_data in person_disambiguation namespace and sessions form_data")
+        self._save()
+        logger.debug("Stored resolved_form_data in person_disambiguation namespace and session form_data")
 
 
     def start_workflow(self, field_name, person_names, original_form_data, source_url=None, review_url=None):
@@ -235,13 +257,13 @@ class PersonDisambiguationService:
             source_url: URL to return to after workflow is finalized
             review_url: URL to redirect to when disambiguation is complete
         """
-        pd = self.session['person_disambiguation']
+        pd = self._get_session_data()
 
         # Store original_form_data only if not already present
-        if 'original_form_data' not in pd or pd['original_form_data'] is None:
+        if pd.get('original_form_data') is None:
             pd['original_form_data'] = original_form_data
 
-        pd['workflows'].append({
+        pd.setdefault('workflows', []).append({
             'pending_persons': person_names,
             'resolved_persons': {},
             'current_step': 0,
@@ -249,17 +271,17 @@ class PersonDisambiguationService:
             'source_url': source_url or self.request.path,
             'review_url': review_url or self.request.path,
         })
-        
+
         # Only set current_index if it's None (no active workflow)
         # This allows multiple workflows to be queued but processes them one at a time
-        if pd['current_index'] is None:
+        if pd.get('current_index') is None:
             pd['current_index'] = 0
             logger.debug(f"PersonDisambiguationService:start_workflow: Set current_index to {pd['current_index']}")
             logger.debug(f"PersonDisambiguationService:start_workflow: Started workflow for {field_name} with {len(person_names)} persons")
         else:
             logger.debug(f"PersonDisambiguationService:start_workflow: Added workflow for {field_name} with {len(person_names)} persons (queue position: {len(pd['workflows'])-1})")
 
-        self.session.modified = True
+        self._save()
 
 
     def _extract_raw_person_data(self, form_data, field_name):
@@ -321,32 +343,24 @@ class PersonDisambiguationService:
 
     def get_current_person(self):
         """Get the current person name being processed"""
-        pd = self.session['person_disambiguation']
-        if pd['current_index'] is None:
+        wf, idx = self._current_workflow()
+        if wf is None:
             return None
-            
-        workflow = pd['workflows'][pd['current_index']]
-        step = workflow['current_step']
-        pending = workflow['pending_persons']
-        
+
+        step = wf.get('current_step', 0)
+        pending = wf.get('pending_persons', [])
         if step < len(pending):
             return pending[step]
         return None
     
     def get_current_step_info(self):
         """Get information about the current step"""
-        pd = self.session['person_disambiguation']
-        if pd['current_index'] is None:
-            return {
-                'current_step': 0,
-                'total_steps': 0,
-                'progress_percent': 0
-            }
-            
-        workflow = pd['workflows'][pd['current_index']]
-        current_step = workflow['current_step']
-        total_steps = len(workflow['pending_persons'])
-        
+        wf, idx = self._current_workflow()
+        if wf is None:
+            return {'current_step': 0, 'total_steps': 0, 'progress_percent': 0}
+
+        current_step = wf.get('current_step', 0)
+        total_steps = len(wf.get('pending_persons', []))
         return {
             'current_step': current_step + 1,  # 1-based for display
             'total_steps': total_steps,
@@ -362,20 +376,19 @@ class PersonDisambiguationService:
         """
         logger.debug(f'PersonDisambiguationService:resolve_current_person: Called with resolution_data={resolution_data}')
 
-        pd = self.session['person_disambiguation']
-        if pd['current_index'] is None:
-            logger.debug('PersonDisambiguationService:resolve_current_person: current_index is None, returning')
+        wf, idx = self._current_workflow()
+        if wf is None:
+            logger.debug('PersonDisambiguationService:resolve_current_person: No current workflow, returning')
             return
 
-        workflow = pd['workflows'][pd['current_index']]
         current_person = self.get_current_person()
 
         if current_person:
             logger.debug(f'PersonDisambiguationService:resolve_current_person: Setting resolved_persons[{current_person}] = {resolution_data}')
-            workflow['resolved_persons'][current_person] = resolution_data
-            workflow['current_step'] += 1
-            logger.debug(f'PersonDisambiguationService:resolve_current_person: Incremented current_step to {workflow["current_step"]}')
-            self.session.modified = True
+            wf.setdefault('resolved_persons', {})[current_person] = resolution_data
+            wf['current_step'] = wf.get('current_step', 0) + 1
+            logger.debug(f'PersonDisambiguationService:resolve_current_person: Incremented current_step to {wf["current_step"]}')
+            self._save()
         else:
             logger.debug('PersonDisambiguationService:resolve_current_person: No current person to resolve')
         
@@ -384,26 +397,27 @@ class PersonDisambiguationService:
         Move to the next workflow in the queue after finalizing the current one.
         Returns True if there was a next workflow to move to, False otherwise.
         """
-        pd = self.session.get('person_disambiguation', {})
-        if not pd.get('workflows'):
+        pd = self._get_session_data()
+        workflows = pd.get('workflows', [])
+        if not workflows:
             return False
-            
+
         current_index = pd.get('current_index')
         if current_index is None:
             # No active workflow, start with the first one if any
-            if pd['workflows']:
+            if workflows:
                 pd['current_index'] = 0
-                self.session.modified = True
+                self._save()
                 logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: No current_index, setting to 0")
                 return True
-            logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: No workflows available")            
+            logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: No workflows available")
             return False
-            
+
         # Check if there are more workflows after this one
         next_index = current_index + 1
-        if next_index < len(pd['workflows']):
+        if next_index < len(workflows):
             pd['current_index'] = next_index
-            self.session.modified = True
+            self._save()
             logger.debug(f"PersonDisambiguationService:advance_to_next_workflow: Moving from workflow {current_index} to {next_index}")
             return True
 
@@ -412,9 +426,9 @@ class PersonDisambiguationService:
 
     def has_finalized_workflows(self):
         """
-        Returns True if there is at least one finalized  workflow in the session.
+        Returns True if there is at least one finalized workflow in the session.
         """
-        pd = self.session.get('person_disambiguation', {})
+        pd = self._get_session_data()
         workflows = pd.get('workflows', [])
         if not workflows:
             return False
@@ -472,12 +486,13 @@ class PersonDisambiguationService:
         """
         if not self.is_workflow_finalized():
             return None
-
-        pd = self.session['person_disambiguation']
-        workflow = pd['workflows'][pd['current_index']]
-        resolved_persons = workflow['resolved_persons']
-        original_form_data = pd['original_form_data']
-        field_name = workflow['field_name']
+        pd = self._get_session_data()
+        wf, idx = self._current_workflow()
+        if wf is None:
+            return None
+        resolved_persons = wf.get('resolved_persons', {})
+        original_form_data = pd.get('original_form_data')
+        field_name = wf.get('field_name')
         
         # Create a copy of the original form data
         updated_form_data = original_form_data.copy()
@@ -509,19 +524,22 @@ class PersonDisambiguationService:
             return None, None
 
         # Get the current workflow
-        pd = self.session['person_disambiguation']
-        workflows = pd['workflows']
-        current_index = pd['current_index']
-        workflow = workflows[current_index]
-        logger.debug(f"PersonDisambiguationService:finalize_workflow: Finalizing workflow {current_index} for field {workflow['field_name']}")
+        pd = self._get_session_data()
+        wf, current_index = self._current_workflow()
+        if wf is None:
+            return None, None
+        workflow = wf
+        logger.debug(f"PersonDisambiguationService:finalize_workflow: Finalizing workflow {current_index} for field {workflow.get('field_name')}")
 
         # Get updated form data
         updated_form_data = self.update_form_data_with_resolved_persons()
+        if updated_form_data is None:
+            return None, None
 
         # Store updated data for this field in the session
-        pd['resolved_field_values'][workflow['field_name']] = updated_form_data[workflow['field_name']]
-        self.session.modified = True
-        logger.debug(f"PersonDisambiguationService:finalize_workflow: Stored resolved data for field {workflow['field_name']}")
+        pd.setdefault('resolved_field_values', {})[workflow.get('field_name')] = updated_form_data[workflow.get('field_name')]
+        self._save()
+        logger.debug(f"PersonDisambiguationService:finalize_workflow: Stored resolved data for field {workflow.get('field_name')}")
 
         # Check if there are more workflows to process
         if self.advance_to_next_workflow():
@@ -531,17 +549,13 @@ class PersonDisambiguationService:
 
         logger.debug(f"PersonDisambiguationService:finalize_workflow: All workflows complete")
 
-        if 'review_url' in workflow and workflow['review_url']:
-            redirect_url = workflow['review_url']
-        else:
-            # Fall back to source_url if no review_url is specified
-            redirect_url = workflow.get('source_url', None)
-
+        # Choose redirect_url: prefer review_url, then source_url
+        redirect_url = workflow.get('review_url') or workflow.get('source_url')
         logger.debug(f'PersonDisambiguationService:finalize_workflow: redirect_url={redirect_url}')
 
         resolved_form_data = self.get_resolved_form_data()
         self.store_resolved_form_data_in_session(resolved_form_data)
-        
+
         return updated_form_data, redirect_url
 
     # Removed compatibility method get_form_data() as part of standardization
@@ -558,15 +572,15 @@ class PersonDisambiguationService:
         if not self.has_finalized_workflows():
             logger.debug("PersonDisambiguationService:process_finalized_workflows: No finalized workflows found.")
             return False
-            
+
         resolved_form_data = self.get_resolved_form_data()
         logger.debug(f"PersonDisambiguationService:process_finalized_workflows: resolved_form_data={resolved_form_data}")
         if not resolved_form_data:
             logger.debug("PersonDisambiguationService:process_finalized_workflows: No resolved_form_data found.")
             return False
-            
+
         changes_made = False
-        
+
         # Process each field that might contain persons
         person_fields = ['authors', 'supervisors', 'editors']
         for field_name in person_fields:
@@ -603,120 +617,63 @@ class PersonDisambiguationService:
 
         return changes_made
 
-
-    def has_finalized_workflows(self):
-        """
-        Returns True if there is at least one finalized workflow in the session.
-        A workflow is finalized if its current_step >= number of pending_persons.
-        """
-        pd = self.session.get('person_disambiguation', {})
-        workflows = pd.get('workflows', [])
-        if not workflows:
-            return False
-        # A workflow is finalized if its current_step >= number of pending_persons
-        for wf in workflows:
-            if self.is_workflow_finalized(workflow=wf):
-                return True
-        return False
-
-
+    # Session management helpers and workflow cleanup
     def clear_finalized_workflows(self):
-        """
-        Clear only the finalized workflows from the session.
-        A workflow is considered finalized if its current_step >= number of pending_persons.
-        """
-        pd = self.session.get('person_disambiguation', {})
+        """Remove finalized workflows and reset indices as needed."""
+        pd = self._get_session_data()
         workflows = pd.get('workflows', [])
-        
-        # Create a new list with only incomplete workflows
-        incomplete_workflows = []
-        for wf in workflows:
-            if not self.is_workflow_finalized(workflow=wf):
-                incomplete_workflows.append(wf)
-        
-        # Replace the workflows list with only incomplete workflows
-        pd['workflows'] = incomplete_workflows
 
-        # If no workflows remain, reset current_index
-        if not incomplete_workflows:
-            pd['current_index'] = None
-        else:
-            pd['current_index'] = 0
-        self.session.modified = True
+        incomplete_workflows = [wf for wf in workflows if not self.is_workflow_finalized(workflow=wf)]
+        pd['workflows'] = incomplete_workflows
+        pd['current_index'] = 0 if incomplete_workflows else None
+        self._save()
 
         # Clear resolved form data since it's no longer valid
-        if 'resolved_form_data' in pd:
-            del pd['resolved_form_data']
-        if 'workflow_updated_fields' in pd:
-            del pd['workflow_updated_fields']
-        
-        self.session.modified = True
-        
+        pd.pop('resolved_form_data', None)
+        pd.pop('workflow_updated_fields', None)
+        self._save()
 
     def clear_single_workflow(self, field_name=None, index=None):
-        """
-        Remove a single workflow from the session's workflow list.
-        By default, removes the current workflow by index.
-        If field_name is provided, removes the workflow for that field.
-        """
-        pd = self.session.get('person_disambiguation', {})
+        """Remove one workflow by field_name or index. If none given, removes current."""
+        pd = self._get_session_data()
         workflows = pd.get('workflows', [])
-        
+
         # Determine which workflow to remove
         if field_name is not None:
-            # Find the index of the workflow with the given field_name
-            target_index = next(
-                (i for i, wf in enumerate(workflows) if wf.get('field_name') == field_name),
-                None
-            )
+            target_index = next((i for i, wf in enumerate(workflows) if wf.get('field_name') == field_name), None)
             if target_index is None:
                 return  # No workflow for this field_name
         elif index is not None:
-            # Use index if provided, otherwise use current_index
             target_index = index
         else:
             target_index = pd.get('current_index', None)
 
-        if workflows:
-            if target_index is None:
-                return  # No workflow for this field_name
-            elif 0 <= target_index < len(workflows):
-                workflows.pop(target_index)
-                # set current_index to the first remaining workflow that is not finalized
-                pd['current_index'] = next(
-                    (i for i, wf in enumerate(workflows) if not self.is_workflow_finalized(wf)),
-                    None
-                )
-                self.session.modified = True
-            else:
-                raise ValueError("Invalid workflow index")
-            
+        if not workflows or target_index is None:
+            return
+
+        if 0 <= target_index < len(workflows):
+            workflows.pop(target_index)
+            pd['current_index'] = next((i for i, wf in enumerate(workflows) if not self.is_workflow_finalized(wf)), None)
+            self._save()
+        else:
+            raise ValueError("Invalid workflow index")
 
     def clear_all(self):
-        """
-        Cancel all disambiguation workflows.
-        This should be called when the user explicitly cancels the process.
-        """
+        """Clear the entire person_disambiguation namespace from session."""
         if 'person_disambiguation' in self.session:
-            # Remove person_disambiguation key from self.session
             del self.session['person_disambiguation']
-        
         self._ensure_workflow_session()
-        self.session.modified = True
+        self._save()
         logger.debug("PersonDisambiguationService:clear_session_data: Canceled all disambiguation workflows and cleared session data")
 
-
     def clear_workflows_only(self):
-        """
-        Clear only the workflows, keeping original form data for reuse.
-        Use when canceling disambiguation but wanting to return to the form.
-        """
+        """Clear only workflows but preserve original_form_data for returning to the form."""
         self._ensure_workflow_session()
-        
-        # Store original form data before clearing workflows
-        original_form_data = self.session['person_disambiguation'].get('original_form_data', None)
+        pd = self._get_session_data()
+        original_form_data = pd.get('original_form_data', None)
+        # Reset the namespace but put original_form_data back
         self.clear_all()
-        self.session['person_disambiguation']['original_form_data'] = original_form_data
-        self.session.modified = True
-
+        pd = self._get_session_data()
+        pd['original_form_data'] = original_form_data
+        self._save()
         return True

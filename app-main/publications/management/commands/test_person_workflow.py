@@ -7,6 +7,7 @@ Run with: python manage.py test_person_workflow
 
 from django.core.management.base import BaseCommand
 from django.test import RequestFactory
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.contrib.auth.models import User
 from publications.models import Person, Publication
 from publications.enhanced_forms import WorkflowAddEditReportForm
@@ -88,29 +89,31 @@ class Command(BaseCommand):
         """Test workflow session management"""
         self.stdout.write('\n=== Testing Workflow Session ===')
         
-        # Create a mock request with session
+        # Create a mock request with a real session
         factory = RequestFactory()
         request = factory.post('/')
-        request.session = {}
-        
+        middleware = SessionMiddleware()
+        middleware.process_request(request)
+        request.session.save()
+
         workflow = PersonWorkflowSession(request)
-        
+
         # Test starting workflow
         test_persons = ['John Smith', 'Unknown Author', 'Jane Doe']
         test_form_data = {'title': 'Test Report', 'authors': test_persons}
-        
+
         workflow.start_workflow('authors', test_persons, test_form_data)
-        
+
         self.stdout.write(f'  Started workflow for field: {workflow.get_field_name()}')
         self.stdout.write(f'  Total persons to process: {len(test_persons)}')
-        
+
         # Test workflow steps
         step = 0
         while not workflow.is_complete():
             step += 1
             current_person = workflow.get_current_person()
             self.stdout.write(f'  Step {step}: Processing "{current_person}"')
-            
+
             # Simulate user choice (auto-resolve for test)
             if 'Smith' in current_person:
                 # Simulate selecting existing person
@@ -120,7 +123,7 @@ class Command(BaseCommand):
                 # Simulate creating new person
                 workflow.resolve_current_person(f'{current_person} [id:0]')
                 self.stdout.write(f'    -> Marked for creation')
-        
+
         self.stdout.write(f'  Workflow completed!')
         self.stdout.write(f'  Resolved persons: {workflow.get_resolved_persons()}')
 
@@ -128,7 +131,7 @@ class Command(BaseCommand):
         """Test form integration with workflow"""
         self.stdout.write('\n=== Testing Form Integration ===')
         
-        # Create a mock request
+        # Create a mock request with a real session
         factory = RequestFactory()
         request = factory.post('/', {
             'title': 'Test Publication',
@@ -136,7 +139,9 @@ class Command(BaseCommand):
             'year': '2024',
             'type': 'report'
         })
-        request.session = {}
+        middleware = SessionMiddleware()
+        middleware.process_request(request)
+        request.session.save()
         request.user = User.objects.first() or self.create_test_user()
         
         form = WorkflowAddEditReportForm(request.POST, request=request)
