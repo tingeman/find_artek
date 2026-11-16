@@ -1,12 +1,12 @@
 # Status: Release path and pinning (Phase 1)
 
-Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (from `develop/main`; worktree `..\find_artek_agent-release-path`, with a copy of `.dev.env`). From here on, plan and status changes are committed on this branch, together with the task they belong to.
+Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (from `develop/main`; worktree `..\find_artek_agent-release-path`, with a copy of `.dev.env`). Plan, status, user steps and roadmap live on `develop/main` (this checkout); the agent branch carries the code and the docs that describe it (README, CLAUDE.md, skills).
 
 ## Now
 
-**Resume here** (fresh session: read this file, the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -6`; work only in that worktree).
+**Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **You, first:** open [USER_STEPS_release-path.md](USER_STEPS_release-path.md) (in this worktree) and do steps 1–3. Paste the output of step 2 into the session.
+- **You, first:** open [USER_STEPS_release-path.md](USER_STEPS_release-path.md) (next to this file) and do steps 1–3. Paste the output of step 2 into the session.
 - Next for the orchestrator, after your step 2: T2 (lock), T5 (pins), base-image decision (bookworm/trixie), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2, so T7 is best done after T2/T5. Nothing else is unblocked: everything left waits on T0.
 - Blocked on T0: T2 (lock from production's `pip freeze`), T5 (MariaDB/phpMyAdmin digests), and possibly a base-image switch to trixie (T3 note).
 - Then T7 (docs), T8 (review, merge with your permission), T9 (release, you).
