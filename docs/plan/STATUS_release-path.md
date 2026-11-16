@@ -7,6 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - **You (optional, next SSH session):** the FA3 password check (Open questions). USER_STEPS 1–3 are done.
+- **In progress (2026-11-17, implementer):** A1 base image switch + T2, in the worktree, uncommitted until reviewed.
 - Next for the orchestrator: base image to `python:3.12.11-slim-bookworm` by digest (A1, in T2's commit or its own), T2 (lock with `--constraints` from the baseline freeze), T5 (pins from the baseline digests), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
 - Then T8 (review, merge with your permission), T9 (release, you).
 
