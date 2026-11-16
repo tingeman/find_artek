@@ -6,8 +6,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session: read this file, the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -6`; work only in that worktree).
 
-- Next for the orchestrator: **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2, so T7 is best done after T2/T5. Nothing else is unblocked: everything left waits on T0.
-- Waiting on you: [USER_STEPS_release-path.md](USER_STEPS_release-path.md) steps 1–3 (guide open points P1–P7, host baseline T0, dev DB copy).
+- **You, first:** open [USER_STEPS_release-path.md](USER_STEPS_release-path.md) (in this worktree) and do steps 1–3. Paste the output of step 2 into the session.
+- Next for the orchestrator, after your step 2: T2 (lock), T5 (pins), base-image decision (bookworm/trixie), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2, so T7 is best done after T2/T5. Nothing else is unblocked: everything left waits on T0.
 - Blocked on T0: T2 (lock from production's `pip freeze`), T5 (MariaDB/phpMyAdmin digests), and possibly a base-image switch to trixie (T3 note).
 - Then T7 (docs), T8 (review, merge with your permission), T9 (release, you).
 
@@ -19,6 +19,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T3 2026-11-16: one `Dockerfile` (`build`, `runtime`, `dev`, `prod` last), base pinned by digest (`compose.pins.env` `FA_PYTHON_IMAGE`), `HEALTHCHECK` on `/publications/frontpage/` (healthy in ~9 s), CMD unchanged, compilers and admin tools only in build/dev (prod 218 MB, was ~2 GB), `.gitattributes` (LF scripts), `.dockerignore`; `pip freeze` identical to the old image; check/makemigrations pass, `check --deploy` 2 warnings (W004, W008).
 - T4 2026-11-16: cron as monitoring_db: job `/etc/cron.d/find_artek_thumbnails` (from `docker/cron/`, built in, root 0644, user `dockeruser`, 02:00); entrypoint starts cron with `sudo` only for `ENABLE_CRON=true` (start failure logged, app still starts); job loads the container env from `/proc/1/environ`, output in `docker logs` tagged `[thumbnails]`; `setup_cron.sh` and the log file removed. Old setup confirmed broken in the image (`crond.pid: Permission denied`). Verified incl. a real cron run, no secrets in logs; USER_STEPS file added.
 - T6 2026-11-16: `tests/run.sh` (nuki interface): 10 image checks + 9 smoke tests against a throwaway MariaDB (production settings, `migrate --skip-checks` for FA-R14, health, frontpage 200, cron job as cron runs it, no secrets in logs) + Django step with `DJANGO_TEST_LABELS` (empty → SKIP, Phase 2 fills it). 19/19 pass in ~40–55 s; fails visibly on the dev stage (7 failures); cleanup verified incl. interrupt. Test DB falls back to `mariadb:11.2` until T5 adds `FA_MARIADB_IMAGE`.
+- 2026-11-16: decisions: LDAP on/off becomes a setting `USE_LDAP` (roadmap **FA-R34**, Phase 2, not in 2026.1); production secrets only from web_server's encrypted archive, this repo keeps only `*.env.example` (added to T10's acceptance); `.dev.env` stays local with no production credentials.
 
 ## Open questions
 

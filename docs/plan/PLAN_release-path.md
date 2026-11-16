@@ -133,7 +133,7 @@ Counterpart: dtu_sus_web_server milestone **M5** (decisions FA1–FA5). That rep
 ### T10. Remove the production compose here (after M5 is deployed)
 
 - Files: `docker-compose.prod.yml`, `.prod.env.example` (the variables are documented in web_server), `docker-compose.yml` (only what was prod-only), docs referring to them.
-- Acceptance: nothing here describes production any more except the deployment contract; the dev stack still starts.
+- Acceptance: nothing here describes production any more except the deployment contract; the dev stack still starts. Production secrets reach the app only from web_server's encrypted secrets archive (`webapp_find_artek.env`, FA1); this repo keeps only `*.env.example` files with the variable names. `.dev.env` stays local and git-ignored, with local-only values and no production credentials (LDAP in dev: FA-R34).
 - Agent: simple-task
 - Deployment impact: none (web: no longer uses them).
 
