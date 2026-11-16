@@ -1,19 +1,24 @@
-# Base image: python 3.12.16-slim-bookworm, pinned by digest (provisional, until the host
-# baseline T0 confirms the Python version production runs). A release build (build_image.sh)
-# builds without --build-arg, so this default is what releases use. It must equal
-# FA_PYTHON_IMAGE in compose.pins.env: change both together.
+# Base image: python 3.12.11-slim-bookworm (Debian 12), pinned by the index digest: the Python
+# version production runs (host baseline 2026-11-16). A release build (build_image.sh) builds
+# without --build-arg, so this default is what releases use. It must equal FA_PYTHON_IMAGE in
+# compose.pins.env (tests/run.sh checks it): change both together and recompile the locks.
+#
+# Python packages: app-main/requirements.txt is hash-locked (generated from requirements.in by
+# scripts/compile_lock.py, never edited by hand) and installed with --require-hashes --no-deps,
+# so the image gets exactly the locked set. The dev stage adds requirements-dev.txt.
 #
 # Stages:
 #   build    compiles the Python packages (mysqlclient needs gcc and libmariadb-dev) into
 #            the venv /app/venv. Compilers and -dev packages stay in this stage.
 #   runtime  the production image without CMD/HEALTHCHECK: run-time libraries, user
 #            dockeruser (uid/gid 30000), the venv, the app, the entrypoint and cron scripts.
-#   dev      runtime + compilers, -dev packages and admin tools; CMD /bin/bash.
+#   dev      runtime + compilers, -dev packages, admin tools and the dev lock
+#            (app-main/requirements-dev.txt); CMD /bin/bash.
 #            Used by docker-compose.develop.yml (target: dev) and .devcontainer.
 #   prod     runtime + HEALTHCHECK + the gunicorn CMD. Must stay the LAST stage: a plain
 #            `docker build .` (build_image.sh) builds the last stage, so a release never
 #            contains the dev tools.
-ARG PYTHON_IMAGE=python:3.12.16-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
+ARG PYTHON_IMAGE=python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7
 
 
 # ---- build: compile the venv ---------------------------------------------------------------
@@ -26,11 +31,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# The venv is created at its final path (/app/venv): venvs are not relocatable.
+# The venv is created at its final path (/app/venv): venvs are not relocatable. The lock
+# holds every package (transitive ones too) with hashes; --no-deps makes pip install exactly
+# that list, and --require-hashes refuses anything that does not match.
 COPY ./app-main/requirements.txt /tmp/requirements.txt
 RUN set -ex && \
     python -m venv /app/venv && \
-    /app/venv/bin/python -m pip install --no-cache-dir -r /tmp/requirements.txt
+    /app/venv/bin/python -m pip install --no-cache-dir --require-hashes --no-deps -r /tmp/requirements.txt
 
 
 # ---- runtime: what the app needs at run time -----------------------------------------------
@@ -135,7 +142,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     net-tools \
     mc \
     && rm -rf /var/lib/apt/lists/*
+# Dev-only Python packages (compiled with requirements.txt as constraint, so they never change
+# a production version; empty for now, pip then installs nothing). As dockeruser, who owns
+# the venv.
 USER dockeruser
+COPY --chown=dockeruser:dockeruser ./app-main/requirements-dev.txt /tmp/requirements-dev.txt
+RUN set -ex && \
+    /app/venv/bin/python -m pip install --no-cache-dir --require-hashes --no-deps -r /tmp/requirements-dev.txt && \
+    rm /tmp/requirements-dev.txt
 CMD ["/bin/bash"]
 
 

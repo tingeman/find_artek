@@ -1,0 +1,40 @@
+# Direct dependencies of find_artek (production image). Edit this file, then regenerate the
+# hash-locked requirements.txt with scripts/compile_lock.py; never edit requirements.txt by hand.
+#
+# Bounds: lower = the version production ran when the lock was introduced (pip freeze of
+# 2026-11-16, Python 3.12.11), upper = the next major version. Django stays in its LTS series.
+# The list is the one production was installed from; release 2026.1 keeps every entry, also
+# those the code does not import (marked "not imported"), so the installed set is unchanged.
+
+Django>=4.2,<4.3
+# Held at 3.14 as before (was ==3.14.0). 3.15+ also supports Django 4.2: widen deliberately.
+djangorestframework>=3.14.0,<3.15
+drf-yasg>=1.21.10,<2
+django-cas-ng>=5.0.1,<6
+django-extensions>=4.1,<5
+django-select2>=8.4.1,<9
+django-taggit>=6.1.0,<7            # not imported, not in INSTALLED_APPS
+ldap3>=2.9.1,<3
+
+# Database drivers: mysqlclient for the MariaDB (GIS) backend
+mysqlclient>=2.2.7,<3
+psycopg>=3.2.9,<4                  # PostgreSQL driver, not used (the app runs on MariaDB)
+
+# Documents, bibliography, spreadsheets
+pdf2image>=1.17.0,<2
+Pillow>=11.3.0,<12
+PyPDF2>=3.0.1,<4                   # not imported (deprecated upstream; successor: pypdf)
+pybtex>=0.25.1,<1
+latexcodec>=3.0.1,<4
+openpyxl>=3.1.5,<4
+Unidecode>=1.4.0,<2
+python-dateutil>=2.9.0.post0,<3
+
+# Server and tools
+gunicorn>=23.0.0,<24
+Werkzeug>=3.1.3,<4                 # used by django-extensions runserver_plus (.devcontainer)
+python-dotenv>=1.1.1,<2            # not imported
+ping3>=5.1.5,<6                    # not imported
+# Listed explicitly so the image keeps it (Python 3.12 venvs have no setuptools); the app
+# code does not import setuptools/pkg_resources.
+setuptools>=80.9.0,<81

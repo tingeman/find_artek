@@ -1,0 +1,3 @@
+# GENERATED FILE, DO NOT EDIT BY HAND.
+# Hash-locked from app-main/requirements-dev.in by scripts/compile_lock.py (uv 0.8.22 in python:3.12.11-slim-bookworm).
+# To change a dependency, edit requirements-dev.in and rerun the script (see its docstring).
