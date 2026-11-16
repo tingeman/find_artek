@@ -6,7 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **You (optional, next SSH session):** the FA3 password check (Open questions). USER_STEPS 1–3 are done.
+- USER_STEPS 1–3 and the FA3 password check are done; nothing waits on you until T8.
 - **In progress (2026-11-17, implementer):** A1 base image switch + T2, in the worktree, uncommitted until reviewed.
 - Next for the orchestrator: base image to `python:3.12.11-slim-bookworm` by digest (A1, in T2's commit or its own), T2 (lock with `--constraints` from the baseline freeze), T5 (pins from the baseline digests), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
 - Then T8 (review, merge with your permission), T9 (release, you).
@@ -26,9 +26,10 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - USER_STEPS 1 2026-11-16: guide 01 open points settled (scp via home dir, dumps in `00_assets\find_artek_db_dumps`, dev user `mariadb`, media not synced, CAS first then local password, production uses `MYSQL_*`). `init.sql`'s hard-coded user → roadmap FA-R45.
 - USER_STEPS 3 2026-11-16: dev DB restored from production (guide 01, run from the `agent-release-path` worktree): row counts match (494 publications, 930 persons, 1753 features, 3 users, 23 migrations), pages load, CAS login works on localhost. Volume `find-artek-mariadb-dev` now exists. `find_artek_DEVELOP` currently fails to build/start (`NameError: List` in your uncommitted `utils_person.py`).
 
+- FA3 check 2026-11-17 (host, read-only): `$MARIADB_ROOT_PASSWORD` is empty in `fa-mariadb-service` (`Access denied ... using password: NO`), `$MYSQL_ROOT_PASSWORD` works (`SELECT 1` → `1`). **Hand-off to web_server:** its FA3 restore command must use `${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}` (or `MYSQL_ROOT_PASSWORD`).
+
 ## Open questions
 
-- FA3 restore command in web_server's roadmap uses `$MARIADB_ROOT_PASSWORD`; production sets only `MYSQL_*`, so it probably logs in without a password. To see it before writing a fix (read-only, on the host): `sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -uroot -e "SELECT 1"'` (expected: access denied, `using password: NO`) and the same with `$MYSQL_ROOT_PASSWORD` (expected: `1`). If confirmed: hand web_server the fix `${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}`.
 - `master` reset to the first release tag (FA5, A6): your decision at T9.
 - The prod image no longer has `mariadb-client` or admin tools (`nano`, `mc`, `ping`, ...). No known host procedure uses them inside `webapp-find-artek`; web_server M5 should confirm.
 
