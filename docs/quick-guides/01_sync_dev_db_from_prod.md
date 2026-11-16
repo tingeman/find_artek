@@ -67,13 +67,13 @@ ls -l "$F"; gunzip -c "$F" | tail -n 1
 
 The last line must be `-- Dump completed on <date>`. The dump has no `CREATE DATABASE` (one database, without `--databases`), so it can be restored into the dev database whatever its name.
 
-**[?] P3:** home directory + `scp` (below), or the share (as M5 plans for its pre-deploy dump)?
+The dump goes through your home directory, not the share: the share is readable by all its users, and the dump holds password hashes and e-mail addresses. Step 3 removes it from the host.
 
 ## 3. Copy the dump to the workstation
 
 ```powershell
 # PowerShell (workstation)
-$DUMPS = "C:\thin\02_Code\docker_projects\00_assets\find_artek_db_dumps"   # [?] P4
+$DUMPS = "C:\thin\02_Code\docker_projects\00_assets\find_artek_db_dumps"   # outside every repository
 New-Item -ItemType Directory -Force $DUMPS | Out-Null
 scp "tingeman@10.61.64.65:find_artek_dump_*.sql.gz" $DUMPS
 $DUMP = Get-ChildItem $DUMPS -Filter "find_artek_dump_*.sql.gz" | Sort-Object Name | Select-Object -Last 1
@@ -119,7 +119,9 @@ DC up -d find-artek-mariadb-service
 docker exec fa-mariadb-service-dev healthcheck.sh --connect --innodb_initialized; $LASTEXITCODE   # 0 = ready; repeat until it is
 ```
 
-On a new volume, MariaDB creates the database and user from `.dev.env` and runs `docker/mariadb-service/init.sql` (a `GRANT` to the user `mariadb`). If the container stops right away, `docker logs fa-mariadb-service-dev` shows why. **[?] P5**
+On a new volume, MariaDB creates the database and user from `.dev.env` and runs `docker/mariadb-service/init.sql` (a `GRANT` to the user `mariadb`). If the container stops right away, `docker logs fa-mariadb-service-dev` shows why.
+
+`init.sql` hard-codes the user `mariadb`, so `MYSQL_USER` in `.dev.env` must be `mariadb` (`.dev.env.example` still says `find_artek_user`). With another name MariaDB refuses the `GRANT` and the init fails. Roadmap FA-R45 makes the grant follow `$MYSQL_USER`.
 
 If the dev database already has data you want to keep, dump it first (same command as step 2, with `docker exec fa-mariadb-service-dev`, into `$DUMPS` with the name `find_artek_dev_<date>.sql.gz`).
 
@@ -176,7 +178,7 @@ DBX 'DB="${MARIADB_DATABASE:-$MYSQL_DATABASE}"; MYSQL_PWD="${MARIADB_ROOT_PASSWO
 
 (`migrations` can be higher than in production by the number step 7 applied.)
 
-In the browser: http://localhost:8098/ (dev runs without the `/find` prefix) shows the front page with production's reports; a report page and the map load. PDFs and thumbnails come from `..\00_static_data\find_artek_static\media`, a local copy of the media share, which may be older than the database **[?] P6**.
+In the browser: http://localhost:8098/ (dev runs without the `/find` prefix) shows the front page with production's reports; a report page and the map load. PDFs and thumbnails come from `..\00_static_data\find_artek_static\media`, a local copy of the media share. That copy is older than the database (newest file 2025-08-11, checked 2026-11-16), so reports added since then show missing PDFs and thumbnails in dev. That's expected and doesn't matter for database or test work; this guide doesn't sync media (it would copy confidential reports to the workstation again).
 
 Log in: the dev database now has production's accounts and password hashes. CAS/LDAP logins may not work locally **[?] P7**; for a local admin, set a password on your own account in the dev copy: `WEB changepassword <username>`.
 
@@ -189,9 +191,5 @@ Keep the newest dump in `$DUMPS` if you want to restore again; delete older ones
 To settle before the first run (then remove this section and the DRAFT line):
 
 - **P1. SSH and sudo.** The commands use `tingeman@10.61.64.65` and `sudo docker`, as web_server's runbooks do. Correct?
-- **P2. Variable names in `fa-mariadb-service`.** `MYSQL_*` (as `.prod.env.example`) or `MARIADB_*`? The commands accept both. web_server's FA3 restore command uses only `$MARIADB_ROOT_PASSWORD`; if the container only has `MYSQL_ROOT_PASSWORD`, that command needs fixing in web_server.
-- **P3. Transport.** Home directory + `scp`, deleted right after (draft default: private, nothing left behind), or a folder on the share (`/mnt/Qdrev-arctic-web-data/...` on the host), as M5 plans for its pre-deploy dump? The share is readable by the share's users.
-- **P4. Local folder.** `C:\thin\02_Code\docker_projects\00_assets\find_artek_db_dumps`, next to monitoring_db's `mdb_pgdata_dumps`?
-- **P5. Dev user.** `init.sql` grants to the user `mariadb`. Is `MYSQL_USER` in `.dev.env` `mariadb`? If not, a new volume fails at init (MariaDB refuses a `GRANT` to an unknown user), and `init.sql` or `.dev.env` needs a change.
-- **P6. Media.** Is the local media copy recent enough, or should the guide also sync media from the share (it holds confidential reports; a read-only `robocopy` into `00_static_data`)? Not needed for the test baseline.
+- **P2. Variable names in `fa-mariadb-service`.** `MYSQL_*` (as `.prod.env.example`) or `MARIADB_*`? The commands accept both. web_server's FA3 restore command uses only `$MARIADB_ROOT_PASSWORD`; if the container only has `MYSQL_ROOT_PASSWORD`, that command needs fixing in web_server. Likely: both env examples use only `MYSQL_*`, and `mariadb:11.2` doesn't add `MARIADB_*` names; step 2's check settles it.
 - **P7. Login in dev.** Does CAS work from `localhost`, or is a local password the way to log in?
