@@ -6,7 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **You:** USER_STEPS step 3 (copy the production DB into dev, guide 01, now final). In the same SSH session: the image-ID check in [BASELINE_release-path.md](BASELINE_release-path.md) ("Not yet confirmed"), and the FA3 password check (Open questions).
+- **You:** USER_STEPS step 3 (copy the production DB into dev, guide 01, now final). In the same SSH session: the FA3 password check (Open questions).
 - Next for the orchestrator: base image to `python:3.12.11-slim-bookworm` by digest (A1, in T2's commit or its own), T2 (lock with `--constraints` from the baseline freeze), T5 (pins from the baseline digests), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
 - Then T8 (review, merge with your permission), T9 (release, you).
 
@@ -20,12 +20,12 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T6 2026-11-16: `tests/run.sh` (nuki interface): 10 image checks + 9 smoke tests against a throwaway MariaDB (production settings, `migrate --skip-checks` for FA-R14, health, frontpage 200, cron job as cron runs it, no secrets in logs) + Django step with `DJANGO_TEST_LABELS` (empty → SKIP, Phase 2 fills it). 19/19 pass in ~40–55 s; fails visibly on the dev stage (7 failures); cleanup verified incl. interrupt. Test DB falls back to `mariadb:11.2` until T5 adds `FA_MARIADB_IMAGE`.
 - 2026-11-16: decisions: LDAP on/off becomes a setting `USE_LDAP` (roadmap **FA-R34**, Phase 2, not in 2026.1); production secrets only from web_server's encrypted archive, this repo keeps only `*.env.example` (added to T10's acceptance); `.dev.env` stays local with no production credentials.
 
-- T0 2026-11-16: host baseline in [BASELINE_release-path.md](BASELINE_release-path.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today.
+- T0 2026-11-16: host baseline in [BASELINE_release-path.md](BASELINE_release-path.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today. Image IDs confirmed: the recorded digests are what runs.
+- Decision 2026-11-16: **cron on from 2026.1**: web_server sets `ENABLE_CRON=true` in production with the M5 deploy (`.prod.env.example` already says `true`). The first night's run catches up on thumbnails missing since cron stopped. Hand-off to web_server M5 together with the cron post-check (notes below).
 - USER_STEPS 1 2026-11-16: guide 01 open points settled (scp via home dir, dumps in `00_assets\find_artek_db_dumps`, dev user `mariadb`, media not synced, CAS first then local password, production uses `MYSQL_*`). `init.sql`'s hard-coded user → roadmap FA-R45.
 
 ## Open questions
 
-- Cron is disabled in production today. With T4 it would work if web_server sets `ENABLE_CRON=true`. Turn it on with 2026.1 (thumbnails for reports added since it stopped), or keep it off and decide later? Your call before T9; web_server M5 needs the value.
 - FA3 restore command in web_server's roadmap uses `$MARIADB_ROOT_PASSWORD`; production sets only `MYSQL_*`, so it probably logs in without a password. To see it before writing a fix (read-only, on the host): `sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -uroot -e "SELECT 1"'` (expected: access denied, `using password: NO`) and the same with `$MYSQL_ROOT_PASSWORD` (expected: `1`). If confirmed: hand web_server the fix `${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}`.
 - `master` reset to the first release tag (FA5, A6): your decision at T9.
 - The prod image no longer has `mariadb-client` or admin tools (`nano`, `mc`, `ping`, ...). No known host procedure uses them inside `webapp-find-artek`; web_server M5 should confirm.

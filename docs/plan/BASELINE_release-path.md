@@ -73,7 +73,7 @@ Werkzeug==3.1.3
 
 MariaDB server 11.2.6 (`mariadb from 11.2.6-MariaDB, client 15.2`).
 
-Not yet confirmed: that the local tag still points at the image the container runs (a later `pull` would move the tag, not the container). Check: `sudo docker image inspect -f '{{.Id}}' mariadb:11.2 phpmyadmin/phpmyadmin:latest` must print the two image IDs above.
+Confirmed: the local tags still point at the images the containers run (`sudo docker image inspect -f '{{.Id}}' mariadb:11.2 phpmyadmin/phpmyadmin:latest` printed the two image IDs above), so the repo digests are what production runs.
 
 ## Cron
 
