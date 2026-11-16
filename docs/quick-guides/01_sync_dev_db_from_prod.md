@@ -1,6 +1,6 @@
 # 1. Copy the production database into the dev stack
 
-**DRAFT (2026-11-16): not run yet.** Open points are marked **[?]** and listed at the end. Remove this line when the guide has been run once.
+**Not run yet (2026-11-16).** Remove this line when the guide has been run once.
 
 Replace (or create) the local dev database with a copy of production's find_artek database. Modelled on dtu_sus_data02's quick-guide 4 ("Sync the dev database from a production dump").
 
@@ -16,7 +16,6 @@ The dump holds personal data (names, e-mail addresses, password hashes) and the 
   - [7. Start the app and migrate](#7-start-the-app-and-migrate)
   - [8. Check](#8-check)
   - [9. Clean up](#9-clean-up)
-  - [Open points](#open-points)
 
 ## 1. What runs in production
 
@@ -40,7 +39,7 @@ Check the variable names the container uses (prints names only, no values):
 sudo docker exec fa-mariadb-service sh -c 'env | cut -d= -f1 | grep -E "^(MYSQL|MARIADB)_" | sort'
 ```
 
-Expected: `MYSQL_DATABASE`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_USER` (from `.prod.env`), possibly `MARIADB_*` too. The commands below accept either. **[?] P2**
+Expected: `MYSQL_DATABASE`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_USER` (production uses `MYSQL_*` from `.prod.env`). The commands below also accept `MARIADB_*`, in case that changes.
 
 Row counts and character set, for the check in step 8:
 
@@ -180,16 +179,8 @@ DBX 'DB="${MARIADB_DATABASE:-$MYSQL_DATABASE}"; MYSQL_PWD="${MARIADB_ROOT_PASSWO
 
 In the browser: http://localhost:8098/ (dev runs without the `/find` prefix) shows the front page with production's reports; a report page and the map load. PDFs and thumbnails come from `..\00_static_data\find_artek_static\media`, a local copy of the media share. That copy is older than the database (newest file 2025-08-11, checked 2026-11-16), so reports added since then show missing PDFs and thumbnails in dev. That's expected and doesn't matter for database or test work; this guide doesn't sync media (it would copy confidential reports to the workstation again).
 
-Log in: the dev database now has production's accounts and password hashes. CAS/LDAP logins may not work locally **[?] P7**; for a local admin, set a password on your own account in the dev copy: `WEB changepassword <username>`.
+Log in: the dev database now has production's accounts and password hashes. Try CAS first (the login link; DTU CAS may refuse `localhost` as a return address). If it doesn't work, set a local password on your own account in the dev copy (`WEB changepassword <username>`) and log in at http://localhost:8098/admin/ (Django's own login is checked before CAS).
 
 ## 9. Clean up
 
 Keep the newest dump in `$DUMPS` if you want to restore again; delete older ones. Nothing is left on the host (step 3).
-
-## Open points
-
-To settle before the first run (then remove this section and the DRAFT line):
-
-- **P1. SSH and sudo.** The commands use `tingeman@10.61.64.65` and `sudo docker`, as web_server's runbooks do. Correct?
-- **P2. Variable names in `fa-mariadb-service`.** `MYSQL_*` (as `.prod.env.example`) or `MARIADB_*`? The commands accept both. web_server's FA3 restore command uses only `$MARIADB_ROOT_PASSWORD`; if the container only has `MYSQL_ROOT_PASSWORD`, that command needs fixing in web_server. Likely: both env examples use only `MYSQL_*`, and `mariadb:11.2` doesn't add `MARIADB_*` names; step 2's check settles it.
-- **P7. Login in dev.** Does CAS work from `localhost`, or is a local password the way to log in?
