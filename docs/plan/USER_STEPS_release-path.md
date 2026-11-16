@@ -41,7 +41,7 @@ Expected: the commit `afd8792`; Python 3.12.x; Debian 12 or 13; about 50 package
 
 ### 3. Copy the production database into dev
 
-- [ ] Done
+- [x] Done (2026-11-16, run from the `agent-release-path` worktree; counts match production)
 
 Where: SSH on the host and PowerShell on the workstation, as the guide says. After step 1 is settled, follow [`docs/quick-guides/01_sync_dev_db_from_prod.md`](../quick-guides/01_sync_dev_db_from_prod.md). Its step 2 can run in the same SSH session as step 2 above. Not needed for the automated checks (they use a throwaway database), but for manual testing with real data.
 

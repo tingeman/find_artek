@@ -6,7 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **You:** USER_STEPS step 3 (copy the production DB into dev, guide 01, now final). In the same SSH session: the FA3 password check (Open questions).
+- **You (optional, next SSH session):** the FA3 password check (Open questions). USER_STEPS 1–3 are done.
 - Next for the orchestrator: base image to `python:3.12.11-slim-bookworm` by digest (A1, in T2's commit or its own), T2 (lock with `--constraints` from the baseline freeze), T5 (pins from the baseline digests), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
 - Then T8 (review, merge with your permission), T9 (release, you).
 
@@ -23,6 +23,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T0 2026-11-16: host baseline in [BASELINE_release-path.md](BASELINE_release-path.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today. Image IDs confirmed: the recorded digests are what runs.
 - Decision 2026-11-16: **cron on from 2026.1**: web_server sets `ENABLE_CRON=true` in production with the M5 deploy (`.prod.env.example` already says `true`). The first night's run catches up on thumbnails missing since cron stopped. Hand-off to web_server M5 together with the cron post-check (notes below).
 - USER_STEPS 1 2026-11-16: guide 01 open points settled (scp via home dir, dumps in `00_assets\find_artek_db_dumps`, dev user `mariadb`, media not synced, CAS first then local password, production uses `MYSQL_*`). `init.sql`'s hard-coded user → roadmap FA-R45.
+- USER_STEPS 3 2026-11-16: dev DB restored from production (guide 01, run from the `agent-release-path` worktree): row counts match (494 publications, 930 persons, 1753 features, 3 users, 23 migrations), pages load, CAS login works on localhost. Volume `find-artek-mariadb-dev` now exists. `find_artek_DEVELOP` currently fails to build/start (`NameError: List` in your uncommitted `utils_person.py`).
 
 ## Open questions
 

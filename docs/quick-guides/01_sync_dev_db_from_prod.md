@@ -1,6 +1,6 @@
 # 1. Copy the production database into the dev stack
 
-**Not run yet (2026-11-16).** Remove this line when the guide has been run once.
+Last run: 2026-11-16 (production at `afd8792`; dump 540 KB; restore, row counts, pages and CAS login checked).
 
 Replace (or create) the local dev database with a copy of production's find_artek database. Modelled on dtu_sus_data02's quick-guide 4 ("Sync the dev database from a production dump").
 
@@ -95,7 +95,7 @@ ssh tingeman@10.61.64.65 "rm -v ~/find_artek_dump_*.sql.gz"
 
 ## 4. Define the dev shorthands
 
-Once per PowerShell session, from the root of the checkout you want to run (`find_artek_DEVELOP`, or an agent worktree such as `find_artek_agent-release-path`). Only one checkout's dev stack can run at a time (fixed container names); they all share the dev database volume.
+Once per PowerShell session, from the root of the checkout you want to run (`find_artek_DEVELOP`, or an agent worktree such as `find_artek_agent-release-path`). Only one checkout's dev stack can run at a time (fixed container names); they all share the dev database volume. The image is built from the checkout's working tree, uncommitted changes included: if they don't import (e.g. a `NameError` in step 7), stop that stack with `DC down` (never `-v`) and use a clean checkout or worktree instead.
 
 ```powershell
 # PowerShell (workstation)
@@ -186,7 +186,7 @@ DBX 'DB="${MARIADB_DATABASE:-$MYSQL_DATABASE}"; MYSQL_PWD="${MARIADB_ROOT_PASSWO
 
 In the browser: http://localhost:8098/ (dev runs without the `/find` prefix) shows the front page with production's reports; a report page and the map load. PDFs and thumbnails come from `..\00_static_data\find_artek_static\media`, a local copy of the media share. That copy is older than the database (newest file 2025-08-11, checked 2026-11-16), so reports added since then show missing PDFs and thumbnails in dev. That's expected and doesn't matter for database or test work; this guide doesn't sync media (it would copy confidential reports to the workstation again).
 
-Log in: the dev database now has production's accounts and password hashes. Try CAS first (the login link; DTU CAS may refuse `localhost` as a return address). If it doesn't work, set a local password on your own account in the dev copy (`WEB changepassword <username>`) and log in at http://localhost:8098/admin/ (Django's own login is checked before CAS).
+Log in: the dev database now has production's accounts. CAS works from `localhost` (checked 2026-11-16). Fallback if it ever doesn't: set a local password on your own account in the dev copy (`WEB changepassword <username>`) and log in at http://localhost:8098/admin/ (Django's own login is checked before CAS).
 
 ## 9. Clean up
 
