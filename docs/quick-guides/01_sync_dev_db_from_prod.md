@@ -19,18 +19,25 @@ The dump holds personal data (names, e-mail addresses, password hashes) and the 
 
 ## 1. What runs in production
 
-Today production is built on the host from a clone of `develop/main` (dtu_sus_web_server milestone M5 changes that):
+Steps 1 and 2 run in one interactive SSH session on `sus-parcweb01`. `sudo` asks for your password, which needs a terminal, so a one-shot `ssh host "sudo ..."` from PowerShell fails (`sudo: a terminal is required`).
 
 ```powershell
 # PowerShell (workstation)
-ssh tingeman@10.61.64.65 "sudo git -c safe.directory='*' -C /opt/webapp_find_artek log -1 --format='%h %ci %s'"
+ssh tingeman@10.61.64.65
 ```
 
-It prints the commit production runs (2026-11-16: `afd8792`). The dev checkout you restore into must contain all of production's migrations (step 7 checks this). After the first release, use the image tag instead: `ssh tingeman@10.61.64.65 "sudo docker ps --filter name=webapp-find-artek --format '{{.Image}}'"` prints `find_artek:<version>`.
+Today production is built on the host from a clone of `develop/main` (dtu_sus_web_server milestone M5 changes that):
+
+```bash
+# SSH on sus-parcweb01
+sudo git -c safe.directory='*' -C /opt/webapp_find_artek log -1 --format='%h %ci %s'
+```
+
+It prints the commit production runs (2026-11-16: `afd8792`). The dev checkout you restore into must contain all of production's migrations (step 7 checks this). After the first release, use the image tag instead: `sudo docker ps --filter name=webapp-find-artek --format '{{.Image}}'` prints `find_artek:<version>`.
 
 ## 2. Dump on the host
 
-In an SSH session on `sus-parcweb01` (`ssh tingeman@10.61.64.65`). Read only for the database; the dump is a consistent snapshot (`--single-transaction`, InnoDB) and doesn't stop the site.
+In the same SSH session. Read only for the database; the dump is a consistent snapshot (`--single-transaction`, InnoDB) and doesn't stop the site.
 
 Check the variable names the container uses (prints names only, no values):
 
