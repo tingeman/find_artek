@@ -6,7 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session: read this file, the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -6`; work only in that worktree).
 
-- Next for the orchestrator: **T6** (`tests/run.sh`, `implementer`). It can fold the scratchpad scripts `t3_check.sh`/`t4_check.sh` (throwaway DB, health, cron) into its smoke tests; if the scratchpad is gone, the T4 notes below describe the checks.
+- Next for the orchestrator: **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2, so T7 is best done after T2/T5. Nothing else is unblocked: everything left waits on T0.
 - Waiting on you: [USER_STEPS_release-path.md](USER_STEPS_release-path.md) steps 1–3 (guide open points P1–P7, host baseline T0, dev DB copy).
 - Blocked on T0: T2 (lock from production's `pip freeze`), T5 (MariaDB/phpMyAdmin digests), and possibly a base-image switch to trixie (T3 note).
 - Then T7 (docs), T8 (review, merge with your permission), T9 (release, you).
@@ -18,6 +18,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T1 2026-11-16: baseline against a throwaway MariaDB (no dev DB needed, no secrets): `check` and `makemigrations --check` pass **after** `migrate --skip-checks`; no Django test runs (see notes). Dev DB from production is still wanted for manual testing (guide).
 - T3 2026-11-16: one `Dockerfile` (`build`, `runtime`, `dev`, `prod` last), base pinned by digest (`compose.pins.env` `FA_PYTHON_IMAGE`), `HEALTHCHECK` on `/publications/frontpage/` (healthy in ~9 s), CMD unchanged, compilers and admin tools only in build/dev (prod 218 MB, was ~2 GB), `.gitattributes` (LF scripts), `.dockerignore`; `pip freeze` identical to the old image; check/makemigrations pass, `check --deploy` 2 warnings (W004, W008).
 - T4 2026-11-16: cron as monitoring_db: job `/etc/cron.d/find_artek_thumbnails` (from `docker/cron/`, built in, root 0644, user `dockeruser`, 02:00); entrypoint starts cron with `sudo` only for `ENABLE_CRON=true` (start failure logged, app still starts); job loads the container env from `/proc/1/environ`, output in `docker logs` tagged `[thumbnails]`; `setup_cron.sh` and the log file removed. Old setup confirmed broken in the image (`crond.pid: Permission denied`). Verified incl. a real cron run, no secrets in logs; USER_STEPS file added.
+- T6 2026-11-16: `tests/run.sh` (nuki interface): 10 image checks + 9 smoke tests against a throwaway MariaDB (production settings, `migrate --skip-checks` for FA-R14, health, frontpage 200, cron job as cron runs it, no secrets in logs) + Django step with `DJANGO_TEST_LABELS` (empty → SKIP, Phase 2 fills it). 19/19 pass in ~40–55 s; fails visibly on the dev stage (7 failures); cleanup verified incl. interrupt. Test DB falls back to `mariadb:11.2` until T5 adds `FA_MARIADB_IMAGE`.
 
 ## Open questions
 
@@ -35,6 +36,9 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - **For web_server M5 (T4):** cron post-check, run as the image's user, exit 0 = ok:
   `docker exec webapp-find-artek sh -c 'found=; for c in /proc/[0-9]*/comm; do read -r n < "$c" 2>/dev/null && [ "$n" = cron ] && found=1; done; f=/etc/cron.d/find_artek_thumbnails; [ -n "$found" ] && [ "$(stat -c %U:%a "$f")" = root:644 ] && grep -Eq "^[^#].* dockeruser /usr/local/bin/generate_thumbnails_cron.sh" "$f" && [ -r /proc/1/environ ] && [ -w /proc/1/fd/1 ] && echo "ok cron" || { echo "FAIL cron"; exit 1; }'`.
   Functional check: `docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]' | tail -n 3` (after 02:00 UTC), or a pass now: `docker exec webapp-find-artek generate_thumbnails_cron.sh`. Only tested on Docker Desktop; the post-check covers AppArmor on the host (`/proc/1/environ`, `/proc/1/fd/1`).
+- **For web_server (T6):** the release must be built with web_server's `build_image.sh` (it allows `*.pins.env`; data02's older copy rejects every `*.env`, so `compose.pins.env` would be refused). The gate needs the docker CLI and permission to create an `--internal` network; ~1 min.
+- The image resolves `django==4.2` to **4.2.0** exactly (T6 import check). If T0 shows the same in production, 2026.2 (T11) moves to the last 4.2.x.
+- Phase 2 note: production settings put `MEDIA_ROOT` at `/mnt/shared-project-data/media` (not in the image); tests that write files need `override_settings(MEDIA_ROOT=<tmp>)`. Production settings log Django to `/app/debug.log`, not the console.
 - Pre-existing, not fixed: `.devcontainer/devcontainer.json` and `.devcontainer/up.sh` refer to `/usr/src/venv` and `/usr/src/project`, which exist in no image (FA-R41).
 - Baseline script (scratchpad, not in the repo): migrate, check, makemigrations, test against `mariadb:11.2` on an internal network with generated credentials. T6 turns this into `tests/run.sh`.
 - web_server `docs/plan/USER_TASKS.md:158` still asks to merge `agent-roadmap`; it should be updated in that repo (the branch is gone, its content is in `docs/roadmap.md`).

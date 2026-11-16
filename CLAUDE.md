@@ -14,7 +14,7 @@ Planned work is in `docs/roadmap.md` (items **FA-R<n>**). Until branch `agent-ro
 
 - `app-main/`: the Django project. `find_artek/settings.py` (production; `DEBUG = False`, values from env), `find_artek/development_settings.py` (dev), `find_artek/test_settings.py` (SQLite, doesn't work with the GIS fields; don't rely on it).
 - `app-main/publications/`: the main app (models, views, forms, templates, `workflows/` for person disambiguation). `api/`: DRF API (filters confidential and unvalidated entries in the serializer). `publications_meta/`: metadata.
-- Tests: `app-main/publications/tests.py`, `app-main/publications/tests/` (package), stubs in `api/tests.py` and `publications_meta/tests.py`. The `app-main/test_*.py` files are ad-hoc scripts, not tests. There is no `tests/run.sh` yet (FA-R40, web_server FA5).
+- Tests: `app-main/publications/tests.py`, `app-main/publications/tests/` (package), stubs in `api/tests.py` and `publications_meta/tests.py`. The `app-main/test_*.py` files are ad-hoc scripts, not tests. `tests/run.sh <image>` is the release gate (image checks, smoke tests against a throwaway MariaDB, and the Django test labels in its `DJANGO_TEST_LABELS`; run by web_server's `build_image.sh`, FA5).
 - Docker: one `Dockerfile` with stages `build`, `runtime`, `dev`, `prod` (prod last, so a plain `docker build .` builds it; base image pinned by digest, same value as `FA_PYTHON_IMAGE` in `compose.pins.env`; `prod`: gunicorn on `8099`, `HEALTHCHECK`, entrypoint `scripts/docker-entrypoint.sh` starts cron for thumbnails when `ENABLE_CRON=true`). `docker-compose.yml` + `docker-compose.develop.yml` (dev) + `.devcontainer/docker-compose.yml` (VS Code). `docker-compose.prod.yml` is what production runs today; it moves to web_server in M5 (FA1).
 - Leftovers (`*.bak`, `*.old`, `*.new`, `requirements_OLD.txt`, `docker-commands.txt`): FA-R41. Don't build on them; remove them only as their own change.
 
@@ -52,6 +52,7 @@ $DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings fi
 
 - The app runs at `http://localhost:8098/` (dev settings have no `/find` prefix), phpMyAdmin at `http://localhost:6002`.
 - The dev database is a copy of production: `docs/quick-guides/01_sync_dev_db_from_prod.md`. If the volume `find-artek-mariadb-dev` doesn't exist, stop and point me to that guide.
+- Image tests, no dev stack or `.dev.env` needed: `docker build -t find_artek:local . && bash tests/run.sh find_artek:local` (`--quick` for the image checks only, `TEST_FILTER=<regex>` to select). Run them for Dockerfile, requirements, settings, entrypoint or cron changes.
 - Shell scripts: `bash -n <script>`. Ruff, mypy, pytest and CI are not set up (FA-R40). Say so, don't claim they passed.
 - Full procedure, known problems and how to report results: skill `validate`.
 
