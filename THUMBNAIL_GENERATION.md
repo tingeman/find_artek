@@ -5,8 +5,9 @@ This system automatically generates thumbnails for PDF reports that don't have t
 ## Components
 
 1. **Django Management Command**: `generate_thumbnails.py`
-2. **Cron Script**: `generate_thumbnails_cron.sh`
-3. **Dependencies**: `pdf2image` and `poppler-utils`
+2. **Cron Script**: `scripts/generate_thumbnails_cron.sh` (in the image: `/usr/local/bin/generate_thumbnails_cron.sh`)
+3. **Cron job file**: `docker/cron/find_artek_thumbnails` (in the image: `/etc/cron.d/find_artek_thumbnails`)
+4. **Dependencies**: `pdf2image` and `poppler-utils`
 
 ## Manual Usage
 
@@ -36,61 +37,46 @@ python manage.py generate_thumbnails --height 300 --force --verbose
 
 ## Automated Setup (Cron)
 
-### Option 1: Container-Internal Cron (Recommended)
+The image contains a nightly cron job, set up the same way as in monitoring_db:
 
-The Docker containers now include built-in cron support. Enable it using environment variables:
+- The job file `/etc/cron.d/find_artek_thumbnails` (from `docker/cron/find_artek_thumbnails`,
+  owner root, mode 0644) runs `/usr/local/bin/generate_thumbnails_cron.sh` at 02:00 container
+  time (UTC unless `TZ` is set) as `dockeruser`.
+- With `ENABLE_CRON=true`, the entrypoint (`scripts/docker-entrypoint.sh`) starts the cron
+  daemon through `sudo`, then runs the container's command (gunicorn). The startup log says
+  `Cron enabled: ...` or `Cron disabled ...`. With `ENABLE_CRON` unset or anything other than
+  `true`, no cron daemon runs.
+- `THUMBNAIL_HEIGHT` (default 400) sets the height. The job reads it, together with the DB
+  settings and `SECRET_KEY`, from the container's environment: cron gives its jobs an almost
+  empty environment, so the script loads the environment of PID 1 from `/proc/1/environ`
+  (readable only by `dockeruser` and root; nothing from it is printed or written to disk).
+- Output goes to the container log, each line prefixed with a timestamp and `[thumbnails]`:
 
-**Enable cron in docker-compose:**
-```yaml
-# In your .env file or docker-compose.yml
+```bash
+docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]'
+```
+
+**Enable cron:**
+```bash
+# in the env file used by compose, or as environment of the service
 ENABLE_CRON=true
-THUMBNAIL_HEIGHT=400  # Optional, defaults to 400
+THUMBNAIL_HEIGHT=400  # optional, defaults to 400
 ```
 
-**Or set environment variables when running:**
+**Check it in a running container:**
 ```bash
-# Development
-ENABLE_CRON=true docker-compose -f docker-compose.develop.yml up -d
-
-# Production  
-ENABLE_CRON=true docker-compose -f docker-compose.prod.yml up -d
+docker logs webapp-find-artek 2>&1 | grep -m1 Cron     # startup line: enabled/disabled
+docker exec webapp-find-artek sh -c 'for c in /proc/[0-9]*/comm; do read -r n < "$c" && [ "$n" = cron ] && echo "cron running"; done'
+docker exec webapp-find-artek cat /etc/cron.d/find_artek_thumbnails
 ```
 
-**Manual setup inside running container:**
+**Run the job now (as `dockeruser`, the default user of `docker exec`), output to the terminal:**
 ```bash
-# Enter the container
-docker exec -it <container_name> bash
-
-# Set up cron (run as root)
-/usr/local/bin/setup_cron.sh
-
-# Verify cron job
-crontab -u dockeruser -l
-
-# Check cron service status
-service cron status
+docker exec webapp-find-artek generate_thumbnails_cron.sh        # height from THUMBNAIL_HEIGHT
+docker exec webapp-find-artek generate_thumbnails_cron.sh 600    # explicit height
 ```
 
-### Option 2: Host-Based Cron
-
-### Option 2: Host-Based Cron
-
-For systems running the Docker container, add this to your host's crontab:
-
-```bash
-# Run every night at 2 AM with default height (400px)
-0 2 * * * docker exec <container_name> /usr/local/bin/generate_thumbnails_cron.sh
-
-# Run every night at 2 AM with custom height (600px)
-0 2 * * * docker exec <container_name> /usr/local/bin/generate_thumbnails_cron.sh 600
-```
-
-### 3. Log monitoring
-
-The script logs to `/var/log/find_artek/thumbnail-generation.log`. Monitor this file for:
-- Success/failure of thumbnail generation
-- Error details for problematic PDFs
-- Processing statistics
+The script refuses to run as root, so thumbnails on the share always belong to uid 30000.
 
 ## Thumbnail Specifications
 
@@ -137,30 +123,19 @@ python manage.py generate_thumbnails --height 400
 ## User Considerations for Cron
 
 ### 1. File Permissions
-**Issue**: Cron jobs run with limited environment and may have permission issues.
-
-**Solutions:**
-- The script runs as `dockeruser` (UID 30000) to match file ownership
-- Log directory `/var/log/find_artek/` is created with proper permissions
+- The job runs as `dockeruser` (UID 30000) to match file ownership
 - Media files should be owned by `dockeruser:dockeruser` or have group write access
 
 **Check permissions:**
 ```bash
 # Inside container, check media directory permissions
 ls -la /mnt/shared-project-data/media/reports/
-
-# Fix permissions if needed (run as root)
-chown -R dockeruser:dockeruser /mnt/shared-project-data/media/reports/
-chmod -R 755 /mnt/shared-project-data/media/reports/
 ```
 
 ### 2. Environment Variables
-**Issue**: Cron has a minimal environment and may not have Django settings.
-
-**Solutions:**
-- The script explicitly sets `PYTHONPATH` and changes to `/app` directory
-- Django settings are loaded automatically from the project
-- Database credentials are passed through Docker environment variables
+Cron jobs get a minimal environment. `generate_thumbnails_cron.sh` loads the container's
+environment from `/proc/1/environ` when it runs without the image's environment (i.e. from
+cron). Values arrive unchanged (the file is NUL-separated, no quoting involved).
 
 ### 3. Memory Considerations
 **Issue**: Large PDFs or many simultaneous processes can cause memory issues.
@@ -177,12 +152,8 @@ docker exec <container_name> top -p $(docker exec <container_name> pgrep -f gene
 ```
 
 ### 4. Container Lifecycle
-**Issue**: Cron jobs are lost when container restarts.
-
-**Solutions:**
-- Use `ENABLE_CRON=true` environment variable for automatic setup
-- Cron is configured at container startup via entrypoint script
-- Jobs persist across container restarts when using environment variables
+- The job file is part of the image; the cron daemon is started by the entrypoint on every
+  container start when `ENABLE_CRON=true`. Nothing has to be set up by hand.
 
 ### 5. Timezone Considerations
 **Issue**: Cron jobs run in container timezone, which may differ from host.
@@ -198,30 +169,12 @@ environment:
 ```
 
 ### 6. Logging and Monitoring
-**Issue**: Cron job failures may go unnoticed.
+- All output goes to the container log (`docker logs`), prefixed with `[thumbnails]`; docker's
+  log rotation applies. There is no separate log file.
+- The script exits non-zero on failure and logs `ERROR: thumbnail generation failed ...`.
 
-**Solutions:**
-- All output logged to `/var/log/find_artek/thumbnail-generation.log`
-- Script includes success/failure exit codes
-- Use log monitoring tools or alerts
-
-**Log monitoring setup:**
 ```bash
-# View live logs
-docker exec -it <container_name> tail -f /var/log/find_artek/thumbnail-generation.log
-
-# Check for errors
-docker exec <container_name> grep -i error /var/log/find_artek/thumbnail-generation.log
-
-# Set up log rotation (add to container)
-echo '/var/log/find_artek/*.log {
-    daily
-    rotate 30
-    compress
-    delaycompress
-    missingok
-    notifempty
-}' > /etc/logrotate.d/find_artek
+docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\].*ERROR'
 ```
 
 ### 7. Database Connectivity
@@ -274,11 +227,11 @@ python manage.py generate_thumbnails --verbose --dry-run --height 300
 ### Checking Logs
 
 ```bash
-# View recent log entries
-tail -f /var/log/find_artek/thumbnail-generation.log
+# All runs
+docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]'
 
-# View logs from last run
-grep "$(date '+%Y-%m-%d')" /var/log/find_artek/thumbnail-generation.log
+# Runs of today
+docker logs webapp-find-artek 2>&1 | grep "^$(date '+%Y-%m-%d') .*\[thumbnails\]"
 ```
 
 ## Performance Notes

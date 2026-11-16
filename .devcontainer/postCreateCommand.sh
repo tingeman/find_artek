@@ -8,7 +8,6 @@ git config --global --add safe.directory /workspace
 # Create symbolic links for thumbnail generation scripts
 echo "Creating symbolic links for thumbnail generation scripts..."
 sudo ln -sf /workspace/scripts/generate_thumbnails_cron.sh /usr/local/bin/generate_thumbnails_cron.sh
-sudo ln -sf /workspace/scripts/setup_cron.sh /usr/local/bin/setup_cron.sh
 sudo ln -sf /workspace/scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 echo "Symbolic links created successfully!"
 

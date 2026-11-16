@@ -1,3 +1,5 @@
 # Shell scripts run in Linux containers (the entrypoint among them); keep LF on Windows
 # checkouts too, or the container fails with "exec ...: no such file or directory".
 *.sh text eol=lf
+# cron job files are copied into /etc/cron.d; a CR would become part of the command.
+docker/cron/* text eol=lf

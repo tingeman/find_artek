@@ -19,7 +19,7 @@ Sources there: `docs/roadmap.md` (M5, FA1–FA5, "Functional checks per service"
 | Paths `/mnt/shared-project-data/staticfiles` and `/media` | `STATIC_ROOT`, `MEDIA_ROOT`; compose volumes | the share mounted on the host, served by nginx directly |
 | App user `dockeruser`, uid/gid 30000 | `Dockerfile` (stage `runtime`) | ownership of media on the share (`uid=30000` in the CIFS options) |
 | Env variable names (`SECRET_KEY`, `MYSQL_*`, `LDAP_*`, `ENABLE_CRON`, `THUMBNAIL_HEIGHT`, `NETWORK_DRIVE_*`, ...) | `settings.py`, compose, `.prod.env.example` | `webapp_find_artek.env` in web_server's secrets archive |
-| Entrypoint and cron (thumbnails at 02:00 when `ENABLE_CRON=true`) | `scripts/docker-entrypoint.sh`, `scripts/setup_cron.sh`, `scripts/generate_thumbnails_cron.sh` | functional check "cron" |
+| Entrypoint and cron (thumbnails at 02:00 when `ENABLE_CRON=true`; job `/etc/cron.d/find_artek_thumbnails` as `dockeruser`, output in `docker logs` with `[thumbnails]`) | `scripts/docker-entrypoint.sh`, `docker/cron/find_artek_thumbnails`, `scripts/generate_thumbnails_cron.sh` | functional check "cron", M5 cron post-check |
 | `collectstatic` | run by `playbook_find_artek_collectstatic.yml` | static files on the share |
 | Upload size up to 300 MB | views and forms; gunicorn timeout (FA-R20) | nginx `client_max_body_size 300M` |
 | Live data volume `find-artek-mariadb-prod` | `docker-compose.prod.yml` | M5: `external: true` under the same name, never renamed |

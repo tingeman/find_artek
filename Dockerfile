@@ -50,7 +50,7 @@ USER root
 #   libmariadb3   client library for mysqlclient
 #   gdal-bin      GDAL (with GEOS and PROJ) for django.contrib.gis
 #   poppler-utils pdftoppm/pdfinfo for pdf2image (thumbnails)
-#   cron, sudo    thumbnail cron job (the entrypoint starts cron; T4 reworks this)
+#   cron, sudo    thumbnail cron job (the entrypoint starts the cron daemon through sudo)
 #   curl          HEALTHCHECK
 #   locales       en_US.UTF-8
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -72,13 +72,17 @@ ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 
-# Copy and set up the cron setup script
-COPY --chown=root:root ./scripts/setup_cron.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/setup_cron.sh
-
 # Copy and set up the entrypoint script
 COPY --chown=root:root ./scripts/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Thumbnail cron job, as monitoring_db: the job file in /etc/cron.d (owner root, mode 0644,
+# runs as dockeruser) and the script it runs. Active only when the entrypoint starts the cron
+# daemon (ENABLE_CRON=true). The job loads the container env from /proc/1/environ and writes
+# to PID 1's stdout/stderr (docker logs); see the two files.
+COPY --chown=root:root ./docker/cron/find_artek_thumbnails /etc/cron.d/find_artek_thumbnails
+COPY --chown=root:root ./scripts/generate_thumbnails_cron.sh /usr/local/bin/
+RUN chmod 0644 /etc/cron.d/find_artek_thumbnails     && chmod 0755 /usr/local/bin/generate_thumbnails_cron.sh
 
 # Allow the non-root user to use sudo without password (cron is started through sudo, as in
 # monitoring_db; dropping sudo is a cross-repo item, FA-R24)
@@ -106,10 +110,6 @@ ENV DJANGO_PROJECT_DIR="/app"
 
 # Copy the project files
 COPY --chown=$USERNAME:$USERNAME ./app-main /app
-
-# Copy and set up the thumbnail generation script
-COPY --chown=$USERNAME:$USERNAME ./scripts/generate_thumbnails_cron.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/generate_thumbnails_cron.sh
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
