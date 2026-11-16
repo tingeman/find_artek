@@ -50,7 +50,8 @@ $DC exec -T webapp-find-artek python manage.py makemigrations --check --dry-run 
 $DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings find_artek.development_settings [<app or dotted.path>]
 ```
 
-- The app runs at `http://localhost:8098/find/`, phpMyAdmin at `http://localhost:6002`.
+- The app runs at `http://localhost:8098/` (dev settings have no `/find` prefix), phpMyAdmin at `http://localhost:6002`.
+- The dev database is a copy of production: `docs/quick-guides/01_sync_dev_db_from_prod.md`. If the volume `find-artek-mariadb-dev` doesn't exist, stop and point me to that guide.
 - Shell scripts: `bash -n <script>`. Ruff, mypy, pytest and CI are not set up (FA-R40). Say so, don't claim they passed.
 - Full procedure, known problems and how to report results: skill `validate`.
 

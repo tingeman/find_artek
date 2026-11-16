@@ -1,12 +1,14 @@
 # Status: Release path and pinning (Phase 1)
 
-Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (not created yet; worktree `..\find_artek_agent-release-path`).
+Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (created 2026-11-16 from `develop/main` `4d885fc`; worktree `..\find_artek_agent-release-path`, with a copy of `.dev.env`).
 
 ## Now
 
-Plan is a draft, waiting for your approval. After that: T0 (you, read-only commands on the host, listed in the plan), and in parallel T1 (worktree and test baseline, orchestrator).
+Plan approved 2026-11-16. T1 is blocked: there is no dev database on the workstation (no volume `find-artek-mariadb-dev`). You chose to copy production's database: the draft guide `docs/quick-guides/01_sync_dev_db_from_prod.md` has open points P1–P7 to settle with you, then you run it. T0 (read-only host commands, in the plan) can be done in the same SSH session as the guide's step 2.
 
 ## Done
+
+- 2026-11-16: `agent-roadmap` branch and worktree deleted (superseded by `docs/roadmap.md`). Worktree for `agent-release-path` created; the dev image builds unchanged from it (`Dockerfile.develop`).
 
 - 2026-11-16: roadmap with phases written (`docs/roadmap.md`), Phase 1 planned. Decisions: phase order 1→2→3→4; release 2026.1 = production's code and packages; lock from production's `pip freeze`; cron aligned with monitoring_db (sudo kept, gosu noted as a cross-repo option under FA-R24).
 
