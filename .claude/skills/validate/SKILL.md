@@ -54,7 +54,7 @@ Scripts are copied into the image and run there, so they need LF line endings. `
 
 ## 4. Compose and Dockerfiles
 
-`docker compose config` prints the resolved environment, including secrets from `.dev.env`/`.prod.env`: **don't run it**. Read the file instead. For `docker-compose.prod.yml` and `Dockerfile.prod`, check the `deploy-contract` skill and flag every change.
+`docker compose config` prints the resolved environment, including secrets from `.dev.env`/`.prod.env`: **don't run it**. Read the file instead. For `docker-compose.prod.yml` and the `Dockerfile` (stages `runtime`/`prod`), check the `deploy-contract` skill and flag every change.
 
 ## 5. Secrets guard
 

@@ -5,7 +5,8 @@ services:
   webapp-find-artek:
     container_name: webapp-find-artek-dev
     build:
-      dockerfile: Dockerfile.develop
+      dockerfile: Dockerfile
+      target: dev
     env_file:
       - .dev.env  # Development environment variables
     environment:

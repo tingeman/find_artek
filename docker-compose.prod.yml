@@ -5,7 +5,8 @@ services:
   webapp-find-artek:
     container_name: webapp-find-artek
     build:
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
+      target: prod
     env_file:
       - .prod.env  # Production environment variables
     environment:

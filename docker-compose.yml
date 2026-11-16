@@ -7,7 +7,7 @@ services:
     restart: always
     build:
       context: .
-      # Dockerfile is specified in override files
+      # Dockerfile and build target (dev/prod) are specified in override files
     # env_file is specified in override files to use correct .env file
     volumes:
       # Abstract volumes for static and media files.

@@ -1,6 +1,6 @@
 ---
 name: deploy-contract
-description: What dtu_sus_web_server relies on in find_artek (port, URL prefix, paths, user, env variables, names, entrypoint/cron, tests/run.sh for build_image.sh) and how a release is made under roadmap M5 / FA1–FA5. Use when a change touches settings.py, Dockerfile.prod, docker-compose*.yml, scripts/, requirements, URL routing or file serving, when preparing tests/run.sh or a release, or when writing the "Deployment impact" of a plan task.
+description: What dtu_sus_web_server relies on in find_artek (port, URL prefix, paths, user, env variables, names, entrypoint/cron, tests/run.sh for build_image.sh) and how a release is made under roadmap M5 / FA1–FA5. Use when a change touches settings.py, the Dockerfile, docker-compose*.yml, scripts/, requirements, URL routing or file serving, when preparing tests/run.sh or a release, or when writing the "Deployment impact" of a plan task.
 ---
 
 # The deployment contract with dtu_sus_web_server
@@ -14,10 +14,10 @@ Sources there: `docs/roadmap.md` (M5, FA1–FA5, "Functional checks per service"
 | Item | Here | Used there by |
 |---|---|---|
 | URL prefix `/find/` | `FORCE_SCRIPT_NAME = '/find'`, `STATIC_URL`, `MEDIA_URL` in `app-main/find_artek/settings.py` | nginx `location /find/` (prefix stripped), `/find/static/`, `/find/media/` |
-| Container port `8099`, gunicorn `find_artek.wsgi:application` | `Dockerfile.prod` CMD | nginx upstream `webapp-find-artek:8099` |
+| Container port `8099`, gunicorn `find_artek.wsgi:application` | `Dockerfile` stage `prod`, CMD | nginx upstream `webapp-find-artek:8099` |
 | Container name `webapp-find-artek`, services `find-artek-mariadb-service` (container `fa-mariadb-service`) and `find-artek-phpmyadmin-service` | `docker-compose.prod.yml`, `docker-compose.yml`; `MYSQL_HOST` | nginx, the playbook, USER_STEPS commands |
 | Paths `/mnt/shared-project-data/staticfiles` and `/media` | `STATIC_ROOT`, `MEDIA_ROOT`; compose volumes | the share mounted on the host, served by nginx directly |
-| App user `dockeruser`, uid/gid 30000 | `Dockerfile.prod` | ownership of media on the share (`uid=30000` in the CIFS options) |
+| App user `dockeruser`, uid/gid 30000 | `Dockerfile` (stage `runtime`) | ownership of media on the share (`uid=30000` in the CIFS options) |
 | Env variable names (`SECRET_KEY`, `MYSQL_*`, `LDAP_*`, `ENABLE_CRON`, `THUMBNAIL_HEIGHT`, `NETWORK_DRIVE_*`, ...) | `settings.py`, compose, `.prod.env.example` | `webapp_find_artek.env` in web_server's secrets archive |
 | Entrypoint and cron (thumbnails at 02:00 when `ENABLE_CRON=true`) | `scripts/docker-entrypoint.sh`, `scripts/setup_cron.sh`, `scripts/generate_thumbnails_cron.sh` | functional check "cron" |
 | `collectstatic` | run by `playbook_find_artek_collectstatic.yml` | static files on the share |
@@ -30,7 +30,7 @@ Planned changes already decided there (don't fight them; align with them): the p
 
 - **Today:** the playbook clones `develop/main` and builds on the host. Every merge into `develop/main` goes live on the next deploy.
 - **After M5:** releases are year-based tags on `develop/main` (`2026.1`, `2026.2`, fixes `2026.1.1`). A tag is never moved. I set tags. web_server builds the image with `scripts/build_image.sh find_artek <git URL> <tag>`, which runs `bash tests/run.sh <image>` from the tagged source and publishes nothing unless it exits 0. `master` is fast-forwarded to the deployed tag afterwards.
-- The release image is built with a plain `docker build` of the repository root. If `Dockerfile.prod` becomes a multi-stage `Dockerfile`, the production stage must be the last one (as in nuki).
+- The release image is built with a plain `docker build` of the repository root. The `Dockerfile` is multi-stage; the production stage `prod` must stay the last one (as in nuki). `docker-compose.prod.yml` builds `target: prod`.
 
 ## `tests/run.sh` (to be written, FA-R40 / FA5)
 

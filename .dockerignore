@@ -1,0 +1,11 @@
+# Keep secrets, git history and local artefacts out of the build context (and the image:
+# the Dockerfile copies app-main/ as a whole).
+.git
+**/.env
+**/*.env
+**/*.env.backup
+**/__pycache__
+**/*.pyc
+**/*.sqlite3
+**/*.log
+app-main/venv
