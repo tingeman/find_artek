@@ -6,10 +6,9 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **You, first:** open [USER_STEPS_release-path.md](USER_STEPS_release-path.md) (next to this file) and do steps 1–3. Paste the output of step 2 into the session.
-- Next for the orchestrator, after your step 2: T2 (lock), T5 (pins), base-image decision (bookworm/trixie), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2, so T7 is best done after T2/T5. Nothing else is unblocked: everything left waits on T0.
-- Blocked on T0: T2 (lock from production's `pip freeze`), T5 (MariaDB/phpMyAdmin digests), and possibly a base-image switch to trixie (T3 note).
-- Then T7 (docs), T8 (review, merge with your permission), T9 (release, you).
+- **You:** USER_STEPS step 3 (copy the production DB into dev, guide 01, now final). In the same SSH session: the image-ID check in [BASELINE_release-path.md](BASELINE_release-path.md) ("Not yet confirmed"), and the FA3 password check (Open questions).
+- Next for the orchestrator: base image to `python:3.12.11-slim-bookworm` by digest (A1, in T2's commit or its own), T2 (lock with `--constraints` from the baseline freeze), T5 (pins from the baseline digests), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
+- Then T8 (review, merge with your permission), T9 (release, you).
 
 ## Done
 
@@ -21,11 +20,14 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T6 2026-11-16: `tests/run.sh` (nuki interface): 10 image checks + 9 smoke tests against a throwaway MariaDB (production settings, `migrate --skip-checks` for FA-R14, health, frontpage 200, cron job as cron runs it, no secrets in logs) + Django step with `DJANGO_TEST_LABELS` (empty → SKIP, Phase 2 fills it). 19/19 pass in ~40–55 s; fails visibly on the dev stage (7 failures); cleanup verified incl. interrupt. Test DB falls back to `mariadb:11.2` until T5 adds `FA_MARIADB_IMAGE`.
 - 2026-11-16: decisions: LDAP on/off becomes a setting `USE_LDAP` (roadmap **FA-R34**, Phase 2, not in 2026.1); production secrets only from web_server's encrypted archive, this repo keeps only `*.env.example` (added to T10's acceptance); `.dev.env` stays local with no production credentials.
 
+- T0 2026-11-16: host baseline in [BASELINE_release-path.md](BASELINE_release-path.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today.
+- USER_STEPS 1 2026-11-16: guide 01 open points settled (scp via home dir, dumps in `00_assets\find_artek_db_dumps`, dev user `mariadb`, media not synced, CAS first then local password, production uses `MYSQL_*`). `init.sql`'s hard-coded user → roadmap FA-R45.
+
 ## Open questions
 
-- Is cron/thumbnail generation actually working in production? Code reading says no (T0 confirms).
+- Cron is disabled in production today. With T4 it would work if web_server sets `ENABLE_CRON=true`. Turn it on with 2026.1 (thumbnails for reports added since it stopped), or keep it off and decide later? Your call before T9; web_server M5 needs the value.
+- FA3 restore command in web_server's roadmap uses `$MARIADB_ROOT_PASSWORD`; production sets only `MYSQL_*`, so it probably logs in without a password. To see it before writing a fix (read-only, on the host): `sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -uroot -e "SELECT 1"'` (expected: access denied, `using password: NO`) and the same with `$MYSQL_ROOT_PASSWORD` (expected: `1`). If confirmed: hand web_server the fix `${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}`.
 - `master` reset to the first release tag (FA5, A6): your decision at T9.
-- Base image: provisional `python:3.12.16-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df` (latest 3.12 on bookworm, 2026-11-16). T0 (`python -V`, `/etc/debian_version`) decides whether production's exact patch or Debian release differs (A1). Note: the floating `python:3.12-slim` is trixie (Debian 13, Python 3.12.15) today, so if production was built recently it is trixie too; then switch to a `-slim-trixie` digest (GDAL version follows the Debian release).
 - The prod image no longer has `mariadb-client` or admin tools (`nano`, `mc`, `ping`, ...). No known host procedure uses them inside `webapp-find-artek`; web_server M5 should confirm.
 
 ## Notes for the next session
@@ -38,7 +40,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
   `docker exec webapp-find-artek sh -c 'found=; for c in /proc/[0-9]*/comm; do read -r n < "$c" 2>/dev/null && [ "$n" = cron ] && found=1; done; f=/etc/cron.d/find_artek_thumbnails; [ -n "$found" ] && [ "$(stat -c %U:%a "$f")" = root:644 ] && grep -Eq "^[^#].* dockeruser /usr/local/bin/generate_thumbnails_cron.sh" "$f" && [ -r /proc/1/environ ] && [ -w /proc/1/fd/1 ] && echo "ok cron" || { echo "FAIL cron"; exit 1; }'`.
   Functional check: `docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]' | tail -n 3` (after 02:00 UTC), or a pass now: `docker exec webapp-find-artek generate_thumbnails_cron.sh`. Only tested on Docker Desktop; the post-check covers AppArmor on the host (`/proc/1/environ`, `/proc/1/fd/1`).
 - **For web_server (T6):** the release must be built with web_server's `build_image.sh` (it allows `*.pins.env`; data02's older copy rejects every `*.env`, so `compose.pins.env` would be refused). The gate needs the docker CLI and permission to create an `--internal` network; ~1 min.
-- The image resolves `django==4.2` to **4.2.0** exactly (T6 import check). If T0 shows the same in production, 2026.2 (T11) moves to the last 4.2.x.
+- The image resolves `django==4.2` to **4.2.0** exactly (T6 import check), same as production (T0); 2026.2 (T11) moves to the last 4.2.x.
+- Base image: T3 used provisional `python:3.12.16-slim-bookworm@sha256:935c3c5b…`. T0 says production runs 3.12.11 on bookworm; per A1 switch `FA_PYTHON_IMAGE` to `python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7` (rerun `tests/run.sh`). 3.12.16 has the later security fixes; moving to it is a candidate for 2026.2.
 - Phase 2 note: production settings put `MEDIA_ROOT` at `/mnt/shared-project-data/media` (not in the image); tests that write files need `override_settings(MEDIA_ROOT=<tmp>)`. Production settings log Django to `/app/debug.log`, not the console.
 - Pre-existing, not fixed: `.devcontainer/devcontainer.json` and `.devcontainer/up.sh` refer to `/usr/src/venv` and `/usr/src/project`, which exist in no image (FA-R41).
 - Baseline script (scratchpad, not in the repo): migrate, check, makemigrations, test against `mariadb:11.2` on an internal network with generated credentials. T6 turns this into `tests/run.sh`.

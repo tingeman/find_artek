@@ -6,13 +6,13 @@ Steps only you can run (host access, decisions, merges, tags). Everything here i
 
 ### 1. Settle the open points of the dev-database guide
 
-- [ ] Done
+- [x] Done (2026-11-16)
 
-Where: in the session. Answer P1–P7 at the end of [`docs/quick-guides/01_sync_dev_db_from_prod.md`](../quick-guides/01_sync_dev_db_from_prod.md) (SSH user and sudo, variable names, transport, local folder, dev DB user, media, login). The orchestrator then finalises the guide.
+Where: in the session. Answer P1–P7 of [`docs/quick-guides/01_sync_dev_db_from_prod.md`](../quick-guides/01_sync_dev_db_from_prod.md) (SSH user and sudo, variable names, transport, local folder, dev DB user, media, login). The orchestrator then finalises the guide.
 
 ### 2. Host baseline (T0)
 
-- [ ] Done
+- [x] Done (2026-11-16)
 
 Where: SSH on `sus-parcweb01` (`ssh tingeman@10.61.64.65`). Read only; nothing prints a secret.
 
