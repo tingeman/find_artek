@@ -1,0 +1,70 @@
+---
+name: validate
+description: Run the local checks for find_artek in the dev Docker stack (manage.py check, makemigrations --check, Django tests, bash -n, secrets guard) without secrets or host access, and report them honestly. Use after any change to code, templates, migrations, settings, requirements, Dockerfiles or scripts, and before every commit.
+---
+
+# Validate changes locally
+
+Never contact a host, never read `.env` files, never touch the dev data volume. Only these checks.
+
+## 0. The dev stack
+
+The develop compose copies `app-main/` into the image (no source mount), so **rebuild after every code change** before checking:
+
+```bash
+cd /c/thin/02_Code/docker_projects/find_artek_DEVELOP
+DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
+$DC up -d --build
+$DC ps
+```
+
+- `.dev.env` must exist (don't open it). If it is missing, stop and ask me.
+- The MariaDB data volume `find-artek-mariadb-dev` is external. If it doesn't exist, compose fails: ask me, don't create it.
+- If the stack was not running before you started, stop it again afterwards with `$DC stop` (never `down -v`).
+- Requirements changed (`app-main/requirements.txt`): the rebuild installs them. Report the versions pip resolved for the packages you changed (`$DC exec -T webapp-find-artek pip show <pkg>`), since nothing is pinned yet (FA-R2).
+
+## 1. Django system check and migrations
+
+```bash
+$DC exec -T webapp-find-artek python manage.py check --settings find_artek.development_settings
+$DC exec -T webapp-find-artek python manage.py makemigrations --check --dry-run --settings find_artek.development_settings
+```
+
+The second fails if a model changed without a committed migration. For settings or security changes, also run `check --deploy --settings find_artek.settings` and report new findings only (the existing ones are FA-R31).
+
+## 2. Tests
+
+```bash
+$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings find_artek.development_settings <app or dotted.path>
+$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings find_artek.development_settings   # full suite
+```
+
+- Tests run against MariaDB (the GIS fields don't work on SQLite, so `find_artek.test_settings` is not usable). Django creates and drops its own `test_*` database.
+- Known problem: `publications/tests.py` and the package `publications/tests/` exist side by side. If discovery fails with an import error for `publications.tests`, report it; don't move or rename test files unless the brief says so.
+- If the suite already failed before your change, say which tests, and don't count them against the task.
+- Report pass/fail counts and the names of failures, not the raw output.
+
+## 3. Shell scripts
+
+```bash
+bash -n scripts/<script>.sh
+```
+
+Scripts are copied into the image and run there, so they need LF line endings. `shellcheck` is not installed. Say so.
+
+## 4. Compose and Dockerfiles
+
+`docker compose config` prints the resolved environment, including secrets from `.dev.env`/`.prod.env`: **don't run it**. Read the file instead. For `docker-compose.prod.yml` and `Dockerfile.prod`, check the `deploy-contract` skill and flag every change.
+
+## 5. Secrets guard
+
+```bash
+git status --porcelain
+git diff --cached --name-only | grep -E '(^|/)\.?[a-z]*\.?env$|(^|/)secrets/|password|id_rsa$|\.sqlite3?$' || true
+```
+
+No `.env` file (apart from `*.env.example`), no SQLite database, no private key and no media file may be staged.
+
+## Report
+
+List each check as **passed**, **failed** (with the last lines of output) or **not run** (with the reason, e.g. "Docker not running", "`.dev.env` missing"). Never write "passed" for a check that didn't run. Ruff, mypy, pytest and CI are not set up (FA-R40): say so if asked.
