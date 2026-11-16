@@ -1,5 +1,7 @@
 # Status: Release path and pinning (Phase 1)
 
+> **This copy is outdated.** The current plan, status and user steps live on branch `agent-release-path`, in the worktree `C:\thin\02_Code\docker_projects\find_artek_agent-release-path\docs\plan\` (`STATUS_release-path.md`, `PLAN_release-path.md`, `USER_STEPS_release-path.md`). They come back to `develop/main` with the merge (T8). Your next manual steps: `USER_STEPS_release-path.md` there, steps 1–3.
+
 Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (created 2026-11-16 from `develop/main` `4d885fc`; worktree `..\find_artek_agent-release-path`, with a copy of `.dev.env`).
 
 ## Now
