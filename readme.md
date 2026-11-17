@@ -76,7 +76,8 @@ versions. Rebuild and run `tests/run.sh` afterwards.
 
 ## Release notes
 
-- **2026.2**: Django 4.2 → 4.2.30 (the final 4.2 patch; 4.2 LTS is end-of-life),
+- **2026.2**: the appendix upload page requires login and permission to edit the report
+  (FA-R52; before, anonymous users could attach files to any report). Django 4.2 → 4.2.30 (the final 4.2 patch; 4.2 LTS is end-of-life),
   djangorestframework 3.14.0 → 3.15.2 (the first version that supports Django 4.2; bound
   widened to `<3.16`). The appendix upload form uses a multi-file field (Django 4.2.1+ rejects
   `multiple` on `ClearableFileInput`, CVE-2023-31047). gunicorn runs 2 `gthread` workers × 2 threads with a 120 s timeout
