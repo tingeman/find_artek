@@ -29,7 +29,7 @@ In place there since M5 (2026-11-17; don't fight it): the production compose is 
 ## Releases (FA5, from M5 on)
 
 - Releases are year-based tags on `develop/main` (`2026.1`, `2026.2`, fixes `2026.1.1`). A tag is never moved. I set tags. Only a released tag goes live; `develop/main` itself is never deployed.
-- web_server builds the image with `scripts/build_image.sh webapp_find_artek <git URL or local checkout> <tag>`, which runs `bash tests/run.sh <image>` from the tagged source and publishes nothing unless it exits 0. The playbook deploys the version in `ansible/vars/releases.yml` (key `webapp_find_artek`). `master` is fast-forwarded to the deployed tag afterwards.
+- web_server builds the image with `scripts/build_image.sh webapp_find_artek <git URL or local checkout> <tag>`, which runs `bash tests/run.sh <image>` from the tagged source and publishes nothing unless it exits 0. The playbook deploys the version in `ansible/vars/releases.yml` (key `webapp_find_artek`). `main` is fast-forwarded to the deployed tag afterwards.
 - The release image is built with a plain `docker build` of the repository root. The `Dockerfile` is multi-stage; the production stage `prod` must stay the last one (as in nuki).
 
 ## `tests/run.sh` (the release gate, FA5)

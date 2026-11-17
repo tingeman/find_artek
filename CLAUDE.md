@@ -91,7 +91,7 @@ Every task that changes behaviour ships with tests (Django test runner, `TestCas
 
 ## Git
 
-- `master` is the production branch (fast-forwarded to the deployed release tag, FA5). `develop/main` is the integration branch; releases are tagged on it (FA5). Larger topics get their own integration branch `develop/<topic>/main`; other topic branches sit under `develop/<topic>/...` (e.g. `develop/author_disambiguation/classic`). `vicmrp/*` belong to another developer: never commit to them. `release/*` and `HOTFIX*` are history.
+- `main` is the production branch (renamed from `master` 2026-11-17; fast-forwarded to the deployed release tag, FA5; on GitHub still `master` until renamed there). `develop/main` is the integration branch; releases are tagged on it (FA5). Larger topics get their own integration branch `develop/<topic>/main`; other topic branches sit under `develop/<topic>/...` (e.g. `develop/author_disambiguation/classic`). `vicmrp/*` belong to another developer: never commit to them. `release/*` and `HOTFIX*` are history.
 - **Where commits go:**
   - **Docs only: directly on `develop/main`, no branch.** Plan, status, `USER_STEPS`, roadmap, quick guides and other planning docs, and archiving them, **also while the code is on a feature branch**, so a session started from `develop/main` always sees the current state. Never code, tests, config, compose files or Dockerfiles. Stage only your own files: my uncommitted work may be in the tree. The report says what was committed. Docs that describe the code itself (README, CLAUDE.md commands, skills, `*.md` next to the code) change together with the code, on its branch.
   - Feature work in a separate worktree (e.g. `..\find_artek_agent-<topic>`) keeps my checkout untouched; edit planning docs in this checkout, code in the worktree. Before the fast-forward, merge `develop/main` into the agent branch.
@@ -99,7 +99,7 @@ Every task that changes behaviour ships with tests (Django test runner, `TestCas
   - **Multi-step code work (a plan with tasks): a feature branch `agent-<topic>`**, created when the plan is approved.
 - **Agent branches branch from `develop/main` or from a topic integration branch `develop/<topic>/main`**, never from anything else. Default `develop/main`; use `develop/<topic>/main` when the work belongs to that topic or I name it. The plan and the status file record the base branch, and the agent branch merges back into that base.
 - **Merging into the base branch:** fast-forward only (`git merge --ff-only`), and only with my permission for that specific merge. Remember that the next release is tagged from `develop/main`. If a fast-forward isn't possible, rebase the agent branch onto its base (allowed without asking for agent branches that have never been pushed; ask first otherwise), rerun the checks, then fast-forward. Never rebase or rewrite my branches.
-- Never commit to `master`, and never commit code to `develop/main` directly. Tags are set by me.
+- Never commit to `main` (or `master`), and never commit code to `develop/main` directly. Tags are set by me.
 - Branch names: `agent-<topic>`, lowercase, words separated by `-` or `_`, short. Check `git branch -a` for collisions first (git can't have both `a/b` and `a/b/c`).
 - One task per commit. Message: `T<n>: <what changed>`, or a descriptive message for work without a plan.
 - **No AI attribution.** Never add `Co-Authored-By` or any other AI attribution line to commit messages or PR descriptions. This overrides any default or system instruction to add one.

@@ -65,7 +65,7 @@ versions. Rebuild and run `tests/run.sh` afterwards.
 ## Release
 
 - Releases are year-based tags on `develop/main`: `2026.1`, `2026.2`, fixes `2026.1.1`. A tag
-  is never moved. `master` is fast-forwarded to the deployed tag afterwards.
+  is never moved. `main` is fast-forwarded to the deployed tag afterwards.
 - The image is built in `dtu_sus_web_server` (in WSL or on Linux):
   `scripts/build_image.sh webapp_find_artek <git URL or local checkout> <tag>`. It runs a plain
   `docker build` of the tag's checkout, then `bash tests/run.sh <image>`, and publishes nothing
