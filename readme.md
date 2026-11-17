@@ -1,4 +1,81 @@
-# Tests
+# find_artek
+
+Django 4.2 database of student reports, served at `/find/` on `arctic.sustain.dtu.dk`.
+Production is deployed from the repository `dtu_sus_web_server` (playbook
+`playbook_install_webapp_find_artek.yml`); planned work is in `docs/roadmap.md`. Environment
+variables and the dev setup: [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md).
+
+## Development
+
+Everything runs in Docker (no local Python environment). From the repository root, with a
+`.dev.env` (copy of `.dev.env.example`) and the dev database volume `find-artek-mariadb-dev`
+(created by `docs/quick-guides/01_sync_dev_db_from_prod.md`):
+
+```bash
+DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
+$DC up -d --build      # the code is copied into the image: rebuild after changes
+$DC exec -T webapp-find-artek python manage.py check --settings find_artek.development_settings
+$DC exec -T webapp-find-artek python manage.py makemigrations --check --dry-run --settings find_artek.development_settings
+```
+
+- App: `http://localhost:8098/` (dev settings, no `/find` prefix). phpMyAdmin:
+  `http://127.0.0.1:6002` (localhost only).
+- The webapp builds the `dev` stage of the `Dockerfile`. MariaDB and phpMyAdmin run the
+  images production runs, by digest (written out in `docker-compose.develop.yml`, same values
+  as in `compose.pins.env`; `tests/run.sh` checks they match).
+
+## Dockerfile and pins
+
+One `Dockerfile` with the stages `build` (compilers, builds the venv), `runtime` (the
+production image: `dockeruser` uid/gid 30000, entrypoint, cron job), `dev` (runtime plus dev
+tools) and `prod` (gunicorn on `8099`, `HEALTHCHECK`). A plain `docker build .` builds the
+last stage, `prod`, which is what a release ships: `prod` must stay last.
+
+`compose.pins.env` holds the pins for deterministic builds:
+
+| Pin | Used by |
+|---|---|
+| `FA_PYTHON_IMAGE` | base image; must equal `ARG PYTHON_IMAGE` in the `Dockerfile` (a release builds without `--build-arg`, so the Dockerfile default counts); `tests/run.sh` checks it |
+| `FA_UV_VERSION` | `scripts/compile_lock.py` (not part of the image) |
+| `FA_MARIADB_IMAGE`, `FA_PHPMYADMIN_IMAGE` | `docker-compose.develop.yml` (written out there) and the test database of `tests/run.sh`; same values as web_server's `pins.env` |
+
+To move the base image: `docker buildx imagetools inspect python:3.12-slim-bookworm`, change
+both places, recompile the locks, rerun `tests/run.sh`.
+
+## Dependencies
+
+- Direct dependencies: `app-main/requirements.in` (bounds: the version production runs up to
+  the next major; Django held to `>=4.2,<4.3`), dev-only tools in
+  `app-main/requirements-dev.in`.
+- Locks: `app-main/requirements.txt` and `requirements-dev.txt`, generated, all transitive
+  packages with hashes; never edit them by hand. The image installs with
+  `pip install --require-hashes --no-deps`, and `tests/run.sh` runs `pip check`.
+- Compile after editing an `.in` file. Needs Python 3.8+ and Docker on the workstation; uv
+  runs in a container of the pinned Python image:
+
+```bash
+python scripts/compile_lock.py                                      # keep the locked versions, add/remove what changed
+python scripts/compile_lock.py --package Django --exclude-newer 2026-11-01   # upgrade one package (repeatable)
+python scripts/compile_lock.py --upgrade --exclude-newer 2026-11-01          # upgrade all (once a year)
+```
+
+Upgrades are deliberate commits; `--exclude-newer` keeps a cooldown against freshly published
+versions. Rebuild and run `tests/run.sh` afterwards.
+
+## Release
+
+- Releases are year-based tags on `develop/main`: `2026.1`, `2026.2`, fixes `2026.1.1`. A tag
+  is never moved. `master` is fast-forwarded to the deployed tag afterwards.
+- The image is built in `dtu_sus_web_server` (in WSL or on Linux):
+  `scripts/build_image.sh find_artek <git URL> <tag>`. It runs a plain `docker build` of the
+  tag's checkout, then `bash tests/run.sh <image>`, and publishes nothing unless the tests pass.
+  web_server's playbook deploys the built image.
+- Until web_server's milestone M5 is deployed, its playbook still clones `develop/main` and
+  builds on the host with `docker-compose.prod.yml` (target `prod`): whatever is on
+  `develop/main` goes live on the next deploy.
+- Before tagging, run the image tests locally (below).
+
+## Tests
 
 `tests/run.sh` tests a built image. From the repository root (Git Bash on Windows, WSL or Linux, with Docker):
 
@@ -15,7 +92,9 @@ TEST_FILTER='^smoke' bash tests/run.sh find_artek:local  # tests whose name matc
 
 Each test prints `PASS:`/`FAIL:`; the last line is `ALL <n> TESTS PASSED` (exit 0) or `<m> OF <n> TESTS FAILED` (exit 1). All containers, the network and the temporary directory are removed at the end, also on failure. The release build (`scripts/build_image.sh` in dtu_sus_web_server) runs `bash tests/run.sh <image>` in the checkout of the release tag and publishes nothing unless it exits 0.
 
-# TODO list
+## Old TODO list
+
+Kept for reference; planned work is tracked in `docs/roadmap.md` (items FA-R<n>).
 
 ### To do...
 
@@ -57,7 +136,7 @@ Each test prints `PASS:`/`FAIL:`; the last line is `ALL <n> TESTS PASSED` (exit 
 
 
 
-### Other notes:
+### Other notes
 
 ```python
 import 
