@@ -191,7 +191,7 @@ The old scheme can be rebuilt on the new login, and most parts are already there
 - **Failure behaviour:** if LDAP is switched off (FA-R34) or does not answer, the user keeps the groups from the last login and gets `dtu_user`; nothing is granted on a failed lookup. Groups can always be set by hand in the admin.
 - **Suggested differences from the old version:** superuser status stays manual (an AD group that grants full rights on a public host is a larger risk than it saves work); and a fourth group `artek_editor` with `change_publication` and `verify_publication`, so that verifying reports does not need a superuser.
 
-Open questions are listed in the roadmap under FA-R54.
+**Decided 2026-11-17** (details in the roadmap under FA-R54): groups `dtu_user`, `artek_staff` and `artek_editor`; no student group, since the course no longer exists; the AD groups have to be set up by IT first, and until then membership is set by hand in the admin.
 
 ## 7. Effect on the roadmap order
 
