@@ -161,3 +161,123 @@ git branch -f master 2026.1
 ```
 
 Tell the orchestrator which option you chose; it records it in the status file.
+
+### 5. Release 2026.2 (T11 and FA-R52)
+
+`develop/main` is at `8291021` (2026-11-18): T11 (Django 4.2.30, DRF 3.15.2, gunicorn 2 gthread workers × 2 threads, timeout 120 s) and FA-R52 (appendix upload requires login and edit permission). Same flow as step 4; the tag, the bundle and the share copy stay local/on the share until you decide on GitHub (step 6).
+
+#### 5a. Thumbnail cron, first night (left over from 4d)
+
+- [ ] Done. **Deferred 2026-11-18 until after 5g:** not run yet when checked (23:52 UTC on 2026-11-17). The 2026.2 deploy recreates the container, so check the first 02:00 UTC run of the 2026.2 container instead (same job, same `ENABLE_CRON=true`).
+
+```bash
+# SSH on sus-parcweb01, after the first 02:00 UTC following the 2026.2 deploy (5g)
+sudo docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]' | tail -n 3
+```
+
+Expect lines tagged `[thumbnails]` from about 02:00 UTC with no traceback. The first run catches up on all thumbnails missing since cron stopped, so it may take a while. Nothing in the log: run the cron post-check from 4d and paste both outputs here.
+
+#### 5b. Merge the last FA-R52 commit
+
+- [ ] Done
+
+Where: in the session. `agent-fixes` has one more verified commit, `2577e20`: the release gate now also runs the 6 access tests (`publications.test_upload_appendix_access`, fixed to pass under the production settings), and the readme's 2026.2 notes name the FA-R52 fix. Say "merge" and the orchestrator fast-forwards `develop/main` to it. Tag only after that, so the 2026.2 gate tests the access check.
+
+#### 5c. nginx timeout on `/find/` (dtu_sus_web_server)
+
+- [ ] Done
+
+Where: dtu_sus_web_server (its own session or plan; this repo doesn't change it). T11 lets a request run up to 120 s in gunicorn, but nginx `location /find/` has no `proxy_read_timeout`, so nginx gives up after its default 60 s (the nuki and alive locations set 120 s). Add to `location /find/`:
+
+```nginx
+proxy_read_timeout 120s;
+proxy_send_timeout 120s;
+```
+
+Deploy it before 2026.2, or with it. Without it 2026.2 still works; only requests between 60 and 120 s (large PDF uploads) still end in a 504.
+
+#### 5d. Tag `2026.2` locally
+
+- [ ] Done
+
+```powershell
+# PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP, after 5b
+git log --oneline -3 develop/main                     # expect 2577e20 (or a docs commit on top of it)
+git tag -a 2026.2 -m "find_artek 2026.2: Django 4.2.30, DRF 3.15.2, gunicorn gthread, FA-R52 appendix upload access" develop/main
+git show --no-patch --format='%h %s' '2026.2^{commit}'
+```
+
+#### 5e. Build and test the bundle
+
+- [ ] Done
+
+```bash
+# WSL
+cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server
+bash scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP 2026.2
+cat release-out/webapp_find_artek/webapp_find_artek-2026.2.manifest.txt
+```
+
+Expect `RESULT: OK, bundle written, tests passed`. Unlike 2026.1, the Django step now runs: `PASS: django: manage.py test publications.test_upload_appendix_form publications.test_upload_appendix_access`, `Ran 12 tests`; 21 tests in total. **Paste the manifest here** (`tarball_sha256` goes into `releases.yml`).
+
+#### 5f. Publish to the releases share
+
+- [ ] Done
+
+```powershell
+# PowerShell
+$dst = '\ait-pdfs\Qdrev\SUS\Groups\Arctic_backup\SUS-PArcWeb01\releases\webapp_find_artek'
+Get-ChildItem $dst                                   # must not contain webapp_find_artek-2026.2.* yet
+Copy-Item 'C:\thin\02_Code\docker_projects\dtu_sus_web_server\release-out\webapp_find_artek\webapp_find_artek-2026.2.*' $dst
+Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.2.tar.gz"   # = tarball_sha256 in the manifest
+```
+
+#### 5g. Deploy through web_server
+
+- [ ] Done
+
+In web_server: `ansible/vars/releases.yml`, `webapp_find_artek` entry: `version: "2026.2"`, `tarball_sha256` from 5e. Then follow web_server's deploy procedure (database dump first, as in 4d step 1, file name `find_artek_pre_2026.2_...`; then the playbook). Checks on the host:
+
+```bash
+# SSH on sus-parcweb01
+sudo docker ps --filter name=webapp-find-artek --format '{{.Names}}  {{.Image}}  {{.Status}}'   # webapp_find_artek:2026.2, healthy
+sudo docker inspect -f '{{json .Config.Cmd}}' webapp-find-artek     # gunicorn ... --workers 2 --threads 2 --worker-class gthread --timeout 120
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/frontpage/   # 200
+# FA-R52: logged out, the upload page must not open (302 to the login, not 200)
+curl -sk -o /dev/null -w '%{http_code} %{redirect_url}\n' https://127.0.0.1/find/report/1/appendix/upload/
+# Was the hole used? Appendix files created without a user (read only; a list of ids, file names, dates)
+sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}" exec mariadb -uroot "${MARIADB_DATABASE:-$MYSQL_DATABASE}" -e "SELECT f.id, f.file, f.created_date, a.publication_id FROM publications_fileobject f JOIN publications_appendenciesship a ON a.fileobject_id = f.id WHERE f.created_by_id IS NULL ORDER BY f.created_date"'
+```
+
+The upload page `curl` checks two things. **302** means FA-R52 is live. The `redirect_url` shows FA-R67: if it is `https://127.0.0.1/login?next=/find/...` (no `/find` before `/login`), the login redirect leaves the app (roadmap FA-R67); paste it either way. In the browser, logged in with an editor account, open a report's "upload appendix" page: it must open. This is the first upload check, deferred from 4d. Upload a small test file only if you also remove it again afterwards.
+
+If the SQL query returns rows from people who aren't known editors, look at those files before deleting anything. Paste all outputs here, then do the find_artek rows of web_server's "Functional checks per service".
+
+Rollback: put the `2026.1` entry back in `releases.yml` and rerun the playbook (no migrations in 2026.2, so the database needs no restore).
+
+#### 5h. After the deploy
+
+- [ ] Done
+
+```powershell
+git branch -f main 2026.2      # local production branch follows the deployed tag (FA5)
+```
+
+### 6. GitHub and the leaked `.dev.env`
+
+- [ ] Done
+
+From the local remote-tracking refs (2026-11-18; the orchestrator can't reach GitHub): `origin/main` = `3d8299b` (= `2026.1`, the rename looks done), `origin/develop/main` = `a038018`, `origin/develop/author_disambiguation/refactor` = `4d77150`. Not checked: tags and `wip/disambiguation-draft` on GitHub.
+
+1. **Rotate credentials.** `.dev.env` is in the pushed history (`b152dad`, `3b721b9`, formerly `master`). If it ever held real passwords (DB, LDAP bind, Django `SECRET_KEY`), change them where they are used. Removing the file from the history does not take it back from GitHub.
+2. **Push what is left** (Git Bash, `find_artek_DEVELOP`). `develop/main` is now a plain fast-forward of `origin/develop/main`, no force needed:
+
+```bash
+git ls-remote --tags --heads origin | grep -E '2026|wip/|develop/main|main$'   # what GitHub has
+git push origin develop/main                       # after 5b; it is the base of the 2026.2 tag
+git push origin 2026.1 2026.2                      # after 5d
+git push origin wip/disambiguation-draft           # if not there yet (your choice: it is a draft)
+git push origin main                               # after 5h
+```
+
+Tell the orchestrator what you pushed; it updates the status file. web_server's docs that still say find_artek `master` (roadmap M5 "After M5", USER_TASKS 4e) need a follow-up there.
