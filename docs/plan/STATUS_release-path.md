@@ -7,7 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - **T9**: 2026.1 deployed by web_server M5 (2026-11-17). Open in T9: the `[thumbnails]` log line after 02:00 UTC on 2026-11-18 (you), and **4e, `master` (A6), your decision**.
-- **Next: T10** (remove the production compose here), simple-task, in the worktree on `agent-release-path`. Then T11 (2026.2).
+- **T10 in progress** (remove the production compose here): delegated to `implementer` instead of simple-task (CLAUDE.md, skills and docs describe the pre-M5 setup and need rewriting against web_server's `docker/compose_find_artek.yml`), in the worktree on `agent-release-path`. Then T11 (2026.2).
 - Nothing is pushed (your choice): tag `2026.1` and `develop/main` are local only. The deploy didn't need them pushed (bundle from the releases share).
 
 ## Done
