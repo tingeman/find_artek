@@ -15,7 +15,8 @@
 #   compilers or admin tools are installed, the thumbnail cron file is root 0644 and runs as
 #   dockeruser, and the Dockerfile's ARG PYTHON_IMAGE default is FA_PYTHON_IMAGE of
 #   compose.pins.env (by digest) with the stages runtime, dev, prod (prod last, so a plain
-#   docker build builds it). One container (--network none) and docker image inspect.
+#   docker build builds it). The dev compose file names the same MariaDB and
+#   phpMyAdmin digests as compose.pins.env. One container (--network none) and docker image inspect.
 # * smoke tests (marked slow): a throwaway MariaDB (FA_MARIADB_IMAGE of compose.pins.env) on a
 #   private --internal network, with generated credentials. migrate, check, check --deploy
 #   (warnings are reported, not failed), makemigrations --check, all with the production
@@ -83,11 +84,8 @@ done
 pin() { sed -n -e 's/\r$//' -e "s/^$1=//p" "$REPO_DIR/compose.pins.env"; }
 
 # The throwaway database: the pinned MariaDB of the dev stack (= production's version, FA4)
-DB_IMAGE="$(pin FA_MARIADB_IMAGE)" DB_NOTE=""
-if [ -z "$DB_IMAGE" ]; then
-  DB_IMAGE="mariadb:11.2"
-  DB_NOTE="NOTE: no FA_MARIADB_IMAGE in compose.pins.env, the test database uses $DB_IMAGE (unpinned)"
-fi
+DB_IMAGE="$(pin FA_MARIADB_IMAGE)"
+[ -n "$DB_IMAGE" ] || { echo "no FA_MARIADB_IMAGE in $REPO_DIR/compose.pins.env" >&2; exit 2; }
 
 # Git Bash: keep container paths (/app/...) as they are, and give docker Windows paths for
 # host files (see hp below).
@@ -247,6 +245,21 @@ t_pin() {
   expect "Dockerfile ARG PYTHON_IMAGE vs compose.pins.env FA_PYTHON_IMAGE" "$df" "$pins"
 }
 
+# The dev stack's database and phpMyAdmin images are FA_MARIADB_IMAGE / FA_PHPMYADMIN_IMAGE
+# (by digest), written out in docker-compose.develop.yml
+t_dev_pins() {
+  local f="$REPO_DIR/docker-compose.develop.yml" svc var want got
+  [ -f "$f" ] || fail_t "missing $f"
+  for svc in find-artek-mariadb-service:FA_MARIADB_IMAGE find-artek-phpmyadmin-service:FA_PHPMYADMIN_IMAGE; do
+    var="${svc#*:}" svc="${svc%%:*}"
+    want="$(pin "$var")"
+    [ -n "$want" ] || fail_t "no $var in compose.pins.env"
+    case "$want" in *@sha256:*) ;; *) fail_t "$var is not pinned by digest: $want" ;; esac
+    got="$(awk -v s="  $svc:" '{ sub(/\r$/, "") } $0 == s { on = 1; next } on && /^  [^ ]/ { on = 0 } on && $1 == "image:" { print $2; exit }' "$f")"
+    expect "docker-compose.develop.yml $svc image vs compose.pins.env $var" "$got" "$want"
+  done
+}
+
 # runtime is built on the pinned base, dev and prod on runtime, and prod is the last stage:
 # a plain docker build (build_image.sh) builds the last stage
 t_stages() {
@@ -263,7 +276,6 @@ t_stages() {
 
 DB="$PFX-db"
 db_setup() {
-  [ -z "$DB_NOTE" ] || echo "$DB_NOTE"
   facts db "$( (
     docker network create --internal "$NET" >/dev/null || { echo "net.out could not create $NET"; exit 0; }
     docker run -d --network "$NET" --network-alias "$DB_HOST" --name "$DB" \
@@ -451,6 +463,7 @@ add_test "image: command is gunicorn on 0.0.0.0:8099 with find_artek.wsgi:applic
 add_test "image: has a HEALTHCHECK on 127.0.0.1:8099" t_healthcheck
 add_test "image: Dockerfile ARG PYTHON_IMAGE equals FA_PYTHON_IMAGE in compose.pins.env (digest)" t_pin
 add_test "image: Dockerfile stages runtime, dev, prod, prod last" t_stages
+add_test "repo: dev compose MariaDB and phpMyAdmin images equal compose.pins.env (digests)" t_dev_pins
 
 needs mgmt
 add_test --slow "smoke: migrate --skip-checks on an empty MariaDB" t_migrate
