@@ -6,7 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and [USER_STEPS_release-path.md](USER_STEPS_release-path.md) step 5–6; code work happens only in a worktree, planning docs only here).
 
-- **Phase 1 code is complete and merged** (2026-11-18): `develop/main` = `8291021` (T11 + FA-R52). Next is **release 2026.2**, all steps yours: **USER_STEPS 5a–5h** (thumbnail log, merge `2577e20`, nginx timeout in web_server, tag, build, publish, deploy, `main`), then **6** (rotate `.dev.env` credentials, push).
+- **Phase 1 code is complete and merged** (2026-11-18): `develop/main` = `8291021` (T11 + FA-R52). Next is **release 2026.2**, all steps yours: **USER_STEPS 5b–5h** (5a thumbnail log deferred to the first 02:00 UTC after the 2026.2 deploy; merge `2577e20`, nginx timeout in web_server, tag, build, publish, deploy, `main`), then **6** (rotate `.dev.env` credentials, push).
 - **Waiting for your OK to merge** `agent-fixes` `2577e20` (FA-R52 access tests in the release gate, fixed to pass under production settings; readme 2026.2 note). Verified: `run.sh` 21/21 (Django step 12 tests), dev check/makemigrations, 12 tests under dev settings. Tag 2026.2 after this merge (USER_STEPS 5b).
 - **Hand-off to web_server:** nginx `location /find/`: `proxy_read_timeout 120s; proxy_send_timeout 120s;` before or with 2026.2 (USER_STEPS 5c). Docs there still say find_artek `master`.
 - **New finding FA-R67:** production `LOGIN_URL = '/login'` with `FORCE_SCRIPT_NAME = '/find'` sends every `login_required` redirect to `/login`, outside `/find/`. Not fixed; check in production at 5g.

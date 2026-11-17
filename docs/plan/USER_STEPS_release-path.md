@@ -168,14 +168,14 @@ Tell the orchestrator which option you chose; it records it in the status file.
 
 #### 5a. Thumbnail cron, first night (left over from 4d)
 
-- [ ] Done
+- [ ] Done. **Deferred 2026-11-18 until after 5g:** not run yet when checked (23:52 UTC on 2026-11-17). The 2026.2 deploy recreates the container, so check the first 02:00 UTC run of the 2026.2 container instead (same job, same `ENABLE_CRON=true`).
 
 ```bash
-# SSH on sus-parcweb01, after 02:00 UTC on 2026-11-18
+# SSH on sus-parcweb01, after the first 02:00 UTC following the 2026.2 deploy (5g)
 sudo docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]' | tail -n 3
 ```
 
-Expect lines tagged `[thumbnails]` from about 02:00 UTC with no traceback. The first run catches up on all thumbnails missing since cron stopped, so it may have taken a while. Nothing in the log: run the cron post-check from 4d and paste both outputs here.
+Expect lines tagged `[thumbnails]` from about 02:00 UTC with no traceback. The first run catches up on all thumbnails missing since cron stopped, so it may take a while. Nothing in the log: run the cron post-check from 4d and paste both outputs here.
 
 #### 5b. Merge the last FA-R52 commit
 
