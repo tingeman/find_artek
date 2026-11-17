@@ -10,12 +10,13 @@
 # Linux and WSL, and from Git Bash on Windows (Docker Desktop). Three groups:
 #
 # * image checks: the image's user is dockeruser (uid/gid 30000), WORKDIR /app, the entrypoint
-#   is docker-entrypoint.sh, the command is gunicorn on 0.0.0.0:8099 without --reload, it has
-#   a HEALTHCHECK, pip check passes, the key packages import (GDAL and GEOS load), no
-#   compilers or admin tools are installed, the thumbnail cron file is root 0644 and runs as
-#   dockeruser, and the Dockerfile's ARG PYTHON_IMAGE default is FA_PYTHON_IMAGE of
-#   compose.pins.env (by digest) with the stages runtime, dev, prod (prod last, so a plain
-#   docker build builds it). The dev compose file names the same MariaDB and
+#   is docker-entrypoint.sh, the command is gunicorn on 0.0.0.0:8099 (2 gthread workers x 2
+#   threads, timeout 120 s) without --reload, it has a HEALTHCHECK, pip check passes, the key
+#   packages import (GDAL and GEOS load), no compilers or admin tools are installed, the
+#   thumbnail cron file is root 0644 and runs as dockeruser, and the Dockerfile's ARG
+#   PYTHON_IMAGE default is FA_PYTHON_IMAGE of compose.pins.env (by digest) with the stages
+#   runtime, dev, prod (prod last, so a plain docker build builds it). The dev compose file
+#   names the same MariaDB and
 #   phpMyAdmin digests as compose.pins.env. One container (--network none) and docker image inspect.
 # * smoke tests (marked slow): a throwaway MariaDB (FA_MARIADB_IMAGE of compose.pins.env) on a
 #   private --internal network, with generated credentials. migrate, check, check --deploy
@@ -49,11 +50,12 @@
 set -euo pipefail
 
 # Django test labels run by the release gate (manage.py test <labels>). Only tests that pass
-# at the release's baseline belong here (plan PLAN_release-path A4): in 2026.1 there are none
+# at the release's baseline belong here (plan PLAN_release-path A4). 2026.1 had none
 # (publications/tests.py does not import; the app-main/test_*.py files are ad-hoc scripts, not
-# tests), so the step is reported as "SKIP: django: ..." and is not counted. Phase 2 (roadmap
-# FA-R40) fills this list and later replaces it with the whole suite.
-DJANGO_TEST_LABELS=()
+# tests); an empty list is reported as "SKIP: django: ..." and not counted. From 2026.2: the
+# appendix upload form tests. Phase 2 (roadmap FA-R40) adds to this list and later replaces it
+# with the whole suite.
+DJANGO_TEST_LABELS=(publications.test_upload_appendix_form)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
@@ -208,6 +210,7 @@ t_cmd() {
   local cmd
   cmd="$(inspect '{{join .Config.Cmd " "}}')"
   contains "image command" "$cmd" "gunicorn --bind 0.0.0.0:8099 find_artek.wsgi:application"
+  contains "image command" "$cmd" "--workers 2 --threads 2 --worker-class gthread --timeout 120"
   lacks "image command" "$cmd" "--reload"
 }
 

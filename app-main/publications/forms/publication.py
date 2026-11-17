@@ -443,6 +443,31 @@ class ChangeReportNumberForm(forms.Form):
         return new_number
     
 
+class MultipleFileInput(forms.ClearableFileInput):
+    """File input that lets the browser select several files (renders ``multiple``).
+
+    Since Django 4.2.1 (CVE-2023-31047) ``ClearableFileInput(attrs={'multiple': True})``
+    raises ValueError; a widget must opt in with ``allow_multiple_selected``.
+    """
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    """FileField that accepts a list of files and runs the FileField checks on each one."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('widget', MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            if not data:
+                return single_file_clean(None, initial)  # required / empty handling
+            return [single_file_clean(d, initial) for d in data]
+        return single_file_clean(data, initial)
+
+
 class UploadAppendixForm(forms.Form):
     """
     Form for uploading multiple appendix files to a publication.
@@ -451,9 +476,8 @@ class UploadAppendixForm(forms.Form):
     Note: For very large files (>100MB), we may need to implement 
     a secondary upload scheme with chunked uploads or direct storage.
     """
-    appendix_files = forms.FileField(
-        widget=forms.ClearableFileInput(attrs={
-            'multiple': True,
+    appendix_files = MultipleFileField(
+        widget=MultipleFileInput(attrs={
             'accept': '.pdf,.doc,.docx,.txt,.zip,.jpg,.jpeg,.png,.gif,.xls,.xlsx,.ppt,.pptx',
             'class': 'form-control',
         }),
