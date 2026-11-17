@@ -7,7 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - Nothing waits on you until the T8 merge.
-- Next for the orchestrator: **T8**: fresh-context review of the whole branch (`/code-review` on `develop/main..agent-release-path`), fix what matters, then ask you to fast-forward `develop/main`.
+- **T8 in progress (2026-11-17)**: fresh-context review of the whole branch (`/code-review high` on `develop/main...agent-release-path`) running; then fix what matters, merge `develop/main` into the agent branch, rerun `tests/run.sh`, and ask you to fast-forward `develop/main`.
 - Then T9 (release 2026.1, you).
 
 ## Done
