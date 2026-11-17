@@ -7,7 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - **T9**: 2026.1 deployed by web_server M5 (2026-11-17). Open in T9: the `[thumbnails]` log line after 02:00 UTC on 2026-11-18 (you), and **4e, `master` (A6), your decision**.
-- **T10 done** on `agent-release-path` (`a9c4261`), **waiting for your OK to fast-forward `develop/main`** (merge `develop/main` into the branch first). 4e analysis: the 2 commits only on `master` (`b152dad` map CRS 3575, `94c1156` prod files and `/find/`) both have equivalents in `2026.1`; `.dev.env` is in `master`'s pushed history (`b152dad`, `3b721b9`), contents not checked: rotate anything real it held.
+- **T10 merged**: `develop/main` fast-forwarded to `9d6c696` (2026-11-17, your OK). **4e done**: local `master` reset to `2026.1` (`3d8299b`); the 2 commits only on the old `master` (`b152dad` map CRS 3575, `94c1156` prod files and `/find/`) both have equivalents in `2026.1`. `.dev.env` is in the pushed history of `origin/master` (`b152dad`, `3b721b9`), contents not checked: rotate anything real it held. Open: renaming `master` to `main` (asked 2026-11-17).
 - **Next: T11** (2026.2: last Django 4.2.x, gthread workers), implementer, after the T10 merge.
 - Nothing is pushed (your choice): tag `2026.1` and `develop/main` are local only. The deploy didn't need them pushed (bundle from the releases share).
 

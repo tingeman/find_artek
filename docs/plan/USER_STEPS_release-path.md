@@ -150,7 +150,7 @@ Rollback: put back the previous entry in `releases.yml` (none for the first rele
 
 #### 4e. Decide on `master` (A6)
 
-- [ ] Done
+- [x] Done 2026-11-17: local `master` reset to `2026.1` (nothing pushed).
 
 `master` (`v2.0.1`) is not an ancestor of `develop/main` (rebase, FA5); `git log --oneline develop/main..master` shows 26 commits, of which the roadmap found 2 with no equivalent on `develop/main`. Options: leave `master` as history for now, or (after a word with the other developer) check those 2 commits and reset your local `master` to the deployed tag (nothing pushed; pushing `master`, the tag or `develop/main` to GitHub is a separate decision):
 
