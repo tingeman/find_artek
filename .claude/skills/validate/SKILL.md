@@ -68,7 +68,7 @@ bash tests/run.sh --quick find_artek:local    # image checks only, ~10 s
 TEST_FILTER='^smoke' bash tests/run.sh find_artek:local
 ```
 
-Report the last line (`ALL <n> TESTS PASSED` / `<m> OF <n> TESTS FAILED`) and the names of the `FAIL:` lines. `INFO:`/`NOTE:`/`SKIP:` lines are not failures (e.g. the `check --deploy` warnings W004/W008, FA-R31; `SKIP: django: ...` while `DJANGO_TEST_LABELS` is empty).
+Report the last line (`ALL <n> TESTS PASSED` / `<m> OF <n> TESTS FAILED`) and the names of the `FAIL:` lines. `INFO:`/`SKIP:` lines are not failures (e.g. the `check --deploy` warnings W004/W008, FA-R31; `SKIP: django: ...` while `DJANGO_TEST_LABELS` is empty).
 
 ## 5. Secrets guard
 

@@ -31,8 +31,6 @@ APP_DIR = REPO_DIR / 'app-main'
 PINS_FILE = REPO_DIR / 'compose.pins.env'
 # (input, lock file)
 LOCKS = (('requirements.in', 'requirements.txt'), ('requirements-dev.in', 'requirements-dev.txt'))
-# Python of the image (FA_PYTHON_IMAGE); markers are resolved for it
-PYTHON_VERSION = '3.12'
 
 HEADER = """\
 # GENERATED FILE, DO NOT EDIT BY HAND.
@@ -104,13 +102,18 @@ def main(argv=None):
         sys.exit('FA_PYTHON_IMAGE not set and not found in compose.pins.env')
     if not uv_version:
         sys.exit('FA_UV_VERSION not set and not found in compose.pins.env')
+    # Markers and wheels are resolved for the Python of the image (python:3.12.11-... -> 3.12)
+    m = re.match(r'(?:[^/]+/)*python:(\d+\.\d+)', image)
+    if not m:
+        sys.exit(f'cannot read the Python version from FA_PYTHON_IMAGE={image!r}')
+    python_version = m.group(1)
 
     # Native resolved paths: C:\... on Windows, POSIX paths on WSL/Linux. Both are accepted by docker -v.
     mounts = ['-v', f'{APP_DIR.resolve()}:/work']
     compile_args = [
         '--generate-hashes',
         '--python-version',
-        PYTHON_VERSION,
+        python_version,
         '--python-platform',
         'x86_64-unknown-linux-gnu',
         '--no-header',

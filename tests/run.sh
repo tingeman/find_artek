@@ -329,7 +329,9 @@ t_makemigrations() {
 
 # Two app containers with the image's own command, started together: $APP without
 # ENABLE_CRON (network alias webapp-find-artek, one of ALLOWED_HOSTS) and $CRON with
-# ENABLE_CRON=true. Facts in F[app.*] and F[cron.*].
+# ENABLE_CRON=true. Facts in F[app.*] and F[cron.*]. Both with a tty (-t), as production
+# runs (tty: true in docker-compose.yml): PID 1's stdout, where the cron job writes, is then a
+# pty, not a pipe.
 APP="$PFX-app" CRON="$PFX-cron"
 health() { docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} {{.State.Running}}' "$1"; }
 CRON_CHECK='found=; for c in /proc/[0-9]*/comm; do read -r n < "$c" 2>/dev/null && [ "$n" = cron ] && found=1; done; [ -n "$found" ] && echo running || echo "not running"'
@@ -343,8 +345,8 @@ JOBPATH=$(sed -n "s/^PATH=//p" /etc/cron.d/find_artek_thumbnails) JOBCMD=$cmd \
 app_setup() {
   run_setup mgmt
   [ "${F[mgmt.migrate.rc]:-}" = 0 ] || return 0
-  docker run -d --network "$NET" --network-alias "$APP_ALIAS" --name "$APP" "${APP_ENV[@]}" "$IMAGE" >/dev/null 2>&1 || true
-  docker run -d --network "$NET" --name "$CRON" "${APP_ENV[@]}" -e ENABLE_CRON=true -e THUMBNAIL_HEIGHT=300 "$IMAGE" >/dev/null 2>&1 || true
+  docker run -d -t --network "$NET" --network-alias "$APP_ALIAS" --name "$APP" "${APP_ENV[@]}" "$IMAGE" >/dev/null 2>&1 || true
+  docker run -d -t --network "$NET" --name "$CRON" "${APP_ENV[@]}" -e ENABLE_CRON=true -e THUMBNAIL_HEIGHT=300 "$IMAGE" >/dev/null 2>&1 || true
   SECONDS=0
   local c
   for c in "$APP" "$CRON"; do
@@ -369,6 +371,9 @@ app_setup() {
     docker exec "$CRON" sh -c "$CRON_CHECK" 2>&1 | sed 's/^/daemon.out /'
     rc=0; out="$(docker exec -u root "$CRON" sh -c "$RUN_JOB" 2>&1)" || rc=$?
     echo "job.rc $rc"; [ -z "$out" ] || printf '%s\n' "$out" | sed 's/^/job.out /'
+    # A second run while another one holds the lock must skip (exit 0) without working
+    rc=0; out="$(docker exec "$CRON" sh -c 'exec 9>/tmp/find_artek_thumbnails.lock && flock -n 9 && generate_thumbnails_cron.sh' 2>&1)" || rc=$?
+    echo "locked.rc $rc"; [ -z "$out" ] || printf '%s\n' "$out" | sed 's/^/locked.out /'
     sleep 1   # docker logs may lag a moment behind the job's last write
     docker logs "$CRON" 2>&1 | sed 's/^/log.out /'
   ) 2>&1)"
@@ -415,6 +420,9 @@ t_cron_job() {
   # "Processing 0 publications" comes from a query: the job had the container's DB settings
   contains "[thumbnails] lines in docker logs" "$th" "Processing 0 publications"
   contains "[thumbnails] lines in docker logs" "$th" "Thumbnail generation completed successfully"
+  expect "exit code of a second run while the lock is held (${F[cron.locked.out]:-})" "${F[cron.locked.rc]:-}" "0"
+  contains "second run while the lock is held" "${F[cron.locked.out]:-}" "still active, skipping"
+  lacks "second run while the lock is held" "${F[cron.locked.out]:-}" "Starting thumbnail generation"
 }
 
 # ---- Django tests --------------------------------------------------------------------

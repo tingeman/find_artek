@@ -29,6 +29,14 @@ if [ "$(id -u)" -eq 0 ]; then
     exit 1
 fi
 
+# One run at a time: the first run after cron was enabled may work through a large backlog
+# and last longer than a day. The lock is released when this process exits.
+exec 9>/tmp/find_artek_thumbnails.lock
+if ! flock -n 9; then
+    log "another thumbnail run is still active, skipping this one"
+    exit 0
+fi
+
 if [ -z "${DJANGO_PROJECT_DIR:-}" ]; then
     if [ ! -r /proc/1/environ ]; then
         log "ERROR: no container environment: /proc/1/environ is not readable by $(id -un)"
@@ -59,7 +67,7 @@ cd "$PROJECT_DIR" || {
 
 log "Starting thumbnail generation with height ${THUMBNAIL_HEIGHT}px"
 
-python manage.py generate_thumbnails --verbose --height "$THUMBNAIL_HEIGHT" 2>&1 | while IFS= read -r line; do
+python manage.py generate_thumbnails --verbose --height "$THUMBNAIL_HEIGHT" 2>&1 | while IFS= read -r line || [ -n "$line" ]; do
     log "$line"
 done
 rc=${PIPESTATUS[0]}
