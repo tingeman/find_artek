@@ -53,7 +53,7 @@ Bundle name: **`webapp_find_artek`**, not `find_artek` as in PLAN T9. It matches
 
 #### 4a. Tag `2026.1` locally
 
-- [ ] Done
+- [x] Done (2026-11-17: annotated tag `2026.1` on `3d8299b`, local only)
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -64,7 +64,7 @@ git show --no-patch --format='%h %s' '2026.1^{commit}'   # quotes needed: PowerS
 
 #### 4b. Build and test the bundle from the local checkout
 
-- [ ] Done
+- [x] Done (2026-11-17T01:20Z: `RESULT: OK`, tests passed; manifest below)
 
 ```bash
 # WSL
@@ -76,11 +76,30 @@ cat release-out/webapp_find_artek/webapp_find_artek-2026.1.manifest.txt
 
 Use the main checkout `find_artek_DEVELOP`, not the worktree `find_artek_agent-release-path`: a worktree's `.git` file holds a Windows path that WSL git can't follow. If WSL git refuses with "dubious ownership", run `git config --global --add safe.directory /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP` once (WSL).
 
-Expect: last line `RESULT: OK, bundle written, tests passed` (about 1–2 min for `tests/run.sh`; its Django step shows `SKIP`, empty `DJANGO_TEST_LABELS`, A4). Manifest: `version: 2026.1`, the commit of the tag, `tests: passed ...`. Output: `webapp_find_artek-2026.1.tar.gz`, `.tar.gz.sha256`, `.manifest.txt`. **Paste the manifest here.**
+Expect: last line `RESULT: OK, bundle written, tests passed` (about 1–2 min for `tests/run.sh`; its Django step shows `SKIP`, empty `DJANGO_TEST_LABELS`, A4). Manifest: `release: 2026.1`, the commit of the tag, `tests: passed ...`. Output: `webapp_find_artek-2026.1.tar.gz`, `.tar.gz.sha256`, `.manifest.txt`. **Paste the manifest here.**
+
+Result (`release-out/webapp_find_artek/webapp_find_artek-2026.1.manifest.txt`, the tested build):
+
+```text
+release: 2026.1
+image: webapp_find_artek:2026.1
+git_sha: 3d8299b37764
+source_ref: 2026.1
+base_image: python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7
+requirements_txt_sha256: 624e0b24bd04d3ded062cc2827a071891c97bb860d15fcc6ba7f5685d69af73f
+tarball: webapp_find_artek-2026.1.tar.gz
+tarball_sha256: 061dc954d7bb5b3229c9e075d9a4470153d32bba72ac47f2b815a52fd80fa703
+image_id: sha256:0c1fc2bc01005933a1175471085637cfe697314754b15a98a9a697ea608a57d5
+platform: linux/amd64
+built_at: 2026-11-17T01:20:25Z
+tests: passed (tests/run.sh sha256 0996d36ab74a306b16ea8ed267e35a4c2337ca44b56b57f428af66408390120d)
+```
+
+The manifest's `source:` line says `git@github.com:tingeman/find_artek.git:.` (the checkout's `origin` URL), but the build used the local checkout at the tag; `git_sha` is the tag's commit. The `releases.yml` entry for M5: `version: "2026.1"`, `tarball_sha256: "061dc954d7bb5b3229c9e075d9a4470153d32bba72ac47f2b815a52fd80fa703"`.
 
 #### 4c. Publish the bundle to the releases share
 
-- [ ] Done
+- [x] Done (2026-11-17: three files on the share; the orchestrator hashed the tarball on the share: `061dc954…0fa703`, equal to the manifest)
 
 ```powershell
 # PowerShell

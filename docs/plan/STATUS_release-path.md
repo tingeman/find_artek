@@ -6,7 +6,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **Next: T9 (you)**: tag `2026.1` on `develop/main`, build with web_server's `build_image.sh` (WSL), deploy through web_server M5; decide on `master` (A6). Note: until M5 is deployed, the old playbook builds `develop/main` (now the staged `Dockerfile`, same packages, cron still off).
+- **T9 in progress (you)**: 2026.1 tagged, built, tested and published (USER_STEPS 4a–4c). **Next: USER_STEPS 4d, deploy, blocked on web_server M5** (not planned there yet: compose, pins, `release_image` with service `webapp_find_artek`, `releases.yml` entry with the values in USER_STEPS 4b, `ENABLE_CRON=true`). Then 4e, `master` (A6).
+- Nothing is pushed (your choice, security): tag `2026.1` and `develop/main` (`8787544`+) are local only; `origin/develop/main` is still `afd8792`, so the old playbook, if run, still builds production's code. Pushing is your separate decision.
 
 ## Done
 
@@ -31,6 +32,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T7 2026-11-17: readme sections Development, Dockerfile and pins (table of the four pins), Dependencies (`compile_lock.py` usage), Release (tags, web_server `build_image.sh`, pre-M5 behaviour), Tests; old TODO list kept with a pointer to the roadmap. `ENVIRONMENT_SETUP.md` rewritten (dev, devcontainer, production secrets only in web_server, env variable reference from the code; `DEBUG` in the templates is not read). `LDAP_BIND_USER`/`LDAP_BIND_PASSWORD` (read by settings.py, missing before) added empty to both `*.env.example`. CLAUDE.md: leftovers list without `requirements_OLD.txt`, dependency/pin line. `compose.pins.env` comment corrected (no `--env-file`). `run.sh` 20/20. (`98f6362`)
 
 - T8 2026-11-17: `/code-review high` of the whole branch, 10 findings. Fixed: devcontainer phpMyAdmin was published on 6002 twice (once on 0.0.0.0), now only `127.0.0.1:6002`; thumbnail job holds a `flock` (`/tmp/find_artek_thumbnails.lock`), a second run skips with exit 0 (first production run may be long); log loop keeps a last line without newline; `run.sh` app containers run with `-t` as production (`tty: true`), so the cron redirect to `/proc/1/fd/1` is tested against a pty (passes), plus a lock test; `compile_lock.py` reads the Python version from `FA_PYTHON_IMAGE`; skills `deploy-contract`/`validate` corrected (`FA_MARIADB_IMAGE` required, exit 2; no `NOTE:` lines). Not changed: Django 4.2.0 and the single gunicorn worker vs. the healthcheck (T11, by design for 2026.1); `requirements_OLD.txt` removal in T2 (planned in T2); height check duplicated in the cron wrapper (harmless). Old playbook still builds from `develop/main` after the merge (compose → `Dockerfile` target `prod`). (`3e81612`, merge `ed3357b`)
+
+- T9 (part) 2026-11-17: tag `2026.1` (annotated, local) on `3d8299b`; bundle `webapp_find_artek` (name as web_server's services, not `find_artek` as in PLAN T9) built from the local checkout with web_server's `build_image.sh`: tests passed, `tarball_sha256 061dc954…0fa703`, `image_id sha256:0c1fc2bc…`; published to the releases share, share copy hashed and equal. Deploy waits for web_server M5.
 
 ## Open questions
 
