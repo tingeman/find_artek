@@ -7,7 +7,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - **T9**: 2026.1 deployed by web_server M5 (2026-11-17). Open in T9: the `[thumbnails]` log line after 02:00 UTC on 2026-11-18 (you), and **4e, `master` (A6), your decision**.
-- **T10 in progress** (remove the production compose here): delegated to `implementer` instead of simple-task (CLAUDE.md, skills and docs describe the pre-M5 setup and need rewriting against web_server's `docker/compose_find_artek.yml`), in the worktree on `agent-release-path`. Then T11 (2026.2).
+- **T10 done** on `agent-release-path` (`a9c4261`), **waiting for your OK to fast-forward `develop/main`** (merge `develop/main` into the branch first). 4e analysis: the 2 commits only on `master` (`b152dad` map CRS 3575, `94c1156` prod files and `/find/`) both have equivalents in `2026.1`; `.dev.env` is in `master`'s pushed history (`b152dad`, `3b721b9`), contents not checked: rotate anything real it held.
+- **Next: T11** (2026.2: last Django 4.2.x, gthread workers), implementer, after the T10 merge.
 - Nothing is pushed (your choice): tag `2026.1` and `develop/main` are local only. The deploy didn't need them pushed (bundle from the releases share).
 
 ## Done
@@ -37,6 +38,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T9 (part) 2026-11-17: tag `2026.1` (annotated, local) on `3d8299b`; bundle `webapp_find_artek` (name as web_server's services, not `find_artek` as in PLAN T9) built from the local checkout with web_server's `build_image.sh`: tests passed, `tarball_sha256 061dc954…0fa703`, `image_id sha256:0c1fc2bc…`; published to the releases share, share copy hashed and equal. Deploy waits for web_server M5.
 
 - T9 deploy 2026-11-17 (you, web_server M5, archived there as `docs/archive/*_find-artek_COMPLETE.md`, `0d5b90a`): `webapp_find_artek:2026.1` live; dump, test restore and off-host copy OK, row counts equal; host, site, CAS login and phpMyAdmin tunnel checks pass; cron post-check in the playbook. Upload check deferred to the find_artek release that completes record creation and upload (web_server functional checks). nginx was down after the 16:20 reboot (logrotate, web_server W13), fixed there (`8a355b9`). web_server `main` fast-forwarded to `ecca54b`; old CIFS volumes and `/opt/webapp_find_artek` removed.
+
+- T10 2026-11-17 (implementer instead of simple-task: the docs needed rewriting, not just deleting): `docker-compose.prod.yml` and `.prod.env.example` removed; base `docker-compose.yml` dev-only (no phpMyAdmin 6001; develop file's `ports: !override` now plain `ports:` 127.0.0.1:6002); CLAUDE.md (release by tag, `develop/main` not deployed by itself, env variables into `.dev.env.example` + `ENVIRONMENT_SETUP.md` table), `deploy-contract` and `validate` skills, readme, ENVIRONMENT_SETUP updated to web_server's `compose_find_artek.yml` and `build_image.sh webapp_find_artek`. `config --quiet` ok (dev and devcontainer), dev stack recreated: check, makemigrations, frontpage 200, pma 200 on 127.0.0.1 only; `run.sh --quick` 11/11; no Django tests (A4). Deployment impact: none. Roadmap FA-R34 and quick guide 01 (step 1 now reads the image tag) updated on `develop/main`. (`a9c4261`)
 
 ## Open questions
 
