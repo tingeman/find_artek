@@ -6,9 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- Nothing waits on you until the T8 merge.
-- **T8 (2026-11-17)**: review done, fixes committed (`3e81612`), `develop/main` merged into the agent branch (`ed3357b`), `tests/run.sh` 20/20 on the merged tree. **Waiting for you**: permission to fast-forward `develop/main` to `agent-release-path`.
-- Then T9 (release 2026.1, you).
+- **Next: T9 (you)**: tag `2026.1` on `develop/main`, build with web_server's `build_image.sh` (WSL), deploy through web_server M5; decide on `master` (A6). Note: until M5 is deployed, the old playbook builds `develop/main` (now the staged `Dockerfile`, same packages, cron still off).
 
 ## Done
 
