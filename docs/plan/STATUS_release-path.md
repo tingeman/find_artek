@@ -7,7 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - USER_STEPS 1–3 and the FA3 password check are done; nothing waits on you until T8.
-- Next for the orchestrator: **T5** (dev MariaDB/phpMyAdmin pins from the baseline digests; also gives `tests/run.sh` its `FA_MARIADB_IMAGE`), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
+- Next for the orchestrator: **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2.
 - Then T8 (review, merge with your permission), T9 (release, you).
 
 ## Done
@@ -28,6 +28,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - FA3 check 2026-11-17 (host, read-only): `$MARIADB_ROOT_PASSWORD` is empty in `fa-mariadb-service` (`Access denied ... using password: NO`), `$MYSQL_ROOT_PASSWORD` works (`SELECT 1` → `1`). **Hand-off to web_server:** its FA3 restore command must use `${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}` (or `MYSQL_ROOT_PASSWORD`).
 
 - T2 + A1 2026-11-17: base `python:3.12.11-slim-bookworm@sha256:519591d6…` (Debian 12.12 in the image, host 12.11; apt not pinned); `requirements.in` (22 direct deps, bounds production..next major, DRF `<3.15`, `setuptools` explicit since 3.12 venvs lack it), hash-locked `requirements.txt` (43 pins) and empty `requirements-dev.txt` via `scripts/compile_lock.py` (uv `FA_UV_VERSION=0.8.22`); install `--require-hashes --no-deps`; `requirements_OLD.txt` removed. Image `pip freeze` identical to production's, `pip check` ok, `tests/run.sh` 19/19 (rerun in review). Dev stack not brought up from the worktree (same container names as the main checkout); check/makemigrations covered by `run.sh` with production settings. (`2f4ad43`)
+- T5 2026-11-17: `FA_MARIADB_IMAGE` and `FA_PHPMYADMIN_IMAGE` in `compose.pins.env` (production digests from the baseline); written out in `docker-compose.develop.yml` (plain `DC` command and the devcontainer need no `--env-file`), `tests/run.sh` checks they match (new test, fails visibly on a mismatch) and now requires `FA_MARIADB_IMAGE`. phpMyAdmin dev only on `127.0.0.1:6002` (`ports: !override`; before, the base file's 6001 was also published on 0.0.0.0). Base `docker-compose.yml` left unchanged (production uses it until T10). Dev stack recreated on the existing volume: check, makemigrations, frontpage 200, pma 200; `run.sh` 20/20. (`7a865c9`)
 
 ## Open questions
 
@@ -36,6 +37,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 ## Notes for the next session
 
+- **From T5, for T7:** document `compose.pins.env` (all four pins) in README/CLAUDE.md; the dev webapp is still published on 0.0.0.0:8098 (not in T5; candidate for the same localhost binding).
 - **From T2, for T7 and later:** `CLAUDE.md` (leftovers list) still names `requirements_OLD.txt`: fix in T7. `compile_lock.py`'s Linux/WSL branch (host uid, uv in `/tmp/uv`) is untested; only the Windows path ran. Packages kept in 2026.1 but apparently unused (candidates for a Phase 2 cleanup, roadmap at finish): `django-taggit`, `psycopg`, `PyPDF2` (deprecated, successor `pypdf`), `python-dotenv`, `ping3`, `setuptools`; `Werkzeug` is dev-only (`runserver_plus`). DRF bound `<3.15` widened deliberately later. Local images `find_artek:t2`, `find_artek:t2-review`, `find_artek_agent-release-path-webapp-find-artek` can be removed.
 
 - **Baseline findings (T1):**
