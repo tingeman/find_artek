@@ -7,7 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
 - Nothing waits on you until the T8 merge.
-- **T8 in progress (2026-11-17)**: fresh-context review of the whole branch (`/code-review high` on `develop/main...agent-release-path`) running; then fix what matters, merge `develop/main` into the agent branch, rerun `tests/run.sh`, and ask you to fast-forward `develop/main`.
+- **T8 (2026-11-17)**: review done, fixes committed (`3e81612`), `develop/main` merged into the agent branch (`ed3357b`), `tests/run.sh` 20/20 on the merged tree. **Waiting for you**: permission to fast-forward `develop/main` to `agent-release-path`.
 - Then T9 (release 2026.1, you).
 
 ## Done
@@ -32,12 +32,16 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 - T7 2026-11-17: readme sections Development, Dockerfile and pins (table of the four pins), Dependencies (`compile_lock.py` usage), Release (tags, web_server `build_image.sh`, pre-M5 behaviour), Tests; old TODO list kept with a pointer to the roadmap. `ENVIRONMENT_SETUP.md` rewritten (dev, devcontainer, production secrets only in web_server, env variable reference from the code; `DEBUG` in the templates is not read). `LDAP_BIND_USER`/`LDAP_BIND_PASSWORD` (read by settings.py, missing before) added empty to both `*.env.example`. CLAUDE.md: leftovers list without `requirements_OLD.txt`, dependency/pin line. `compose.pins.env` comment corrected (no `--env-file`). `run.sh` 20/20. (`98f6362`)
 
+- T8 2026-11-17: `/code-review high` of the whole branch, 10 findings. Fixed: devcontainer phpMyAdmin was published on 6002 twice (once on 0.0.0.0), now only `127.0.0.1:6002`; thumbnail job holds a `flock` (`/tmp/find_artek_thumbnails.lock`), a second run skips with exit 0 (first production run may be long); log loop keeps a last line without newline; `run.sh` app containers run with `-t` as production (`tty: true`), so the cron redirect to `/proc/1/fd/1` is tested against a pty (passes), plus a lock test; `compile_lock.py` reads the Python version from `FA_PYTHON_IMAGE`; skills `deploy-contract`/`validate` corrected (`FA_MARIADB_IMAGE` required, exit 2; no `NOTE:` lines). Not changed: Django 4.2.0 and the single gunicorn worker vs. the healthcheck (T11, by design for 2026.1); `requirements_OLD.txt` removal in T2 (planned in T2); height check duplicated in the cron wrapper (harmless). Old playbook still builds from `develop/main` after the merge (compose → `Dockerfile` target `prod`). (`3e81612`, merge `ed3357b`)
+
 ## Open questions
 
 - `master` reset to the first release tag (FA5, A6): your decision at T9.
 - The prod image no longer has `mariadb-client` or admin tools (`nano`, `mc`, `ping`, ...). No known host procedure uses them inside `webapp-find-artek`; web_server M5 should confirm.
 
 ## Notes for the next session
+
+- **From T8, for T11 / web_server M5:** the `HEALTHCHECK` (front page, 5 s timeout, 3 retries) shares gunicorn's single sync worker, so a long upload can mark the container unhealthy; T11's 2 gthread workers fix that. M5's compose should keep `tty: true` (what `run.sh` now tests) or the cron post-check will show the difference. Local image `find_artek:t8` can be removed.
 
 - **From T5 (still open):** the dev webapp is still published on 0.0.0.0:8098 (not in T5; candidate for the same localhost binding).
 - **From T2:** `compile_lock.py`'s Linux/WSL branch (host uid, uv in `/tmp/uv`) is untested; only the Windows path ran. Packages kept in 2026.1 but apparently unused (candidates for a Phase 2 cleanup, roadmap at finish): `django-taggit`, `psycopg`, `PyPDF2` (deprecated, successor `pypdf`), `python-dotenv`, `ping3`, `setuptools`; `Werkzeug` is dev-only (`runserver_plus`). DRF bound `<3.15` widened deliberately later. Local images `find_artek:t2`, `find_artek:t2-review`, `find_artek_agent-release-path-webapp-find-artek` can be removed.
