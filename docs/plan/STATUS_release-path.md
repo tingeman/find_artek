@@ -6,9 +6,10 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- Nothing waits on you until the T8 merge.
-- **T8 in progress (2026-11-17)**: fresh-context review of the whole branch (`/code-review high` on `develop/main...agent-release-path`) running; then fix what matters, merge `develop/main` into the agent branch, rerun `tests/run.sh`, and ask you to fast-forward `develop/main`.
-- Then T9 (release 2026.1, you).
+- **T9**: 2026.1 deployed by web_server M5 (2026-11-17). Open in T9: the `[thumbnails]` log line after 02:00 UTC on 2026-11-18 (you), and **4e, `master` (A6), your decision**.
+- **T10 done** on `agent-release-path` (`a9c4261`), **waiting for your OK to fast-forward `develop/main`** (merge `develop/main` into the branch first). 4e analysis: the 2 commits only on `master` (`b152dad` map CRS 3575, `94c1156` prod files and `/find/`) both have equivalents in `2026.1`; `.dev.env` is in `master`'s pushed history (`b152dad`, `3b721b9`), contents not checked: rotate anything real it held.
+- **Next: T11** (2026.2: last Django 4.2.x, gthread workers), implementer, after the T10 merge.
+- Nothing is pushed (your choice): tag `2026.1` and `develop/main` are local only. The deploy didn't need them pushed (bundle from the releases share).
 
 ## Done
 
@@ -32,12 +33,22 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 - T7 2026-11-17: readme sections Development, Dockerfile and pins (table of the four pins), Dependencies (`compile_lock.py` usage), Release (tags, web_server `build_image.sh`, pre-M5 behaviour), Tests; old TODO list kept with a pointer to the roadmap. `ENVIRONMENT_SETUP.md` rewritten (dev, devcontainer, production secrets only in web_server, env variable reference from the code; `DEBUG` in the templates is not read). `LDAP_BIND_USER`/`LDAP_BIND_PASSWORD` (read by settings.py, missing before) added empty to both `*.env.example`. CLAUDE.md: leftovers list without `requirements_OLD.txt`, dependency/pin line. `compose.pins.env` comment corrected (no `--env-file`). `run.sh` 20/20. (`98f6362`)
 
+- T8 2026-11-17: `/code-review high` of the whole branch, 10 findings. Fixed: devcontainer phpMyAdmin was published on 6002 twice (once on 0.0.0.0), now only `127.0.0.1:6002`; thumbnail job holds a `flock` (`/tmp/find_artek_thumbnails.lock`), a second run skips with exit 0 (first production run may be long); log loop keeps a last line without newline; `run.sh` app containers run with `-t` as production (`tty: true`), so the cron redirect to `/proc/1/fd/1` is tested against a pty (passes), plus a lock test; `compile_lock.py` reads the Python version from `FA_PYTHON_IMAGE`; skills `deploy-contract`/`validate` corrected (`FA_MARIADB_IMAGE` required, exit 2; no `NOTE:` lines). Not changed: Django 4.2.0 and the single gunicorn worker vs. the healthcheck (T11, by design for 2026.1); `requirements_OLD.txt` removal in T2 (planned in T2); height check duplicated in the cron wrapper (harmless). Old playbook still builds from `develop/main` after the merge (compose → `Dockerfile` target `prod`). (`3e81612`, merge `ed3357b`)
+
+- T9 (part) 2026-11-17: tag `2026.1` (annotated, local) on `3d8299b`; bundle `webapp_find_artek` (name as web_server's services, not `find_artek` as in PLAN T9) built from the local checkout with web_server's `build_image.sh`: tests passed, `tarball_sha256 061dc954…0fa703`, `image_id sha256:0c1fc2bc…`; published to the releases share, share copy hashed and equal. Deploy waits for web_server M5.
+
+- T9 deploy 2026-11-17 (you, web_server M5, archived there as `docs/archive/*_find-artek_COMPLETE.md`, `0d5b90a`): `webapp_find_artek:2026.1` live; dump, test restore and off-host copy OK, row counts equal; host, site, CAS login and phpMyAdmin tunnel checks pass; cron post-check in the playbook. Upload check deferred to the find_artek release that completes record creation and upload (web_server functional checks). nginx was down after the 16:20 reboot (logrotate, web_server W13), fixed there (`8a355b9`). web_server `main` fast-forwarded to `ecca54b`; old CIFS volumes and `/opt/webapp_find_artek` removed.
+
+- T10 2026-11-17 (implementer instead of simple-task: the docs needed rewriting, not just deleting): `docker-compose.prod.yml` and `.prod.env.example` removed; base `docker-compose.yml` dev-only (no phpMyAdmin 6001; develop file's `ports: !override` now plain `ports:` 127.0.0.1:6002); CLAUDE.md (release by tag, `develop/main` not deployed by itself, env variables into `.dev.env.example` + `ENVIRONMENT_SETUP.md` table), `deploy-contract` and `validate` skills, readme, ENVIRONMENT_SETUP updated to web_server's `compose_find_artek.yml` and `build_image.sh webapp_find_artek`. `config --quiet` ok (dev and devcontainer), dev stack recreated: check, makemigrations, frontpage 200, pma 200 on 127.0.0.1 only; `run.sh --quick` 11/11; no Django tests (A4). Deployment impact: none. Roadmap FA-R34 and quick guide 01 (step 1 now reads the image tag) updated on `develop/main`. (`a9c4261`)
+
 ## Open questions
 
 - `master` reset to the first release tag (FA5, A6): your decision at T9.
 - The prod image no longer has `mariadb-client` or admin tools (`nano`, `mc`, `ping`, ...). No known host procedure uses them inside `webapp-find-artek`; web_server M5 should confirm.
 
 ## Notes for the next session
+
+- **From T8, for T11 / web_server M5:** the `HEALTHCHECK` (front page, 5 s timeout, 3 retries) shares gunicorn's single sync worker, so a long upload can mark the container unhealthy; T11's 2 gthread workers fix that. M5's compose should keep `tty: true` (what `run.sh` now tests) or the cron post-check will show the difference. Local image `find_artek:t8` can be removed.
 
 - **From T5 (still open):** the dev webapp is still published on 0.0.0.0:8098 (not in T5; candidate for the same localhost binding).
 - **From T2:** `compile_lock.py`'s Linux/WSL branch (host uid, uv in `/tmp/uv`) is untested; only the Windows path ran. Packages kept in 2026.1 but apparently unused (candidates for a Phase 2 cleanup, roadmap at finish): `django-taggit`, `psycopg`, `PyPDF2` (deprecated, successor `pypdf`), `python-dotenv`, `ping3`, `setuptools`; `Werkzeug` is dev-only (`runserver_plus`). DRF bound `<3.15` widened deliberately later. Local images `find_artek:t2`, `find_artek:t2-review`, `find_artek_agent-release-path-webapp-find-artek` can be removed.

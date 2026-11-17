@@ -10,7 +10,7 @@ Context: find_artek is a Django 4.2 student-report database (apps `publications`
 
 | Plan | Phase | Branch | Status |
 |---|---|---|---|
-| [PLAN_release-path.md](plan/PLAN_release-path.md) | 1 | `agent-release-path` | draft, questions open |
+| [PLAN_release-path.md](plan/PLAN_release-path.md) | 1 | `agent-release-path` | 2026.1 deployed 2026-11-17; T10 done, waiting for merge; next T11 (2026.2) |
 
 ## Finished plans
 
@@ -96,7 +96,7 @@ Why this order:
 | FA-R31 | Settings structure | `DEBUG = False` hardcoded (safe), secrets from env. Weak points: no fail-fast if `SECRET_KEY` is unset; `ALLOWED_HOSTS` hardcoded with legacy hosts; `MEDIA_ROOT`/`STATIC_ROOT` hardcoded; no `CSRF_TRUSTED_ORIGINS` or HSTS. | `app-main/find_artek/settings.py`. `manage.py check --deploy`. Fail-fast for `SECRET_KEY` is natural in Phase 1 (`tests/run.sh` runs `check --deploy`). |
 | FA-R32 | Credentials in notes | `readme.md` "Other notes" has LDAP snippets with a placeholder password; confirm no real credentials ever lived in git history. | `git log -S` before sharing the repo wider. |
 | FA-R33 | Login stack review | CAS (`django-cas-ng`) plus LDAP (`ldap3`): confirm both are still needed and the CAS URL is current. | `settings.py`. Natural during Phase 3 (both packages must support Django 5.2). |
-| FA-R34 | LDAP on/off as a setting (decided 2026-11-16) | `USE_LDAP = True` is hardcoded, so every environment needs LDAP bind credentials; dev should run with or without LDAP, by preference. Also means dev needs no secret shared with production. | `app-main/find_artek/settings.py:164-170` (login itself is CAS; LDAP is used for user lookups). Read `USE_LDAP` from the env, default `true` (production unchanged, web_server needs no change; it may set it explicitly). Add it to `.prod.env.example` (true) and `.dev.env.example`; every LDAP use skips cleanly when off. Tests for on and off. Deploy-contract skill lists the variable. Phase 2, early (needs the test setup). |
+| FA-R34 | LDAP on/off as a setting (decided 2026-11-16) | `USE_LDAP = True` is hardcoded, so every environment needs LDAP bind credentials; dev should run with or without LDAP, by preference. Also means dev needs no secret shared with production. | `app-main/find_artek/settings.py:164-170` (login itself is CAS; LDAP is used for user lookups). Read `USE_LDAP` from the env, default `true` (production unchanged, web_server needs no change; it may set it explicitly). Add it to `.dev.env.example` and the variable table in `ENVIRONMENT_SETUP.md` (production `true`); every LDAP use skips cleanly when off. Tests for on and off. Deploy-contract skill lists the variable. Phase 2, early (needs the test setup). |
 
 ## 5. Quality and housekeeping
 
