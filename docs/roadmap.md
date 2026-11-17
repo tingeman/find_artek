@@ -10,7 +10,7 @@ Context: find_artek is a Django 4.2 student-report database (apps `publications`
 
 | Plan | Phase | Branch | Status |
 |---|---|---|---|
-| [PLAN_release-path.md](plan/PLAN_release-path.md) | 1 | `agent-release-path` | draft, questions open |
+| [PLAN_release-path.md](plan/PLAN_release-path.md) | 1 | `agent-release-path` | 2026.1 deployed 2026-11-17; next T10, then T11 (2026.2) |
 
 ## Finished plans
 

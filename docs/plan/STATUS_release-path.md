@@ -6,8 +6,9 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **T9 in progress (you)**: 2026.1 tagged, built, tested and published (USER_STEPS 4a–4c). **Next: USER_STEPS 4d, deploy, blocked on web_server M5** (not planned there yet: compose, pins, `release_image` with service `webapp_find_artek`, `releases.yml` entry with the values in USER_STEPS 4b, `ENABLE_CRON=true`). Then 4e, `master` (A6).
-- Nothing is pushed (your choice, security): tag `2026.1` and `develop/main` (`8787544`+) are local only; `origin/develop/main` is still `afd8792`, so the old playbook, if run, still builds production's code. Pushing is your separate decision.
+- **T9**: 2026.1 deployed by web_server M5 (2026-11-17). Open in T9: the `[thumbnails]` log line after 02:00 UTC on 2026-11-18 (you), and **4e, `master` (A6), your decision**.
+- **Next: T10** (remove the production compose here), simple-task, in the worktree on `agent-release-path`. Then T11 (2026.2).
+- Nothing is pushed (your choice): tag `2026.1` and `develop/main` are local only. The deploy didn't need them pushed (bundle from the releases share).
 
 ## Done
 
@@ -34,6 +35,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T8 2026-11-17: `/code-review high` of the whole branch, 10 findings. Fixed: devcontainer phpMyAdmin was published on 6002 twice (once on 0.0.0.0), now only `127.0.0.1:6002`; thumbnail job holds a `flock` (`/tmp/find_artek_thumbnails.lock`), a second run skips with exit 0 (first production run may be long); log loop keeps a last line without newline; `run.sh` app containers run with `-t` as production (`tty: true`), so the cron redirect to `/proc/1/fd/1` is tested against a pty (passes), plus a lock test; `compile_lock.py` reads the Python version from `FA_PYTHON_IMAGE`; skills `deploy-contract`/`validate` corrected (`FA_MARIADB_IMAGE` required, exit 2; no `NOTE:` lines). Not changed: Django 4.2.0 and the single gunicorn worker vs. the healthcheck (T11, by design for 2026.1); `requirements_OLD.txt` removal in T2 (planned in T2); height check duplicated in the cron wrapper (harmless). Old playbook still builds from `develop/main` after the merge (compose → `Dockerfile` target `prod`). (`3e81612`, merge `ed3357b`)
 
 - T9 (part) 2026-11-17: tag `2026.1` (annotated, local) on `3d8299b`; bundle `webapp_find_artek` (name as web_server's services, not `find_artek` as in PLAN T9) built from the local checkout with web_server's `build_image.sh`: tests passed, `tarball_sha256 061dc954…0fa703`, `image_id sha256:0c1fc2bc…`; published to the releases share, share copy hashed and equal. Deploy waits for web_server M5.
+
+- T9 deploy 2026-11-17 (you, web_server M5, archived there as `docs/archive/*_find-artek_COMPLETE.md`, `0d5b90a`): `webapp_find_artek:2026.1` live; dump, test restore and off-host copy OK, row counts equal; host, site, CAS login and phpMyAdmin tunnel checks pass; cron post-check in the playbook. Upload check deferred to the find_artek release that completes record creation and upload (web_server functional checks). nginx was down after the 16:20 reboot (logrotate, web_server W13), fixed there (`8a355b9`). web_server `main` fast-forwarded to `ecca54b`; old CIFS volumes and `/opt/webapp_find_artek` removed.
 
 ## Open questions
 

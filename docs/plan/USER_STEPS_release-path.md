@@ -112,7 +112,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.1.tar.gz"   # = tarb
 
 #### 4d. Deploy through web_server M5
 
-- [ ] Done
+- [x] Done 2026-11-17 through web_server M5. The steps actually run, with their results, are in web_server `docs/archive/USER_STEPS_find-artek_COMPLETE.md` and `STATUS_find-artek_COMPLETE.md`; the commands below were the draft before M5 was planned. Still open: the `[thumbnails]` line after 02:00 UTC on 2026-11-18. The upload check is deferred to a later find_artek release.
 
 **Blocked until web_server M5 is implemented.** web_server has no M5 plan yet: `playbook_install_webapp_find_artek.yml` still clones `develop/main` and builds on the host, there is no `docker/compose_find_artek.yml`, and `ansible/vars/releases.yml` has no `webapp_find_artek` entry. M5 (planned in web_server, not here) brings: the compose and pins (FA1, FA4), ports (FA2), FA3, `ENABLE_CRON=true` in `webapp_find_artek.env`, the `release_image` step with `release_image_service: webapp_find_artek`, and the `releases.yml` entry with `version: "2026.1"` and `tarball_sha256` from the manifest of 4b.
 
