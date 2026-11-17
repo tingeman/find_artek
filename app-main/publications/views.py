@@ -1682,7 +1682,17 @@ class UploadAppendixView(BaseView):
     a secondary upload scheme with chunked uploads or direct storage.
     """
     template_name = 'publications/upload_appendix.html'
-    
+
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        """Only users who may edit the publication can see or use the upload page (FA-R52)."""
+        publication = get_object_or_404(Publication, id=kwargs['pk'])
+        if not publication.is_editable_by(request.user):
+            context = BaseView.get_context_data(self)
+            context['error'] = "You do not have permissions to edit this publication!"
+            return render(request, 'publications/access_denied.html', context, status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         publication_id = self.kwargs['pk']
