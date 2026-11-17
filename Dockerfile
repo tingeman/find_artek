@@ -160,4 +160,6 @@ FROM runtime AS prod
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8099/publications/frontpage/"]
 # Start Gunicorn to serve the Django app
-CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-"]
+# 2 worker processes x 2 threads (gthread); timeout 120 s for slow requests such as large uploads
+# (nginx proxy_read_timeout on /find/ must be at least as long).
+CMD ["gunicorn", "--bind", "0.0.0.0:8099", "find_artek.wsgi:application", "--workers", "2", "--threads", "2", "--worker-class", "gthread", "--timeout", "120", "--log-level", "info", "--access-logfile", "-", "--error-logfile", "-"]

@@ -7,8 +7,9 @@
 # those the code does not import (marked "not imported"), so the installed set is unchanged.
 
 Django>=4.2,<4.3
-# Held at 3.14 as before (was ==3.14.0). 3.15+ also supports Django 4.2: widen deliberately.
-djangorestframework>=3.14.0,<3.15
+# 3.14 does not list Django 4.2 as supported; 3.15 is the first that does (release 2026.2).
+# Held below 3.16 until the Django 5.2 upgrade (Phase 3).
+djangorestframework>=3.14.0,<3.16
 drf-yasg>=1.21.10,<2
 django-cas-ng>=5.0.1,<6
 django-extensions>=4.1,<5

@@ -74,6 +74,18 @@ versions. Rebuild and run `tests/run.sh` afterwards.
   with its `docker/compose_find_artek.yml`. `develop/main` itself never goes live.
 - Before tagging, run the image tests locally (below).
 
+## Release notes
+
+- **2026.2**: Django 4.2 → 4.2.30 (the final 4.2 patch; 4.2 LTS is end-of-life),
+  djangorestframework 3.14.0 → 3.15.2 (the first version that supports Django 4.2; bound
+  widened to `<3.16`). The appendix upload form uses a multi-file field (Django 4.2.1+ rejects
+  `multiple` on `ClearableFileInput`, CVE-2023-31047). gunicorn runs 2 `gthread` workers × 2 threads with a 120 s timeout
+  and log level `info` (was 1 sync worker, 30 s, `debug`). Production nginx needs
+  `proxy_read_timeout` (and `proxy_send_timeout`) of at least 120 s on `/find/`, a change in
+  dtu_sus_web_server.
+- **2026.1**: the code and package versions production ran on 2026-11-16 (Django 4.2.0),
+  first release built by `build_image.sh`.
+
 ## Tests
 
 `tests/run.sh` tests a built image. From the repository root (Git Bash on Windows, WSL or Linux, with Docker):
