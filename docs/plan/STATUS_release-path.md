@@ -6,10 +6,9 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and the PLAN, then `git -C ..\find_artek_agent-release-path log --oneline -8`; code work happens only in that worktree, planning docs only here).
 
-- **You, first:** open [USER_STEPS_release-path.md](USER_STEPS_release-path.md) (next to this file) and do steps 1–3. Paste the output of step 2 into the session.
-- Next for the orchestrator, after your step 2: T2 (lock), T5 (pins), base-image decision (bookworm/trixie), then **T7** (docs). T6 already added the readme "Tests" section and updated CLAUDE.md and the skills; what's left (README sections Dependencies and Release, `ENVIRONMENT_SETUP.md`) depends partly on T2, so T7 is best done after T2/T5. Nothing else is unblocked: everything left waits on T0.
-- Blocked on T0: T2 (lock from production's `pip freeze`), T5 (MariaDB/phpMyAdmin digests), and possibly a base-image switch to trixie (T3 note).
-- Then T7 (docs), T8 (review, merge with your permission), T9 (release, you).
+- Nothing waits on you until the T8 merge.
+- **T8 in progress (2026-11-17)**: fresh-context review of the whole branch (`/code-review high` on `develop/main...agent-release-path`) running; then fix what matters, merge `develop/main` into the agent branch, rerun `tests/run.sh`, and ask you to fast-forward `develop/main`.
+- Then T9 (release 2026.1, you).
 
 ## Done
 
@@ -21,14 +20,27 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T6 2026-11-16: `tests/run.sh` (nuki interface): 10 image checks + 9 smoke tests against a throwaway MariaDB (production settings, `migrate --skip-checks` for FA-R14, health, frontpage 200, cron job as cron runs it, no secrets in logs) + Django step with `DJANGO_TEST_LABELS` (empty → SKIP, Phase 2 fills it). 19/19 pass in ~40–55 s; fails visibly on the dev stage (7 failures); cleanup verified incl. interrupt. Test DB falls back to `mariadb:11.2` until T5 adds `FA_MARIADB_IMAGE`.
 - 2026-11-16: decisions: LDAP on/off becomes a setting `USE_LDAP` (roadmap **FA-R34**, Phase 2, not in 2026.1); production secrets only from web_server's encrypted archive, this repo keeps only `*.env.example` (added to T10's acceptance); `.dev.env` stays local with no production credentials.
 
+- T0 2026-11-16: host baseline in [BASELINE_release-path.md](BASELINE_release-path.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today. Image IDs confirmed: the recorded digests are what runs.
+- Decision 2026-11-16: **cron on from 2026.1**: web_server sets `ENABLE_CRON=true` in production with the M5 deploy (`.prod.env.example` already says `true`). The first night's run catches up on thumbnails missing since cron stopped. Hand-off to web_server M5 together with the cron post-check (notes below).
+- USER_STEPS 1 2026-11-16: guide 01 open points settled (scp via home dir, dumps in `00_assets\find_artek_db_dumps`, dev user `mariadb`, media not synced, CAS first then local password, production uses `MYSQL_*`). `init.sql`'s hard-coded user → roadmap FA-R45.
+- USER_STEPS 3 2026-11-16: dev DB restored from production (guide 01, run from the `agent-release-path` worktree): row counts match (494 publications, 930 persons, 1753 features, 3 users, 23 migrations), pages load, CAS login works on localhost. Volume `find-artek-mariadb-dev` now exists. `find_artek_DEVELOP` currently fails to build/start (`NameError: List` in your uncommitted `utils_person.py`).
+
+- FA3 check 2026-11-17 (host, read-only): `$MARIADB_ROOT_PASSWORD` is empty in `fa-mariadb-service` (`Access denied ... using password: NO`), `$MYSQL_ROOT_PASSWORD` works (`SELECT 1` → `1`). **Hand-off to web_server:** its FA3 restore command must use `${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}` (or `MYSQL_ROOT_PASSWORD`).
+
+- T2 + A1 2026-11-17: base `python:3.12.11-slim-bookworm@sha256:519591d6…` (Debian 12.12 in the image, host 12.11; apt not pinned); `requirements.in` (22 direct deps, bounds production..next major, DRF `<3.15`, `setuptools` explicit since 3.12 venvs lack it), hash-locked `requirements.txt` (43 pins) and empty `requirements-dev.txt` via `scripts/compile_lock.py` (uv `FA_UV_VERSION=0.8.22`); install `--require-hashes --no-deps`; `requirements_OLD.txt` removed. Image `pip freeze` identical to production's, `pip check` ok, `tests/run.sh` 19/19 (rerun in review). Dev stack not brought up from the worktree (same container names as the main checkout); check/makemigrations covered by `run.sh` with production settings. (`2f4ad43`)
+- T5 2026-11-17: `FA_MARIADB_IMAGE` and `FA_PHPMYADMIN_IMAGE` in `compose.pins.env` (production digests from the baseline); written out in `docker-compose.develop.yml` (plain `DC` command and the devcontainer need no `--env-file`), `tests/run.sh` checks they match (new test, fails visibly on a mismatch) and now requires `FA_MARIADB_IMAGE`. phpMyAdmin dev only on `127.0.0.1:6002` (`ports: !override`; before, the base file's 6001 was also published on 0.0.0.0). Base `docker-compose.yml` left unchanged (production uses it until T10). Dev stack recreated on the existing volume: check, makemigrations, frontpage 200, pma 200; `run.sh` 20/20. (`7a865c9`)
+
+- T7 2026-11-17: readme sections Development, Dockerfile and pins (table of the four pins), Dependencies (`compile_lock.py` usage), Release (tags, web_server `build_image.sh`, pre-M5 behaviour), Tests; old TODO list kept with a pointer to the roadmap. `ENVIRONMENT_SETUP.md` rewritten (dev, devcontainer, production secrets only in web_server, env variable reference from the code; `DEBUG` in the templates is not read). `LDAP_BIND_USER`/`LDAP_BIND_PASSWORD` (read by settings.py, missing before) added empty to both `*.env.example`. CLAUDE.md: leftovers list without `requirements_OLD.txt`, dependency/pin line. `compose.pins.env` comment corrected (no `--env-file`). `run.sh` 20/20. (`98f6362`)
+
 ## Open questions
 
-- Is cron/thumbnail generation actually working in production? Code reading says no (T0 confirms).
 - `master` reset to the first release tag (FA5, A6): your decision at T9.
-- Base image: provisional `python:3.12.16-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df` (latest 3.12 on bookworm, 2026-11-16). T0 (`python -V`, `/etc/debian_version`) decides whether production's exact patch or Debian release differs (A1). Note: the floating `python:3.12-slim` is trixie (Debian 13, Python 3.12.15) today, so if production was built recently it is trixie too; then switch to a `-slim-trixie` digest (GDAL version follows the Debian release).
 - The prod image no longer has `mariadb-client` or admin tools (`nano`, `mc`, `ping`, ...). No known host procedure uses them inside `webapp-find-artek`; web_server M5 should confirm.
 
 ## Notes for the next session
+
+- **From T5 (still open):** the dev webapp is still published on 0.0.0.0:8098 (not in T5; candidate for the same localhost binding).
+- **From T2:** `compile_lock.py`'s Linux/WSL branch (host uid, uv in `/tmp/uv`) is untested; only the Windows path ran. Packages kept in 2026.1 but apparently unused (candidates for a Phase 2 cleanup, roadmap at finish): `django-taggit`, `psycopg`, `PyPDF2` (deprecated, successor `pypdf`), `python-dotenv`, `ping3`, `setuptools`; `Werkzeug` is dev-only (`runserver_plus`). DRF bound `<3.15` widened deliberately later. Local images `find_artek:t2`, `find_artek:t2-review`, `find_artek_agent-release-path-webapp-find-artek` can be removed.
 
 - **Baseline findings (T1):**
   - `api/views.py:33-46` queries `Topic` at import time (Swagger description), so `check`, `migrate` and the test runner fail on an empty database: a fresh install can't be migrated without `--skip-checks`, and the API docs' topic list is frozen at process start. Not fixed in 2026.1 (no code changes); `tests/run.sh` migrates with `--skip-checks` first. Roadmap FA-R14.
@@ -38,7 +50,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
   `docker exec webapp-find-artek sh -c 'found=; for c in /proc/[0-9]*/comm; do read -r n < "$c" 2>/dev/null && [ "$n" = cron ] && found=1; done; f=/etc/cron.d/find_artek_thumbnails; [ -n "$found" ] && [ "$(stat -c %U:%a "$f")" = root:644 ] && grep -Eq "^[^#].* dockeruser /usr/local/bin/generate_thumbnails_cron.sh" "$f" && [ -r /proc/1/environ ] && [ -w /proc/1/fd/1 ] && echo "ok cron" || { echo "FAIL cron"; exit 1; }'`.
   Functional check: `docker logs webapp-find-artek 2>&1 | grep '\[thumbnails\]' | tail -n 3` (after 02:00 UTC), or a pass now: `docker exec webapp-find-artek generate_thumbnails_cron.sh`. Only tested on Docker Desktop; the post-check covers AppArmor on the host (`/proc/1/environ`, `/proc/1/fd/1`).
 - **For web_server (T6):** the release must be built with web_server's `build_image.sh` (it allows `*.pins.env`; data02's older copy rejects every `*.env`, so `compose.pins.env` would be refused). The gate needs the docker CLI and permission to create an `--internal` network; ~1 min.
-- The image resolves `django==4.2` to **4.2.0** exactly (T6 import check). If T0 shows the same in production, 2026.2 (T11) moves to the last 4.2.x.
+- The image resolves `django==4.2` to **4.2.0** exactly (T6 import check), same as production (T0); 2026.2 (T11) moves to the last 4.2.x.
+- Base image: T3 used provisional `python:3.12.16-slim-bookworm@sha256:935c3c5b…`. T0 says production runs 3.12.11 on bookworm; per A1 switch `FA_PYTHON_IMAGE` to `python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7` (rerun `tests/run.sh`). 3.12.16 has the later security fixes; moving to it is a candidate for 2026.2.
 - Phase 2 note: production settings put `MEDIA_ROOT` at `/mnt/shared-project-data/media` (not in the image); tests that write files need `override_settings(MEDIA_ROOT=<tmp>)`. Production settings log Django to `/app/debug.log`, not the console.
 - Pre-existing, not fixed: `.devcontainer/devcontainer.json` and `.devcontainer/up.sh` refer to `/usr/src/venv` and `/usr/src/project`, which exist in no image (FA-R41).
 - Baseline script (scratchpad, not in the repo): migrate, check, makemigrations, test against `mariadb:11.2` on an internal network with generated credentials. T6 turns this into `tests/run.sh`.
