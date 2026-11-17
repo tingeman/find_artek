@@ -66,6 +66,18 @@ def remove_tags(s):
     """Removes all [xx:xx] tags in a string and strips any whitespace from both ends of the string."""
     return re.sub(re_tag, "", s).strip()
 
+def get_emails(s):
+    """Extract all email addresses from a string."""
+    # Regex to match email addresses
+    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    return re.findall(email_pattern, s)
+
+def remove_emails(s):
+    """Remove email addresses from a string."""
+    # Regex to match email addresses
+    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    return re.sub(email_pattern, '', s).strip()
+
 def dk_unidecode(string):
     """use unidecode, but first exchange æÆ, øØ and åÅ with ae, oe and aa"""
     kwargs = {'æ': 'ae', 'Æ': 'Ae', 'ø': 'oe', 'Ø': 'Oe', 'å': 'aa', 'Å': 'Aa'}
