@@ -7,7 +7,7 @@ description: What dtu_sus_web_server relies on in find_artek (port, URL prefix, 
 
 find_artek is deployed by `C:\thin\02_Code\docker_projects\dtu_sus_web_server` (read only). Any change to an item below needs a matching change there. Flag it in the plan ("Deployment impact") and in the report. Never edit that repository yourself.
 
-Sources there: `docs/roadmap.md` (M5, FA1–FA5, "Functional checks per service"), `docs/deploy/infrastructure.md`, `docker/services/nginx/nginx.conf` (`location /find/`), `ansible/playbook_install_webapp_find_artek.yml`, `docs/deploy/secrets.md`.
+Sources there: `docker/compose_find_artek.yml` (the production stack), `ansible/playbook_install_webapp_find_artek.yml` and `ansible/tasks/find_artek_*.yml` (deploy, migrate, collectstatic, checks), `ansible/vars/releases.yml` (key `webapp_find_artek`), `docker/services/nginx/nginx.conf` (`location /find/`), `docs/deploy/secrets.md`, `docs/deploy/infrastructure.md`, `docs/roadmap.md` (M5, FA1–FA5, "Functional checks per service").
 
 ## What the deployment relies on
 
@@ -15,22 +15,22 @@ Sources there: `docs/roadmap.md` (M5, FA1–FA5, "Functional checks per service"
 |---|---|---|
 | URL prefix `/find/` | `FORCE_SCRIPT_NAME = '/find'`, `STATIC_URL`, `MEDIA_URL` in `app-main/find_artek/settings.py` | nginx `location /find/` (prefix stripped), `/find/static/`, `/find/media/` |
 | Container port `8099`, gunicorn `find_artek.wsgi:application` | `Dockerfile` stage `prod`, CMD | nginx upstream `webapp-find-artek:8099` |
-| Container name `webapp-find-artek`, services `find-artek-mariadb-service` (container `fa-mariadb-service`) and `find-artek-phpmyadmin-service` | `docker-compose.prod.yml`, `docker-compose.yml`; `MYSQL_HOST` | nginx, the playbook, USER_STEPS commands |
-| Paths `/mnt/shared-project-data/staticfiles` and `/media` | `STATIC_ROOT`, `MEDIA_ROOT`; compose volumes | the share mounted on the host, served by nginx directly |
-| App user `dockeruser`, uid/gid 30000 | `Dockerfile` (stage `runtime`) | ownership of media on the share (`uid=30000` in the CIFS options) |
-| Env variable names (`SECRET_KEY`, `MYSQL_*`, `LDAP_*`, `ENABLE_CRON`, `THUMBNAIL_HEIGHT`, `NETWORK_DRIVE_*`, ...) | `settings.py`, compose, `.prod.env.example` | `webapp_find_artek.env` in web_server's secrets archive |
+| Container name `webapp-find-artek`, services `find-artek-mariadb-service` (container `fa-mariadb-service`) and `find-artek-phpmyadmin-service` | `docker-compose.yml` (dev); `MYSQL_HOST` | web_server's `docker/compose_find_artek.yml` (project `find_artek`), nginx, the playbook, USER_STEPS commands |
+| Paths `/mnt/shared-project-data/staticfiles` and `/media` | `STATIC_ROOT`, `MEDIA_ROOT`; compose volumes | bind mounts of the host's CIFS mount in web_server's compose, served by nginx directly |
+| App user `dockeruser`, uid/gid 30000 | `Dockerfile` (stage `runtime`) | ownership of static and media on the share (the host mounts it as uid/gid 30000) |
+| Env variable names (`SECRET_KEY`, `MYSQL_*`, `LDAP_*`, `ENABLE_CRON`, `THUMBNAIL_HEIGHT`, ...) | `settings.py`, compose, `.dev.env.example`, the table in `ENVIRONMENT_SETUP.md` | `webapp_find_artek.env` in web_server's secrets archive; `MYSQL_HOST` and `ENABLE_CRON: "true"` set in its compose |
 | Entrypoint and cron (thumbnails at 02:00 when `ENABLE_CRON=true`; job `/etc/cron.d/find_artek_thumbnails` as `dockeruser`, output in `docker logs` with `[thumbnails]`) | `scripts/docker-entrypoint.sh`, `docker/cron/find_artek_thumbnails`, `scripts/generate_thumbnails_cron.sh` | functional check "cron", M5 cron post-check |
-| `collectstatic` | run by `playbook_find_artek_collectstatic.yml` | static files on the share |
+| `migrate`, `collectstatic` | `manage.py` in the image | one-off containers of the release image run by the playbook (`ansible/tasks/find_artek_migrate.yml`) |
 | Upload size up to 300 MB | views and forms; gunicorn timeout (FA-R20) | nginx `client_max_body_size 300M` |
-| Live data volume `find-artek-mariadb-prod` | `docker-compose.prod.yml` | M5: `external: true` under the same name, never renamed |
+| Live data volume `find-artek-mariadb-prod` | not here | web_server's compose, `external: true`, never renamed |
 
-Planned changes already decided there (don't fight them; align with them): the production compose moves to web_server as `docker/compose_find_artek.yml` (FA1), host port 8099 is dropped and phpMyAdmin bound to `127.0.0.1:6001` (FA2, FA-R23), `init.sql` and the fixture playbook go away (FA1, FA3), and MariaDB, phpMyAdmin and later the Python base image are pinned by digest (FA4, FA-R21).
+In place there since M5 (2026-11-17; don't fight it): the production compose is web_server's `docker/compose_find_artek.yml` (FA1), with no published port 8099 (nginx only) and phpMyAdmin on `127.0.0.1:6001` (SSH tunnel; FA2, FA-R23) with its own copy of `phpmyadmin-misc.ini`; no `init.sql` (FA1, FA3); MariaDB and phpMyAdmin pinned by digest in its `pins.env` (`PIN_FA_MARIADB`, `PIN_FA_PHPMYADMIN`; FA4). The Python base image is pinned here (`FA_PYTHON_IMAGE`, FA-R21).
 
 ## Releases (FA5, from M5 on)
 
-- **Today:** the playbook clones `develop/main` and builds on the host. Every merge into `develop/main` goes live on the next deploy.
-- **After M5:** releases are year-based tags on `develop/main` (`2026.1`, `2026.2`, fixes `2026.1.1`). A tag is never moved. I set tags. web_server builds the image with `scripts/build_image.sh find_artek <git URL> <tag>`, which runs `bash tests/run.sh <image>` from the tagged source and publishes nothing unless it exits 0. `master` is fast-forwarded to the deployed tag afterwards.
-- The release image is built with a plain `docker build` of the repository root. The `Dockerfile` is multi-stage; the production stage `prod` must stay the last one (as in nuki). `docker-compose.prod.yml` builds `target: prod`.
+- Releases are year-based tags on `develop/main` (`2026.1`, `2026.2`, fixes `2026.1.1`). A tag is never moved. I set tags. Only a released tag goes live; `develop/main` itself is never deployed.
+- web_server builds the image with `scripts/build_image.sh webapp_find_artek <git URL or local checkout> <tag>`, which runs `bash tests/run.sh <image>` from the tagged source and publishes nothing unless it exits 0. The playbook deploys the version in `ansible/vars/releases.yml` (key `webapp_find_artek`). `master` is fast-forwarded to the deployed tag afterwards.
+- The release image is built with a plain `docker build` of the repository root. The `Dockerfile` is multi-stage; the production stage `prod` must stay the last one (as in nuki).
 
 ## `tests/run.sh` (the release gate, FA5)
 

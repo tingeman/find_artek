@@ -1,17 +1,17 @@
-# Base Docker Compose file
-# Defines the abstract services and their relationships.
-# Environment-specific details are provided in override files.
+# Base Docker Compose file (development only)
+# Defines the abstract services and their relationships; docker-compose.develop.yml and
+# .devcontainer/docker-compose.yml add the details. Production does not use these files: it runs
+# dtu_sus_web_server's docker/compose_find_artek.yml with the release image.
 
 services:
   webapp-find-artek:
     restart: always
     build:
       context: .
-      # Dockerfile and build target (dev/prod) are specified in override files
+      # Dockerfile and build target are specified in the override file
     # env_file is specified in override files to use correct .env file
     volumes:
-      # Abstract volumes for static and media files.
-      # The 'ro' flag ensures staticfiles are read-only for the app.
+      # Abstract volumes for static and media files (bind mounts defined in the override file).
       - staticfiles_data:/mnt/shared-project-data/staticfiles:rw
       - media_data:/mnt/shared-project-data/media:rw
     networks:
@@ -32,8 +32,7 @@ services:
   find-artek-phpmyadmin-service:
     restart: always
     image: phpmyadmin/phpmyadmin:latest
-    ports:
-      - "6001:80" # Default for prod, can be overridden
+    # Port is published in the override file (127.0.0.1 only)
     # env_file is specified in override files to use correct .env file
     environment:
       PMA_HOST: find-artek-mariadb-service
@@ -48,9 +47,8 @@ volumes:
   media_data:
     # Driver and options are defined in override files
   find-artek-mariadb-data:
-    # For production, this will be a managed volume.
-    # For development, it can be external to reuse data.
+    # External in the override file (the dev database volume)
 
 networks:
   docker_default:
-    # Let Docker Compose manage this network in dev and base. Only external in production.
+    # Managed by Docker Compose

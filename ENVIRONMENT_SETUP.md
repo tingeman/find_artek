@@ -37,8 +37,10 @@ paths that exist in no image; roadmap FA-R41.)
 
 Production is deployed only from the repository `dtu_sus_web_server`. Its secrets live in
 web_server's encrypted secrets archive (`webapp_find_artek.env`); this repository keeps only
-the templates. Don't create a `.prod.env` here. `.prod.env.example` lists the variable names
-web_server must provide; new variables go into both templates and are reported to web_server.
+the dev template. Don't create a `.prod.env` here. Production runs web_server's
+`docker/compose_find_artek.yml` with the release image. The table below lists the variables
+web_server must provide; new variables go into it and into `.dev.env.example`, and are reported
+to web_server.
 
 ## Environment variables
 
@@ -47,7 +49,7 @@ Read by the app (`app-main/find_artek/settings.py`):
 | Variable | Meaning |
 |---|---|
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | Database name and app user (the MariaDB container also creates them from these) |
-| `MYSQL_HOST` | Database host; set by the compose files to `find-artek-mariadb-service` |
+| `MYSQL_HOST` | Database host; set by the compose files (here and in web_server) to `find-artek-mariadb-service` |
 | `SECRET_KEY` | Django secret key (50+ random characters) |
 | `LDAP_BIND_USER`, `LDAP_BIND_PASSWORD` | Read-only AD account for LDAP lookups (`ldaps://win.dtu.dk`) |
 
@@ -57,11 +59,8 @@ Read by the container scripts (`scripts/docker-entrypoint.sh`, `scripts/generate
 
 | Variable | Meaning |
 |---|---|
-| `ENABLE_CRON` | Starts the thumbnail cron job (02:00) only for the exact value `true`; dev `false` |
+| `ENABLE_CRON` | Starts the thumbnail cron job (02:00) only for the exact value `true`; dev `false`, production `true` (set by web_server's compose) |
 | `THUMBNAIL_HEIGHT` | Height of generated thumbnails in pixels (default 400) |
-
-Used by `docker-compose.prod.yml` to mount the share (CIFS) until web_server's M5 takes over:
-`NETWORK_DRIVE_HOST`, `NETWORK_DRIVE_SHARE`, `NETWORK_DRIVE_USER`, `NETWORK_DRIVE_PASSWORD`.
 
 `DEBUG` in the templates is not read: `settings.py` sets `DEBUG = False`,
 `development_settings.py` sets `DEBUG = True`.

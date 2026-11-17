@@ -31,8 +31,8 @@ services:
     image: phpmyadmin/phpmyadmin@sha256:67ba2550fd004399ab0b95b64021a88ea544011e566a9a1995180a3decb6410d
     env_file:
       - .dev.env
-    # !override drops the base file's 6001 (otherwise both ports are published); localhost only
-    ports: !override
+    # Localhost only
+    ports:
       - "127.0.0.1:6002:80"
     environment:
       PMA_HOST: find-artek-mariadb-service
