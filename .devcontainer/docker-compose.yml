@@ -23,9 +23,8 @@ services:
 
   find-artek-phpmyadmin-service:
     container_name: fa-phpmyadmin-service-devcon
-    # Override port to avoid conflicts
-    ports:
-      - "6002:80"
+    # Port: 127.0.0.1:6002 from docker-compose.develop.yml (no entry here: compose would add
+    # it to that one and publish 6002 twice, once on all interfaces)
   
 
   

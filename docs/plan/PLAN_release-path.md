@@ -127,7 +127,7 @@ Counterpart: dtu_sus_web_server milestone **M5** (decisions FA1–FA5). That rep
 
 ### T9. Release 2026.1 (you)
 
-- Tag `2026.1` on `develop/main` (after T8). In web_server (WSL): `scripts/build_image.sh find_artek https://github.com/tingeman/find_artek.git 2026.1`, publish the bundle, then the web: M5 plan deploys it with its functional checks. Decide on `master` (A6).
+- Tag `2026.1` on `develop/main` (after T8). In web_server (WSL): `scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP 2026.1` (local checkout, nothing pushed; name as web_server's services, changed 2026-11-17), publish the bundle, then the web: M5 plan deploys it with its functional checks. Decide on `master` (A6).
 - Agent: you (deploy steps belong to web_server's M5 USER_STEPS).
 
 ### T10. Remove the production compose here (after M5 is deployed)

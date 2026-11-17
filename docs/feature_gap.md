@@ -125,7 +125,23 @@ Superuser only. For one person the page listed the candidates from the exact and
 
 ### 4.4 Roles (`old: publications/signals.py`, `settings.py:210-260`)
 
-Login was LDAP (`django-auth-ldap`). After each login a signal handler put the user into Django groups according to AD group membership: every DTU user got `LDAP_authenticated_user` (edit own publications), members of `BYG-CArtek1_staff` or the course's teacher group got `ARTEK_staff` and `is_staff`, students of course 11427 got `ARTEK_student`, and `BYG-CArtek1_superusers` got `is_superuser`. The permissions themselves were attached to the groups in the admin. The handler was commented out in December 2024 when LDAP login stopped working.
+Login was LDAP (`django-auth-ldap`). After each login a signal handler put the user into Django groups according to AD group membership: every DTU user got `LDAP_authenticated_user` (edit own publications), members of `BYG-CArtek1_staff` or the course's teacher group got `ARTEK_staff` and `is_staff`, students of course 11427 got `ARTEK_student`, and `BYG-CArtek1_superusers` got `is_superuser`. The permissions themselves were attached to the groups in the admin. The handler is commented out in the code (marked 2024-12-10).
+
+What the groups could do, read from the old database (`find_artek.sqlite` and the backup of 2025-07-20, tables `auth_group*`; identical in both):
+
+| Django group | Who (AD group) | Members | Permissions |
+|---|---|---|---|
+| `LDAP_authenticated_user` | every DTU user who logged in | 34 | `edit_own_publication`, `add_person`, `edit_own_person`, `add_feature`, `edit_own_feature`, `delete_own_feature` |
+| `ARTEK_student` | `11427_Students`, `BYG-CArtek1_11427` | 55 | as above, plus **`add_publication`** and `delete_own_publication` |
+| `ARTEK_staff` (also `is_staff`) | `BYG-CArtek1_staff`, `11427_Teachers` | 9 | the same permissions as `ARTEK_student` |
+| superusers | `BYG-CArtek1_superusers`, or the flag set by hand | 8 users | everything, including `change_publication` and `verify_publication` |
+
+So, checked against the owner's recollection (2026-11-17):
+
+- "Any DTU user could edit a report they author or supervise": **yes**. `edit_own_publication` was given to every logged-in DTU user. "Own" means: the username equals the study number (`id_number`) or the initials of a person registered as author, supervisor or editor of the report (`old: publications/models.py`, `Person.is_related_to_user`, `Publication.is_editable_by`).
+- "Students could not create new reports": **not what the database says**. Students of the course (`ARTEK_student`) had `add_publication`, exactly like staff. A DTU student outside the course could not. Whether that was intended or just how the group was set up is not visible in the code.
+- Nobody but superusers had `change_publication` (edit any report) or `verify_publication`. Staff had no more rights than course students, apart from access to the admin site.
+- Only the report views checked these permissions consistently; `add_person` and `add_feature` were checked in their views as well.
 
 ### 4.5 Features from Excel (`old: import_from_file.py:361-679`, `views.py:1447-1641`)
 
@@ -164,7 +180,22 @@ Not decisions; input for the plans.
 - **PDF upload in production.** Check the cause before redesigning: one gunicorn sync worker with a 30 s timeout (FA-R20, changed in Phase 1) and write permission of uid 30000 on `media/temp/` on the CIFS share are the two likely ones.
 - **Tests with small fixture files** (a three-row `.xlsx`, a one-page PDF) for the form, the import and the permissions. They double as Phase 2 characterization tests.
 
+### 6.1 Roles as in the old version (proposal for FA-R54)
+
+The old scheme can be rebuilt on the new login, and most parts are already there:
+
+- **The permission model is unchanged.** `edit_own_publication`, `delete_own_publication`, `verify_publication` and the `is_editable_by` / `is_related_to_user` methods were ported (`new: publications/models.py`); they only need the field-name fix (S4) and to be called by the views (FA-R53).
+- **"Own" still works with CAS**, provided the CAS username is the DTU study number or initials, as the LDAP username was. To be confirmed in the dev stack with one student and one staff login.
+- **Groups by data migration:** `dtu_user`, `artek_student`, `artek_staff` with the permissions of the table in 4.4. The migration only adds rows to the auth tables.
+- **Membership at login:** a handler on django-cas-ng's login signal looks up the user's AD groups (`memberOf`, including nested groups as the old code did) with the existing ldap3 bind account, then adds or removes the three Django groups. Every authenticated user gets `dtu_user`. The AD group names are settings (with env variables), not code, because the old ones are tied to course 11427.
+- **Failure behaviour:** if LDAP is switched off (FA-R34) or does not answer, the user keeps the groups from the last login and gets `dtu_user`; nothing is granted on a failed lookup. Groups can always be set by hand in the admin.
+- **Suggested differences from the old version:** superuser status stays manual (an AD group that grants full rights on a public host is a larger risk than it saves work); and a fourth group `artek_editor` with `change_publication` and `verify_publication`, so that verifying reports does not need a superuser.
+
+**Decided 2026-11-17** (details in the roadmap under FA-R54): groups `dtu_user`, `artek_staff` and `artek_editor`; no student group, since the course no longer exists; the AD groups have to be set up by IT first, and until then membership is set by hand in the admin.
+
 ## 7. Effect on the roadmap order
+
+**Decided 2026-11-17:** Batch A moves forward (phase 1b in the roadmap), and FA-R52 is fixed on `agent-fixes`, outside release `2026.1`. The text below is the reasoning behind the proposal.
 
 The roadmap puts feature parity last (Phase 4: after the release path, test coverage and the Django 5.2 upgrade), so that features are written once, on the new version, with tests. Your priority (registering reports now) conflicts with that order. A middle way:
 

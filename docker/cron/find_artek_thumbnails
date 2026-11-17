@@ -1,0 +1,18 @@
+# /etc/cron.d/find_artek_thumbnails: nightly thumbnail generation for find_artek.
+#
+# Installed into the image at build time (Dockerfile, stage runtime): owner root, mode 0644.
+# Only active when the entrypoint starts the cron daemon (ENABLE_CRON=true). The daemon runs
+# as root (started through sudo) and runs the job as dockeruser (the user field below).
+#
+# The job gets cron's minimal environment; generate_thumbnails_cron.sh loads the container's
+# environment (DB settings, SECRET_KEY, THUMBNAIL_HEIGHT, PATH to the venv) from PID 1.
+# Its output goes to the stdout/stderr of PID 1, so it shows up in `docker logs`.
+#
+# Rules for files in /etc/cron.d: no '.' in the file name, owner root, mode 0644, and a
+# newline at the end of the file. Escape '%' in commands.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user       command
+0 2 * * * dockeruser /usr/local/bin/generate_thumbnails_cron.sh >/proc/1/fd/1 2>/proc/1/fd/2

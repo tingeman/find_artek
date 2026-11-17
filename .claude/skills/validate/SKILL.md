@@ -48,13 +48,27 @@ $DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings fi
 
 ```bash
 bash -n scripts/<script>.sh
+bash -n tests/run.sh
 ```
 
 Scripts are copied into the image and run there, so they need LF line endings. `shellcheck` is not installed. Say so.
 
 ## 4. Compose and Dockerfiles
 
-`docker compose config` prints the resolved environment, including secrets from `.dev.env`/`.prod.env`: **don't run it**. Read the file instead. For `docker-compose.prod.yml` and `Dockerfile.prod`, check the `deploy-contract` skill and flag every change.
+`docker compose config` prints the resolved environment, including secrets from `.dev.env`/`.prod.env`: **don't run it**. Read the file instead. For the `Dockerfile` (stages `runtime`/`prod`), check the `deploy-contract` skill and flag every change.
+
+## 4a. Image tests (`tests/run.sh`, the release gate)
+
+Needs no dev stack and no `.dev.env`: it uses a throwaway MariaDB with generated credentials and removes everything afterwards. Run it for Dockerfile, requirements, settings, entrypoint, cron or script changes, and before asking for a release:
+
+```bash
+docker build -t find_artek:local .
+bash tests/run.sh find_artek:local            # full, ~40-55 s; what build_image.sh runs
+bash tests/run.sh --quick find_artek:local    # image checks only, ~10 s
+TEST_FILTER='^smoke' bash tests/run.sh find_artek:local
+```
+
+Report the last line (`ALL <n> TESTS PASSED` / `<m> OF <n> TESTS FAILED`) and the names of the `FAIL:` lines. `INFO:`/`SKIP:` lines are not failures (e.g. the `check --deploy` warnings W004/W008, FA-R31; `SKIP: django: ...` while `DJANGO_TEST_LABELS` is empty).
 
 ## 5. Secrets guard
 

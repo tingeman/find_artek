@@ -26,14 +26,14 @@ Steps 1 and 2 run in one interactive SSH session on `sus-parcweb01`. `sudo` asks
 ssh tingeman@10.61.64.65
 ```
 
-Today production is built on the host from a clone of `develop/main` (dtu_sus_web_server milestone M5 changes that):
+Production runs a release image (since 2026.1, deployed by dtu_sus_web_server):
 
 ```bash
 # SSH on sus-parcweb01
-sudo git -c safe.directory='*' -C /opt/webapp_find_artek log -1 --format='%h %ci %s'
+sudo docker ps --filter name=webapp-find-artek --format '{{.Image}}'
 ```
 
-It prints the commit production runs (2026-11-16: `afd8792`). The dev checkout you restore into must contain all of production's migrations (step 7 checks this). After the first release, use the image tag instead: `sudo docker ps --filter name=webapp-find-artek --format '{{.Image}}'` prints `find_artek:<version>`.
+It prints `webapp_find_artek:<version>`, the release tag production runs (2026-11-17: `2026.1`). The dev checkout you restore into must contain all of that tag's migrations (step 7 checks this): use the tag or a later `develop/main`.
 
 ## 2. Dump on the host
 
@@ -46,7 +46,7 @@ Check the variable names the container uses (prints names only, no values):
 sudo docker exec fa-mariadb-service sh -c 'env | cut -d= -f1 | grep -E "^(MYSQL|MARIADB)_" | sort'
 ```
 
-Expected: `MYSQL_DATABASE`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_USER` (production uses `MYSQL_*` from `.prod.env`). The commands below also accept `MARIADB_*`, in case that changes.
+Expected: `MYSQL_DATABASE`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_USER` (production uses `MYSQL_*` from web_server's `webapp_find_artek.env`). The commands below also accept `MARIADB_*`, in case that changes.
 
 Row counts and character set, for the check in step 8:
 

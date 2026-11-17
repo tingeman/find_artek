@@ -5,7 +5,8 @@ services:
   webapp-find-artek:
     container_name: webapp-find-artek-dev
     build:
-      dockerfile: Dockerfile.develop
+      dockerfile: Dockerfile
+      target: dev
     env_file:
       - .dev.env  # Development environment variables
     environment:
@@ -16,17 +17,23 @@ services:
       - "8098:8099"
     command: bash -c 'cd /app && python manage.py runserver 0.0.0.0:8099 --settings find_artek.development_settings'
 
+  # Images: the ones production runs, by digest. Same values as FA_MARIADB_IMAGE and
+  # FA_PHPMYADMIN_IMAGE in compose.pins.env (tests/run.sh checks it); change them together.
+  # Written out here so the plain compose command and the devcontainer need no --env-file.
   find-artek-mariadb-service:
     container_name: fa-mariadb-service-dev
+    image: mariadb:11.2@sha256:8fab5714514314b67ccfcb38a971fd99624d8dd0dc3e1fc365d0504a18b9f4f3
     env_file:
       - .dev.env
 
   find-artek-phpmyadmin-service:
     container_name: fa-phpmyadmin-service-dev
+    image: phpmyadmin/phpmyadmin@sha256:67ba2550fd004399ab0b95b64021a88ea544011e566a9a1995180a3decb6410d
     env_file:
       - .dev.env
+    # Localhost only
     ports:
-      - "6002:80"
+      - "127.0.0.1:6002:80"
     environment:
       PMA_HOST: find-artek-mariadb-service
 

@@ -1,34 +1,26 @@
 #!/bin/bash
 #
-# Docker Entrypoint Script with Cron Support
-# This script starts cron and then runs the main application
+# Entrypoint of the find_artek image (runs as dockeruser).
 #
+# ENABLE_CRON=true: start the cron daemon through sudo (as monitoring_db does). The daemon runs
+# as root and runs the jobs in /etc/cron.d as dockeruser; the only job is the nightly thumbnail
+# generation (/etc/cron.d/find_artek_thumbnails, 02:00). Unset or anything else: no cron.
+#
+# Then run the container's command ("$@", gunicorn by default) as PID 1, unchanged.
 
-# Function to start cron if enabled
-start_cron() {
-    if [ "$ENABLE_CRON" = "true" ]; then
-        echo "Setting up cron for thumbnail generation..."
-        /usr/local/bin/setup_cron.sh
-        echo "Cron setup completed."
+ts() { date '+%Y-%m-%d %H:%M:%S'; }
+
+if [ "${ENABLE_CRON:-false}" = "true" ]; then
+    # sudo resets the environment, so the cron daemon carries none of the container's secrets.
+    if sudo -n /usr/sbin/service cron start >/dev/null 2>&1; then
+        echo "$(ts) - Cron enabled: cron daemon started; thumbnails are generated daily at 02:00 (/etc/cron.d/find_artek_thumbnails), output in this log."
     else
-        echo "Cron disabled. Set ENABLE_CRON=true to enable automatic thumbnail generation."
+        # The web app still starts: thumbnails are not worth an outage. The cron post-check
+        # (cron process running) catches this.
+        echo "$(ts) - ERROR: ENABLE_CRON=true, but the cron daemon could not be started." >&2
     fi
-}
+else
+    echo "$(ts) - Cron disabled. Set ENABLE_CRON=true to enable automatic thumbnail generation."
+fi
 
-# Function to handle shutdown gracefully
-shutdown() {
-    echo "Shutting down..."
-    if [ "$ENABLE_CRON" = "true" ]; then
-        service cron stop
-    fi
-    exit 0
-}
-
-# Set up signal handlers
-trap shutdown SIGTERM SIGINT
-
-# Start cron if enabled
-start_cron
-
-# Execute the main command
 exec "$@"

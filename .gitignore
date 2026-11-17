@@ -11,6 +11,8 @@ __pycache__
 **/*.env
 *.env
 **/*.env.backup
+# Image pins (no secrets), tracked on purpose
+!/compose.pins.env
 
 
 *.bak

@@ -1,119 +1,66 @@
-# Environment Setup Guide
+# Environment setup
 
-## Security-First Setup (Recommended)
+Secrets never go into git: `.gitignore` ignores every `*.env` file except the `*.env.example`
+templates and `compose.pins.env` (image pins, no secrets).
 
-This setup keeps secrets out of git while maintaining compatibility with all services.
+## Development
 
-### Development Setup
-
-1. Copy the example file and customize:
+1. Copy the template and fill in your own development values (no production credentials):
 
    ```bash
    cp .dev.env.example .dev.env
-   # Edit .dev.env with your development values
    ```
 
-2. Start development environment:
+2. Create the dev database volume `find-artek-mariadb-dev` from a production dump:
+   `docs/quick-guides/01_sync_dev_db_from_prod.md`.
+
+3. Start the dev stack from the repository root (Git Bash, WSL or Linux):
 
    ```bash
-   docker-compose -f docker-compose.yml -f docker-compose.develop.yml up -d
+   DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
+   $DC up -d --build
    ```
 
-### VS Code Dev Container Setup
+   The app runs at `http://localhost:8098/` (settings `find_artek.development_settings`, no
+   `/find` prefix), phpMyAdmin at `http://127.0.0.1:6002`. The code is copied into the image,
+   so rebuild after changes. More commands: `readme.md`.
 
-For a complete VS Code development environment with IntelliSense, debugging, and extensions:
+### VS Code Dev Container
 
-1. Ensure you have the `.dev.env` file (see Development Setup above)
+With `.dev.env` in place, open the project in VS Code with the "Dev Containers" extension and
+run "Dev Containers: Reopen in Container". It uses `.devcontainer/docker-compose.yml` on top of
+the dev files: the source is mounted at `/workspace`, the app on port 8100, phpMyAdmin on 6002,
+containers named `*-devcon`. (`.devcontainer/devcontainer.json` and `up.sh` still refer to
+paths that exist in no image; roadmap FA-R41.)
 
-2. Open the project in VS Code and install the "Dev Containers" extension
+## Production
 
-3. Use Command Palette (Ctrl+Shift+P) and select "Dev Containers: Reopen in Container"
+Production is deployed only from the repository `dtu_sus_web_server`. Its secrets live in
+web_server's encrypted secrets archive (`webapp_find_artek.env`); this repository keeps only
+the dev template. Don't create a `.prod.env` here. Production runs web_server's
+`docker/compose_find_artek.yml` with the release image. The table below lists the variables
+web_server must provide; new variables go into it and into `.dev.env.example`, and are reported
+to web_server.
 
-The dev container will:
-- Build a development environment with all dependencies
-- Start MariaDB and phpMyAdmin services
-- Mount your source code for live editing
-- Run on port 8100 (to avoid conflicts with regular development)
-- phpMyAdmin available on port 6002
+## Environment variables
 
-### Production Setup
+Read by the app (`app-main/find_artek/settings.py`):
 
-1. **Copy the example environment file:**
+| Variable | Meaning |
+|---|---|
+| `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | Database name and app user (the MariaDB container also creates them from these) |
+| `MYSQL_HOST` | Database host; set by the compose files (here and in web_server) to `find-artek-mariadb-service` |
+| `SECRET_KEY` | Django secret key (50+ random characters) |
+| `LDAP_BIND_USER`, `LDAP_BIND_PASSWORD` | Read-only AD account for LDAP lookups (`ldaps://win.dtu.dk`) |
 
-   ```bash
-   cp .prod.env.example .prod.env
-   ```
+Read by the MariaDB container only: `MYSQL_ROOT_PASSWORD`.
 
-2. **Edit `.prod.env` with your production values:**
+Read by the container scripts (`scripts/docker-entrypoint.sh`, `scripts/generate_thumbnails_cron.sh`):
 
-   ```bash
-   # .prod.env (this file should be created on the production server)
-   MYSQL_ROOT_PASSWORD=very_secure_root_password
-   MYSQL_DATABASE=find_artek_django
-   MYSQL_USER=find_artek_user  
-   MYSQL_PASSWORD=very_secure_db_password
-   SECRET_KEY=very_long_django_secret_key_50_chars_minimum
-   DEBUG=False
-   ENABLE_CRON=true
-   THUMBNAIL_HEIGHT=400
-   NETWORK_DRIVE_HOST=ait-pdfs
-   NETWORK_DRIVE_SHARE=Qdrev/SUS/Groups/Arctic_web-data/SUS-PArcWeb01
-   NETWORK_DRIVE_USER=SUS-Usr-Arctic-web@win.dtu.dk
-   NETWORK_DRIVE_PASSWORD=your_network_drive_password
-   ```
+| Variable | Meaning |
+|---|---|
+| `ENABLE_CRON` | Starts the thumbnail cron job (02:00) only for the exact value `true`; dev `false`, production `true` (set by web_server's compose) |
+| `THUMBNAIL_HEIGHT` | Height of generated thumbnails in pixels (default 400) |
 
-3. **Start production environment:**
-
-   ```bash
-   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-   ```
-
-## Git Security Configuration
-
-Add to your `.gitignore`:
-```gitignore
-# Environment files (NEVER commit these)
-.env
-.dev.env
-.prod.env
-*.env
-!*.env.example
-```
-
-## Environment Variables Reference
-
-### Required for All Environments
-- `MYSQL_DATABASE` - Database name
-- `MYSQL_USER` - Database user  
-- `MYSQL_PASSWORD` - Database password
-- `MYSQL_ROOT_PASSWORD` - Database root password
-- `SECRET_KEY` - Django secret key (50+ random characters)
-
-### Production-Specific (CIFS Network Drive)
-- `NETWORK_DRIVE_HOST` - Network drive hostname (e.g., ait-pdfs)
-- `NETWORK_DRIVE_SHARE` - Share path (e.g., Qdrev/SUS/Groups/Arctic_web-data/SUS-PArcWeb01)
-- `NETWORK_DRIVE_USER` - Username for network drive access
-- `NETWORK_DRIVE_PASSWORD` - Password for network drive
-
-### Optional
-- `ENABLE_CRON` - Enable/disable cron jobs (default: true for prod, false for dev)
-- `THUMBNAIL_HEIGHT` - Height for generated thumbnails (default: 400)
-- `DEBUG` - Django debug mode (should be False in production)
-
-## Security Best Practices
-
-1. **Never commit .env files to git** - Keep production secrets out of version control
-2. **Create .prod.env directly on the production server** - Don't include it in deployments
-3. **Use strong passwords (20+ characters)** - Generate secure credentials
-4. **Use different passwords for each environment** - Dev and prod should have separate credentials  
-5. **Rotate passwords regularly** - Change credentials periodically
-6. **Limit access to production .env files** - Set proper file permissions (chmod 600 on Linux)
-7. **Secure the production server** - Restrict access to deployment directories
-
-## Deployment Automation
-
-For automated deployments, consider using:
-- **Ansible Vault** for encrypted variable storage
-- **HashiCorp Vault** for secret management
-- **AWS Secrets Manager / Azure Key Vault** for cloud deployments
-- **CI/CD environment variables** (GitLab CI, GitHub Actions) with masked variables
+`DEBUG` in the templates is not read: `settings.py` sets `DEBUG = False`,
+`development_settings.py` sets `DEBUG = True`.
