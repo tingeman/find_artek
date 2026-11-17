@@ -59,7 +59,7 @@ Bundle name: **`webapp_find_artek`**, not `find_artek` as in PLAN T9. It matches
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
 git log --oneline -3 develop/main                     # expect docs commits on top of ed3357b
 git tag -a 2026.1 -m "find_artek 2026.1: production code (afd8792) on the release path" develop/main
-git show --no-patch --format='%h %s' 2026.1^{commit}
+git show --no-patch --format='%h %s' '2026.1^{commit}'   # quotes needed: PowerShell reads {..} as a script block
 ```
 
 #### 4b. Build and test the bundle from the local checkout
