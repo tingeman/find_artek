@@ -1,6 +1,6 @@
 # Plan: Registration (Phase 1b)
 
-Status: **approved 2026-11-18**. Roadmap: Phase 1b; FA-R54, FA-R53, FA-R55 (with FA-R12), FA-R56, FA-R67, FA-R68. Branch: `agent-registration` (from `develop/main`), worked in its own worktree `..\find_artek_agent-registration`, so this checkout stays untouched. Release: `2026.3`.
+Status: **approved 2026-11-18; T12-T14 added 2026-11-18 (user data, GDPR)**. Roadmap: Phase 1b; FA-R54, FA-R53, FA-R55 (with FA-R12), FA-R56, FA-R67, FA-R68. Branch: `agent-registration` (from `develop/main`), worked in its own worktree `..\find_artek_agent-registration`, so this checkout stays untouched. Release: `2026.3`.
 
 ## Goal
 
@@ -9,7 +9,8 @@ Status: **approved 2026-11-18**. Roadmap: Phase 1b; FA-R54, FA-R53, FA-R55 (with
 3. The add/edit report form works end to end, with tests: PDF upload, new keywords, no orphaned temp files, a review step that can't be skipped around the permission check (FA-R55). The new-person bug (FA-R12) is reproduced as a test and either fixed here or handed to FA-R66.
 4. Permitted users reach registration from a menu (FA-R56).
 5. The login redirect stays under `/find/` (FA-R67); appendix uploads record the user (FA-R68).
-6. The new tests are in `tests/run.sh`, and release `2026.3` is built, deployed and checked by you.
+6. Personal data (added 2026-11-18): name and e-mail of a logged-in user come from AD at every login; a user is linked to their `Person` at login, so staff count as "own" on their reports; study numbers and student e-mails are hidden from anonymous visitors; phone and address fields are no longer shown or edited; a document describes how the app handles user data and permissions (T12-T14).
+7. The new tests are in `tests/run.sh`, and release `2026.3` is built, deployed and checked by you.
 
 ## Current state
 
@@ -71,13 +72,22 @@ Survey 2026-11-18 (paths under `app-main/`):
 - **Keywords** (decided 2026-11-18): a typed keyword that doesn't exist is created on save by anyone who may edit the report; a typed topic is refused with a form error (topics stay list-only).
 - **Verify/unverify move to POST** (forms with CSRF token in `report.html`); a GET shows nothing changed (405).
 - **FA-R12 new persons** (decided 2026-11-18): reproduce first on today's code; fix here only if the fix is small and local; otherwise stop and plan FA-R66 directly after 1b. The refactor branch `develop/author_disambiguation/refactor` will conflict in `views.py` either way; that is accepted.
+- **User data from AD and the Person link** (decided 2026-11-18, after comparing with the old system: [old vs new](#old-system-comparison)). The login LDAP lookup in `roles.py` (one bind, already done for the roles) also reads the user's entry: `givenName`, `sn`, `mail` → `auth_user.first_name/last_name/email` at every login (as the old django-auth-ldap `AUTH_LDAP_USER_ATTR_MAP`); `employeeID` and `initials` are read only to find the Person and are **not stored** on the user. Lookup fails → the stored values stay.
+  - New nullable `Person.user` (`OneToOneField` to `auth.User`, `on_delete=SET_NULL`, `related_name='person'`): migration `0004` adds the column only. At login, when the user has no linked Person: candidates are unlinked Persons with `id_number` = username (study number, case-insensitive), `id_number` = `employeeID` (staff, as the old LDAP person import stored it), or `initials` = username. Exactly one candidate → linked; none or several → nothing, logged at info level (no personal data in the log). An existing link is never changed at login; editors can set or correct it in the admin.
+  - "Own" (`Person.is_related_to_user`): a linked Person matches only its user; an unlinked Person keeps the old rule (username = `id_number` or `initials`).
+  - Effect on live data: one new column; existing `Person` rows get `user_id` set when their person logs in; `auth_user` rows get name and e-mail at the next login. No other row changes.
+- **Visibility of person data** (decided 2026-11-18). Institutional e-mails stay public (supervisors must be reachable; a link to the DTU phone book instead is roadmap FA-R71). For anonymous visitors, on the person page and in the person API: `id_number` hidden; `email` hidden when the person is a student (`position` = `student`, or `id_number` like `s` + 6 digits). Logged-in users see both. `phone`, `cell_phone`, `address_1`, `address_2`, `zip_code`, `town`, `state`, `country`, `homepage` are no longer shown or editable anywhere (pages, forms, API, admin); the columns stay until FA-R72 (count, then drop: separate decision).
+
+### Old system comparison
+
+Old (`find_artek_OLD`, tags `v1.*`, `hotfix-1.3.17`): django-auth-ldap, username = `sAMAccountName`/CN (students `sNNNNNN`, staff initials); `givenName`/`sn`/`mail` copied to `auth_user` at every login; `is_staff` from AD group `BYG-ArktiskCenter`; no profile table; user ↔ Person by username = `Person.id_number` or `initials`. LDAP person import: students `id_number` = study number (`name`, `company` = `Studerende`), staff `id_number` = `employeeID`, plus `initials`, `title` → `position`, `department`. Old data: 173 of 196 filled `id_number` are study numbers, ~22 employee IDs, 29 of 1004 persons have initials. New before T12: CAS, only `username` stored, same matching rule.
 - **Access to confidential reports:** unchanged for anonymous users. Logged-in users see what they see today. The plan only narrows who may write.
 - **Deployment contract:** two new env variables (above); `LOGIN_URL` change (prefix kept under `/find/`); `tests/run.sh` gets new test labels. No change to ports, paths, user, names, entrypoint or cron. web_server needs: the two variables in `webapp_find_artek.env` (may stay empty), and the functional checks of T11.
 
 ## Assumptions
 
 - Group names exactly `dtu_user`, `artek_staff`, `artek_editor`; `artek_editor` holds only the extra permissions (every user also has `dtu_user`): `add/change/delete/verify_publication`, `change_person`, `change_feature`, `delete_feature`. `artek_staff`: `add_publication`, `delete_own_publication`. `dtu_user`: `edit_own_publication`, `add_person`, `edit_own_person`, `add_feature`, `edit_own_feature`, `delete_own_feature` (as the old `LDAP_authenticated_user`).
-- The CAS username is the DTU study number or initials, as the LDAP username was; checked by you in T2.
+- The CAS username is the DTU study number (`sNNNNNN`, students) or initials (staff), as the LDAP username was. T2 confirmed initials for staff (`thin`); a student login is checked in T11.
 - New reports keep `verified = False` (hidden from anonymous users) until an editor verifies them; no change.
 - Abandoned temp uploads (form started, never finalized) are not cleaned automatically in 1b; `cleanup_temp_files` stays a manual command (accepted 2026-11-18; roadmap FA-R70, low priority).
 - Debug prints that print form, POST or session data are removed; other `print` calls in touched code become `logger.debug`. A full sweep of all 188 is not in scope.
@@ -87,7 +97,7 @@ Survey 2026-11-18 (paths under `app-main/`):
 
 ## Tasks
 
-Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11 (you). T6 is independent and may move.
+Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T13 → T12 → T7 → T8 → T9 → T14 → T10 → T11 (you). T6 is independent and may move.
 
 ### T0. Worktree (you or main session)
 - `git worktree add -b agent-registration ..\find_artek_agent-registration develop/main` (PowerShell, in `C:\thin\02_Code\docker_projects\find_artek_DEVELOP`). The dev stack runs from `find_artek_DEVELOP`; tests for the branch run in an image built from the worktree (`docker build -t find_artek:registration . && bash tests/run.sh find_artek:registration`) or with the dev stack pointed at the worktree (main session decides; never `down -v`).
@@ -164,6 +174,29 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 
 - Agent: implementer.
 - Deployment impact: none.
 
+### T12. User data from AD and Person link at login
+- Files: `publications/roles.py` (one user lookup: `givenName`, `sn`, `mail`, `employeeID`, `initials`; sets name/e-mail; links the Person), `publications/models.py` (`Person.user`, `is_related_to_user`), `publications/migrations/0004_person_user.py`, `publications/admin.py` (Person: `user` field, `raw_id_fields` or autocomplete), `publications/test_roles.py`, `publications/test_person_link.py`.
+- Acceptance: at a CAS login with a successful lookup, `first_name`/`last_name`/`email` are set from AD; with a failed lookup they stay as they were; a student with exactly one unlinked Person with `id_number` = username is linked; staff are linked by `employeeID` = `id_number` or by `initials`; none or several candidates → no link, no error; an existing link is never changed; a linked Person matches only its user, an unlinked one the old rule; `employeeID` is not stored on the user; the roles behaviour of T1 is unchanged.
+- Tests: the above with LDAP mocked; migration forward/backward; `makemigrations --check` clean.
+- Validation: `tests/run.sh` (model change: all labels).
+- Agent: implementer.
+- Deployment impact: migration `0004` (adds a column); no new env variable (same bind account; it must be allowed to read `givenName`, `sn`, `mail`, `employeeID`, `initials`, as the old import did).
+
+### T13. Visibility of person data
+- Files: `publications/templates/publications/person.html` and any other template showing person contact data (grep `email`, `id_number`, `phone`, `address`, `homepage`), `api/serializers.py` (`PersonSerializer`, and any nested person data), the person forms in `publications/forms/` and `publications/admin.py` (contact fields removed from forms/admin), `publications/test_person_privacy.py`.
+- Acceptance: anonymous: no `id_number` on the person page or in `/api/` person data; student e-mail hidden, staff e-mail shown; logged-in: both shown; the contact fields (`phone`, `cell_phone`, `address_1`, `address_2`, `zip_code`, `town`, `state`, `country`, `homepage`) appear nowhere (page, API, forms, admin) and can't be posted; no column removed.
+- Tests: page and API for anonymous / logged-in, student / staff person; a form POST with `phone` doesn't store it.
+- Validation: `tests/run.sh`.
+- Agent: implementer.
+- Deployment impact: none (API output narrower for anonymous users).
+
+### T14. Document: user data and permissions
+- Files: `docs/user-data-and-permissions.md` (on the branch: it describes the code), linked from `readme.md`.
+- Content: login (CAS, LDAP lookup), what is stored about users (`auth_user` fields, groups, Person link) and persons (fields, sources, what was removed from view), where it comes from, who sees what (anonymous / logged in / roles; pages and API), the permission matrix and the AD lists, logs, what is not stored (phone, address; `employeeID`), open points (FA-R71, FA-R72, retention, FA-R30 media access).
+- Acceptance: matches the code after T12/T13; no secrets, no real personal data.
+- Agent: main session (writes from the plan and the code), you review.
+- Deployment impact: none.
+
 ### T10. Release gate and docs
 - Files: `tests/run.sh` (`DJANGO_TEST_LABELS` gains the new modules), `readme.md` (URGENT list, roles: how to give someone `artek_staff` / `artek_editor` in the admin), `ENVIRONMENT_SETUP.md` (checked).
 - Acceptance: `docker build -t find_artek:registration . && bash tests/run.sh find_artek:registration` passes in the worktree, all new tests run.
@@ -185,7 +218,7 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 
    bash scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP 2026.3
    ```
    Then copy the bundle to the releases share, set `version: "2026.3"` and `tarball_sha256` in web_server's `ansible/vars/releases.yml`, add `LDAP_GROUP_ARTEK_STAFF=<DN from IT>` and `LDAP_GROUP_ARTEK_EDITOR=<DN from IT>` (empty if not there yet) to `webapp_find_artek.env` (vault), and run `ansible-playbook -kK -i hosts playbook_install_webapp_find_artek.yml -v --ask-vault-pass` (web_server).
-4. Functional checks: logged out, `/find/publications/report/add/` → 302 to `/find/login?next=...`; `/find/debug-root/` → 404; as `dtu_user` only, "Add" menu absent and add report 403; as editor, add a test report with a PDF of ~20 MB (retests the production PDF bug, FA-R12/FA-R20), check it is hidden logged out, verify it, then delete it; `media/temp/` empty after finalize.
+4. Functional checks: log in once with a student account: username is `sNNNNNN`, groups `dtu_user`, name/e-mail set, linked to their Person if one exists (admin user page); logged out, a person page shows no study number and no student e-mail; logged out, `/find/publications/report/add/` → 302 to `/find/login?next=...`; `/find/debug-root/` → 404; as `dtu_user` only, "Add" menu absent and add report 403; as editor, add a test report with a PDF of ~20 MB (retests the production PDF bug, FA-R12/FA-R20), check it is hidden logged out, verify it, then delete it; `media/temp/` empty after finalize.
 - Agent: you.
 
 ## Out of scope
@@ -194,3 +227,4 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 
 - FA-R57 (safe Excel import), FA-R58 (person merge), FA-R59 (admin registrations, admin whitelist), FA-R60-65.
 - Scheduling `cleanup_temp_files` (cron contract), a general sweep of `print` calls, FA-R10/FA-R30 (media access), Phase 2 coverage targets.
 - Any change in dtu_sus_web_server (listed in T11 for you).
+- Dropping the Person contact columns (FA-R72), the DTU phone book link (FA-R71), a retention rule for personal data.
