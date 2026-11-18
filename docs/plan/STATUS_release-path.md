@@ -6,8 +6,8 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and [USER_STEPS_release-path.md](USER_STEPS_release-path.md) step 5–6; code work happens only in a worktree, planning docs only here).
 
-- **Phase 1 code is complete and merged** (2026-11-18): `develop/main` = `ff06b45` (T11 + FA-R52 incl. the gate tests `2577e20`). Next is **release 2026.2**, all steps yours: **USER_STEPS 5c–5h** (5a thumbnail log deferred to the first 02:00 UTC after the 2026.2 deploy; nginx timeout in web_server, tag, build, publish, deploy, `main`), then **6** (rotate `.dev.env` credentials, push).
-- **Hand-off to web_server:** nginx `location /find/`: `proxy_read_timeout 120s; proxy_send_timeout 120s;` before or with 2026.2 (USER_STEPS 5c). Docs there still say find_artek `master`.
+- **Phase 1 code is complete and merged** (2026-11-18): `develop/main` = `ff06b45` (T11 + FA-R52 incl. the gate tests `2577e20`). Next is **release 2026.2**, all steps yours: **USER_STEPS 5d–5h** (5a thumbnail log deferred to the first 02:00 UTC after the 2026.2 deploy; tag, build, publish, deploy, `main`), then **6** (rotate `.dev.env` credentials, push).
+- **web_server nginx timeout done** (2026-11-18, USER_STEPS 5c): `location /find/` has `proxy_read_timeout`/`proxy_send_timeout 120s` (web_server `062dad9`), deployed, routes checked. Docs there still say find_artek `master`.
 - **New finding FA-R67:** production `LOGIN_URL = '/login'` with `FORCE_SCRIPT_NAME = '/find'` sends every `login_required` redirect to `/login`, outside `/find/`. Not fixed; check in production at 5g.
 - GitHub (from local tracking refs, 2026-11-18): `origin/main` = `3d8299b` (rename done), `origin/develop/main` = `a038018`, refactor branch pushed. Tags and `wip/disambiguation-draft` unknown.
 - After 2026.2 is deployed: archive Phase 1 (plan, status, user steps, baseline to `docs/archive/`), move open notes below into `docs/roadmap.md`, then Phase 1b (registration, FA-R53 to FA-R56).

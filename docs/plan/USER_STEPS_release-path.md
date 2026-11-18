@@ -185,7 +185,7 @@ Where: in the session. `agent-fixes` has one more verified commit, `2577e20`: th
 
 #### 5c. nginx timeout on `/find/` (dtu_sus_web_server)
 
-- [ ] Done
+- [x] Done (2026-11-18: web_server `062dad9`, deployed with `playbook_install_nginx.yml`, routes checked, web_server `main` fast-forwarded)
 
 Where: dtu_sus_web_server (its own session or plan; this repo doesn't change it). T11 lets a request run up to 120 s in gunicorn, but nginx `location /find/` has no `proxy_read_timeout`, so nginx gives up after its default 60 s (the nuki and alive locations set 120 s). Add to `location /find/`:
 
