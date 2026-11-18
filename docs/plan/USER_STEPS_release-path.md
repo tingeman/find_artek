@@ -301,7 +301,7 @@ git show v2.0.0:.dev.env | sed 's/=.*//'; git show v2.0.1:.dev.env | sed 's/=.*/
 
 **Recommended timing:** check `thin` and Elastic now; rotate `SECRET_KEY` and the DB passwords in one maintenance window, preferably with the 2026.3 deploy (Phase 1b). The GitHub push (6.2) doesn't depend on it.
 
-Check `thin` (Django shell on the host, one line per prompt; repeat for each leaked password, including the commented ones): `u = U.objects.get(username="thin"); print(u.has_usable_password(), u.check_password(getpass.getpass("leaked password: ")))`. `True True` = change it now (`u.set_password(getpass.getpass("new: ")); u.save()`).
+Check `thin` (Django shell on the host, one line per prompt; repeat for each leaked password, including the commented ones): `u = U.objects.get(username="thin"); print(u.has_usable_password(), u.check_password(getpass.getpass("leaked password: ")))`. `True True` = change it now (`u.set_password(getpass.getpass("new: ")); u.save()`). **Done 2026-11-18: `True False`, the leaked password doesn't match.**
 
 Rotate every leaked value still in use:
 

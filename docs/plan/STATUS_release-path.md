@@ -15,7 +15,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 ## Done
 
-- 2026-11-18: leak exposure checked (6a): repo public, leaked values current; superuser `root` not in production (users `thin`, `s225255`, `maljon`); DB and phpMyAdmin not reachable from outside. Recommended: rotate `SECRET_KEY` + DB passwords with the 2026.3 deploy; open: `thin` password check, Elastic instance.
+- 2026-11-18: leak exposure checked (6a): repo public, leaked values current; superuser `root` not in production (users `thin`, `s225255`, `maljon`); DB and phpMyAdmin not reachable from outside. Recommended: rotate `SECRET_KEY` + DB passwords with the 2026.3 deploy; `thin` checked: has a password, leaked one doesn't match (`True False`). Open: Elastic instance.
 - 2026-11-18: `.dev.env` leak checked (metadata only): committed in `3b721b9`/`b152dad`, reachable only through tags `v2.0.0`/`v2.0.1`; current file untracked; owner confirmed overlap, USER_STEPS 6a (rotation) written.
 - 2026-11-18: USER_STEPS 5a done: thumbnail cron ran in the 2026.2 container at 02:00 UTC, 2 errors "PDF file not found" (roadmap FA-R69), job reports success anyway.
 - 2026-11-18: release 2026.2 tagged, built, published and deployed (USER_STEPS 5c–5h); `main` moved to `2026.2` locally.
