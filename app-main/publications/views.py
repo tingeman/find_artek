@@ -55,6 +55,7 @@ from publications.forms import (
 )
 from publications.forms.publication import ImportPublicationFileForm
 from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
+from publications import person_privacy
 from publications.library import get_client_ip, is_private
 from publications.models import (
     Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
@@ -1219,7 +1220,10 @@ class PersonAutocompleteView(View):
         
         if term:
             # if the string in term starts with 's' followed by 1 to 6 numbers then...
-            if self.re_studynumber.match(term):
+            # Only for logged-in users: id_number is hidden from anonymous users
+            # (person_privacy), so they must not look persons up by study number either.
+            if (self.re_studynumber.match(term)
+                    and person_privacy.can_view_id_number(request.user)):
                 queryset = Person.objects.filter(id_number__iexact=term).order_by('first')
             else:
                 fields_to_search = ['first_relaxed', 'last_relaxed',
@@ -1254,9 +1258,20 @@ class PersonAutocompleteView(View):
 
 
 class PersonView(BaseDetailView):
+    """Person page. E-mail and ID are passed as ``person_email`` / ``person_id_number``,
+    already filtered for the viewer (person_privacy, plan "registration" T13); the
+    template must not output ``person.email`` or ``person.id_number`` itself."""
     model = Person
     template_name = 'publications/person.html'
     context_object_name = 'person'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        person = self.object
+        context['person_email'] = person_privacy.visible_email(self.request.user, person)
+        context['person_id_number'] = person_privacy.visible_id_number(self.request.user, person)
+        context['show_id_number'] = person_privacy.can_view_id_number(self.request.user)
+        return context
 
 
 

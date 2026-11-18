@@ -1,5 +1,13 @@
 from rest_framework import serializers
 from publications.models import Publication, Feature, Person
+from publications import person_privacy
+
+
+def _request_user(serializer):
+    """The user of the request in the serializer context (the viewsets pass it), or None
+    (treated as anonymous) when the serializer is used without a request."""
+    request = serializer.context.get('request')
+    return getattr(request, 'user', None)
 
 
 
@@ -92,7 +100,8 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = ['id', 'id_number', 'fullname', 'first', 'middle', 'prelast', 'last', 'lineage', 'position', 'email', 'authorships', 'supervisorships']
 
     def get_id_number(self, obj):
-        return obj.id_number if obj.id_number else None
+        # Only logged-in users (person_privacy, plan "registration" T13)
+        return person_privacy.visible_id_number(_request_user(self), obj)
     
     def get_fullname(self, obj):
         return str(obj) if obj else None
@@ -116,7 +125,8 @@ class PersonSerializer(serializers.ModelSerializer):
         return obj.position if obj.position else None
     
     def get_email(self, obj):
-        return obj.email if obj.email else None
+        # Student e-mails only for logged-in users (person_privacy)
+        return person_privacy.visible_email(_request_user(self), obj)
     
     def get_authorships(self, obj):
         # The model Authorship defines a many-to-many relationship between Person and Publication

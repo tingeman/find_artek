@@ -1,4 +1,5 @@
 import os
+import re
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -51,6 +52,10 @@ def has_model_permission(entity, app, perm, model ):
 def _is_authenticated_user(entity):
     """True for a logged-in user; False for AnonymousUser, None or other objects."""
     return bool(getattr(entity, 'is_authenticated', False))
+
+
+# A DTU study number: 's' followed by six digits (students' Person.id_number).
+STUDY_NUMBER_RE = re.compile(r'^s\d{6}$', re.IGNORECASE)
 
 def get_image_path(obj, filename):
     if obj.upload_to:
@@ -166,6 +171,16 @@ class Person(BaseModel):
 
         if commit:
             self.save()
+
+    def is_student(self):
+        """True if this person is a student: position 'student' (any case) or an
+        id_number that is a study number ('s' + 6 digits, any case).
+
+        Used by publications.person_privacy to hide student e-mails from anonymous users.
+        """
+        if (self.position or '').strip().lower() == 'student':
+            return True
+        return bool(STUDY_NUMBER_RE.match((self.id_number or '').strip()))
 
     def is_related_to_user(self, entity):
         """Check if this person is related to the current user.

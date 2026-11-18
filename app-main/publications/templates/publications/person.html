@@ -23,37 +23,12 @@
             <table class="table table-borderless">
                 <tr><th class="bold-text">Name</th><td>{{ person }}</td></tr>
                 <tr><th class="bold-text">Position</th><td>{{ person.position|default:"-" }}</td></tr>
-                <tr><th class="bold-text">E-mail</th><td>{{ person.email|default:"-" }}</td></tr>
-                <tr><th class="bold-text">ID</th><td>{{ person.id_number|default:"-" }}</td></tr>
+                <tr><th class="bold-text">E-mail</th><td>{{ person_email|default:"-" }}</td></tr>
+                {% if show_id_number %}<tr><th class="bold-text">ID</th><td>{{ person_id_number|default:"-" }}</td></tr>{% endif %}
             </table>
         </div>
     </div>
 </div>
-
-<!-- <div class="info-box">
-    <div class="details-box">
-        <div class="row">
-            <span class="property">Name</span>
-            <span class="value">{{person.first}} {{person.last}}</span>
-        </div>
-        <div class="row">
-            <span class="property">Position</span>
-            <span class="value">{{person.position}}</span>
-        </div>
-        {% if person.email %}
-        <div class="row">
-            <span class="property">E-mail</span>
-            <span class="value">{{person.email}}</span>
-        </div>
-        {% endif %}
-        {% if person.id_number %}
-        <div class="row">
-            <span class="property">ID</span>
-            <span class="value">{{person.id_number}}</span>
-        </div>
-        {% endif %}
-    </div>
-</div> -->
 
 </br>
 

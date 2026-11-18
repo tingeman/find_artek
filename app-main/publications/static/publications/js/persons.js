@@ -67,7 +67,7 @@ personData.forEach((person) => {
 
     // Create cell for the row
     const idCell = document.createElement('td');
-    idCell.innerText = person.id_number;
+    idCell.innerText = person.id_number || '';  // null for anonymous users (person_privacy)
     personRow.appendChild(idCell);
 
     // Create cell for the row
