@@ -270,7 +270,7 @@ git branch -f main 2026.2      # local production branch follows the deployed ta
 
 From the local remote-tracking refs (2026-11-18; the orchestrator can't reach GitHub): `origin/main` = `3d8299b` (= `2026.1`, the rename looks done), `origin/develop/main` = `a038018`, `origin/develop/author_disambiguation/refactor` = `4d77150`. Not checked: tags and `wip/disambiguation-draft` on GitHub.
 
-1. **Rotate credentials.** `.dev.env` is in the pushed history (`b152dad`, `3b721b9`, formerly `master`). If it ever held real passwords (DB, LDAP bind, Django `SECRET_KEY`), change them where they are used. Removing the file from the history does not take it back from GitHub.
+1. **Rotate credentials** (decided 2026-11-18: the leaked values overlap the ones in use, so they are rotated). Details: section 6a below.
 2. **Push what is left** (Git Bash, `find_artek_DEVELOP`). `develop/main` is now a plain fast-forward of `origin/develop/main`, no force needed:
 
 ```bash
@@ -282,3 +282,63 @@ git push origin main                               # after 5h
 ```
 
 Tell the orchestrator what you pushed; it updates the status file. web_server's docs that still say find_artek `master` (roadmap M5 "After M5", USER_TASKS 4e) need a follow-up there.
+
+#### 6a. Rotate the leaked credentials
+
+- [ ] Done
+
+**What leaked:** `.dev.env` was committed in `3b721b9` (2024-12-09, 723 bytes) and `b152dad` (2024-12-10, 727 bytes). No branch contains them any more, but the tags `v2.0.0` and `v2.0.1` do, so the file is on GitHub as long as those tags are. The current `.dev.env` (534 bytes, 2025-08-07) is untracked (`.gitignore` `*.env`), but its values overlap the leaked ones (you checked, 2026-11-18). Production's values are in web_server's `docker/secrets/webapp_find_artek.env` (vault, `docs/deploy/secrets.md` there).
+
+List which variables the leaked file had (names only, on your machine):
+
+```bash
+git show v2.0.0:.dev.env | sed 's/=.*//'; git show v2.0.1:.dev.env | sed 's/=.*//'
+```
+
+Rotate every leaked value still in use, in this order (highest risk first):
+
+| Variable | Risk | How to rotate | Side effects |
+|---|---|---|---|
+| `LDAP_BIND_PASSWORD` (`LDAP_BIND_USER`, a BYG function account in `win.dtu.dk`) | **Highest:** a valid DTU AD account, usable from anywhere on the DTU network, not only in this app | Reset the account's password (DTU IT or whoever manages BYG's function accounts). Ask whether other apps use the same account: they need the new password too | Until production has the new value, LDAP lookups in find_artek fail (CAS login itself still works) |
+| `SECRET_KEY` | Signs cookies, password reset links and CSRF tokens; with it someone can forge signed values | New value: `python -c "import secrets; print(secrets.token_urlsafe(50))"`. Production and dev get **different** keys | All users are logged out once; open password reset links stop working |
+| `MYSQL_PASSWORD` (app user `MYSQL_USER`), `MYSQL_ROOT_PASSWORD` | Medium: MariaDB has no published port (only the app and phpMyAdmin on `docker_default`; phpMyAdmin only through the SSH tunnel), so these need host or tunnel access | **Change the password in the running database first** (the image reads the env only on an empty data directory; the existing volume keeps its accounts), then the env file. Steps below | Between the `ALTER USER` and the redeploy, the app cannot connect (a few minutes): do it at a quiet time |
+| `NETWORK_DRIVE_*` (if they were in the leaked file) | The share account | Change that account's password where it is managed; the M5 stack no longer uses these variables, so **drop them from `webapp_find_artek.env`** in the same edit (web_server `secrets.md`) | none for find_artek |
+
+Generate all new values on your machine. Never paste them into a chat session.
+
+**Production** (web_server; an agent never sees the plaintext):
+
+1. Edit the plaintext `webapp_find_artek.env` in the outside secrets folder: new `SECRET_KEY`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, and `LDAP_BIND_PASSWORD` once IT has reset it; drop `NETWORK_DRIVE_*` and `ENABLE_CRON`. Then `bash scripts/vault_secrets.sh encrypt` (WSL) and commit the `.vault` file in web_server.
+2. On the host, change the database passwords (interactive client, statement history off; it asks nothing, it uses the current root password from the container's env):
+
+```bash
+sudo docker exec -it -e MYSQL_HISTFILE=/dev/null fa-mariadb-service sh -c 'MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}" exec mariadb -uroot'
+```
+```sql
+SELECT user, host FROM mysql.user;                       -- which accounts exist
+ALTER USER '<MYSQL_USER>'@'%' IDENTIFIED BY '<new MYSQL_PASSWORD>';
+ALTER USER 'root'@'%' IDENTIFIED BY '<new MYSQL_ROOT_PASSWORD>';         -- every root row the SELECT shows
+ALTER USER 'root'@'localhost' IDENTIFIED BY '<new MYSQL_ROOT_PASSWORD>';
+exit
+```
+
+Leave `healthcheck@...` and `mariadb.sys` alone (not from the env file). Type the passwords at the prompt; with `MYSQL_HISTFILE=/dev/null` they are not saved.
+
+3. Right away, rerun `playbook_install_webapp_find_artek.yml` (same `releases.yml` version): it takes the converge path, and compose recreates all three containers because the env file changed (no dump on this path; a dump before step 2 is optional: web_server `docs/deploy/find_artek_admin.md`).
+4. Checks on the host:
+
+```bash
+sudo docker ps --filter name=fa- --filter name=webapp-find-artek --format '{{.Names}}  {{.Status}}'   # all up, webapp healthy, all "Up" since the rerun
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/frontpage/              # 200
+sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mariadb -uroot -e "SELECT 1"'   # 1 = new root password works
+```
+
+In the browser: log in with CAS (new `SECRET_KEY`: you are logged out first), open a report, run a person lookup that uses LDAP. phpMyAdmin through the tunnel with the new password.
+
+Rollback: if the app cannot connect, check the `ALTER USER` rows against `SELECT user, host` (a missed host is the usual cause). Don't restore the old passwords.
+
+**Dev** (this repository, your machine): new values in `.dev.env` (own `SECRET_KEY` and DB passwords, different from production). For LDAP, either leave `LDAP_BIND_USER`/`LDAP_BIND_PASSWORD` empty in dev (lookups fail; FA-R34 later makes this a setting) or use the new production value only on your machine. The dev volume `find-artek-mariadb-dev` also keeps its old accounts: run the same `ALTER USER` in the dev container (`docker compose -f docker-compose.yml -f docker-compose.develop.yml exec -e MYSQL_HISTFILE=/dev/null find-artek-mariadb-service sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mariadb -uroot'`) before editing `.dev.env`, then `$DC up -d` and open `http://localhost:8098/`.
+
+**GitHub (optional, your decision):** delete the tags `v2.0.0` and `v2.0.1` on GitHub (`git push origin :refs/tags/v2.0.0 :refs/tags/v2.0.1`) and keep them locally, or recreate them without the file. That rewrites published history, and clones or forks may already have the file: only rotation makes the leak harmless.
+
+Tell the orchestrator which variables were rotated (names only) and the check results.

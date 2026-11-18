@@ -7,7 +7,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and [USER_STEPS_release-path.md](USER_STEPS_release-path.md) step 5–6; code work happens only in a worktree, planning docs only here).
 
 - **Release 2026.2 is deployed** (2026-11-18): tag `2026.2` = `cc410a2` (= `ff06b45` + docs), `tarball_sha256` `c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, web_server `f5b62ed`. All 5g checks pass; FA-R52 is live. Local `main` = `cc410a2` here, web_server `main` = `f5b62ed`; **neither pushed** (the push is yours, with step 6).
-- **Still open:** **6** (rotate `.dev.env` credentials, push `main`, `develop/main` and tags `2026.1`/`2026.2` here). web_server `main` and `develop/main` = `f5b62ed` match `github/*` (looks pushed, 2026-11-18).
+- **Still open:** **6** (6a rotation procedure written 2026-11-18: leaked values overlap the ones in use; rotate LDAP bind, `SECRET_KEY`, DB passwords in production and dev; then push `main`, `develop/main` and tags `2026.1`/`2026.2` here). web_server `main` and `develop/main` = `f5b62ed` match `github/*` (looks pushed, 2026-11-18).
 - **web_server nginx timeout done** (2026-11-18, USER_STEPS 5c): `location /find/` has `proxy_read_timeout`/`proxy_send_timeout 120s` (web_server `062dad9`). Docs there still say find_artek `master`.
 - **Findings for Phase 1b:** FA-R67 (login redirect leaves `/find/`) confirmed in production; FA-R68 (appendix uploads without `created_by`), new.
 - GitHub (from local tracking refs, 2026-11-18): `origin/main` = `3d8299b` (rename done), `origin/develop/main` = `a038018`, refactor branch pushed. Tags and `wip/disambiguation-draft` unknown.
@@ -15,6 +15,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 ## Done
 
+- 2026-11-18: `.dev.env` leak checked (metadata only): committed in `3b721b9`/`b152dad`, reachable only through tags `v2.0.0`/`v2.0.1`; current file untracked; owner confirmed overlap, USER_STEPS 6a (rotation) written.
 - 2026-11-18: USER_STEPS 5a done: thumbnail cron ran in the 2026.2 container at 02:00 UTC, 2 errors "PDF file not found" (roadmap FA-R69), job reports success anyway.
 - 2026-11-18: release 2026.2 tagged, built, published and deployed (USER_STEPS 5c–5h); `main` moved to `2026.2` locally.
 
