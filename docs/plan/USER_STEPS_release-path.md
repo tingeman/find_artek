@@ -222,7 +222,7 @@ Expect `RESULT: OK, bundle written, tests passed`. Unlike 2026.1, the Django ste
 
 #### 5f. Publish to the releases share
 
-- [ ] Done
+- [x] Done (2026-11-18: three files on the share, sizes equal to `release-out`)
 
 ```powershell
 # PowerShell
@@ -234,7 +234,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.2.tar.gz"   # = tarb
 
 #### 5g. Deploy through web_server
 
-- [ ] Done
+- [x] Done (2026-11-18: web_server `f5b62ed` (`releases.yml` 2026.2), promote path with pre-deploy dump; `webapp_find_artek:2026.2` healthy, gunicorn gthread 2x2 timeout 120, frontpage 200, upload page logged out `302` (FA-R52 live; redirect to `/login` confirms FA-R67), appendix query: 175 rows without user, all 2013-2017 (FA-R68), browser checks done)
 
 In web_server: `ansible/vars/releases.yml`, `webapp_find_artek` entry: `version: "2026.2"`, `tarball_sha256` from 5e. Then `playbook_install_webapp_find_artek.yml` (web_server `f5b62ed` on `agent-fixes`, fast-forwarded into `develop/main`). No manual dump: a new version takes the playbook's promote path, which dumps, test-restores and copies the dump off-host before any change. Checks on the host:
 
@@ -257,7 +257,7 @@ Rollback: put the `2026.1` entry back in `releases.yml` and rerun the playbook (
 
 #### 5h. After the deploy
 
-- [ ] Done
+- [x] Done (2026-11-18: find_artek `main` = `2026.2` (`cc410a2`), web_server `main` = `f5b62ed` (local; push both yourself, step 6))
 
 ```powershell
 git branch -f main 2026.2      # local production branch follows the deployed tag (FA5)
