@@ -2,7 +2,7 @@ import logging
 import json
 import http.client
 
-from django.db.models import Case, When, IntegerField
+from django.db.models import Case, When, IntegerField, Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from find_artek.search import get_query
 from publications.models import Publication, Topic, Feature, Person
 from publications import utils_models
+from publications.visibility import visible_publications
 from .serializers import PublicationSerializer, FeatureSerializer, PersonSerializer
 
 
@@ -74,8 +75,9 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
     def get_queryset(self, request):
         """Filters the queryset based on the query parameters and returns the filtered queryset.
 
-        Also filters out any entries that have the word "confidential" in the field "comment" 
-        and any entries where the field validated is False.
+        Also filters out any entries that have the word "confidential" in the field "comment"
+        and, for anonymous users, any entries where the field verified is False
+        (publications.visibility.visible_publications).
 
         TODO: unvalidated entries should be shown when user is validated
         TODO: confidential entries should be shown when user is validated with admin rights
@@ -132,29 +134,16 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         ).order_by('-custom_order', '-number')
 
 
-        # ============ Remove confidential entries ============
-        logger.warning("GetReportViewSet.get_queryset: Queryset was ordered in reverse order")
-
-        # Get the length of the queryset
+        # ============ Remove confidential and unverified entries ============
+        # One rule for all API lists of publications: publications.visibility.
         queryset_length_1 = len(queryset)
 
-        # Remove any entries that have the word "confidential" in the field "comment"
-        queryset = queryset.exclude(comment__icontains='confidential')
+        queryset = visible_publications(queryset, request.user)
 
         queryset_length_2 = len(queryset)
 
         if queryset_length_1 != queryset_length_2:
-            logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential entries")
-
-
-        # ============ Remove unvalidated entries ============
-        if not request.user.is_authenticated:
-            queryset = queryset.filter(verified=True)
-
-            queryset_length_3 = len(queryset)
-
-            if queryset_length_3 != queryset_length_2:
-                logger.warning(f"Removed {queryset_length_2 - queryset_length_3} unverified entries")
+            logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential or unverified entries")
 
         return queryset
 
@@ -197,9 +186,16 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
         # Obtain query parameters
         publication_id = self.request.query_params.get('publication_id', None)
 
+        # Only features of publications the user may see listed (publications.visibility,
+        # same rule as the report API). Features linked to no publication stay listed.
+        visible = visible_publications(Publication.objects.all(), self.request.user)
+
         # Filter the queryset based on the query parameters
         if publication_id:
-            queryset = queryset.filter(publications__id=publication_id)
+            # A hidden publication gives an empty result.
+            queryset = queryset.filter(publications__in=visible.filter(id=publication_id))
+        else:
+            queryset = queryset.filter(Q(publications__in=visible) | Q(publications__isnull=True))
 
         # ========== Order the queryset ==========
         # keep only unique entries

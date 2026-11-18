@@ -12,7 +12,8 @@
 # * image checks: the image's user is dockeruser (uid/gid 30000), WORKDIR /app, the entrypoint
 #   is docker-entrypoint.sh, the command is gunicorn on 0.0.0.0:8099 (2 gthread workers x 2
 #   threads, timeout 120 s) without --reload, it has a HEALTHCHECK, pip check passes, the key
-#   packages import (GDAL and GEOS load), no compilers or admin tools are installed, the
+#   packages import (GDAL and GEOS load), no compilers or admin tools are installed, no
+#   database files (*.sqlite, *.sqlite3, *.sqlite.bak, *.db) are under /app, the
 #   thumbnail cron file is root 0644 and runs as dockeruser, and the Dockerfile's ARG
 #   PYTHON_IMAGE default is FA_PYTHON_IMAGE of compose.pins.env (by digest) with the stages
 #   runtime, dev, prod (prod last, so a plain docker build builds it). The dev compose file
@@ -53,11 +54,14 @@ set -euo pipefail
 # at the release's baseline belong here (plan PLAN_release-path A4). 2026.1 had none
 # (publications/tests.py does not import; the app-main/test_*.py files are ad-hoc scripts, not
 # tests); an empty list is reported as "SKIP: django: ..." and not counted. From 2026.2: the
-# appendix upload form and access (FA-R52) tests. Phase 1b (registration, FA-R53/FA-R54): the
-# role groups and their assignment at CAS login, the model permission methods, the login
-# redirect under the /find prefix. Phase 2 (roadmap FA-R40) adds to this list and later
-# replaces it with the whole suite.
+# appendix upload form and access (FA-R52) tests. From 2026.2.1: the reports listed through the
+# person API (api.test_person_api_reports) and the feature API (api.test_feature_api_reports).
+# Phase 1b (registration, FA-R53/FA-R54): the role groups and their assignment at CAS login, the
+# model permission methods, the login redirect under the /find prefix, the write views, the
+# person data. Phase 2 (roadmap FA-R40) adds to this list and later replaces it with the whole
+# suite.
 DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
+                    api.test_person_api_reports api.test_feature_api_reports
                     publications.test_roles publications.test_permissions_models
                     publications.test_login_redirect publications.test_report_access
                     publications.test_write_access publications.test_person_privacy)
@@ -191,6 +195,7 @@ from django.contrib.gis.gdal import gdal_version
 from django.contrib.gis.geos import geos_version
 print(django.get_version(), gdal_version().decode(), geos_version().decode())"
     emit tools sh -c "for t in gcc cc c++ make pkg-config nano mc; do command -v \$t; done; true"
+    emit dbfiles find /app -xdev \( -name "*.sqlite" -o -name "*.sqlite3" -o -name "*.sqlite.bak" -o -name "*.db" \) -print
     emit cronfile stat -c "%U:%G %a" /etc/cron.d/find_artek_thumbnails
     emit cronjob grep -E "^[0-9*]" /etc/cron.d/find_artek_thumbnails
   ' 2>&1)" || true
@@ -235,6 +240,12 @@ t_imports() {
 t_no_dev_tools() {
   need_img
   [ -z "${F[img.tools.out]:-}" ] || fail_t "installed: $(printf '%s' "${F[img.tools.out]}" | tr '\n' ' ')"
+}
+
+t_no_db_files() {
+  # Database files hold personal data (roadmap FA-R73); none may be copied into the image.
+  need_img
+  [ -z "${F[img.dbfiles.out]:-}" ] || fail_t "database files in the image: $(printf '%s' "${F[img.dbfiles.out]}" | tr '\n' ' ')"
 }
 
 t_cron_file() {
@@ -472,6 +483,7 @@ add_test "image: runs as dockeruser, uid/gid 30000, WORKDIR /app" t_user
 add_test "image: pip check passes" t_pip_check
 add_test "image: key packages import (django, rest_framework, MySQLdb, GDAL, GEOS, PIL, pdf2image)" t_imports
 add_test "image: no compilers or dev tools (gcc, cc, c++, make, pkg-config, nano, mc)" t_no_dev_tools
+add_test "image: no database files under /app (*.sqlite, *.sqlite3, *.sqlite.bak, *.db)" t_no_db_files
 add_test "image: thumbnail cron job /etc/cron.d/find_artek_thumbnails is root 0644 and runs as dockeruser" t_cron_file
 needs ""
 add_test "image: entrypoint is /usr/local/bin/docker-entrypoint.sh" t_entrypoint
