@@ -297,6 +297,12 @@ git show v2.0.0:.dev.env | sed 's/=.*//'; git show v2.0.1:.dev.env | sed 's/=.*/
 
 **Leaked variables** (both versions, checked 2026-11-18): `MYSQL_ROOT_USER`, `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_HOST`, `SECRET_KEY`, `ROOT_SUPERUSER_NAME`, `ROOT_SUPERUSER_PASSWORD`, `ELASTIC_PASSWORD`, `ELASTIC_USERNAME`, `ELASTIC_KIBANA_ACCESS_TOKEN_NAME`, `ELASTIC_KIBANA_ACCESS_TOKEN`, plus commented-out lines `# MYSQL_ROOT_PASSWORD` and `# MYSQL_PASSWORD` (older values, also leaked). **Not leaked:** `LDAP_BIND_*`, `NETWORK_DRIVE_*`. `ROOT_SUPERUSER_*` and `ELASTIC_*` are not read by any code on `develop/main`.
 
+**Exposure checked 2026-11-18:** the repository is public, and the leaked values are the ones in use. Reachable from outside DTU: the app at `/find/` (public; the Django admin form `/find/admin/` accepts a password because of `ModelBackend`), and `SECRET_KEY` is used by it. Not reachable: MariaDB (no published port), phpMyAdmin (`127.0.0.1:6001`, SSH tunnel only); the DTU front forwards only 80/443. **Superuser `root` (`ROOT_SUPERUSER_NAME`) does not exist in production**; users: `thin` (the only superuser and staff), `s225255`, `maljon`. So nothing exposed is urgent, provided `thin` doesn't use a leaked password (check below) and the Elastic instance is gone.
+
+**Recommended timing:** check `thin` and Elastic now; rotate `SECRET_KEY` and the DB passwords in one maintenance window, preferably with the 2026.3 deploy (Phase 1b). The GitHub push (6.2) doesn't depend on it.
+
+Check `thin` (Django shell on the host, one line per prompt; repeat for each leaked password, including the commented ones): `u = U.objects.get(username="thin"); print(u.has_usable_password(), u.check_password(getpass.getpass("leaked password: ")))`. `True True` = change it now (`u.set_password(getpass.getpass("new: ")); u.save()`).
+
 Rotate every leaked value still in use:
 
 | Variable | Risk | How to rotate | Side effects |
