@@ -179,7 +179,7 @@ Expect lines tagged `[thumbnails]` from about 02:00 UTC with no traceback. The f
 
 #### 5b. Merge the last FA-R52 commit
 
-- [ ] Done
+- [x] Done 2026-11-18: `develop/main` fast-forwarded to `ff06b45` (merge of `develop/main` into `agent-fixes`, code = `2577e20`); dev check, makemigrations, 12/12 form + access tests, frontpage 200.
 
 Where: in the session. `agent-fixes` has one more verified commit, `2577e20`: the release gate now also runs the 6 access tests (`publications.test_upload_appendix_access`, fixed to pass under the production settings), and the readme's 2026.2 notes name the FA-R52 fix. Say "merge" and the orchestrator fast-forwards `develop/main` to it. Tag only after that, so the 2026.2 gate tests the access check.
 
@@ -202,7 +202,7 @@ Deploy it before 2026.2, or with it. Without it 2026.2 still works; only request
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP, after 5b
-git log --oneline -3 develop/main                     # expect 2577e20 (or a docs commit on top of it)
+git log --oneline -3 develop/main                     # expect ff06b45 (or a docs commit on top of it)
 git tag -a 2026.2 -m "find_artek 2026.2: Django 4.2.30, DRF 3.15.2, gunicorn gthread, FA-R52 appendix upload access" develop/main
 git show --no-patch --format='%h %s' '2026.2^{commit}'
 ```
