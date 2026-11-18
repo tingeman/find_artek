@@ -313,7 +313,7 @@ Rotate every leaked value still in use:
 | `ELASTIC_*` | Account and API token of the old Elastic/Kibana work (branch `vicmrp/upgrade/elastic`) | If that Elastic instance still exists: revoke the token and change the password in Elastic. If it is gone: nothing to do | none for find_artek |
 | older values in the commented lines | Same as above if they are still used anywhere (other apps, other databases) | Check; change where still used | – |
 
-While editing the production env file anyway, drop `NETWORK_DRIVE_*` and `ENABLE_CRON` (unused by the M5 stack; web_server `docs/deploy/secrets.md`).
+While editing the production env file anyway, drop `NETWORK_DRIVE_*` and `ENABLE_CRON` (unused by the M5 stack; web_server `docs/deploy/secrets.md`). Production has `ENABLE_CRON=False` there (checked 2026-11-18); it has no effect, because web_server's compose sets `ENABLE_CRON: "true"` under `environment:`, which wins over `env_file:`, but it misleads. **Keep `THUMBNAIL_HEIGHT=400`:** the cron wrapper reads it (`scripts/generate_thumbnails_cron.sh`); 400 is also the default, so it only documents the value. Do it in the same edit as the rotation: any change to the env file recreates all three containers at the next playbook run.
 
 **Generating values** (WSL; `secrets` uses the OS's cryptographic random source; `token_urlsafe` gives only letters, digits, `-` and `_`, so the values are safe in a compose env file, in SQL quotes and in a shell. Don't use Django's `get_random_secret_key()` here: it contains `$`, `#` and brackets, which env files and shells can misread):
 
