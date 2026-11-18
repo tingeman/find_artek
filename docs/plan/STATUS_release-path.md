@@ -6,7 +6,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and [USER_STEPS_release-path.md](USER_STEPS_release-path.md) step 5–6; code work happens only in a worktree, planning docs only here).
 
-- **Phase 1 code is complete and merged** (2026-11-18): `develop/main` = `ff06b45` (T11 + FA-R52 incl. the gate tests `2577e20`). Next is **release 2026.2**, all steps yours: **USER_STEPS 5d–5h** (5a thumbnail log deferred to the first 02:00 UTC after the 2026.2 deploy; tag, build, publish, deploy, `main`), then **6** (rotate `.dev.env` credentials, push).
+- **Phase 1 code is complete and merged** (2026-11-18): `develop/main` = `ff06b45` (T11 + FA-R52 incl. the gate tests `2577e20`). Next is **release 2026.2**, all steps yours: **USER_STEPS 5f–5h** (5a thumbnail log deferred to the first 02:00 UTC after the 2026.2 deploy; publish, deploy, `main`). Tag `2026.2` = `cc410a2`; bundle built and tested 2026-11-18, `tarball_sha256` `c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, then **6** (rotate `.dev.env` credentials, push).
 - **web_server nginx timeout done** (2026-11-18, USER_STEPS 5c): `location /find/` has `proxy_read_timeout`/`proxy_send_timeout 120s` (web_server `062dad9`), deployed, routes checked. Docs there still say find_artek `master`.
 - **New finding FA-R67:** production `LOGIN_URL = '/login'` with `FORCE_SCRIPT_NAME = '/find'` sends every `login_required` redirect to `/login`, outside `/find/`. Not fixed; check in production at 5g.
 - GitHub (from local tracking refs, 2026-11-18): `origin/main` = `3d8299b` (rename done), `origin/develop/main` = `a038018`, refactor branch pushed. Tags and `wip/disambiguation-draft` unknown.

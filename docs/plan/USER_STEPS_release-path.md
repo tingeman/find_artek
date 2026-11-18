@@ -198,7 +198,7 @@ Deploy it before 2026.2, or with it. Without it 2026.2 still works; only request
 
 #### 5d. Tag `2026.2` locally
 
-- [ ] Done
+- [x] Done (2026-11-18: `2026.2` → `cc410a2`, = `ff06b45` + docs)
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP, after 5b
@@ -209,7 +209,7 @@ git show --no-patch --format='%h %s' '2026.2^{commit}'
 
 #### 5e. Build and test the bundle
 
-- [ ] Done
+- [x] Done (2026-11-18: `RESULT: OK`, `git_sha: cc410a298e23`, `tarball_sha256: c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, image `sha256:86a71267…`)
 
 ```bash
 # WSL
@@ -226,7 +226,7 @@ Expect `RESULT: OK, bundle written, tests passed`. Unlike 2026.1, the Django ste
 
 ```powershell
 # PowerShell
-$dst = '\ait-pdfs\Qdrev\SUS\Groups\Arctic_backup\SUS-PArcWeb01\releases\webapp_find_artek'
+$dst = '\\ait-pdfs\Qdrev\SUS\Groups\Arctic_backup\SUS-PArcWeb01\releases\webapp_find_artek'
 Get-ChildItem $dst                                   # must not contain webapp_find_artek-2026.2.* yet
 Copy-Item 'C:\thin\02_Code\docker_projects\dtu_sus_web_server\release-out\webapp_find_artek\webapp_find_artek-2026.2.*' $dst
 Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.2.tar.gz"   # = tarball_sha256 in the manifest
