@@ -83,7 +83,7 @@
               <div class="property-label" style="width: 150px;"><strong>{% trans "Report no." %}:</strong></div>
               <div class="property-value">
                 {{ publication.number }}
-                {% if user.is_authenticated %}
+                {% if can_change_report_number %}
                   <a href="{% url 'publications:change_report_number' pk=publication.pk %}" class="btn btn-sm btn-outline-secondary ms-2" title="Change report number">✏️</a>
                 {% endif %}
               </div>
@@ -165,9 +165,15 @@
                 {% endif %}
                 {% if user.is_superuser or can_verify_publication %}
                   {% if publication.verified %}
-                    <a href="{% url 'publications:unverify_report' pub_id=publication.pk %}" class="btn btn-sm btn-outline-warning me-2" title="Unverify this report">❌ Unverify</a>
+                    <form method="post" action="{% url 'publications:unverify_report' pub_id=publication.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-warning me-2" title="Unverify this report">❌ Unverify</button>
+                    </form>
                   {% else %}
-                    <a href="{% url 'publications:verify_report' pub_id=publication.pk %}" class="btn btn-sm btn-outline-success me-2" title="Verify this report">✅ Verify</a>
+                    <form method="post" action="{% url 'publications:verify_report' pub_id=publication.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-success me-2" title="Verify this report">✅ Verify</button>
+                    </form>
                   {% endif %}
                 {% endif %}
               </div>

@@ -60,6 +60,9 @@ from publications.models import (
     Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
     Keyword, FileObject
 )
+from publications.permissions import (
+    DELETE, EDIT, VERIFY, PublicationPermissionMixin, ReportFormPermissionMixin,
+)
 from publications.utils_basic import CaseInsensitively
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
@@ -293,7 +296,11 @@ class ReportView(BaseDetailView):
         can_edit_publication = self.object.is_editable_by(user) if user.is_authenticated else False
         can_delete_publication = self.object.is_deletable_by(user) if user.is_authenticated else False
         can_verify_publication = self.object.is_verifiable_by(user) if user.is_authenticated else False
+        # Report number changes are for editors (change_publication); the view itself is
+        # guarded in T5 of the registration plan.
+        can_change_report_number = user.has_perm('publications.change_publication')
         context.update({
+            'can_change_report_number': can_change_report_number,
             'associated_features': associated_features,
             'can_edit_publication': can_edit_publication,
             'can_delete_publication': can_delete_publication,
@@ -312,9 +319,10 @@ class ReportView(BaseDetailView):
         return super().get(request, *args, **kwargs)
 
 
-@method_decorator(login_required, name='dispatch')
-class ReportFormView(BaseFormView):
-    """Unified view for both adding and editing reports"""
+class ReportFormView(ReportFormPermissionMixin, BaseFormView):
+    """Unified view for both adding and editing reports.
+
+    Add needs add_publication, edit needs Publication.is_editable_by (permissions.py)."""
     model = Publication
     template_name = 'publications/add_edit_report.html'
     select_persons_url = 'select-persons'
@@ -462,45 +470,35 @@ class ReportFormView(BaseFormView):
 
 
 
-@method_decorator(login_required, name='dispatch')
-class ReportReviewView(BaseView):
-    """Handles review of form data before final save"""
+class ReportReviewView(ReportFormPermissionMixin, BaseView):
+    """Handles review of form data before final save.
+
+    Same permission as the form (permissions.py), checked before anything else."""
     template_name = 'publications/add_edit_report_review.html'
-    
+
     def is_edit_mode(self):
         return 'pk' in self.kwargs
-    
+
     def get_object(self):
         if self.is_edit_mode():
             return get_object_or_404(Publication, pk=self.kwargs['pk'])
         return None
-    
-    def dispatch(self, request, *args, **kwargs):
-        print(f"🔍 DEBUG: ReportReviewView.dispatch - Method: {request.method}")
-        print(f"🔍 DEBUG: ReportReviewView.dispatch - Has form_data: {'form_data' in request.session}")
-        
-        if 'form_data' not in request.session:
-            print(f"🔍 DEBUG: No form_data, redirecting to form")
-            if self.is_edit_mode():
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                return redirect('publications:add_report')
-        
-        print(f"🔍 DEBUG: Continuing to {request.method} method")
-        return super().dispatch(request, *args, **kwargs)
-    
+
+    def _form_redirect(self):
+        """No form data in the session: back to the form."""
+        if self.is_edit_mode():
+            return redirect('publications:edit_report', pk=self.kwargs['pk'])
+        return redirect('publications:add_report')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         # Pass add/edit state on to the template
         context['action'] = 'edit' if self.is_edit_mode() else 'add'
 
-        # Get the publication object if in edit mode
+        # Get the publication object if in edit mode (the permission was checked in dispatch)
         if self.is_edit_mode():
             context['publication'] = self.get_object()
-            if not context['publication'].is_editable_by(self.request.user):
-                context['error'] = "You do not have permissions to edit this publication!"
-                return context
         else:
             context['publication'] = None
 
@@ -721,6 +719,8 @@ class ReportReviewView(BaseView):
     
     def get(self, request, *args, **kwargs):
         """Handle GET requests - show the review page"""
+        if 'form_data' not in request.session:
+            return self._form_redirect()
         print(f"🔍 DEBUG: ReportReviewView.get called")
         print(f"🔍 DEBUG: Session keys: {list(request.session.keys())}")
         print(f"🔍 DEBUG: Has form_data: {'form_data' in request.session}")
@@ -760,19 +760,24 @@ class ReportReviewView(BaseView):
 
 
     def post(self, request, *args, **kwargs):
-        """Handle form submission from review page"""
-        print(f"🔍 DEBUG: ReportReviewView.post called - THIS SHOULD NOT HAPPEN ON GET!")
-        print(f"🔍 DEBUG: POST data: {request.POST}")
+        """A POST to the review page (the template posts to the finalize URL directly) is
+        passed on to the finalize step with a 307, so it stays a POST with its CSRF token;
+        the finalize step checks the permission again."""
+        if 'form_data' not in request.session:
+            return self._form_redirect()
         if self.is_edit_mode():
-            return redirect('publications:edit_finalize', pk=kwargs['pk'])
+            url = reverse('publications:edit_report_finalize', kwargs={'pk': kwargs['pk']})
         else:
-            return redirect('publications:add_finalize')
+            url = reverse('publications:add_report_finalize')
+        return HttpResponseRedirect(url, status=307)
 
 
 
-@method_decorator(login_required, name='dispatch')
-class ReportFinalizeView(BaseView):
-    """Handles final save of publication"""
+class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
+    """Handles final save of publication.
+
+    Checks the same permission as the form again (permissions.py), so posting here directly
+    without the right to add/edit fails with 403 and saves nothing."""
     
     def get_form_class(self):
         return WorkflowAddEditReportForm
@@ -798,13 +803,12 @@ class ReportFinalizeView(BaseView):
             
         return kwargs
 
-    def dispatch(self, request, *args, **kwargs):
-        if 'form_data' not in request.session:
-            if self.is_edit_mode():
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                return redirect('publications:add_report')
-        return super().dispatch(request, *args, **kwargs)
+    def get(self, request, *args, **kwargs):
+        """Nothing is saved by GET: back to the review step (which sends the user on to the
+        form when there is no form data in the session)."""
+        if self.is_edit_mode():
+            return redirect('publications:edit_report_review', pk=kwargs['pk'])
+        return redirect('publications:add_report_review')
     
     def post(self, request, *args, **kwargs):
         """Save the publication with session data"""
@@ -1108,68 +1112,33 @@ class ReportFinalizeView(BaseView):
 
 
 
-class VerifyReportView(BaseView):
-    """
-    View for verifying a report. Sets the 'verified' flag on a Publication if the user has permission.
-    """
-    template_name = 'publications/access_denied.html'
+class _SetVerifiedView(PublicationPermissionMixin, BaseView):
+    """Sets Publication.verified; POST only (a GET is 405 and changes nothing), and only
+    for users with verify_publication (permissions.py)."""
+    permission = VERIFY
+    publication_url_kwarg = 'pub_id'
+    http_method_names = ['post']
+    verified = None
+    done = None
 
-    @method_decorator(login_required)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_object(self):
-        pub_id = self.kwargs.get('pub_id')
-        if pub_id:
-            return get_object_or_404(Publication, pk=pub_id)
-        return None
-
-    def get(self, request, *args, **kwargs):
-        publication = self.get_object()
-        if not publication:
-            return redirect('publications:reports')
-
-        if not publication.is_verifiable_by(request.user):
-            error = "You do not have permissions to verify this report!"
-            context = {'pub': publication, 'error': error}
-            return render(request, self.template_name, context)
-
-        publication.verified = True
+    def post(self, request, *args, **kwargs):
+        publication = self.publication
+        publication.verified = self.verified
         publication.save()
-        messages.success(request, f"Report ({publication.id}) '{publication.number}' was verified.")
+        messages.success(request, f"Report ({publication.id}) '{publication.number}' was {self.done}.")
         return redirect('publications:report', pk=publication.pk)
 
 
-class UnverifyReportView(BaseView):
-    """
-    View for unverifying a report. Sets the 'verified' flag to False if the user has permission.
-    """
-    template_name = 'publications/access_denied.html'
+class VerifyReportView(_SetVerifiedView):
+    """Verify a report (it becomes visible to anonymous users)."""
+    verified = True
+    done = 'verified'
 
-    @method_decorator(login_required)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
 
-    def get_object(self):
-        pub_id = self.kwargs.get('pub_id')
-        if pub_id:
-            return get_object_or_404(Publication, pk=pub_id)
-        return None
-
-    def get(self, request, *args, **kwargs):
-        publication = self.get_object()
-        if not publication:
-            return redirect('publications:reports')
-
-        if not publication.is_verifiable_by(request.user):
-            error = "You do not have permissions to unverify this report!"
-            context = {'pub': publication, 'error': error}
-            return render(request, self.template_name, context)
-
-        publication.verified = False
-        publication.save()
-        messages.success(request, f"Report ({publication.id}) '{publication.number}' was unverified.")
-        return redirect('publications:report', pk=publication.pk)
+class UnverifyReportView(_SetVerifiedView):
+    """Unverify a report (it is hidden from anonymous users again)."""
+    verified = False
+    done = 'unverified'
 
 
 @method_decorator(login_required, name='dispatch')
@@ -1673,25 +1642,18 @@ class LogoutView(BaseView):
 #     return JsonResponse(serialized_features, safe=False)
 
 
-class UploadAppendixView(BaseView):
+class UploadAppendixView(PublicationPermissionMixin, BaseView):
     """
     View for uploading multiple appendix files to a publication.
     Uses session-based batch management for file handling.
+    Only users who may edit the publication can see or use the upload page (FA-R52,
+    permissions.py).
     
     Note: For very large files (>100MB), we may need to implement 
     a secondary upload scheme with chunked uploads or direct storage.
     """
     template_name = 'publications/upload_appendix.html'
-
-    @method_decorator(login_required)
-    def dispatch(self, request, *args, **kwargs):
-        """Only users who may edit the publication can see or use the upload page (FA-R52)."""
-        publication = get_object_or_404(Publication, id=kwargs['pk'])
-        if not publication.is_editable_by(request.user):
-            context = BaseView.get_context_data(self)
-            context['error'] = "You do not have permissions to edit this publication!"
-            return render(request, 'publications/access_denied.html', context, status=403)
-        return super().dispatch(request, *args, **kwargs)
+    permission = EDIT
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2159,13 +2121,14 @@ class AddFeatureByMapView(LoginRequiredMixin, FormView):
         return super().form_invalid(form)
 
 
-class DeleteReportView(BaseView):
-    """View for deleting a publication and all its associated files"""
+class DeleteReportView(PublicationPermissionMixin, BaseView):
+    """View for deleting a publication and all its associated files.
+
+    Needs Publication.is_deletable_by (delete_publication, or delete_own_publication and
+    own; permissions.py). This replaces the old rule "superuser, creator or
+    delete_publication" (plan registration, permission matrix)."""
     template_name = 'publications/delete_report_form.html'
-    
-    @method_decorator(login_required)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+    permission = DELETE
     
     def get_publication(self):
         """Get the publication to be deleted"""
@@ -2179,31 +2142,12 @@ class DeleteReportView(BaseView):
     
     def get(self, request, *args, **kwargs):
         """Display the delete confirmation page"""
-        publication = self.get_publication()
-        
-        # Check permissions - user must be able to delete their own publications
-        # or have admin privileges
-        if not (request.user.is_superuser or 
-                publication.created_by == request.user or
-                request.user.has_perm('publications.delete_publication')):
-            return render(request, 'publications/access_denied.html', {
-                'message': 'You do not have permission to delete this publication.'
-            })
-        
         context = self.get_context_data()
         return render(request, self.template_name, context)
     
     def post(self, request, *args, **kwargs):
         """Handle the delete or cancel action"""
         publication = self.get_publication()
-        
-        # Check permissions
-        if not (request.user.is_superuser or 
-                publication.created_by == request.user or
-                request.user.has_perm('publications.delete_publication')):
-            return render(request, 'publications/access_denied.html', {
-                'message': 'You do not have permission to delete this publication.'
-            })
         
         action = request.POST.get('action')
         
