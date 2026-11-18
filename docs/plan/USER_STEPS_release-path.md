@@ -363,7 +363,14 @@ exit
 
 Leave `healthcheck@...` and `mariadb.sys` alone (not from the env file). Type the passwords at the prompt; with `MYSQL_HISTFILE=/dev/null` they are not saved.
 
-3. Right away, rerun `playbook_install_webapp_find_artek.yml` (same `releases.yml` version): it takes the converge path, and compose recreates all three containers because the env file changed (no dump on this path; a dump before step 2 is optional: web_server `docs/deploy/find_artek_admin.md`).
+3. Right away, rerun the install playbook (WSL, web_server on `develop/main`, no uncommitted changes; web_server `docs/deploy/find_artek_admin.md` section 2):
+
+```bash
+cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server/ansible
+ansible-playbook -kK -i hosts playbook_install_webapp_find_artek.yml -v --ask-vault-pass
+```
+
+Same `releases.yml` version, so the summary's first line must say **converge** (promote = stop and ask); it takes the converge path, and compose recreates all three containers because the env file changed (no dump on this path; a dump before step 2 is optional: web_server `docs/deploy/find_artek_admin.md`).
 4. Checks on the host:
 
 ```bash
