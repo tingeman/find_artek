@@ -1,13 +1,13 @@
 # Status: Release path and pinning (Phase 1)
 
-Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (from `develop/main`; worktree `..\find_artek_agent-release-path`, with a copy of `.dev.env`). Plan, status, user steps and roadmap live on `develop/main` (this checkout); the agent branch carries the code and the docs that describe it (README, CLAUDE.md, skills).
+Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (from `develop/main`; worktree `..\find_artek_agent-release-path`; its `.dev.env` copy deleted 2026-11-18, the dev stack runs from `find_artek_DEVELOP` again). Plan, status, user steps and roadmap live on `develop/main` (this checkout); the agent branch carries the code and the docs that describe it (README, CLAUDE.md, skills).
 
 ## Now
 
 **Resume here** (fresh session in `find_artek_DEVELOP`: read this file and [USER_STEPS_release-path.md](USER_STEPS_release-path.md) step 5–6; code work happens only in a worktree, planning docs only here).
 
-- **Release 2026.2 is deployed** (2026-11-18): tag `2026.2` = `cc410a2` (= `ff06b45` + docs), `tarball_sha256` `c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, web_server `f5b62ed`. All 5g checks pass; FA-R52 is live. Local `main` = `cc410a2` here, web_server `main` = `f5b62ed`; **neither pushed** (the push is yours, with step 6).
-- **Still open:** **6** (6a rotation procedure written 2026-11-18: leaked values overlap the ones in use; rotate `SECRET_KEY`, DB passwords, Django superuser, Elastic if still alive, in production and dev (LDAP and NETWORK_DRIVE not leaked); then push `main`, `develop/main` and tags `2026.1`/`2026.2` here). web_server `main` and `develop/main` = `f5b62ed` match `github/*` (looks pushed, 2026-11-18).
+- **Release 2026.2 is deployed** (2026-11-18): tag `2026.2` = `cc410a2` (= `ff06b45` + docs), `tarball_sha256` `c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, web_server `f5b62ed`. All 5g checks pass; FA-R52 is live. Local `main` = `cc410a2` here, web_server `main` = `f5b62ed`; find_artek not pushed (step 6.2).
+- **Still open:** **6.2** push here (`develop/main`, `main`, tags `2026.1`/`2026.2`); web_server: push the vault commit on its `develop/main`, fast-forward and push its `main`. 6a (rotation) **done** 2026-11-18 in production and dev. Unknown: whether `NETWORK_DRIVE_*`/`ENABLE_CRON` were dropped from the production env file in the same edit.
 - **web_server nginx timeout done** (2026-11-18, USER_STEPS 5c): `location /find/` has `proxy_read_timeout`/`proxy_send_timeout 120s` (web_server `062dad9`). Docs there still say find_artek `master`.
 - **Findings for Phase 1b:** FA-R67 (login redirect leaves `/find/`) confirmed in production; FA-R68 (appendix uploads without `created_by`), new.
 - GitHub (from local tracking refs, 2026-11-18): `origin/main` = `3d8299b` (rename done), `origin/develop/main` = `a038018`, refactor branch pushed. Tags and `wip/disambiguation-draft` unknown.
@@ -15,8 +15,9 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 
 ## Done
 
+- 2026-11-18: USER_STEPS 6a done: `SECRET_KEY`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` rotated in production (vault, `ALTER USER`, playbook converge; checks, CAS, phpMyAdmin ok) and dev (`ALTER USER`, new `.dev.env`; stack moved from the worktree to `find_artek_DEVELOP`; check, frontpage, pma, DB ok). Done right away instead of with 2026.3.
 - 2026-11-18: leak exposure checked (6a): repo public, leaked values current; superuser `root` not in production (users `thin`, `s225255`, `maljon`); DB and phpMyAdmin not reachable from outside. Recommended: rotate `SECRET_KEY` + DB passwords with the 2026.3 deploy; `thin` checked against every leaked password: none matches. Elastic no longer deployed (nothing to rotate). LDAP bind passwords hard-coded in `f0bc3ab`/`c8749a0` (public history) are old ones, not current: no LDAP rotation. Left: `SECRET_KEY` + DB passwords with the 2026.3 deploy.
-- 2026-11-18: `.dev.env` leak checked (metadata only): committed in `3b721b9`/`b152dad`, reachable only through tags `v2.0.0`/`v2.0.1`; current file untracked; owner confirmed overlap, USER_STEPS 6a (rotation) written.
+- 2026-11-18: `.dev.env` leak checked (metadata only): committed in `3b721b9`/`b152dad`, `3b721b9` is in `main`/`develop/main` history (corrected), `b152dad` only in tags `v2.0.0`/`v2.0.1`; `SECRET_KEY` literals and `app/.env` (2023) also in history (6a); current file untracked; owner confirmed overlap, USER_STEPS 6a (rotation) written.
 - 2026-11-18: USER_STEPS 5a done: thumbnail cron ran in the 2026.2 container at 02:00 UTC, 2 errors "PDF file not found" (roadmap FA-R69), job reports success anyway.
 - 2026-11-18: release 2026.2 tagged, built, published and deployed (USER_STEPS 5c–5h); `main` moved to `2026.2` locally.
 
