@@ -168,7 +168,8 @@ Tell the orchestrator which option you chose; it records it in the status file.
 
 #### 5a. Thumbnail cron, first night (left over from 4d)
 
-- [ ] Done. **Deferred 2026-11-18 until after 5g:** not run yet when checked (23:52 UTC on 2026-11-17). The 2026.2 deploy recreates the container, so check the first 02:00 UTC run of the 2026.2 container instead (same job, same `ENABLE_CRON=true`).
+- [x] Done 2026-11-18: the 2026.2 container ran the job at 02:00 UTC (finished 02:00:09, `[thumbnails]` lines, no traceback): "There were 2 errors", "Thumbnail generation completed successfully". The errors are "PDF file not found" for a few publications (roadmap FA-R69).
+- Earlier: **deferred 2026-11-18 until after 5g:** not run yet when checked (23:52 UTC on 2026-11-17). The 2026.2 deploy recreates the container, so check the first 02:00 UTC run of the 2026.2 container instead (same job, same `ENABLE_CRON=true`).
 
 ```bash
 # SSH on sus-parcweb01, after the first 02:00 UTC following the 2026.2 deploy (5g)
