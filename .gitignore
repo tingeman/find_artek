@@ -29,6 +29,8 @@ app-classic
 app-datatransfer/datatransfer/venv
 app-datatransfer/datatransfer/publications/migrations
 *.sqlite
+*.sqlite3
+*.sqlite.bak
 
 .env
 .migrate

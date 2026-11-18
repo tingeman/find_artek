@@ -12,7 +12,8 @@
 # * image checks: the image's user is dockeruser (uid/gid 30000), WORKDIR /app, the entrypoint
 #   is docker-entrypoint.sh, the command is gunicorn on 0.0.0.0:8099 (2 gthread workers x 2
 #   threads, timeout 120 s) without --reload, it has a HEALTHCHECK, pip check passes, the key
-#   packages import (GDAL and GEOS load), no compilers or admin tools are installed, the
+#   packages import (GDAL and GEOS load), no compilers or admin tools are installed, no
+#   database files (*.sqlite, *.sqlite3, *.sqlite.bak, *.db) are under /app, the
 #   thumbnail cron file is root 0644 and runs as dockeruser, and the Dockerfile's ARG
 #   PYTHON_IMAGE default is FA_PYTHON_IMAGE of compose.pins.env (by digest) with the stages
 #   runtime, dev, prod (prod last, so a plain docker build builds it). The dev compose file
@@ -188,6 +189,7 @@ from django.contrib.gis.gdal import gdal_version
 from django.contrib.gis.geos import geos_version
 print(django.get_version(), gdal_version().decode(), geos_version().decode())"
     emit tools sh -c "for t in gcc cc c++ make pkg-config nano mc; do command -v \$t; done; true"
+    emit dbfiles find /app -xdev \( -name "*.sqlite" -o -name "*.sqlite3" -o -name "*.sqlite.bak" -o -name "*.db" \) -print
     emit cronfile stat -c "%U:%G %a" /etc/cron.d/find_artek_thumbnails
     emit cronjob grep -E "^[0-9*]" /etc/cron.d/find_artek_thumbnails
   ' 2>&1)" || true
@@ -232,6 +234,12 @@ t_imports() {
 t_no_dev_tools() {
   need_img
   [ -z "${F[img.tools.out]:-}" ] || fail_t "installed: $(printf '%s' "${F[img.tools.out]}" | tr '\n' ' ')"
+}
+
+t_no_db_files() {
+  # Database files hold personal data (roadmap FA-R73); none may be copied into the image.
+  need_img
+  [ -z "${F[img.dbfiles.out]:-}" ] || fail_t "database files in the image: $(printf '%s' "${F[img.dbfiles.out]}" | tr '\n' ' ')"
 }
 
 t_cron_file() {
@@ -469,6 +477,7 @@ add_test "image: runs as dockeruser, uid/gid 30000, WORKDIR /app" t_user
 add_test "image: pip check passes" t_pip_check
 add_test "image: key packages import (django, rest_framework, MySQLdb, GDAL, GEOS, PIL, pdf2image)" t_imports
 add_test "image: no compilers or dev tools (gcc, cc, c++, make, pkg-config, nano, mc)" t_no_dev_tools
+add_test "image: no database files under /app (*.sqlite, *.sqlite3, *.sqlite.bak, *.db)" t_no_db_files
 add_test "image: thumbnail cron job /etc/cron.d/find_artek_thumbnails is root 0644 and runs as dockeruser" t_cron_file
 needs ""
 add_test "image: entrypoint is /usr/local/bin/docker-entrypoint.sh" t_entrypoint
