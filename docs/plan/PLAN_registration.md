@@ -58,6 +58,7 @@ Survey 2026-11-18 (paths under `app-main/`):
   | Add person (form workflow, `add_person_ajax`) | `add_person` | yes | yes | yes |
   | Add feature to a report | `add_feature` and may edit the report | own | own | any |
   | Delete feature | `delete_feature`, or `delete_own_feature` and created it | own | own | any |
+  | Edit / delete feature (**changed 2026-11-18, T16**) | `change_feature`/`delete_feature`, or `edit_own_feature`/`delete_own_feature` and listed (author, supervisor, editor) on a report the feature belongs to; the creator alone no longer counts | listed | listed | any |
 
   Superusers keep everything (Django's `has_perm`). `DeleteReportView`'s rule "creator may delete" is replaced by the matrix (the creator of a report is normally its author or supervisor, so own).
 - **Groups by data migration** (`publications/migrations/0003_registration_groups.py`): adds rows to `auth_group` and `auth_group_permissions` only, and is reversible (removes the three groups). It must create the custom permissions first (`create_permissions` for the app, as they are normally made by `post_migrate`). Existing users are **not** touched: they get `dtu_user` at their next login. Effect on live data: three new groups, about 20 new group-permission rows; no existing row changes.
@@ -97,7 +98,7 @@ Old (`find_artek_OLD`, tags `v1.*`, `hotfix-1.3.17`): django-auth-ldap, username
 
 ## Tasks
 
-Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T13 → T12 → T7 → T8 → T9 → T14 → T10 → T11 (you). T6 is independent and may move.
+Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T13 → T16 → T12 → T7 → T8 → T9 → T14 → T10 → T11 (you). T6 is independent and may move.
 
 ### T0. Worktree (you or main session)
 - `git worktree add -b agent-registration ..\find_artek_agent-registration develop/main` (PowerShell, in `C:\thin\02_Code\docker_projects\find_artek_DEVELOP`). The dev stack runs from `find_artek_DEVELOP`; tests for the branch run in an image built from the worktree (`docker build -t find_artek:registration . && bash tests/run.sh find_artek:registration`) or with the dev stack pointed at the worktree (main session decides; never `down -v`).
@@ -171,6 +172,14 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T13 → T12 → T7 → T8
 - Acceptance: an "Add" menu shows "Add report" to users with `add_publication`, "Import from Excel" to `change_publication` (editors); nothing for anonymous users or plain `dtu_user`.
 - Tests: menu rendered for the four user types.
 - Validation: `validate`.
+- Agent: implementer.
+- Deployment impact: none.
+
+### T16. Feature rights follow the report (decided 2026-11-18)
+- Files: `publications/models.py` (`Feature.is_editable_by`, `is_deletable_by`: listed on any of `feature.publications` via `Publication.is_own_publication_of`, instead of `created_by`), `publications/permissions.py` if needed, `publications/test_permissions_models.py`, `publications/test_write_access.py`.
+- Acceptance: a user listed as author, supervisor or editor on a report the feature belongs to may edit/delete it (with the `*_own_feature` permission, i.e. every `dtu_user`); a logged-in user not listed may not, even if they created the feature; `artek_editor` may edit/delete any; a feature on no report: editors only. Delete buttons in `report.html` follow.
+- Tests: the above; T3/T5 tests that encoded "creator may delete" are changed deliberately (say so).
+- Validation: `tests/run.sh`.
 - Agent: implementer.
 - Deployment impact: none.
 
