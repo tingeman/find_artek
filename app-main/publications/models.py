@@ -41,8 +41,16 @@ def has_model_permission(entity, app, perm, model ):
     perm:       permission (string). '_model' will be automatically added
     app:        name of the app the model is defined in.
     """
-    # QUESTION: What is this doing?
+    # Builds the codename '<app>.<perm>_<model>', e.g. 'publications.edit_own_publication'.
+    # Callers pass self._meta.model_name (the codename uses the model name, not the
+    # verbose name). Anonymous and inactive users have no permissions (has_perm is False);
+    # active superusers have all.
     return entity.has_perm( "{0}.{1}_{2}".format( app, perm, model ) )
+
+
+def _is_authenticated_user(entity):
+    """True for a logged-in user; False for AnonymousUser, None or other objects."""
+    return bool(getattr(entity, 'is_authenticated', False))
 
 def get_image_path(obj, filename):
     if obj.upload_to:
@@ -166,22 +174,25 @@ class Person(BaseModel):
         This functionality could be changed in future. Could even be a m2m
         relationship between person and user.
 
+        Anonymous users and empty values never match (an empty id_number or initials
+        must not match AnonymousUser's empty username).
         """
-        if (self.id_number.lower() == entity.username.lower() or
-                self.initials.lower() == entity.username.lower()):
-            return True
-        else:
+        if not _is_authenticated_user(entity):
             return False
+        username = (getattr(entity, 'username', '') or '').lower()
+        if not username:
+            return False
+        return username in ((self.id_number or '').lower(), (self.initials or '').lower())
 
     def is_editable_by(self, entity):
         """Checks if entity (group or user) has permissions to edit this model instance"""
 
         # check for 'change_person' permission
-        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.model_name):
             return True
 
         # check for 'edit_own_person' permission
-        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.model_name):
             # Test if user/entity is related to this model
             if self.is_related_to_user(entity):
                 return True
@@ -193,11 +204,11 @@ class Person(BaseModel):
         """Checks if entity (group or user) has permissions to delete this model instance"""
 
         # check for 'delete_person' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.model_name):
             return True
 
         # check for 'delete_own_person' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.model_name):
             # Test if user/entity is related to this model
             if self.is_related_to_user(entity):
                 return True
@@ -467,7 +478,7 @@ class Publication(BaseModel):
         """ Returns the supervisors as a list of Person instances sorted
         according to the supervisor index (so in the correct order from
         the publication. """
-        return self.supervisor.all().order_by('supervisorship__supervisor_id')
+        return self.supervisors.all().order_by('supervisorship__supervisor_id')
 
     def sorted_supervisorships(self):
         """ Returns the supervisorships as a list of supervisorship instances sorted
@@ -479,7 +490,7 @@ class Publication(BaseModel):
         """ Returns the editors as a list of Person instances sorted
         according to the editor index (so in the correct order from
         the publication. """
-        return self.editor.all().order_by('editorship__editor_id')
+        return self.editors.all().order_by('editorship__editor_id')
 
     def sorted_editorships(self):
         """ Returns the editorships as a list of editorship instances sorted
@@ -487,47 +498,64 @@ class Publication(BaseModel):
         the publication. """
         return self.editorship_set.all().order_by('editor_id')
 
-    def is_editable_by(self, entity):
-        """Checks if entity (group or user) has permissions to edit this model instance"""
-
-        # check for 'change_publication' permission
-        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.verbose_name):
-            return True
-
-        # check for 'edit_own_publication' permission
-        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.verbose_name):
-            # Test if user/entity is related to this model
-            persons = self.author.all() | self.supervisor.all() | self.editor.all()
+    def is_own_publication_of(self, entity):
+        """True if the user is listed as an author, supervisor or editor of this
+        publication (Person.is_related_to_user). False for anonymous users and for
+        unsaved publications."""
+        if not _is_authenticated_user(entity) or self.pk is None:
+            return False
+        for persons in (self.authors.all(), self.supervisors.all(), self.editors.all()):
             for p in persons:
                 if p.is_related_to_user(entity):
                     return True
+        return False
+
+    def is_editable_by(self, entity):
+        """Checks if the user may edit this publication: 'change_publication', or
+        'edit_own_publication' and listed as author, supervisor or editor."""
+
+        if not _is_authenticated_user(entity):
+            return False
+
+        # check for 'change_publication' permission
+        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.model_name):
+            return True
+
+        # check for 'edit_own_publication' permission
+        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.model_name):
+            if self.is_own_publication_of(entity):
+                return True
 
         # if neither, return False
         return False
 
     def is_deletable_by(self, entity):
-        """Checks if entity (group or user) has permissions to delete this model instance"""
+        """Checks if the user may delete this publication: 'delete_publication', or
+        'delete_own_publication' and listed as author, supervisor or editor."""
+
+        if not _is_authenticated_user(entity):
+            return False
 
         # check for 'delete_publication' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.model_name):
             return True
 
         # check for 'delete_own_publication' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.verbose_name):
-            # Test if user/entity is related to this model
-            persons = self.author.all() | self.supervisor.all() | self.editor.all()
-            for p in persons:
-                if p.is_related_to_user(entity):
-                    return True
+        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.model_name):
+            if self.is_own_publication_of(entity):
+                return True
 
         # if neither, return False
         return False
 
     def is_verifiable_by(self, entity):
-        """Checks if entity (group or user) has permissions to verify this model instance"""
+        """Checks if the user may verify this publication ('verify_publication')."""
 
-        # check for 'delete_publication' permission
-        if has_model_permission(entity, self._meta.app_label, 'verify', self._meta.verbose_name):
+        if not _is_authenticated_user(entity):
+            return False
+
+        # check for 'verify_publication' permission
+        if has_model_permission(entity, self._meta.app_label, 'verify', self._meta.model_name):
             return True
 
         # if neither, return False
@@ -595,19 +623,25 @@ class Feature(BaseModel):
     def feature_type_list(self):
         return [f[0] for f in self.feature_types]
 
+    def is_created_by(self, entity):
+        """True if the user created this feature. Only created_by counts: a user who
+        merely modified a feature does not own it. False when created_by is unset
+        (e.g. the creating user was deleted) and for anonymous users."""
+        if not _is_authenticated_user(entity) or self.created_by_id is None:
+            return False
+        return self.created_by_id == entity.pk
+
     def is_editable_by(self, entity):
         """Checks if entity (group or user) has permissions to edit this model instance"""
 
         # check for 'change_' permission
-        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'change', self._meta.model_name):
             return True
 
         # check for 'edit_own_' permission
-        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.verbose_name):
-            # Test if user/entity is related to this model
-            if hasattr(entity, 'username'):
-                if entity.username == self.created_by.username or entity.username == self.modified_by.username:
-                    return True
+        if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.model_name):
+            if self.is_created_by(entity):
+                return True
 
         # if neither, return False
         return False
@@ -616,15 +650,13 @@ class Feature(BaseModel):
         """Checks if entity (group or user) has permissions to delete this model instance"""
 
         # check for 'delete_' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.verbose_name):
+        if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.model_name):
             return True
 
         # check for 'delete_own_' permission
-        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.verbose_name):
-            # Test if user/entity is related to this model
-            if hasattr(entity, 'username'):
-                if entity.username == self.created_by.username or entity.username == self.modified_by.username:
-                    return True
+        if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.model_name):
+            if self.is_created_by(entity):
+                return True
 
         # if neither, return False
         return False
