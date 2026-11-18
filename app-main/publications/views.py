@@ -3,6 +3,7 @@ import os
 import ast
 import datetime
 import json
+import logging
 import pdb
 import re
 import shutil
@@ -15,7 +16,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core import serializers
 from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
@@ -61,7 +61,9 @@ from publications.models import (
     Keyword, FileObject
 )
 from publications.permissions import (
-    DELETE, EDIT, VERIFY, PublicationPermissionMixin, ReportFormPermissionMixin,
+    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, VERIFY,
+    FeaturePermissionMixin, PermissionMixin, PublicationPermissionMixin,
+    ReportFormPermissionMixin, permission_required, user_may,
 )
 from publications.utils_basic import CaseInsensitively
 from publications.utils_models import (
@@ -69,9 +71,8 @@ from publications.utils_models import (
     handle_session_appendix_uploads, rename_publication_files
 )
 from publications.workflows.person import disambiguate_person_step, complete_person_workflow
-from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
-# Create your views here.
+logger = logging.getLogger(__name__)
 
 
 class BaseView(View):
@@ -296,18 +297,22 @@ class ReportView(BaseDetailView):
         can_edit_publication = self.object.is_editable_by(user) if user.is_authenticated else False
         can_delete_publication = self.object.is_deletable_by(user) if user.is_authenticated else False
         can_verify_publication = self.object.is_verifiable_by(user) if user.is_authenticated else False
-        # Report number changes are for editors (change_publication); the view itself is
-        # guarded in T5 of the registration plan.
-        can_change_report_number = user.has_perm('publications.change_publication')
+        # Same rules as the views (permissions.py): report number changes are for editors,
+        # features may be added by those who may edit the report, and deleted per feature.
+        deletable_feature_ids = {
+            feature.pk for feature in associated_features
+            if user_may(user, DELETE_FEATURE, feature)
+        }
         context.update({
-            'can_change_report_number': can_change_report_number,
+            'can_change_report_number': user_may(user, MANAGE),
             'associated_features': associated_features,
             'can_edit_publication': can_edit_publication,
             'can_delete_publication': can_delete_publication,
             'can_verify_publication': can_verify_publication,
+            'can_add_feature': user_may(user, ADD_FEATURE, self.object),
+            'deletable_feature_ids': deletable_feature_ids,
         })
         context['invalidate_feature_cache'] = self.request.session.pop('invalidate_feature_cache', False)
-        print(context)
         return context
 
     def get(self, request, *args, **kwargs):
@@ -367,10 +372,7 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
         }
 
         initial_data['authors'] = [auth.person.pk for auth in publication.authorship_set.all().order_by('author_id')]
-        print(f"ReportFormView initial data for authors: {initial_data['authors']}")
-    
         initial_data['supervisors'] = [sup.person.pk for sup in publication.supervisorship_set.all().order_by('supervisor_id')]
-        print(f"ReportFormView initial data for supervisors: {initial_data['supervisors']}")
 
         return initial_data
 
@@ -417,23 +419,12 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
 
     def form_valid(self, form):
         """Unified form processing for both Add and Edit with workflow support"""
-        print(f"🔍 DEBUG: ReportFormView.form_valid called")
-        print(f"🔍 DEBUG: Form cleaned_data keys: {list(form.cleaned_data.keys())}")
-        print(f"🔍 DEBUG: Form contains data:")
-        for key, value in form.cleaned_data.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-        
-        # Debug the form data types
-        for key, value in form.cleaned_data.items():
-            print(f"🔍 DEBUG: Form field '{key}': {value} (type: {type(value).__name__})")
-        
         # FIRST: Always store form data in session
         session_data = self._convert_form_to_session_data(form)
         
         # Handle file uploads
         if 'pdffile' in self.request.FILES:
             uploaded_file = self.request.FILES['pdffile']
-            print(f"🔍 DEBUG: Found file upload: {uploaded_file.name} (size: {uploaded_file.size} bytes)")
             file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
             session_data['uploaded_file_id'] = str(file_obj.id)
                 
@@ -441,8 +432,6 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
         self.request.session['form_data'] = session_data
         if self.is_edit_mode():
             self.request.session['publication_id'] = self.kwargs['pk']
-        
-        print(f"🔍 DEBUG: Session data stored: {session_data}")
 
         # THEN: Check if workflow forms need to redirect to disambiguation
         if hasattr(form, 'has_workflow_redirect') and form.has_workflow_redirect():
@@ -507,7 +496,6 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
             context['error'] = "No form data found in session. Please fill out the form first."
             return context
     
-        print(f"🔍 DEBUG: Session form_data: {self.request.session['form_data']}")
         review_data, changed_fields = self._get_review_data()
         context['review_data'] = review_data
                  
@@ -526,12 +514,7 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
         """Convert session data into a clean format for display and track changed fields"""
         session_data = self.request.session.get('form_data', {})
         review_data = {}
-        
-        # Debug output to understand the format of session data
-        print(f"🔍 DEBUG:ReportReviewView:_get_review_data:  Review session data keys: {list(session_data.keys())}")
-        print(f"🔍 DEBUG:ReportReviewView:_get_review_data:  Full session data for debugging:")
-        for key, value in session_data.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
+
 
         # Convert basic fields
         for field in ['title', 'year', 'number', 'abstract', 'comment']:
@@ -708,11 +691,6 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
                 changed_fields['file'] = True
                 print(f"🔍 DEBUG: File marked as changed - has_new_file: {has_new_file}, has_delete_request: {has_delete_request}")
 
-        print(f"🔍 DEBUG: ReportReviewView._get_changed_fields - Review data keys: {list(review_data.keys())}")
-        print(f"🔍 DEBUG: ReportReviewView._get_changed_fields - Review data:")
-        for key, value in review_data.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-
         print(f"🔍 DEBUG: ReportReviewView._get_changed_fields - Changed fields identified: {changed_fields}")
 
         return changed_fields
@@ -721,42 +699,14 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
         """Handle GET requests - show the review page"""
         if 'form_data' not in request.session:
             return self._form_redirect()
-        print(f"🔍 DEBUG: ReportReviewView.get called")
-        print(f"🔍 DEBUG: Session keys: {list(request.session.keys())}")
-        print(f"🔍 DEBUG: Has form_data: {'form_data' in request.session}")
-
-        print(f"🔍 DEBUG: form_data: {request.session.get('form_data', {})}")
-        print(f"🔍 DEBUG: updated_form_data: {request.session.get('updated_form_data', {})}")
-
-        print(f"🔍 DEBUG: Template name: {self.template_name}")
 
         context = self.get_context_data(**kwargs)
-        print(f"🔍 DEBUG: Context keys: {list(context.keys())}")
 
-        # if context['changed_fields'] is empty, then redirect to report view
-        if not context['changed_fields']:
-            print(f"🔍 DEBUG: No changed fields, redirecting to report view")
-            if self.is_edit_mode():
-                return redirect('publications:report', pk=kwargs['pk'])
-            # else:
-            #     return redirect('publications:add_report')
+        # Nothing changed in edit mode: back to the report
+        if not context['changed_fields'] and self.is_edit_mode():
+            return redirect('publications:report', pk=kwargs['pk'])
 
-        response = render(request, self.template_name, context)
-        print(f"🔍 DEBUG: Response type: {type(response)}")
-        print(f"🔍 DEBUG: Response status: {response.status_code}")
-        print(f"🔍 DEBUG: About to return response")
-
-        #return render(request, self.template_name, context)
-        return response
-
-        # if not 'form_data' in request.session:
-        #     print(f"🔍 DEBUG: No form_data in session, redirecting to form")
-        #     if self.is_edit_mode():
-        #         return redirect('publications:edit_report', pk=kwargs['pk'])
-        #     else:
-        #         return redirect('publications:add_report')
-
-        # print(f"🔍 DEBUG: Form data exists, proceeding to render review page")
+        return render(request, self.template_name, context)
 
 
     def post(self, request, *args, **kwargs):
@@ -830,14 +780,6 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
         # 2. Convert session data to form input format
         form_input = self._session_data_to_form_input(session_data)
 
-        print(f"🔍 DEBUG: ReportFinalizeView:post - Form input prepared from session data:")
-        for key, value in form_input.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-
-        print(f"🔍 DEBUG: ReportFinalizeView:post - Form input prepared:")
-        for key, value in form_input.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-
         # 2. Prepare form kwargs
         form_kwargs = {'request': request}
         if self.is_edit_mode():
@@ -878,13 +820,7 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
                     return redirect('publications:add_report_review')
         else:
             # If invalid, redirect back to review
-            print(f"🔍 DEBUG: Form is invalid: {form.errors}")
-
-            # print all form values
-            print(f"🔍 DEBUG: Form cleaned_data:")
-            for key, value in form.cleaned_data.items():
-                print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-
+            logger.debug("ReportFinalizeView: form invalid in fields %s", sorted(form.errors))
             messages.error(request, 'Form data is invalid. Please check your input.')
             if self.is_edit_mode():
                 return redirect('publications:edit_report_review', pk=kwargs['pk'])
@@ -907,7 +843,7 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
                     # there should never be more than one item here
                     form_input[key] = value[0]
                     if len(value) > 1:
-                        print(f"🔍 DEBUG: Warning: Multiple values found for {key} in session data, using first value only: {value[0]}")
+                        logger.debug("ReportFinalizeView: several values for %s in the session data, using the first", key)
                 else:
                     form_input[key] = None
             else:
@@ -919,12 +855,6 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
         """Handle authors, supervisors, topics, keywords"""
         session_data = self.request.session['form_data']
         
-        print(f"🔍 DEBUG: ReportFinalizeView:_handle_relationships called for publication {publication.pk}" )
-        print(f"🔍 DEBUG: Session data keys: {list(session_data.keys())}")
-        print(f"🔍 DEBUG: Session data:")
-        for key, value in session_data.items():
-            print(f"🔍 DEBUG:     '{key}': {value} (type: {type(value).__name__})")
-
         # Authors
         publication.authorship_set.all().delete()
         for i, author_pk in enumerate(session_data.get('authors', [])):
@@ -1191,15 +1121,10 @@ class PersonSelectView(BaseView):
         })
 
     def post(self, request):
-        print(f"PersonSelectView:post: request.post data: {request.POST}")
-
         config = self.get_session_config()
         session_data = self.request.session.get(config['session_key'], {})
         authors = session_data.get('authors', [])
         supervisors = session_data.get('supervisors', [])  
-
-        print(f"PersonSelectView:post: authors data: {authors}")
-        print(f"PersonSelectView:post: supervisors data: {supervisors}")
 
         if authors:
             authors_form = AuthorSelectForm(request.POST, authors=authors)
@@ -1211,65 +1136,48 @@ class PersonSelectView(BaseView):
         else:
             supervisors_form = None
 
-        # print(f"PersonSelectView:post: authors_form: {authors_form}")
-        # print(f"PersonSelectView:post: supervisors_form: {supervisors_form}")
-
         author_form_valid = False
         if (authors_form is not None) and (authors_form.is_valid()):
-            print(f"PersonSelectView:post: authors_form cleaned data: {authors_form.cleaned_data}")
             selected_authors = []
             for key, value in authors_form.cleaned_data.items():
                 if key.startswith("author_"):
                     if value == 'create_new':
-                        print(f"  - Create new author: {key}: {value}")
                         # Create a new Person instance
                         name = authors[int(key.split('_')[1])]
                         person = Person.objects.create(name=name)
                         selected_authors.append(person.pk)
-                        print(f"  - created new author: {person}")
                     else:
                         # Use the selected Person primary key
-                        print(f"  - Select existing author: {key}: {value}")
                         selected_authors.append(int(value))
 
             # Update the session with the selected author primary keys
             session_data['authors'] = selected_authors
-            print(f"PersonSelectView:post: selected authors: {selected_authors}")
             author_form_valid = True
         elif authors_form is not None:
             print(f"PersonSelectView:post: authors_form not valid")
-            print(f"  - form errors: {authors_form.errors}")
-            print(f"  - form non_field_errors: {authors_form.non_field_errors()}")
         else:
             print(f"PersonSelectView:post: authors_form is None")
             author_form_valid = True
 
         supervisor_form_valid = False
         if (supervisors_form is not None) and (supervisors_form.is_valid()):
-            print(f"PersonSelectView:post: supervisors_form cleaned data: {supervisors_form.cleaned_data}")
             selected_supervisors = []
             for key, value in supervisors_form.cleaned_data.items():
                 if key.startswith("supervisor_"):
                     if value == 'create_new':
-                        print(f"  - Create new supervisor: {key}: {value}")
                         # Create a new Person instance
                         name = supervisors[int(key.split('_')[1])]
                         person = Person.objects.create(name=name)
                         selected_supervisors.append(person.pk)
-                        print(f"  - created new supervisor: {person}")
                     else:
                         # Use the selected Person primary key
-                        print(f"Select existing supervisor: {key}: {value}")
                         selected_supervisors.append(int(value))
 
             # Update the session with the selected supervisor primary keys
             session_data['supervisors'] = selected_supervisors
-            print(f"PersonSelectView:post: selected supervisors: {selected_supervisors}")
             supervisor_form_valid = True
         elif supervisors_form is not None:
             print(f"PersonSelectView:post: supervisors_form not valid")
-            print(f"  - form errors: {supervisors_form.errors}")
-            print(f"  - form non_field_errors: {supervisors_form.non_field_errors()}")
         else:
             print(f"PersonSelectView:post: supervisors_form is None")
             supervisor_form_valid = True
@@ -1277,8 +1185,6 @@ class PersonSelectView(BaseView):
         # Update the session data with the new author and supervisor selections
         self.request.session[config['session_key']] = session_data
         self.request.session.modified = True
-
-        print(f"PersonSelectView:post: session data: {self.request.session.get(config['session_key'])}")
 
         if author_form_valid and supervisor_form_valid:
             print(f"PersonSelectView:post: redirecting to {config['redirect_url']}")
@@ -1329,10 +1235,6 @@ class PersonAutocompleteView(View):
             {"id": person.pk, "text": str(person)} for person in queryset
         ]
         
-        # print debug message to console displaying the number of results
-        print(f"Term requested: {term}")
-        print(f"Number of results: {len(results)}")
-
         return JsonResponse({"results": results})
 
 
@@ -1821,160 +1723,116 @@ class UploadAppendixView(PublicationPermissionMixin, BaseView):
         return redirect('publications:report', pk=publication.id)
 
 
-class ChangeReportNumberView(BaseFormView):
+class ChangeReportNumberView(PublicationPermissionMixin, BaseFormView):
     """
     View for changing an existing report's number with file renaming.
+
+    For editors only (``manage``: change_publication; permissions.py).
     """
     template_name = 'publications/change_report_number.html'
-    
-    @method_decorator(login_required)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-    
+    permission = MANAGE
+
     def get_object(self):
         """Get the publication to change number for"""
         return get_object_or_404(Publication, pk=self.kwargs['pk'])
-    
+
     def get_form_class(self):
         return ChangeReportNumberForm
-    
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['publication'] = self.get_object()
         return kwargs
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['publication'] = self.get_object()
         return context
-    
+
     def form_valid(self, form):
-        print("🔍 DEBUG: ChangeReportNumberView.form_valid called")
         publication = self.get_object()
         old_number = publication.number
         new_number = form.cleaned_data['new_number']
-        print(f"🔍 DEBUG: old_number={old_number}, new_number={new_number}")
-        print(f"🔍 DEBUG: form.cleaned_data={form.cleaned_data}")
         try:
             with transaction.atomic():
-                print("🔍 DEBUG: Starting file renaming...")
                 rename_results = rename_publication_files(publication, old_number, new_number)
-                print(f"🔍 DEBUG: rename_results={rename_results}")
                 if not rename_results['success']:
-                    print("🔍 DEBUG: File renaming failed, errors:", rename_results['errors'])
                     for error in rename_results['errors']:
                         messages.error(self.request, f"File renaming error: {error}")
                     return self.form_invalid(form)
-                print("🔍 DEBUG: Updating publication number in database...")
                 publication.number = new_number
                 publication.modified_by = self.request.user
                 publication.save(update_fields=['number', 'modified_by'])
-                print("🔍 DEBUG: Publication updated and saved.")
                 messages.success(
-                    self.request, 
+                    self.request,
                     f"Report number changed from {old_number} to {new_number}"
                 )
                 if rename_results['renamed_files']:
-                    print(f"🔍 DEBUG: Renamed files: {rename_results['renamed_files']}")
-                    print(f"🔍 DEBUG: Renamed directories: {rename_results['directories_renamed']}")
                     messages.info(
                         self.request,
                         f"Renamed {len(rename_results['renamed_files'])} files and {len(rename_results['directories_renamed'])} directories"
                     )
-                print("🔍 DEBUG: Redirecting to publication report view...")
                 return redirect('publications:report', pk=publication.pk)
         except Exception as e:
-            print(f"🔍 DEBUG: Exception in form_valid: {type(e).__name__}: {str(e)}")
+            logger.exception("Changing the number of publication %s failed", publication.pk)
             messages.error(
-                self.request, 
+                self.request,
                 f"Error changing report number: {str(e)}"
             )
             return self.form_invalid(form)
 
 
-@method_decorator(login_required, name='dispatch')
-class AddFeatureCoordinatesView(BaseFormView):
-    """View for adding a point feature with known coordinates"""
+class AddFeatureCoordinatesView(PublicationPermissionMixin, BaseFormView):
+    """View for adding a point feature with known coordinates.
+
+    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py)."""
     template_name = 'publications/add_feature_coordinates.html'
     form_class = AddFeatureByCoordinatesForm
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Add debugging for all requests"""
-        print(f"AddFeatureCoordinatesView.dispatch: {request.method} request received")
-        print(f"POST data: {request.POST}")
-        return super().dispatch(request, *args, **kwargs)
-    
+    permission = ADD_FEATURE
+    publication_url_kwarg = 'report_pk'
+
     def get_publication(self):
         """Get the publication this feature will be associated with"""
         report_pk = self.kwargs.get('report_pk')
         return get_object_or_404(Publication, pk=report_pk)
-    
+
     def get_context_data(self, **kwargs):
-        print("AddFeatureCoordinatesView.get_context_data called")
         context = super().get_context_data(**kwargs)
         context['publication'] = self.get_publication()
         return context
-    
-    def post(self, request, *args, **kwargs):
-        """Handle POST requests with debugging"""
-        print(f"AddFeatureCoordinatesView.post called with data: {request.POST}")
-        return super().post(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         """Process valid form and create the feature"""
-        print(f"AddFeatureCoordinatesView.form_valid called with cleaned_data: {form.cleaned_data}")
-        
         try:
-            print("Step 1: Getting publication...")
             publication = self.get_publication()
-            print(f"Publication: {publication}")
-            
-            print("Step 2: Creating feature instance...")
+
             # Create the feature instance
             feature = form.save(commit=False)
             feature.created_by = self.request.user
             feature.modified_by = self.request.user
-            
-            print(f"Feature instance created: {feature}")
-            print(f"Feature date: {feature.date}")
-            
-            print("Step 3: Getting coordinate data...")
+
             # Get coordinate data
             x_coord = form.cleaned_data['x_coordinate']
             y_coord = form.cleaned_data['y_coordinate']
             srid = int(form.cleaned_data['spatial_reference_system'])
-            print(f"Coordinates: x={x_coord}, y={y_coord}, srid={srid}")
-            
-            print("Step 4: Creating Point geometry...")
-            # Create the geometry
-            point = Point(float(x_coord), float(y_coord), srid=srid)
-            print(f"Point created: {point}")
-            
-            print("Step 5: Converting to MultiPoint...")
-            # Convert to MultiPoint for storage (following the old system pattern)
-            feature.points = MultiPoint(point, srid=srid)
-            print(f"MultiPoint created: {feature.points}")
-            
-            print("Step 6: Saving feature...")
-            # Save the feature
-            feature.save()
-            print("Feature saved successfully")
 
-            print("Step 7: Associating with publication...")
-            # Associate with the publication
+            # Create the geometry and convert it to MultiPoint for storage (following the
+            # old system pattern)
+            point = Point(float(x_coord), float(y_coord), srid=srid)
+            feature.points = MultiPoint(point, srid=srid)
+
+            feature.save()
             feature.publications.add(publication)
-            print("Feature associated with publication")
 
             # Set flag to trigger session cache clearing
-            self.request.session['invalidate_feature_cache'] = True              
+            self.request.session['invalidate_feature_cache'] = True
 
-            print("Step 8: Adding success messages...")
             messages.success(
-                self.request, 
+                self.request,
                 f'Feature "{feature.name}" has been successfully created and associated with '
                 f'publication {publication.number}.'
             )
-            
+
             # Check if coordinates seem reasonable and add informational message
             if hasattr(form, 'coordinate_warnings') and form.coordinate_warnings:
                 messages.warning(
@@ -1987,46 +1845,38 @@ class AddFeatureCoordinatesView(BaseFormView):
                     self.request,
                     'Please verify that the geographical location of the feature is correct.'
                 )
-            
-            print("Step 9: Redirecting...")
+
             return redirect('publications:report', pk=publication.pk)
-            
+
         except Exception as e:
-            print(f"ERROR in form_valid: {type(e).__name__}: {str(e)}")
-            print(f"Traceback: {traceback.format_exc()}")
+            logger.exception("Adding a feature by coordinates to publication %s failed",
+                             self.kwargs.get('report_pk'))
             messages.error(
                 self.request,
                 f'Error creating feature geometry: {str(e)}. Please check your coordinates and SRID.'
             )
             return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        """Handle invalid form with debugging"""
-        print(f"AddFeatureCoordinatesView.form_invalid called")
-        print(f"Form errors: {form.errors}")
-        print(f"Form non_field_errors: {form.non_field_errors}")
-        return super().form_invalid(form)
-    
+
     def get_success_url(self):
         """Redirect to the publication detail page"""
         return reverse('publications:report', kwargs={'pk': self.kwargs['report_pk']})
 
 
-class AddFeatureByMapView(LoginRequiredMixin, FormView):
-    """View for adding a feature by clicking on a map"""
+class AddFeatureByMapView(PublicationPermissionMixin, FormView):
+    """View for adding a feature by clicking on a map.
+
+    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py).
+    The mixin sets ``self.publication``."""
     template_name = 'publications/add_feature_by_map.html'
     form_class = AddFeatureByMap
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Override dispatch to get the publication"""
-        self.publication = self.get_publication()
-        return super().dispatch(request, *args, **kwargs)
-    
+    permission = ADD_FEATURE
+    publication_url_kwarg = 'report_pk'
+
     def get_publication(self):
         """Get the publication object"""
         report_pk = self.kwargs.get('report_pk')
         return get_object_or_404(Publication, pk=report_pk)
-    
+
     def get_context_data(self, **kwargs):
         """Add publication to context"""
         context = super().get_context_data(**kwargs)
@@ -2035,11 +1885,7 @@ class AddFeatureByMapView(LoginRequiredMixin, FormView):
         if hasattr(settings, 'MAPBOX_ACCESS_TOKEN'):
             context['mapbox_access_token'] = settings.MAPBOX_ACCESS_TOKEN
         return context
-    
-    def post(self, request, *args, **kwargs):
-        """Process the form submission"""
-        return super().post(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         """Create and save the feature with geometry from the map"""
         try:
@@ -2050,48 +1896,33 @@ class AddFeatureByMapView(LoginRequiredMixin, FormView):
             # Process geometry from the correct hidden field
             geojson_data = self.request.POST.get('geojson_data', '')
             if geojson_data:
-                try:
-                    # Parse the GeoJSON data
-                    geojson = json.loads(geojson_data)
+                # Parse the GeoJSON data
+                geojson = json.loads(geojson_data)
 
-                    # Create a MultiPoint geometry from the coordinates
-                    coordinates = []
-                    if geojson.get('type') == 'FeatureCollection':
-                        for f in geojson.get('features', []):
-                            if f.get('geometry', {}).get('type') == 'Point':
-                                coords = f['geometry']['coordinates']
-                                coordinates.append(coords)
+                # Create a MultiPoint geometry from the coordinates
+                coordinates = []
+                if geojson.get('type') == 'FeatureCollection':
+                    for f in geojson.get('features', []):
+                        if f.get('geometry', {}).get('type') == 'Point':
+                            coords = f['geometry']['coordinates']
+                            coordinates.append(coords)
 
-                    if coordinates:
-                        print(f"DEBUG: Raw coordinates list: {coordinates}")
-                        points = []
-                        for idx, pair in enumerate(coordinates):
-                            print(f"DEBUG: Coordinate pair {idx}: {pair} (type: {type(pair)})")
-                            try:
-                                lon, lat = pair
-                                pt = Point(lon, lat)
-                                print(f"DEBUG: Created Point: {pt} (type: {type(pt)})")
-                                points.append(pt)
-                            except Exception as e:
-                                print(f"DEBUG: Error creating Point from {pair}: {e}")
-                        print(f"DEBUG: Points list for MultiPoint: {points}")
-                        print(f"DEBUG: Types in points list: {[type(p) for p in points]}")
-                        geom = MultiPoint(points, srid=4326)
-                        feature.points = geom
-                        print(f"Created MultiPoint with {len(points)} points")
-                    else:
-                        raise ValueError("No valid coordinates found in map data")
-                except Exception as e:
-                    print(f"Error parsing GeoJSON: {str(e)}")
-                    raise
+                if coordinates:
+                    points = []
+                    for pair in coordinates:
+                        try:
+                            lon, lat = pair
+                            points.append(Point(lon, lat))
+                        except Exception:
+                            logger.debug("AddFeatureByMapView: skipped an invalid coordinate pair")
+                    feature.points = MultiPoint(points, srid=4326)
+                else:
+                    raise ValueError("No valid coordinates found in map data")
 
             # Save the feature
             feature.save()
-            print(f"Feature saved with ID: {feature.pk}")
             publication = self.get_publication()
-            feature.publications.add(publication) 
-            print(f"Feature added to publication {publication.pk}")
-            
+            feature.publications.add(publication)
 
             messages.success(
                 self.request,
@@ -2101,20 +1932,19 @@ class AddFeatureByMapView(LoginRequiredMixin, FormView):
             return redirect('publications:report', pk=publication.pk)
 
         except Exception as e:
-            print(f"ERROR: Exception while creating feature: {e}")
-            print(traceback.format_exc())
+            logger.exception("Adding a feature by map to publication %s failed",
+                             self.kwargs.get('report_pk'))
             messages.error(
-                self.request, 
+                self.request,
                 f'An error occurred while creating the feature: {str(e)}. '
                 'Please try again or contact support.'
             )
             return self.form_invalid(form)
-    
+
     def form_invalid(self, form):
         """Handle invalid form data"""
-        print(f"AddFeatureByMapView.form_invalid called. Errors: {form.errors}")
         messages.error(
-            self.request, 
+            self.request,
             'There was a problem with your feature data. '
             'Please correct the errors below and try again.'
         )
@@ -2218,17 +2048,13 @@ class DeleteReportView(PublicationPermissionMixin, BaseView):
         return f"{base_path}_thumb.png"
 
 
-class DeleteFeatureView(LoginRequiredMixin, UserPassesTestMixin, DeleteView, BaseView):
+class DeleteFeatureView(FeaturePermissionMixin, DeleteView, BaseView):
+    """Needs ``delete_feature`` on the feature (delete_feature, or delete_own_feature and
+    created it; permissions.py)."""
     model = Feature
     template_name = 'publications/feature_confirm_delete.html'
     context_object_name = 'feature'
-
-    def test_func(self):
-        # User must have permission to delete the feature (customize as needed)
-        feature = self.get_object()
-        # Example: allow if user has global or own-feature delete permission
-        return self.request.user.has_perm('publications.delete_feature') or \
-               self.request.user.has_perm('publications.delete_own_feature')
+    permission = DELETE_FEATURE
 
     def get_success_url(self):
         # Redirect to the report page after deletion
@@ -2418,11 +2244,14 @@ def check_person_ajax(request):
 
 
 @require_http_methods(["POST"])
-@login_required
+@permission_required(ADD_PERSON, json_response=True)
 def add_person_ajax(request):
     """
     AJAX endpoint to create new persons.
     Based on legacy add_person_ajax view.
+
+    Needs add_person (permissions.py): anonymous gets a JSON 401, a user without the
+    permission a JSON 403.
     """
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'error': 'AJAX requests only'}, status=400)
@@ -2439,10 +2268,12 @@ def add_person_ajax(request):
             modified_by=request.user
         )
         
+        # Person has no 'name' attribute (the name is split into its parts on creation)
+        person_name = person.get_full_name()
         return JsonResponse({
-            'success': f'Person "{person.name}" created successfully with ID {person.id}',
+            'success': f'Person "{person_name}" created successfully with ID {person.id}',
             'person_id': person.id,
-            'person_name': person.name
+            'person_name': person_name
         })
     except Exception as e:
         return JsonResponse({
@@ -2451,22 +2282,33 @@ def add_person_ajax(request):
 
 
 
-@method_decorator(login_required, name='dispatch')
-class AddReportsFromFileUploadView(BaseFormView):
+class AddReportsFromFileUploadView(PermissionMixin, BaseFormView):
+    """Excel import of reports, for editors only (``manage``: change_publication;
+    permissions.py).
+
+    The uploaded file is written to a temporary file for the parser and removed after
+    parsing, also when parsing fails."""
     template_name = "publications/add_reports_from_file_upload.html"
     form_class = ImportPublicationFileForm
+    permission = MANAGE
 
     def form_valid(self, form):
         uploaded_file = form.cleaned_data["file"]
-        upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
-        os.makedirs(upload_dir, exist_ok=True)
-        file_path = os.path.join(upload_dir, uploaded_file.name)
-        with open(file_path, "wb") as f:
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
+            file_path = temp_file.name
             for chunk in uploaded_file.chunks():
-                f.write(chunk)
-
-        # Call the parsing function
-        filemessages = xlsx_pubs(file_path, user=self.request.user)
+                temp_file.write(chunk)
+        try:
+            filemessages = xlsx_pubs(file_path, user=self.request.user)
+        except Exception:
+            logger.exception("Excel import: the uploaded file could not be read")
+            filemessages = [(messages.ERROR,
+                             "The file could not be read as an Excel report list; nothing was imported.")]
+        finally:
+            try:
+                os.unlink(file_path)
+            except OSError:
+                logger.warning("Excel import: could not remove the temporary file %s", file_path)
         for level, msg in filemessages:
             messages.add_message(self.request, level, msg)
 
@@ -2474,21 +2316,16 @@ class AddReportsFromFileUploadView(BaseFormView):
         return redirect("publications:add_reports_from_file_upload")
 
     def form_invalid(self, form):
-        print("🔍 DEBUG: ChangeReportNumberView.form_invalid called")
-        print(f"🔍 DEBUG: form.errors={form.errors}")
-        print(f"🔍 DEBUG: form.cleaned_data={getattr(form, 'cleaned_data', None)}")
         messages.error(self.request, "Please correct the errors below.")
         context = self.get_context_data(form=form)
         return render(self.request, self.template_name, context)
 
 
 
-class BulkDeletePublicationsView(LoginRequiredMixin, UserPassesTestMixin, View):
+class BulkDeletePublicationsView(PermissionMixin, View):
+    """Bulk delete, for editors only (``bulk_delete``: delete_publication; permissions.py)."""
     template_name = 'publications/bulk_delete_publications.html'
-
-    def test_func(self):
-        # Require permission to delete publications
-        return self.request.user.has_perm('publications.delete_publication')
+    permission = BULK_DELETE
 
     def get_queryset(self, request):
         qs = Publication.objects.all().prefetch_related('authors')

@@ -34,8 +34,9 @@ def create_ordered_queryset(model_class, pk_list):
     return queryset
 
 
-def handle_appendix_file_upload(publication, uploaded_file):
-    # ...existing code from utils.py...
+def handle_appendix_file_upload(publication, uploaded_file, user):
+    """Save ``uploaded_file`` as an appendix file of ``publication`` and return its
+    FileObject (created_by/modified_by = ``user``), or None without a file."""
     if not uploaded_file:
         return None
     original_filename = uploaded_file.name
@@ -46,7 +47,9 @@ def handle_appendix_file_upload(publication, uploaded_file):
     saved_path = default_storage.save(file_path, uploaded_file)
     file_obj = FileObject.objects.create(
         file=saved_path,
-        description=f"Appendix file for report {publication.number} ({publication.year})"
+        description=f"Appendix file for report {publication.number} ({publication.year})",
+        created_by=user,
+        modified_by=user,
     )
     return file_obj
 
@@ -65,7 +68,7 @@ def handle_session_appendix_uploads(request, publication):
                 try:
                     with open(temp_file_path, 'rb') as temp_file:
                         file_content = ContentFile(temp_file.read(), name=file_data['filename'])
-                    file_obj = handle_appendix_file_upload(publication, file_content)
+                    file_obj = handle_appendix_file_upload(publication, file_content, request.user)
                     if file_obj:
                         Appendenciesship.objects.create(
                             publication=publication,

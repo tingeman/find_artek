@@ -5,12 +5,14 @@ publication. No file is written by these tests: uploads are kept in the session 
 "submit", and the denied requests never get that far.
 """
 import os
+import shutil
+import tempfile
 
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.shortcuts import resolve_url
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import get_script_prefix, reverse
 
 from publications.models import Appendenciesship, FileObject, Publication, PubType
@@ -97,3 +99,21 @@ class UploadAppendixAccessTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], self.url)
         self.assertEqual([f['filename'] for f in self._session_files()], ['appendix.txt'])
+
+    def test_submit_records_the_uploading_user_on_the_appendix(self):
+        """The appendix FileObject gets created_by/modified_by (FA-R68). MEDIA_ROOT is a
+        temporary directory, so no file lands in the real media folder."""
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        self.client.force_login(self.editor)
+        self.addCleanup(self._remove_temp_files)
+        self._upload()
+        with override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post(self.path, {'action': 'submit'})
+        self.assertRedirects(
+            response, reverse('publications:report', kwargs={'pk': self.publication.pk}),
+            fetch_redirect_response=False)
+        appendix = Appendenciesship.objects.get(publication=self.publication).fileobject
+        self.assertEqual(appendix.created_by, self.editor)
+        self.assertEqual(appendix.modified_by, self.editor)
+        self.assertTrue(appendix.file.name.startswith('reports/1999/99-01/'))
