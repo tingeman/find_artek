@@ -4,20 +4,9 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 ## Now
 
-T1, T3, T6 on `agent-registration` (`c75d19c`, `f4ce8b4`, `793fdd5`). T4 committed on `agent-registration-t4` (`0f41c54`, worktree `..\find_artek_agent-registration-t4`), gate 21/21, 96 Django tests; **not yet fast-forwarded** onto `agent-registration`: waits until T2 is done, so the worktree the dev stack is built from doesn't change mid-build. Then: `git -C ..\find_artek_agent-registration merge --ff-only agent-registration-t4`, remove the `-t4` worktree, branch and image.
+T1, T3, T4, T6 on `agent-registration` (head `0f41c54`); T2 done. Temporary worktrees all removed. **T5 (implementer)** in `..\find_artek_agent-registration` (that worktree now holds a copy of `.dev.env`, ignored by `*.env`; the dev stack may run from there or from `find_artek_DEVELOP`). T4 left for T5: the `manage` action and a decorator for function views in `publications/permissions.py`.
 
-Next:
-- **T2 (you), in progress:** `.dev.env` is copied into `..\find_artek_agent-registration`. In PowerShell:
-  ```powershell
-  cd C:\thin\02_Code\docker_projects\find_artek_agent-registration
-  $DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml')
-  docker @DC up -d --build
-  docker @DC exec -T webapp-find-artek python manage.py migrate --settings find_artek.development_settings   # applies publications 0003: adds the 3 groups, changes no existing row
-  # log in at http://localhost:8098/login, then:
-  docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings -c 'from django.contrib.auth.models import User; u=User.objects.order_by("-last_login").first(); print(u.username, list(u.groups.values_list("name", flat=True)))'
-  ```
-  Back to develop/main afterwards: `cd C:\thin\02_Code\docker_projects\find_artek_DEVELOP; docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build` (0003 stays applied in the dev DB; harmless).
-- **T5 (implementer)** after the T4 fast-forward (both touch `views.py`); T4 adds the mixin in `publications/permissions.py`, T5 needs the `manage` action and a decorator for function views (not added in T4).
+Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`.
 
 ## Done
 
@@ -26,7 +15,8 @@ Next:
 - T1 2026-11-18: groups `dtu_user`/`artek_staff`/`artek_editor` (migration 0003), roles from AD lists at every CAS login; 16 tests (`c75d19c`)
 - T3 2026-11-18: model permission methods fixed (model_name codenames, related names, own helpers, anonymous never matches); 27 tests (`f4ce8b4`)
 - T6 2026-11-18: `LOGIN_URL`/`CAS_REDIRECT_URL` as URL names, admin CAS link reversed; existing `assertRedirectsToLogin` in `test_upload_appendix_access.py` adapted to the URL name (`793fdd5`)
-- T4 2026-11-18: `publications/permissions.py` (`user_may`, `PublicationPermissionMixin`: 405 for a refused method, then 302 to login, 404, 403), on add/edit/review/finalize, verify/unverify (POST only), delete (creator-not-listed no longer may delete), appendix upload; review `post()` 307 to finalize, finalize GET redirects to review; 34 tests in `test_report_access.py` (`0f41c54`, on `agent-registration-t4`)
+- T4 2026-11-18: `publications/permissions.py` (`user_may`, `PublicationPermissionMixin`: 405 for a refused method, then 302 to login, 404, 403), on add/edit/review/finalize, verify/unverify (POST only), delete (creator-not-listed no longer may delete), appendix upload; review `post()` 307 to finalize, finalize GET redirects to review; 34 tests in `test_report_access.py` (`0f41c54`)
+- T2 2026-11-18: CAS username in the dev stack is the initials (`thin`), group `dtu_user` set at login; "own" needs no mapping. A student account not tried.
 
 ## Open questions
 
