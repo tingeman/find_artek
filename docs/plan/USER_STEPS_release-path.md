@@ -287,7 +287,7 @@ Tell the orchestrator what you pushed; it updates the status file. web_server's 
 
 - [ ] Done
 
-**What leaked:** `.dev.env` was committed in `3b721b9` (2024-12-09, 723 bytes) and `b152dad` (2024-12-10, 727 bytes). No branch contains them any more, but the tags `v2.0.0` and `v2.0.1` do, so the file is on GitHub as long as those tags are. The current `.dev.env` (534 bytes, 2025-08-07) is untracked (`.gitignore` `*.env`), but its values overlap the leaked ones (you checked, 2026-11-18). Production's values are in web_server's `docker/secrets/webapp_find_artek.env` (vault, `docs/deploy/secrets.md` there).
+**What leaked:** `.dev.env` was committed in `3b721b9` (2024-12-09, 723 bytes) and `b152dad` (2024-12-10, 727 bytes). **Correction 2026-11-18:** `3b721b9` is an ancestor of `develop/main`, `origin/main`, `origin/develop/main` and the release tags (the file was deleted again the same day in `25c2e27`); `b152dad` is only in the tags `v2.0.0` and `v2.0.1`. So the first version stays in the public history even without those tags. The current `.dev.env` (534 bytes, 2025-08-07) is untracked (`.gitignore` `*.env`), but its values overlap the leaked ones (you checked, 2026-11-18). Production's values are in web_server's `docker/secrets/webapp_find_artek.env` (vault, `docs/deploy/secrets.md` there).
 
 List which variables the leaked file had (names only, on your machine):
 
@@ -314,6 +314,19 @@ Rotate every leaked value still in use:
 | older values in the commented lines | Same as above if they are still used anywhere (other apps, other databases) | Check; change where still used | – |
 
 **LDAP bind password, in code (found 2026-11-18):** not in `.dev.env`, but hard-coded as `AUTH_LDAP_BIND_PASSWORD = "..."` for the account `cn=BYG-Artek_AD_Read,ou=Funktionskonti,ou=BYG,...` in `f0bc3ab` (2013-05-18, `find_artek/settings.py`, removed in `71b60f8` 2023-03-02) and again in `c8749a0` (2023-08-06, `app-classic/find_artek/find_artek/settings.py`, removed in `ab64506` 2023-08-22). Both commits are ancestors of `develop/main` and of every release tag (`2026.1`, `2026.2`, `v1.x`, `v2.x`), so they stay public unless the whole history is rewritten. The later file `secret/AUTH_LDAP_BIND_PASSWORD.txt` was never committed. Compare on your machine (prints the old values): `git show f0bc3ab:find_artek/settings.py | grep BIND_PASSWORD; git show c8749a0:app-classic/find_artek/find_artek/settings.py | grep BIND_PASSWORD`. If either equals the current `LDAP_BIND_PASSWORD`: have the account's password reset (DTU IT or BYG's account admin; ask which other apps use `BYG-Artek_AD_Read`), then put the new value into `webapp_find_artek.env` (vault) and rerun the playbook (the env change recreates the containers). The account reads the DTU directory (names, e-mail, groups); whether LDAPS on `win.dtu.dk` is reachable from outside DTU is not known here. **Checked 2026-11-18: neither commit holds the current password; no LDAP rotation needed.**
+
+**`SECRET_KEY` literals in the history (searched 2026-11-18, values masked; fingerprint = first 8 hex of SHA-256 of the value):**
+
+| Fingerprint | Length | Where (added → removed) |
+|---|---|---|
+| `630debb9` | 64 | `.dev.env` `3b721b9` → `25c2e27` (2024-12-09), in `main`/`develop/main` history |
+| `186b37bc` | 50 | `find_artek/settings.py` `f0bc3ab` (2013) → `71b60f8` (2023-03); again `app-classic/.../settings.py` `c8749a0` → `ab64506` (2023-08) |
+| `26801b58` | 66 | `find_artek/settings.py` `5e5968d` (2023-03) → `68f4e67` (2023-05) |
+| `2bb80d53` | 6 | `find_artek/settings.py` `7ece330` (2023-06) → `c8749a0` (probably a placeholder) |
+| `5cfbc370` | 50 | **`app/.env`** (a committed env file) `ff8cce9` (2023-08-06) → `89b4ebe` (2023-08-14) |
+| `0dfef771` | 66 | `app-datatransfer/datatransfer/datatransfer/settings.py` `0d0ef9a` → `e96587c` (2023-12-26) |
+
+The `*.env.example` values are placeholders. All commits above are in public branch history. Fingerprint the current keys on your machine and compare (prints only the fingerprint): `python3 -c "import hashlib,sys; v=[l.split('=',1)[1].split(' #')[0].strip().strip('\"\'') for l in open(sys.argv[1]) if l.startswith('SECRET_KEY=')][0]; print(hashlib.sha256(v.encode()).hexdigest()[:8])" <env file>` (production plaintext `webapp_find_artek.env`, and `.dev.env`). Also list the variable names in the committed `app/.env`: `git show ff8cce9:app/.env | sed 's/=.*//'`, and check those values like the `.dev.env` ones.
 
 While editing the production env file anyway, drop `NETWORK_DRIVE_*` and `ENABLE_CRON` (unused by the M5 stack; web_server `docs/deploy/secrets.md`). Production has `ENABLE_CRON=False` there (checked 2026-11-18); it has no effect, because web_server's compose sets `ENABLE_CRON: "true"` under `environment:`, which wins over `env_file:`, but it misleads. **Keep `THUMBNAIL_HEIGHT=400`:** the cron wrapper reads it (`scripts/generate_thumbnails_cron.sh`); 400 is also the default, so it only documents the value. Do it in the same edit as the rotation: any change to the env file recreates all three containers at the next playbook run.
 
