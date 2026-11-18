@@ -55,6 +55,24 @@
                 <a class="nav-link header-nav-persons" href="{% url 'publications:persons' %}">{% trans "Persons" %}</a>
                 <a class="nav-link header-nav-api" href="{% url 'schema-swagger-ui' %}">{% trans "API" %}</a>
 
+                <!-- "Add" menu (FA-R56). Same permissions as the view guards (publications/permissions.py):
+                     add report = publications.add_publication (ADD), Excel import = publications.change_publication (MANAGE).
+                     perms is False for anonymous users and True for active superusers, as user_may. -->
+                {% if perms.publications.add_publication or perms.publications.change_publication %}
+                <div class="dropdown header-nav-add">
+                    <a class="nav-link dropdown-toggle" href="#" id="header-nav-add-toggle" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{% trans "Add" %}</a>
+                    <div class="dropdown-menu" aria-labelledby="header-nav-add-toggle">
+                        {% if perms.publications.add_publication %}
+                        <a class="dropdown-item header-nav-add-report" href="{% url 'publications:add_report' %}">{% trans "Add report" %}</a>
+                        {% endif %}
+                        {% if perms.publications.change_publication %}
+                        <a class="dropdown-item header-nav-import-excel" href="{% url 'publications:add_reports_from_file_upload' %}">{% trans "Import from Excel" %}</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
             </nav>
             <!-- navigiation to the left -->
 
@@ -148,6 +166,13 @@
                     <li><a class="nav-link header-nav-map" href="{% url 'publications:map' %}">{% trans "Map" %}</a></li>
                     <li><a class="nav-link header-nav-reports" href="{% url 'publications:reports' %}">{% trans "Reports" %}</a></li>
                     <li><a class="nav-link header-nav-persons" href="{% url 'publications:persons' %}">{% trans "Persons" %}</a></li>
+                    <!-- "Add" entries (FA-R56), same permissions as the desktop menu above -->
+                    {% if perms.publications.add_publication %}
+                    <li><a class="nav-link header-nav-add-report" href="{% url 'publications:add_report' %}">{% trans "Add report" %}</a></li>
+                    {% endif %}
+                    {% if perms.publications.change_publication %}
+                    <li><a class="nav-link header-nav-import-excel" href="{% url 'publications:add_reports_from_file_upload' %}">{% trans "Import from Excel" %}</a></li>
+                    {% endif %}
                 </ul>
             </div>
 

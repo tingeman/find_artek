@@ -65,7 +65,7 @@ DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upl
                     publications.test_roles publications.test_permissions_models
                     publications.test_login_redirect publications.test_report_access
                     publications.test_write_access publications.test_person_privacy
-                    publications.test_report_form)
+                    publications.test_report_form publications.test_menu)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
