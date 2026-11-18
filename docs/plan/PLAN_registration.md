@@ -1,10 +1,10 @@
 # Plan: Registration (Phase 1b)
 
-Status: **draft (2026-11-18)**. Roadmap: Phase 1b; FA-R54, FA-R53, FA-R55 (with FA-R12), FA-R56, FA-R67, FA-R68. Branch: `agent-registration` (from `develop/main`), worked in its own worktree `..\find_artek_agent-registration`, so this checkout stays untouched. Release: `2026.3`.
+Status: **approved 2026-11-18**. Roadmap: Phase 1b; FA-R54, FA-R53, FA-R55 (with FA-R12), FA-R56, FA-R67, FA-R68. Branch: `agent-registration` (from `develop/main`), worked in its own worktree `..\find_artek_agent-registration`, so this checkout stays untouched. Release: `2026.3`.
 
 ## Goal
 
-1. Roles as decided for FA-R54: three Django groups (`dtu_user`, `artek_staff`, `artek_editor`) created by a data migration; every CAS login gets `dtu_user`; `artek_staff` and `artek_editor` are synchronised from AD groups at login once IT has created them, and set by hand in the admin until then.
+1. Roles as decided for FA-R54: three Django groups (`dtu_user`, `artek_staff`, `artek_editor`) created by a data migration; every CAS login gets `dtu_user`; `artek_staff` and `artek_editor` come **only** from membership of the two AD groups requested from IT (decided 2026-11-18, replaces "by hand until then"), synchronised at every login.
 2. Every write view checks login **and** the matching permission, in one place (FA-R53). Anonymous and plain DTU users can no longer add, edit, renumber, import or verify reports they have no right to. Nothing becomes visible to anonymous users that is hidden today.
 3. The add/edit report form works end to end, with tests: PDF upload, new keywords, no orphaned temp files, a review step that can't be skipped around the permission check (FA-R55). The new-person bug (FA-R12) is reproduced as a test and either fixed here or handed to FA-R66.
 4. Permitted users reach registration from a menu (FA-R56).
@@ -60,8 +60,13 @@ Survey 2026-11-18 (paths under `app-main/`):
 
   Superusers keep everything (Django's `has_perm`). `DeleteReportView`'s rule "creator may delete" is replaced by the matrix (the creator of a report is normally its author or supervisor, so own).
 - **Groups by data migration** (`publications/migrations/0003_registration_groups.py`): adds rows to `auth_group` and `auth_group_permissions` only, and is reversible (removes the three groups). It must create the custom permissions first (`create_permissions` for the app, as they are normally made by `post_migrate`). Existing users are **not** touched: they get `dtu_user` at their next login. Effect on live data: three new groups, about 20 new group-permission rows; no existing row changes.
-- **Membership at login:** a receiver on django-cas-ng's `cas_user_authenticated` signal in `publications/roles.py`. It adds `dtu_user` always. For each of `artek_staff` and `artek_editor`: if its AD group setting is empty, membership is left alone (managed by hand); if it is set and the LDAP lookup succeeds, the user is added or removed; if the lookup fails or LDAP is off (`USE_LDAP`), nothing changes and a warning is logged. Nested AD groups count (LDAP matching rule `1.2.840.113556.1.4.1941`, one query per group, through the existing bind account). Superuser and `is_staff` stay manual.
-- **New env variables** (empty default = no sync): `LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR`, each the full DN of an AD group. Go into `.dev.env.example`, `ENVIRONMENT_SETUP.md`, and web_server's `webapp_find_artek.env` (empty until IT has created the groups; the app works without them).
+- **Membership at login** (decided 2026-11-18: the AD groups are the only source for `artek_staff` and `artek_editor`; nobody gets them outside the lists): a receiver on django-cas-ng's `cas_user_authenticated` signal in `publications/roles.py`. It adds `dtu_user` always (`dtu_user` is a Django group, not an AD group: "any DTU account that has logged in"). For each of `artek_staff` and `artek_editor`:
+  - setting empty (AD group not set up yet): the user is **removed** from the group, so a hand-made assignment in the admin doesn't survive the next login;
+  - setting set and the LDAP lookup succeeds: added if member, removed if not;
+  - lookup fails (LDAP down, `USE_LDAP = False`): membership from the last successful login is kept, nothing new is granted, a warning is logged.
+  Nested AD groups count (LDAP matching rule `1.2.840.113556.1.4.1941`, one query per group, through the existing bind account). Superuser and `is_staff` stay manual and are not touched.
+- **Consequence until IT has created the groups:** nobody but superusers can add, verify, renumber or import reports; DTU users can still edit reports they are listed on (`dtu_user`). The release `2026.3` can go live before the lists exist, or wait for them (your choice at T11).
+- **New env variables** (empty default = no member): `LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR`, each the full DN of the AD group. Go into `.dev.env.example`, `ENVIRONMENT_SETUP.md`, and web_server's `webapp_find_artek.env`.
 - **Form flow kept** (decided 2026-11-18). The review and finalize steps re-run the same permission check as the form, the finalize step deletes its temp `FileObject` and file after a successful save (and the old `.old` handling is checked), and the review `post()` uses the right URL names. File moves happen after the database commit (`transaction.on_commit`) so a failed save leaves no half-moved files.
 - **Keywords** (decided 2026-11-18): a typed keyword that doesn't exist is created on save by anyone who may edit the report; a typed topic is refused with a form error (topics stay list-only).
 - **Verify/unverify move to POST** (forms with CSRF token in `report.html`); a GET shows nothing changed (405).
@@ -74,7 +79,7 @@ Survey 2026-11-18 (paths under `app-main/`):
 - Group names exactly `dtu_user`, `artek_staff`, `artek_editor`; `artek_editor` holds only the extra permissions (every user also has `dtu_user`): `add/change/delete/verify_publication`, `change_person`, `change_feature`, `delete_feature`. `artek_staff`: `add_publication`, `delete_own_publication`. `dtu_user`: `edit_own_publication`, `add_person`, `edit_own_person`, `add_feature`, `edit_own_feature`, `delete_own_feature` (as the old `LDAP_authenticated_user`).
 - The CAS username is the DTU study number or initials, as the LDAP username was; checked by you in T2.
 - New reports keep `verified = False` (hidden from anonymous users) until an editor verifies them; no change.
-- Abandoned temp uploads (form started, never finalized) are not cleaned automatically in 1b; `cleanup_temp_files` stays a manual command. Scheduling it would change the cron contract: roadmap item.
+- Abandoned temp uploads (form started, never finalized) are not cleaned automatically in 1b; `cleanup_temp_files` stays a manual command (accepted 2026-11-18; roadmap FA-R70, low priority).
 - Debug prints that print form, POST or session data are removed; other `print` calls in touched code become `logger.debug`. A full sweep of all 188 is not in scope.
 - The admin login whitelist (`publications_meta/views.py`) stays until FA-R59.
 - `add_person_ajax` requires `add_person`; `check_person_ajax` and the person workflow steps require login only (read or session).
@@ -90,7 +95,7 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 
 
 ### T1. Roles: groups and login sync (FA-R54)
 - Files: `publications/migrations/0003_registration_groups.py`, `publications/roles.py` (signal receiver, LDAP group lookup), `publications/apps.py` (connect), `find_artek/settings.py` (`LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR`, default empty), `.dev.env.example`, `ENVIRONMENT_SETUP.md`, `publications/test_roles.py`.
-- Acceptance: migrate on an empty DB creates the three groups with the permissions of the assumptions; migrating back removes them; a CAS login (signal sent in the test) adds `dtu_user`; with the settings empty, hand-set `artek_staff` stays; with a setting and an LDAP answer "member" / "not member", membership is added / removed; LDAP error or `USE_LDAP = False` changes nothing but `dtu_user`.
+- Acceptance: migrate on an empty DB creates the three groups with the permissions of the assumptions; migrating back removes them; a CAS login (signal sent in the test) adds `dtu_user`; with a setting empty, a hand-set `artek_staff`/`artek_editor` membership is removed; with a setting and an LDAP answer "member" / "not member", membership is added / removed; LDAP error or `USE_LDAP = False` keeps the previous membership, grants nothing new, and still adds `dtu_user`; superuser and `is_staff` untouched.
 - Tests: the above, LDAP mocked (no network); `makemigrations --check` clean.
 - Validation: skill `validate` (check, makemigrations --check, `publications.test_roles`, the appendix tests).
 - Agent: implementer.
@@ -168,7 +173,7 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 
 
 ### T11. Release 2026.3 (you)
 1. Main session merges `develop/main` into `agent-registration`, reruns the checks, asks you, then `git merge --ff-only agent-registration` on `develop/main`.
-2. Assign roles before the deploy goes live (otherwise nobody may add reports): the migration creates the groups; after the deploy, log in once, then in the admin (`https://arctic.sustain.dtu.dk/find/admin/`) add yourself to `artek_editor` and staff to `artek_staff`. List of who gets which role: yours.
+2. Roles: when IT has created the AD groups, put their DNs into `LDAP_GROUP_ARTEK_STAFF` / `LDAP_GROUP_ARTEK_EDITOR` (step 3) and add the members in the DTU system. Without them only superusers can add reports; decide whether 2026.3 waits for the lists. Check after the first login as a list member (as T2, against production through the admin user page).
 3. Tag, build, publish, deploy as for 2026.2 (`docs/archive/USER_STEPS_release-path_COMPLETE.md` 5d-5g):
    ```powershell
    # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -179,7 +184,7 @@ Order: T1 → T2 (you) → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 
    cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server
    bash scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP 2026.3
    ```
-   Then copy the bundle to the releases share, set `version: "2026.3"` and `tarball_sha256` in web_server's `ansible/vars/releases.yml`, add `LDAP_GROUP_ARTEK_STAFF=` and `LDAP_GROUP_ARTEK_EDITOR=` (empty) to `webapp_find_artek.env` (vault), and run `ansible-playbook -kK -i hosts playbook_install_webapp_find_artek.yml -v --ask-vault-pass` (web_server).
+   Then copy the bundle to the releases share, set `version: "2026.3"` and `tarball_sha256` in web_server's `ansible/vars/releases.yml`, add `LDAP_GROUP_ARTEK_STAFF=<DN from IT>` and `LDAP_GROUP_ARTEK_EDITOR=<DN from IT>` (empty if not there yet) to `webapp_find_artek.env` (vault), and run `ansible-playbook -kK -i hosts playbook_install_webapp_find_artek.yml -v --ask-vault-pass` (web_server).
 4. Functional checks: logged out, `/find/publications/report/add/` → 302 to `/find/login?next=...`; `/find/debug-root/` → 404; as `dtu_user` only, "Add" menu absent and add report 403; as editor, add a test report with a PDF of ~20 MB (retests the production PDF bug, FA-R12/FA-R20), check it is hidden logged out, verify it, then delete it; `media/temp/` empty after finalize.
 - Agent: you.
 

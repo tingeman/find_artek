@@ -10,7 +10,7 @@ Context: find_artek is a Django 4.2 student-report database (apps `publications`
 
 | Plan | Phase | Branch | Status |
 |---|---|---|---|
-| [PLAN](plan/PLAN_registration.md), [STATUS](plan/STATUS_registration.md) (registration) | 1b | `agent-registration` (not created yet) | Plan drafted 2026-11-18, waiting for approval |
+| [PLAN](plan/PLAN_registration.md), [STATUS](plan/STATUS_registration.md) (registration) | 1b | `agent-registration` (worktree `../find_artek_agent-registration`) | Approved 2026-11-18; T1 (roles) in progress |
 
 ## Finished plans
 
@@ -114,3 +114,4 @@ Why this order:
 | FA-R42 | Documentation consolidation | Several overlapping root notes; `readme.md` is a TODO list, not a README. | `readme.md`, `ENVIRONMENT_SETUP.md`, `PDF_FILENAME_NORMALIZATION.md`, `THUMBNAIL_GENERATION.md`, `app-main/IMPLEMENTATION_COMPLETE.md`, `app-main/WORKFLOW_GUIDE.md`. A real README (purpose, run, test, release, where media lives); the rest under `docs/`. The "Dependencies" and "Release" sections come with Phase 1. |
 | FA-R43 | Logging and observability | Debug-level gunicorn logs; no request time in logs, no metrics. | `Dockerfile.prod:105`; `web: docs/plan/PLAN_capacity-tuning.md`. Input for FA-R11. |
 | FA-R45 | DB init grant hard-codes the user `mariadb` | `docker/mariadb-service/init.sql` runs `GRANT ALL ... TO 'mariadb'@'%'` on a new volume (needed so the test runner can create `test_*` databases). With any other `MYSQL_USER` (`.dev.env.example` has `find_artek_user`) MariaDB refuses the grant and the init fails. The base `docker-compose.yml` mounts it in prod too (new volumes only). | Replace with an init shell script that grants to `$MYSQL_USER`; align `.dev.env.example`. Deferred to the first code changes (2026-11-16); quick guide 01, P5. |
+| FA-R70 | Abandoned form uploads in `media/temp/` (low priority) | A PDF uploaded in the add/edit report form is saved to `media/temp/<ts>/` as a `FileObject` at once; when the user never finalizes, file and row stay. Phase 1b (T7) removes them after a successful finalize only. | `app-main/publications/utils_models.py:259`; `management/commands/cleanup_temp_files.py` (`--max-age`, `--dry-run`) exists but is not scheduled. Options: run it from the existing cron job (cron is deployment contract: web_server post-check) or by hand after a dry run. Deferred by the owner 2026-11-18 (PLAN_registration). |
