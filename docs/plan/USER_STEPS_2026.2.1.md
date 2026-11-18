@@ -31,7 +31,7 @@ Remove-Item -Recurse -Force $src
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
-git log --oneline -4 develop/main                     # expect f5e7e79 on top
+git log --oneline -4 develop/main                     # expect f5e7e79, or docs commits on top of it
 git tag -a 2026.2.1 -m "find_artek 2026.2.1: person and feature API list no confidential/unverified reports; old database copy removed" develop/main
 git show --no-patch --format='%h %s' '2026.2.1^{commit}'
 ```
