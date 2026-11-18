@@ -1,17 +1,17 @@
 # Status: Release path and pinning (Phase 1)
 
-Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path` (from `develop/main`; worktree `..\find_artek_agent-release-path`; its `.dev.env` copy deleted 2026-11-18, the dev stack runs from `find_artek_DEVELOP` again). Plan, status, user steps and roadmap live on `develop/main` (this checkout); the agent branch carries the code and the docs that describe it (README, CLAUDE.md, skills).
+Plan: [PLAN_release-path_COMPLETE.md](PLAN_release-path_COMPLETE.md). Branch: `agent-release-path` (from `develop/main`; worktree `..\find_artek_agent-release-path`; its `.dev.env` copy deleted 2026-11-18, the dev stack runs from `find_artek_DEVELOP` again). Plan, status, user steps and roadmap live on `develop/main` (this checkout); the agent branch carries the code and the docs that describe it (README, CLAUDE.md, skills).
 
 ## Now
 
-**Resume here** (fresh session in `find_artek_DEVELOP`: read this file and [USER_STEPS_release-path.md](USER_STEPS_release-path.md) step 5–6; code work happens only in a worktree, planning docs only here).
+**Phase 1 complete (2026-11-18), archived.** Open items and the notes below were moved into [`docs/roadmap.md`](../roadmap.md). Next: Phase 1b (registration, FA-R54 first), as its own plan.
 
-- **Release 2026.2 is deployed** (2026-11-18): tag `2026.2` = `cc410a2` (= `ff06b45` + docs), `tarball_sha256` `c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, web_server `f5b62ed`. All 5g checks pass; FA-R52 is live. Local `main` = `cc410a2` here, web_server `main` = `f5b62ed`; find_artek not pushed (step 6.2).
-- **Still open:** **6.2** push here (`develop/main`, `main`, tags `2026.1`/`2026.2`); web_server: push the vault commit on its `develop/main`, fast-forward and push its `main`. 6a (rotation) **done** 2026-11-18 in production and dev. Unknown: whether `NETWORK_DRIVE_*`/`ENABLE_CRON` were dropped from the production env file in the same edit.
-- **web_server nginx timeout done** (2026-11-18, USER_STEPS 5c): `location /find/` has `proxy_read_timeout`/`proxy_send_timeout 120s` (web_server `062dad9`). Docs there still say find_artek `master`.
-- **Findings for Phase 1b:** FA-R67 (login redirect leaves `/find/`) confirmed in production; FA-R68 (appendix uploads without `created_by`), new.
-- GitHub (from local tracking refs, 2026-11-18): `origin/main` = `3d8299b` (rename done), `origin/develop/main` = `a038018`, refactor branch pushed. Tags and `wip/disambiguation-draft` unknown.
-- After 2026.2 is deployed: archive Phase 1 (plan, status, user steps, baseline to `docs/archive/`), move open notes below into `docs/roadmap.md`, then Phase 1b (registration, FA-R53 to FA-R56).
+- **Releases:** `2026.1` (2026-11-17, = production's code) and `2026.2` (2026-11-18: tag = `cc410a2`, `tarball_sha256` `c18b90046b0ddfdda3462db07351a3a2cebb3f87d98a94cfd61d0df39548f7f0`, web_server `f5b62ed`) deployed through web_server; `main` = `2026.2`.
+- **Pushed 2026-11-18:** `develop/main`, `main`, tags `2026.1`/`2026.2` here; web_server `develop/main` (vault commit) and `main`.
+- **Credentials rotated 2026-11-18** (USER_STEPS 6a): `SECRET_KEY`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` in production and dev; `NETWORK_DRIVE_*` and `ENABLE_CRON` dropped from the production env file.
+- **web_server nginx timeout** on `/find/` (120 s, `062dad9`) deployed. web_server docs still say find_artek `master` (roadmap M5 "After M5", FA5 row, USER_TASKS 4.5): to fix there.
+- **Findings carried into the roadmap:** FA-R67 (login redirect), FA-R68 (appendix uploads without user), FA-R69 (thumbnail job: 2 missing PDFs, silent errors).
+- Worktrees `..\find_artek_agent-release-path` and `..\find_artek_agent-fixes` can be removed (branches fully merged; the dev stack runs from `find_artek_DEVELOP`).
 
 ## Done
 
@@ -29,7 +29,7 @@ Plan: [PLAN_release-path.md](PLAN_release-path.md). Branch: `agent-release-path`
 - T6 2026-11-16: `tests/run.sh` (nuki interface): 10 image checks + 9 smoke tests against a throwaway MariaDB (production settings, `migrate --skip-checks` for FA-R14, health, frontpage 200, cron job as cron runs it, no secrets in logs) + Django step with `DJANGO_TEST_LABELS` (empty → SKIP, Phase 2 fills it). 19/19 pass in ~40–55 s; fails visibly on the dev stage (7 failures); cleanup verified incl. interrupt. Test DB falls back to `mariadb:11.2` until T5 adds `FA_MARIADB_IMAGE`.
 - 2026-11-16: decisions: LDAP on/off becomes a setting `USE_LDAP` (roadmap **FA-R34**, Phase 2, not in 2026.1); production secrets only from web_server's encrypted archive, this repo keeps only `*.env.example` (added to T10's acceptance); `.dev.env` stays local with no production credentials.
 
-- T0 2026-11-16: host baseline in [BASELINE_release-path.md](BASELINE_release-path.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today. Image IDs confirmed: the recorded digests are what runs.
+- T0 2026-11-16: host baseline in [BASELINE_release-path_COMPLETE.md](BASELINE_release-path_COMPLETE.md): `afd8792`, Python 3.12.11 on Debian 12.11 (bookworm, so the base stays bookworm, exact patch still pullable), 43 packages, `Django==4.2` (4.2.0), MariaDB 11.2.6 and phpMyAdmin digests, Docker 29.6.1 / Compose v5.2.0. Cron: **disabled** in production (`ENABLE_CRON` not `true`), so no thumbnails by cron today. Image IDs confirmed: the recorded digests are what runs.
 - Decision 2026-11-16: **cron on from 2026.1**: web_server sets `ENABLE_CRON=true` in production with the M5 deploy (`.prod.env.example` already says `true`). The first night's run catches up on thumbnails missing since cron stopped. Hand-off to web_server M5 together with the cron post-check (notes below).
 - USER_STEPS 1 2026-11-16: guide 01 open points settled (scp via home dir, dumps in `00_assets\find_artek_db_dumps`, dev user `mariadb`, media not synced, CAS first then local password, production uses `MYSQL_*`). `init.sql`'s hard-coded user → roadmap FA-R45.
 - USER_STEPS 3 2026-11-16: dev DB restored from production (guide 01, run from the `agent-release-path` worktree): row counts match (494 publications, 930 persons, 1753 features, 3 users, 23 migrations), pages load, CAS login works on localhost. Volume `find-artek-mariadb-dev` now exists. `find_artek_DEVELOP` currently fails to build/start (`NameError: List` in your uncommitted `utils_person.py`).

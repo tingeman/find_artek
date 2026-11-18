@@ -1,6 +1,6 @@
 # Plan: Release path and pinning (Phase 1)
 
-Status: **draft (2026-11-16)**. Roadmap: Phase 1; FA-R27, FA-R2, FA-R3 (pin), FA-R20, FA-R21, FA-R22, FA-R24 (part), FA-R28, FA-R40 (suite runs), FA-R1 step 1. Branch: `agent-release-path` (from `develop/main`), worked in its own worktree `..\find_artek_agent-release-path`, so your uncommitted work in this checkout is untouched.
+Status: **complete (2026-11-18), archived.** Releases `2026.1` (2026-11-17) and `2026.2` (2026-11-18) deployed; follow-ups in [roadmap](../roadmap.md). (Approved 2026-11-16.) Roadmap: Phase 1; FA-R27, FA-R2, FA-R3 (pin), FA-R20, FA-R21, FA-R22, FA-R24 (part), FA-R28, FA-R40 (suite runs), FA-R1 step 1. Branch: `agent-release-path` (from `develop/main`), worked in its own worktree `..\find_artek_agent-release-path`, so your uncommitted work in this checkout is untouched.
 
 Counterpart: dtu_sus_web_server milestone **M5** (decisions FA1–FA5). That repository moves the production compose, pins MariaDB/phpMyAdmin, rewrites the playbook and deploys. This plan delivers what M5 needs from the app: a tested release image built from a tag.
 
@@ -56,7 +56,7 @@ Counterpart: dtu_sus_web_server milestone **M5** (decisions FA1–FA5). That rep
   - `docker exec webapp-find-artek pip freeze`, `python -V`, `cat /etc/debian_version`
   - `docker image inspect --format '{{index .RepoDigests 0}}' mariadb:11.2 phpmyadmin/phpmyadmin:latest`; `docker exec fa-mariadb-service mariadb --version`
   - Cron: `docker exec -u root webapp-find-artek sh -c 'crontab -l -u dockeruser; ls /etc/cron.d; pgrep -a cron'`, `docker logs webapp-find-artek 2>&1 | grep -i -m10 -E 'cron|thumbnail'`
-- Acceptance: freeze and versions saved to `docs/plan/BASELINE_release-path.md`; cron state known.
+- Acceptance: freeze and versions saved to `docs/plan/BASELINE_release-path_COMPLETE.md`; cron state known.
 - Agent: you
 
 ### T1. Worktree and test baseline

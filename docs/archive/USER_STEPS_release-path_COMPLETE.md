@@ -1,8 +1,8 @@
 # User steps: Release path and pinning (Phase 1)
 
-Plan: [PLAN_release-path.md](PLAN_release-path.md). Status: [STATUS_release-path.md](STATUS_release-path.md).
+Plan: [PLAN_release-path_COMPLETE.md](PLAN_release-path_COMPLETE.md). Status: [STATUS_release-path_COMPLETE.md](STATUS_release-path_COMPLETE.md).
 
-Steps only you can run (host access, decisions, merges, tags). Everything here is read-only on the host unless a step says otherwise. Paste the output of each read-only step back into the session (or into `docs/plan/BASELINE_release-path.md`), so the next tasks can use it.
+Steps only you can run (host access, decisions, merges, tags). Everything here is read-only on the host unless a step says otherwise. Paste the output of each read-only step back into the session (or into `docs/archive/BASELINE_release-path_COMPLETE.md`), so the next tasks can use it.
 
 ### 1. Settle the open points of the dev-database guide
 
@@ -266,7 +266,7 @@ git branch -f main 2026.2      # local production branch follows the deployed ta
 
 ### 6. GitHub and the leaked `.dev.env`
 
-- [ ] Done
+- [x] Done 2026-11-18: credentials rotated (6a); pushed `develop/main`, `main` and tags `2026.1`/`2026.2` here, web_server `develop/main` (vault commit) and `main`. `NETWORK_DRIVE_*` and `ENABLE_CRON` removed from the production env file.
 
 From the local remote-tracking refs (2026-11-18; the orchestrator can't reach GitHub): `origin/main` = `3d8299b` (= `2026.1`, the rename looks done), `origin/develop/main` = `a038018`, `origin/develop/author_disambiguation/refactor` = `4d77150`. Not checked: tags and `wip/disambiguation-draft` on GitHub.
 

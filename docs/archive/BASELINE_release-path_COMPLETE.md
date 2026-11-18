@@ -1,6 +1,6 @@
 # Baseline: what production runs (T0)
 
-Plan: [PLAN_release-path.md](PLAN_release-path.md). Status: [STATUS_release-path.md](STATUS_release-path.md).
+Plan: [PLAN_release-path_COMPLETE.md](PLAN_release-path_COMPLETE.md). Status: [STATUS_release-path_COMPLETE.md](STATUS_release-path_COMPLETE.md).
 
 Taken on `sus-parcweb01` on 2026-11-16 (USER_STEPS step 2), read-only. No secrets in this file.
 
