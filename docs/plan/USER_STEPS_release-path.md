@@ -285,7 +285,7 @@ Tell the orchestrator what you pushed; it updates the status file. web_server's 
 
 #### 6a. Rotate the leaked credentials
 
-- [ ] Done
+- [x] Done 2026-11-18: `SECRET_KEY`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` rotated. **Production:** new values in web_server's vault (committed on its `develop/main`, not pushed), `ALTER USER` on the host, install playbook rerun (converge); all three containers up 18 min (webapp and MariaDB healthy), frontpage 200, root `SELECT 1` with the new password, no `Access denied`/`OperationalError` in the log, CAS login works, phpMyAdmin through the tunnel works with both new passwords. **Dev:** own new values in `find_artek_DEVELOP/.dev.env`, `ALTER USER` in the dev DB; the dev stack now runs from `find_artek_DEVELOP` (was the `agent-release-path` worktree; stopped there without `-v`, its old `.dev.env` copy deleted); `check` ok, frontpage 200, phpMyAdmin 200, root `SELECT 1` ok, app user reads 494 publications, no DB errors. LDAP and `NETWORK_DRIVE_*` not leaked; `ROOT_SUPERUSER_*` user absent; Elastic gone.
 
 **What leaked:** `.dev.env` was committed in `3b721b9` (2024-12-09, 723 bytes) and `b152dad` (2024-12-10, 727 bytes). **Correction 2026-11-18:** `3b721b9` is an ancestor of `develop/main`, `origin/main`, `origin/develop/main` and the release tags (the file was deleted again the same day in `25c2e27`); `b152dad` is only in the tags `v2.0.0` and `v2.0.1`. So the first version stays in the public history even without those tags. The current `.dev.env` (534 bytes, 2025-08-07) is untracked (`.gitignore` `*.env`), but its values overlap the leaked ones (you checked, 2026-11-18). Production's values are in web_server's `docker/secrets/webapp_find_artek.env` (vault, `docs/deploy/secrets.md` there).
 
