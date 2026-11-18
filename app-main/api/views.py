@@ -2,7 +2,7 @@ import logging
 import json
 import http.client
 
-from django.db.models import Case, When, IntegerField
+from django.db.models import Case, When, IntegerField, Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
@@ -186,9 +186,16 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
         # Obtain query parameters
         publication_id = self.request.query_params.get('publication_id', None)
 
+        # Only features of publications the user may see listed (publications.visibility,
+        # same rule as the report API). Features linked to no publication stay listed.
+        visible = visible_publications(Publication.objects.all(), self.request.user)
+
         # Filter the queryset based on the query parameters
         if publication_id:
-            queryset = queryset.filter(publications__id=publication_id)
+            # A hidden publication gives an empty result.
+            queryset = queryset.filter(publications__in=visible.filter(id=publication_id))
+        else:
+            queryset = queryset.filter(Q(publications__in=visible) | Q(publications__isnull=True))
 
         # ========== Order the queryset ==========
         # keep only unique entries

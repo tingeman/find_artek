@@ -3,6 +3,14 @@ from publications.models import Publication, Feature, Person
 from publications.visibility import visible_publications
 
 
+def _visible_for_request(serializer, publications):
+    """Only the publications the requesting user may see listed (publications.visibility,
+    same rule as the report API). Without a request in the serializer context the user
+    counts as anonymous."""
+    request = serializer.context.get('request')
+    return visible_publications(publications, getattr(request, 'user', None))
+
+
 
 class PublicationSerializer(serializers.ModelSerializer):
 
@@ -70,7 +78,8 @@ class FeatureSerializer(serializers.ModelSerializer):
         return obj.pk
     
     def get_related_publications(self, obj):
-        return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in obj.publications.all()]
+        publications = _visible_for_request(self, obj.publications.all())
+        return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in publications]
     
 
 
@@ -119,22 +128,16 @@ class PersonSerializer(serializers.ModelSerializer):
     def get_email(self, obj):
         return obj.email if obj.email else None
     
-    def _visible(self, publications):
-        """Only the publications the requesting user may see listed (same rule as the
-        report API). Without a request in the context the user counts as anonymous."""
-        request = self.context.get('request')
-        return visible_publications(publications, getattr(request, 'user', None))
-
     def get_authorships(self, obj):
         # The model Authorship defines a many-to-many relationship between Person and Publication
         # Find all publications where this person is an author
-        publications = self._visible(Publication.objects.filter(authorship__person=obj))
+        publications = _visible_for_request(self, Publication.objects.filter(authorship__person=obj))
         return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in publications]
 
     def get_supervisorships(self, obj):
         # The model Supervisorship defines a many-to-many relationship between Person and Publication
         # Find all publications where this person is a supervisor
-        publications = self._visible(Publication.objects.filter(supervisorship__person=obj))
+        publications = _visible_for_request(self, Publication.objects.filter(supervisorship__person=obj))
         return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in publications]
 
     
