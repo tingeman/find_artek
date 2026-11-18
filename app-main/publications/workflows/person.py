@@ -32,17 +32,38 @@ class PersonWorkflowSession:
                 'field_name': None
             }
     
-    def start_workflow(self, field_name, person_names, original_form_data, source_url=None):
-        """Start new workflow for a field"""
+    def start_workflow(self, field_name, person_names, original_form_data, source_url=None,
+                       target=None):
+        """Start new workflow for a field.
+
+        ``target`` is the report form the names were typed in ('add' or 'edit:<pk>',
+        views.report_form_target); complete_person_workflow writes the choices into that
+        form's session data."""
         self.session['person_workflow'] = {
-            'pending_persons': person_names,
-            'resolved_persons': {},
+            'pending_persons': list(person_names),
+            'pending_fields': [field_name] * len(person_names),
+            'resolved': [],
             'original_form_data': original_form_data,
             'current_step': 0,
             'field_name': field_name,
-            'source_url': source_url or self.request.path
+            'source_url': source_url or self.request.path,
+            'target': target,
         }
         self.session.modified = True
+
+    def add_names(self, field_name, person_names):
+        """Add the names of another field of the same form (e.g. supervisors after authors)."""
+        workflow = self.session['person_workflow']
+        workflow['pending_persons'] += list(person_names)
+        workflow['pending_fields'] += [field_name] * len(person_names)
+        self.session.modified = True
+
+    def get_current_field(self):
+        """The field of the person being processed."""
+        workflow = self.session['person_workflow']
+        fields = workflow.get('pending_fields') or []
+        step = workflow['current_step']
+        return fields[step] if step < len(fields) else workflow.get('field_name')
     
     def get_current_person(self):
         """Get the current person being processed"""
@@ -60,7 +81,8 @@ class PersonWorkflowSession:
         current_person = self.get_current_person()
         
         if current_person:
-            workflow['resolved_persons'][current_person] = person_id_or_name
+            workflow.setdefault('resolved', []).append(
+                [self.get_current_field(), current_person, person_id_or_name])
             workflow['current_step'] += 1
             self.session.modified = True
     
@@ -70,8 +92,14 @@ class PersonWorkflowSession:
         return workflow['current_step'] >= len(workflow['pending_persons'])
     
     def get_resolved_persons(self):
-        """Get all resolved persons"""
-        return self.session['person_workflow']['resolved_persons']
+        """The choices per field: {field_name: {typed name: pk, 'CREATE:<name>' or 'SKIP:<name>'}}"""
+        resolved = {}
+        for field_name, name, value in self.session['person_workflow'].get('resolved', []):
+            resolved.setdefault(field_name, {})[name] = value
+        return resolved
+
+    def get_target(self):
+        return self.session['person_workflow'].get('target')
     
     def get_original_form_data(self):
         """Get original form data"""
@@ -220,8 +248,8 @@ def extract_person_names(form_data, field_name):
         if not name or not isinstance(name, str) or not name.strip():
             continue
         
-        # Skip items that were explicitly skipped by user
-        if name.startswith('SKIP:'):
+        # Skip items that were explicitly skipped by user, or chosen to be created on save
+        if name.startswith(('SKIP:', 'CREATE:')):
             continue
             
         # Check if name already has an ID tag
@@ -296,46 +324,18 @@ def disambiguate_person_step(request):
                 messages.error(request, "Selected person not found.")
         
         elif action == 'create_new':
-            # User wants to create a new person
+            # The new person is created when the report is saved, inside its transaction
+            # (person_from_form_value), so an abandoned form or a failed save leaves none.
             person_name = remove_tags(current_person_name)
-            
-            # Create the person using the AddPersonForm
-            try:
-                form = AddPersonForm({'name': person_name})
-                if form.is_valid():
-                    person = form.save(commit=False)
-                    person.created_by = request.user
-                    person.modified_by = request.user
-                    person.save()
-                    
-                    # Store just the person ID for generic list handling
-                    workflow.resolve_current_person(str(person.id))
-                    
-                    messages.success(request, f'Created new person: {person.get_full_name()}')
-                    
-                    if workflow.is_complete():
-                        return redirect('publications:complete_person_workflow')
-                    else:
-                        return redirect('publications:disambiguate_person_step')
-                else:
-                    # If form validation fails, try basic creation
-                    person = Person(created_by=request.user, modified_by=request.user)
-                    person.set_names(person_name)
-                    person.save()
-                    
-                    # Store just the person ID for generic list handling
-                    workflow.resolve_current_person(str(person.id))
-                    
-                    messages.success(request, f'Created new person: {person.get_full_name()}')
-                    
-                    if workflow.is_complete():
-                        return redirect('publications:complete_person_workflow')
-                    else:
-                        return redirect('publications:disambiguate_person_step')
-                    
-            except Exception as e:
-                messages.error(request, f"Error creating person: {e}")
-        
+            if person_name:
+                workflow.resolve_current_person(f"CREATE:{person_name}")
+                messages.success(request, f'"{person_name}" will be created as a new person '
+                                          'when the report is saved.')
+                if workflow.is_complete():
+                    return redirect('publications:complete_person_workflow')
+                return redirect('publications:disambiguate_person_step')
+            messages.error(request, "Empty name.")
+
         elif action == 'skip':
             # User wants to skip (keep original string, don't treat as person)
             # Mark with SKIP: prefix so it won't trigger workflow again
@@ -356,7 +356,7 @@ def disambiguate_person_step(request):
         'exact_matches': matches['exact'],
         'relaxed_matches': matches['relaxed'],
         'all_matches': matches.get('all_matches', []),
-        'field_name': workflow.get_field_name(),
+        'field_name': workflow.get_current_field(),
         'step_number': workflow.session['person_workflow']['current_step'] + 1,
         'total_steps': len(workflow.session['person_workflow']['pending_persons'])
     }
@@ -373,71 +373,56 @@ def complete_person_workflow(request):
         messages.error(request, "Workflow not complete.")
         return redirect('publications:disambiguate_person_step')
     
-    # Get resolved data
-    resolved_persons = workflow.get_resolved_persons()
-    original_form_data = workflow.get_original_form_data()
-    field_name = workflow.get_field_name()
-    
-    # Update form data with resolved persons
-    updated_form_data = original_form_data.copy()
-    resolved_names = []
-    
-    logger.debug(f"Original_form_data type: {type(original_form_data)}")
-    logger.debug(f"Original_form_data: {original_form_data}")
-    logger.debug(f"Resolved_persons mapping: {resolved_persons}")
-    
-    # Reconstruct the field with resolved person names
-    original_names = original_form_data.getlist(field_name) if hasattr(original_form_data, 'getlist') else original_form_data.get(field_name, [])
-    if isinstance(original_names, str):
-        original_names = [original_names]
-    
-    for name in original_names:
-        if name in resolved_persons:
-            resolved_names.append(resolved_persons[name])
-        else:
-            resolved_names.append(name)  # Already resolved or doesn't need resolution
-    
-    # Always store as list, even for single values
-    # This ensures consistency between authors and supervisors
-    updated_form_data[field_name] = resolved_names
-    
-    # If we're dealing with supervisors, make sure it's a list
-    # This is a special check because supervisors sometimes get stored as a string
-    if field_name == 'supervisors' and not isinstance(updated_form_data[field_name], list):
-        updated_form_data[field_name] = [updated_form_data[field_name]]
-        logger.debug(f"Converted supervisors to list: {updated_form_data[field_name]}")
-    
-    logger.debug(f"updated_form_data before storing: {updated_form_data}")
-    logger.debug(f"updated_form_data type: {type(updated_form_data)}")
-    
-    # Store updated form data in session - keep original structure intact
-    # No field-specific logic needed since we only replaced ambiguous strings with IDs
-    request.session['updated_form_data'] = dict(updated_form_data)
-    
-    # Track which specific field was updated in the workflow
-    request.session['workflow_updated_field'] = field_name
-    request.session.modified = True
-    
-    # Get the source URL and determine publication ID for redirect
-    source_url = workflow.get_source_url()
-    
-    # Clear workflow
+    # Lazy import: views imports this module.
+    from publications.views import get_report_form_data, store_report_form_data
+
+    resolved = workflow.get_resolved_persons()
+    target = workflow.get_target()
     workflow.clear_workflow()
-    
-    messages.success(request, f"Person disambiguation complete for {field_name}.")
-    
-    # Determine redirect URL based on source
-    if '/report/' in source_url and '/edit/' in source_url:
-        # Extract publication ID from source URL
-        match = re.search(r'/report/(\d+)/edit/', source_url)
-        if match:
-            publication_id = match.group(1)
-            logger.debug(f"Redirecting to review view for publication {publication_id}")
-            return redirect('publications:edit_report_review', pk=publication_id)
-    elif '/add/' in source_url:
-        logger.debug("Redirecting to add review view")
-        return redirect('publications:add_report_review')
-    
-    # Fallback to original source URL for unknown cases
-    logger.debug(f"Fallback redirect to original source: {source_url}")
-    return redirect(source_url)
+
+    # Write the choices into the session data of the form the names were typed in
+    # (add, or edit of one report); review and finalize read only that data.
+    form_data = get_report_form_data(request.session, target) if target else None
+    if form_data is None:
+        messages.error(request, "The report form data is no longer in the session. "
+                                "Please fill in the form again.")
+        if target and target.startswith('edit:'):
+            return redirect('publications:edit_report', pk=int(target.split(':', 1)[1]))
+        return redirect('publications:add_report')
+    for field_name, choices in resolved.items():
+        values = form_data.get(field_name) or []
+        if isinstance(values, str):
+            values = [values]
+        form_data[field_name] = [choices.get(value, value) for value in values]
+    store_report_form_data(request.session, target, form_data)
+    request.session.modified = True
+
+    if target.startswith('edit:'):
+        return redirect('publications:edit_report_review', pk=int(target.split(':', 1)[1]))
+    return redirect('publications:add_report_review')
+
+
+def person_display_name(value):
+    """The name in a 'CREATE:<name>' / 'SKIP:<name>' value of the report form data, else None."""
+    for prefix in ('CREATE:', 'SKIP:'):
+        if isinstance(value, str) and value.startswith(prefix):
+            return remove_tags(value[len(prefix):])
+    return None
+
+
+def person_from_form_value(value, user, created):
+    """The Person for a value of the report form data: a pk, or a 'CREATE:<name>' /
+    'SKIP:<name>' marker from the workflow ("Create New Person" / "Use As-Is (Create Later)"),
+    for which a new person is created now (name parts parsed, created_by ``user``).
+    ``created`` maps the names already created in this save to their Person, so a name typed
+    as author and as supervisor is one person. Raises ValueError for an unresolved name."""
+    name = person_display_name(value)
+    if name is None:
+        return Person.objects.get(pk=int(value))
+    if not name:
+        raise ValueError(f'Empty person name in {value!r}')
+    if name not in created:
+        person = Person(created_by=user, modified_by=user)
+        person.set_names(name)  # saves
+        created[name] = person
+    return created[name]

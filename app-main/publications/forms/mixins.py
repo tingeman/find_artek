@@ -236,7 +236,13 @@ class PersonWorkflowMixin:
         from publications.workflows.person import PersonWorkflowSession
         
         workflow = PersonWorkflowSession(self.request)
-        
+
+        # A second field of the same form (supervisors after authors): one workflow for both,
+        # instead of the second start replacing the first.
+        if hasattr(self, '_workflow_redirect'):
+            workflow.add_names(field_name, person_names)
+            return self._workflow_redirect
+
         # Store RAW POST data instead of cleaned data to avoid model instance serialization issues
         raw_form_data = dict(self.request.POST)
         
@@ -261,8 +267,15 @@ class PersonWorkflowMixin:
             logger.error(f"Raw POST data serialization failed: {e}")
             logger.error(f"Problematic data: {simplified_form_data}")
         
-        workflow.start_workflow(field_name, person_names, simplified_form_data, self.request.path)
-        
+        # The report form the names were typed in (add, or edit of report <pk>): the workflow
+        # writes the choices into that form's session data (lazy import: views imports forms).
+        from publications.views import report_form_target
+        match = getattr(self.request, 'resolver_match', None)
+        target = report_form_target(match.kwargs.get('pk') if match else None)
+
+        workflow.start_workflow(field_name, person_names, simplified_form_data, self.request.path,
+                                target=target)
+
         return redirect('publications:disambiguate_person_step')
 
 

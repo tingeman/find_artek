@@ -72,7 +72,9 @@ from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
     handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords
 )
-from publications.workflows.person import disambiguate_person_step, complete_person_workflow
+from publications.workflows.person import (
+    disambiguate_person_step, complete_person_workflow, person_display_name, person_from_form_value,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -693,6 +695,10 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
         """Convert model IDs to string representations"""
         items = []
         for item_id in ids:
+            new_name = person_display_name(item_id) if this_model is Person else None
+            if new_name is not None:
+                items.append(f'{new_name} (new person)')  # created when the report is saved
+                continue
             try:
                 item = this_model.objects.get(pk=int(item_id))
                 items.append(str(item))
@@ -915,6 +921,10 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
             logger.debug("ReportFinalizeView: form invalid in fields %s", sorted(form.errors))
             messages.error(request, 'Form data is invalid. Please check your input.')
             return self._review_redirect()
+        if form.has_workflow_redirect():
+            # Typed person names that never went through the workflow: resolve them first.
+            messages.info(request, 'Please choose who the typed names are before saving.')
+            return form.get_workflow_redirect()
 
         # 3. The uploaded PDF, if any: a temporary upload of this user
         temp_upload = None
@@ -978,13 +988,15 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
             return None
 
     def _handle_relationships(self, publication, session_data, cleaned_data):
-        """Authors and supervisors (from the session data), topics and keywords (from the
-        cleaned form; typed keywords that don't exist yet are created here)."""
+        """Authors and supervisors (from the session data: pks, and the new persons chosen in
+        the person workflow, created here), topics and keywords (from the cleaned form; typed
+        keywords that don't exist yet are created here)."""
+        created = {}  # new persons of this save by name (author and supervisor: one person)
 
         # Authors
         publication.authorship_set.all().delete()
-        for i, author_pk in enumerate(session_data.get('authors', [])):
-            person = Person.objects.get(pk=int(author_pk))
+        for i, author in enumerate(session_data.get('authors', [])):
+            person = person_from_form_value(author, self.request.user, created)
             Authorship.objects.create(
                 publication=publication,
                 person=person,
@@ -993,8 +1005,8 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
 
         # Supervisors
         publication.supervisorship_set.all().delete()
-        for i, supervisor_pk in enumerate(session_data.get('supervisors', [])):
-            person = Person.objects.get(pk=int(supervisor_pk))
+        for i, supervisor in enumerate(session_data.get('supervisors', [])):
+            person = person_from_form_value(supervisor, self.request.user, created)
             Supervisorship.objects.create(
                 publication=publication,
                 person=person,
