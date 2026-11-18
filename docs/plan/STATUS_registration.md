@@ -4,9 +4,11 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 ## Now
 
-T1-T6, T13 done on `agent-registration` (head `7ee0b00`; gate 21/21, 144 Django tests). **Fix on `agent-fixes`** (worktree `..\find_artek_agent-fixes`, from `develop/main`): person API lists confidential/unverified reports to anonymous users → same rule as the report API (done: `edd5290` person API, `5dd6701` feature API, shared rule `publications/visibility.py`; `92b3c01` old database copy removed, `*.sqlite*` ignored, image check; gate 22/22, 29 tests; candidate for fix release `2026.2.1`, with the removal of the tracked SQLite, FA-R73, if you agree; merge `develop/main` into `agent-registration` after the fast-forward). Next on the branch: T16 (feature rights follow the report), T12 (design under discussion with you), then T7 → T8 → T9 → T14 → T10 → T11.
+**Fix release `2026.2.1` (you):** `develop/main` = `f5e7e79` (person API, feature API, old database copy removed; gate 22/22, 29 tests). Steps: [USER_STEPS_2026.2.1.md](USER_STEPS_2026.2.1.md) (backup to the share, tag, build, publish, deploy, checks). `develop/main` merged into `agent-registration`. After 2026.2.1: plan the history purge (FA-R77, own plan).
 
-Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`).
+On `agent-registration`: T1-T6, T13 done. Next: **T16** (feature rights follow the report, implementer), then T12 (name/e-mail from AD only; the Person link is dropped), T7 → T8 → T9 → T14 → T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
+
+Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
 
 ## Done
 
@@ -21,11 +23,12 @@ Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_dev
 - Decisions 2026-11-18 (after comparing with the old system): name and e-mail from AD into `auth_user`; Person linked to the user at login (`Person.user`); study numbers and student e-mails hidden from anonymous users, institutional e-mails stay public; phone/address fields hidden now, dropped later (FA-R72); DTU phone book link (FA-R71); document on user data and permissions (T14).
 - T13 2026-11-18: `publications/person_privacy.py`, `Person.is_student()`; person page, `/api/person/`, person list JS and autocomplete hide study numbers and student e-mails from anonymous users; contact fields shown nowhere (they were in no form/admin; Person is not in the admin); commented-out block in `person.html` that leaked e-mail/ID in the page source removed; 19 tests (`7ee0b00`)
 - Decisions 2026-11-18 (later): feature edit/delete by anyone listed on the feature's report, not by the creator alone (T16); employee ID is not sensitive and may be stored if useful; person API leak fixed now on `agent-fixes`; the `find_artek_OLD` backups kept for now (FA-R74).
+- Fixes 2026-11-18 on `agent-fixes`, fast-forwarded into `develop/main` (`f5e7e79`): `70cfb8d` person API, `bedd664` feature API (`publications/visibility.py`), `f5e7e79` old database copy removed, `*.sqlite*` ignored, image check. All database versions (6 from git history, 3 from `find_artek_OLD`) collected with a manifest in `00_static_data\find_artek_db_backups\` for the backup share.
+- Decisions 2026-11-18 (last): T12 without the Person link (classic rule kept; old DB has as few identifiers as today); confidential = own plan after 2026.3 (field, enforcement incl. PDFs); history purge includes the leaked `.env` files; fix release 2026.2.1.
 
 ## Open questions
 
-- T12 design (Person link at login, matching rule, what is stored): under discussion; employee ID may be stored (2026-11-18).
-- FA-R73: tracked `find_artek.sqlite` with personal data in the public repo and the image: remove now (fix release)? Purge history? Inform DTU data protection?
+- FA-R73: informing DTU's data protection function about the database copy in the public repository: your decision.
 
 - AD groups requested from IT (2026-11-18): their DNs go into `LDAP_GROUP_ARTEK_STAFF` / `LDAP_GROUP_ARTEK_EDITOR`. Until then only superusers can add reports. Decide at T11 whether 2026.3 waits for them.
 
