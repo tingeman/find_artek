@@ -52,6 +52,7 @@ Read by the app (`app-main/find_artek/settings.py`):
 | `MYSQL_HOST` | Database host; set by the compose files (here and in web_server) to `find-artek-mariadb-service` |
 | `SECRET_KEY` | Django secret key (50+ random characters) |
 | `LDAP_BIND_USER`, `LDAP_BIND_PASSWORD` | Read-only AD account for LDAP lookups (`ldaps://win.dtu.dk`) |
+| `LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR` | Full DN of the AD group whose members (nested groups count) get the Django group `artek_staff` / `artek_editor` at every CAS login; empty (default) = nobody has the role. Needs `LDAP_BIND_USER` / `LDAP_BIND_PASSWORD` |
 
 Read by the MariaDB container only: `MYSQL_ROOT_PASSWORD`.
 

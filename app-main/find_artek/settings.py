@@ -169,6 +169,12 @@ AUTH_LDAP_BIND_DN = f'cn={LDAP_BIND_USER},ou=Funktionskonti,ou=BYG,ou=Institutte
 AUTH_LDAP_BIND_PASSWORD = os.getenv('LDAP_BIND_PASSWORD')
 AUTH_LDAP_USER_SEARCH_BASE = "ou=DTUBaseUsers,dc=win,dc=dtu,dc=dk"
 
+# Roles from AD (publications/roles.py, at every CAS login): DN of the AD group whose members
+# (also through nested groups) get the Django group artek_staff / artek_editor. Empty: nobody
+# has the role. The lookup needs LDAP_BIND_USER / LDAP_BIND_PASSWORD.
+LDAP_GROUP_ARTEK_STAFF = os.environ.get('LDAP_GROUP_ARTEK_STAFF', '')
+LDAP_GROUP_ARTEK_EDITOR = os.environ.get('LDAP_GROUP_ARTEK_EDITOR', '')
+
 
 LOGGING = {
     'version': 1,
