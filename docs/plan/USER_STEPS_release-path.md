@@ -295,20 +295,38 @@ List which variables the leaked file had (names only, on your machine):
 git show v2.0.0:.dev.env | sed 's/=.*//'; git show v2.0.1:.dev.env | sed 's/=.*//'
 ```
 
-Rotate every leaked value still in use, in this order (highest risk first):
+**Leaked variables** (both versions, checked 2026-11-18): `MYSQL_ROOT_USER`, `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_HOST`, `SECRET_KEY`, `ROOT_SUPERUSER_NAME`, `ROOT_SUPERUSER_PASSWORD`, `ELASTIC_PASSWORD`, `ELASTIC_USERNAME`, `ELASTIC_KIBANA_ACCESS_TOKEN_NAME`, `ELASTIC_KIBANA_ACCESS_TOKEN`, plus commented-out lines `# MYSQL_ROOT_PASSWORD` and `# MYSQL_PASSWORD` (older values, also leaked). **Not leaked:** `LDAP_BIND_*`, `NETWORK_DRIVE_*`. `ROOT_SUPERUSER_*` and `ELASTIC_*` are not read by any code on `develop/main`.
+
+Rotate every leaked value still in use:
 
 | Variable | Risk | How to rotate | Side effects |
 |---|---|---|---|
-| `LDAP_BIND_PASSWORD` (`LDAP_BIND_USER`, a BYG function account in `win.dtu.dk`) | **Highest:** a valid DTU AD account, usable from anywhere on the DTU network, not only in this app | Reset the account's password (DTU IT or whoever manages BYG's function accounts). Ask whether other apps use the same account: they need the new password too | Until production has the new value, LDAP lookups in find_artek fail (CAS login itself still works) |
-| `SECRET_KEY` | Signs cookies, password reset links and CSRF tokens; with it someone can forge signed values | New value: `python -c "import secrets; print(secrets.token_urlsafe(50))"`. Production and dev get **different** keys | All users are logged out once; open password reset links stop working |
+| `SECRET_KEY` | Signs cookies, password reset links and CSRF tokens; with it someone can forge signed values | New value (generator below). Production and dev get **different** keys | All users are logged out once; open password reset links stop working |
+| `ROOT_SUPERUSER_NAME` / `ROOT_SUPERUSER_PASSWORD` | A Django superuser (probably created by the old datatransfer app). If it exists in production with that password, it is a public admin login | Check in the admin (`/find/admin/`, users) whether the user exists. Then `sudo docker exec -it webapp-find-artek python manage.py changepassword <name>`, or make the password unusable if nobody needs the account | none |
 | `MYSQL_PASSWORD` (app user `MYSQL_USER`), `MYSQL_ROOT_PASSWORD` | Medium: MariaDB has no published port (only the app and phpMyAdmin on `docker_default`; phpMyAdmin only through the SSH tunnel), so these need host or tunnel access | **Change the password in the running database first** (the image reads the env only on an empty data directory; the existing volume keeps its accounts), then the env file. Steps below | Between the `ALTER USER` and the redeploy, the app cannot connect (a few minutes): do it at a quiet time |
-| `NETWORK_DRIVE_*` (if they were in the leaked file) | The share account | Change that account's password where it is managed; the M5 stack no longer uses these variables, so **drop them from `webapp_find_artek.env`** in the same edit (web_server `secrets.md`) | none for find_artek |
+| `ELASTIC_*` | Account and API token of the old Elastic/Kibana work (branch `vicmrp/upgrade/elastic`) | If that Elastic instance still exists: revoke the token and change the password in Elastic. If it is gone: nothing to do | none for find_artek |
+| older values in the commented lines | Same as above if they are still used anywhere (other apps, other databases) | Check; change where still used | – |
+
+While editing the production env file anyway, drop `NETWORK_DRIVE_*` and `ENABLE_CRON` (unused by the M5 stack; web_server `docs/deploy/secrets.md`).
+
+**Generating values** (WSL; `secrets` uses the OS's cryptographic random source; `token_urlsafe` gives only letters, digits, `-` and `_`, so the values are safe in a compose env file, in SQL quotes and in a shell. Don't use Django's `get_random_secret_key()` here: it contains `$`, `#` and brackets, which env files and shells can misread):
+
+```bash
+python3 - <<'EOF'
+import secrets
+print("SECRET_KEY=" + secrets.token_urlsafe(50))           # ~67 chars; Django wants >= 50
+print("MYSQL_ROOT_PASSWORD=" + secrets.token_urlsafe(32))  # ~43 chars
+print("MYSQL_PASSWORD=" + secrets.token_urlsafe(32))
+EOF
+```
+
+Run it once for production and once for dev (never share a value between them). Only the command goes into the shell history, not the output; keep the terminal open until the `ALTER USER` is done, then clear it.
 
 Generate all new values on your machine. Never paste them into a chat session.
 
 **Production** (web_server; an agent never sees the plaintext):
 
-1. Edit the plaintext `webapp_find_artek.env` in the outside secrets folder: new `SECRET_KEY`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, and `LDAP_BIND_PASSWORD` once IT has reset it; drop `NETWORK_DRIVE_*` and `ENABLE_CRON`. Then `bash scripts/vault_secrets.sh encrypt` (WSL) and commit the `.vault` file in web_server.
+1. Edit the plaintext `webapp_find_artek.env` in the outside secrets folder: new `SECRET_KEY`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` (only those whose production value was leaked); drop `NETWORK_DRIVE_*` and `ENABLE_CRON`. Then `bash scripts/vault_secrets.sh encrypt` (WSL) and commit the `.vault` file in web_server.
 2. On the host, change the database passwords (interactive client, statement history off; it asks nothing, it uses the current root password from the container's env):
 
 ```bash
@@ -333,11 +351,11 @@ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/fr
 sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mariadb -uroot -e "SELECT 1"'   # 1 = new root password works
 ```
 
-In the browser: log in with CAS (new `SECRET_KEY`: you are logged out first), open a report, run a person lookup that uses LDAP. phpMyAdmin through the tunnel with the new password.
+In the browser: log in with CAS (new `SECRET_KEY`: you are logged out first), open a report, check the superuser change. phpMyAdmin through the tunnel with the new password.
 
 Rollback: if the app cannot connect, check the `ALTER USER` rows against `SELECT user, host` (a missed host is the usual cause). Don't restore the old passwords.
 
-**Dev** (this repository, your machine): new values in `.dev.env` (own `SECRET_KEY` and DB passwords, different from production). For LDAP, either leave `LDAP_BIND_USER`/`LDAP_BIND_PASSWORD` empty in dev (lookups fail; FA-R34 later makes this a setting) or use the new production value only on your machine. The dev volume `find-artek-mariadb-dev` also keeps its old accounts: run the same `ALTER USER` in the dev container (`docker compose -f docker-compose.yml -f docker-compose.develop.yml exec -e MYSQL_HISTFILE=/dev/null find-artek-mariadb-service sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mariadb -uroot'`) before editing `.dev.env`, then `$DC up -d` and open `http://localhost:8098/`.
+**Dev** (this repository, your machine): new values in `.dev.env` (own `SECRET_KEY` and DB passwords, different from production). The dev volume `find-artek-mariadb-dev` also keeps its old accounts: run the same `ALTER USER` in the dev container (`docker compose -f docker-compose.yml -f docker-compose.develop.yml exec -e MYSQL_HISTFILE=/dev/null find-artek-mariadb-service sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mariadb -uroot'`) before editing `.dev.env`, then `$DC up -d` and open `http://localhost:8098/`.
 
 **GitHub (optional, your decision):** delete the tags `v2.0.0` and `v2.0.1` on GitHub (`git push origin :refs/tags/v2.0.0 :refs/tags/v2.0.1`) and keep them locally, or recreate them without the file. That rewrites published history, and clones or forks may already have the file: only rotation makes the leak harmless.
 
