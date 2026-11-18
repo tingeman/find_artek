@@ -6,7 +6,7 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 **Fix release `2026.2.1` (you):** `develop/main` = `f5e7e79` (person API, feature API, old database copy removed; gate 22/22, 29 tests). Steps: [USER_STEPS_2026.2.1.md](USER_STEPS_2026.2.1.md) (backup to the share, tag, build, publish, deploy, checks). `develop/main` merged into `agent-registration`. After 2026.2.1: plan the history purge (FA-R77, own plan).
 
-On `agent-registration`: T1-T6, T13, T16 done (head after T16, gate 22/22, 169 tests). Next: **T12** (implementer) (name/e-mail from AD only; the Person link is dropped), T7 → T8 → T9 → T14 → T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
+On `agent-registration`: T1-T6, T12, T13, T16 done (gate 22/22, 185 tests). Next: **T7** (form reliability, implementer) → T8 → T9 → T14 → T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
 
 Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
 
@@ -26,6 +26,7 @@ Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_dev
 - Fixes 2026-11-18 on `agent-fixes`, fast-forwarded into `develop/main` (`f5e7e79`): `70cfb8d` person API, `bedd664` feature API (`publications/visibility.py`), `f5e7e79` old database copy removed, `*.sqlite*` ignored, image check. All database versions (6 from git history, 3 from `find_artek_OLD`) collected with a manifest in `00_static_data\find_artek_db_backups\` for the backup share.
 - Decisions 2026-11-18 (last): T12 without the Person link (classic rule kept; old DB has as few identifiers as today); confidential = own plan after 2026.3 (field, enforcement incl. PDFs); history purge includes the leaked `.env` files; fix release 2026.2.1.
 - T16 2026-11-18: `Feature.is_own_feature_of` (listed on any linked report); edit/delete = `change_/delete_feature` or `*_own_feature` and listed; creator alone no longer counts, feature on no report editors only; T3/T5 feature tests changed deliberately (creator tests reversed); report page prefetches the persons of the features' reports.
+- T12 2026-11-18: `roles.ad_user_info` (one connection per login: user entry `givenName`/`sn`/`mail` + T1 group searches) → `update_user_details` (empty AD values don't overwrite, names cut to max_length, only changed fields saved); lookup now happens at every login also without group settings; `update_user_roles` renamed `update_user_from_ad`; T1 test `test_login_adds_dtu_user` changed deliberately (now expects one lookup). With `USE_LDAP=False` every login logs one warning.
 
 ## Open questions
 
