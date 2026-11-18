@@ -4,7 +4,9 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 ## Now
 
-T1 (roles: groups and login sync), implementer, in the worktree. Then T2 (you: CAS username check in the dev stack).
+**Blocked on Docker Desktop (2026-11-18):** new containers hang in "Created" (running ones are fine), so `tests/run.sh` can't run. Owner to restart Docker Desktop. Code for T1, T3, T6 is written, uncommitted, in their worktrees; none validated yet. After the restart: remove the stuck `fa-test-*` / random-named "Created" containers, rebuild and run `tests/run.sh` in each worktree, review, commit T1 → T3 → T6 on `agent-registration` (cherry-pick from `agent-registration-t3` / `-t6`, resolve the `DJANGO_TEST_LABELS` line), remove the `-t3`/`-t6` worktrees and branches. Then T2 (you) and T4.
+
+Parallel worktrees (temporary, from `agent-registration` at `58286e0`): `..\find_artek_agent-registration-t3` (`agent-registration-t3`), `..\find_artek_agent-registration-t6` (`agent-registration-t6`).
 
 ## Done
 
@@ -16,6 +18,9 @@ T1 (roles: groups and login sync), implementer, in the worktree. Then T2 (you: C
 - AD groups requested from IT (2026-11-18): their DNs go into `LDAP_GROUP_ARTEK_STAFF` / `LDAP_GROUP_ARTEK_EDITOR`. Until then only superusers can add reports. Decide at T11 whether 2026.3 waits for them.
 
 ## Notes for the next session
+
+- T3 (written, not run): helpers `Publication.is_own_publication_of`, `Feature.is_created_by` (created_by only, not modified_by); `sorted_supervisors`/`sorted_editors` field names fixed; `has_model_permission` callers pass `model_name`; 27 tests in `test_permissions_models.py`. Found, out of scope: `Person.sorted_authorships/_supervisorships/_editorships` (`models.py` ~220-240) use plural related names that don't exist (latent AttributeError) → roadmap at plan end.
+- T6 (written, not run): `LOGIN_URL = 'cas_ng_login'`; also `CAS_REDIRECT_URL = 'publications:frontpage'` (default `/` sent login/logout without next outside `/find/`); `templates/admin/login.html` uses `{% url 'admin-cas-login' %}`. The image built before the `CAS_REDIRECT_URL` change: rebuild. django-cas-ng 5.0.1 builds the service URL from `request.path`, so it keeps `/find/`; the `https` depends on nginx sending `X-Forwarded-Proto` (web_server, not verified). Prefix bugs listed, not fixed: `reports_snippets/report_td.html:3` (`/publications/report/...` hard-coded), `shared_snippets/supervisorlist_short.html:3,20,24,36` (old `/pubs/person/...`) → roadmap at plan end (or T9 if cheap).
 
 - Survey of the write views and their guards is in the plan's "Current state" (line numbers as of `b2cc908`).
 - `publications/tests.py` is not a usable test module; new tests go in `publications/test_*.py` modules, style as `test_upload_appendix_access.py`.
