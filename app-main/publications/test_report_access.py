@@ -22,6 +22,7 @@ from django.urls import reverse
 from publications.models import Authorship, Person, Publication, PubType, Supervisorship
 from publications.roles import ARTEK_EDITOR, ARTEK_STAFF, DTU_USER
 from publications.test_upload_appendix_access import _app_path
+from publications.views import report_form_target, store_report_form_data
 
 
 def _path(name, **kwargs):
@@ -64,11 +65,15 @@ class ReportAccessTestBase(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertTemplateUsed(response, 'publications/access_denied.html')
 
+    # Form whose session data login() stores: 'add' here, the edit form in EditReportAccessTests.
+    form_target = 'add'
+
     def login(self, user, form_data=None):
         self.client.force_login(user)
         if form_data is not None:
+            # As ReportFormView stores it: bound to the form it was entered in (T7).
             session = self.client.session
-            session['form_data'] = form_data
+            store_report_form_data(session, self.form_target, form_data)
             session.save()
 
     def edit_form_data(self, title):
@@ -150,6 +155,11 @@ class EditReportAccessTests(ReportAccessTestBase):
     """ReportFormView, ReportReviewView and ReportFinalizeView with pk (edit)."""
 
     NAMES = ('edit_report', 'edit_report_review', 'edit_report_finalize')
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.form_target = report_form_target(cls.pub.pk)
 
     def test_anonymous_redirected_to_login(self):
         for name in self.NAMES:

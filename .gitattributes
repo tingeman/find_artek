@@ -3,3 +3,5 @@
 *.sh text eol=lf
 # cron job files are copied into /etc/cron.d; a CR would become part of the command.
 docker/cron/* text eol=lf
+# PDFs (test fixtures) are binary: no line-ending conversion, or their xref offsets break.
+*.pdf binary

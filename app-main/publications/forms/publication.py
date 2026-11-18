@@ -18,6 +18,59 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class TopicChoiceField(forms.ModelMultipleChoiceField):
+    """Topics are chosen from the list only: an unknown value is a form error."""
+    default_error_messages = {
+        'invalid_choice': 'Unknown topic "%(value)s". Choose topics from the list; '
+                          'new topics cannot be added here.',
+        'invalid_pk_value': 'Unknown topic "%(pk)s". Choose topics from the list; '
+                            'new topics cannot be added here.',
+    }
+
+
+class KeywordTagField(forms.ModelMultipleChoiceField):
+    """Keywords from the list (posted as pks) or typed new ones (posted as text by the
+    Select2 tag widget).
+
+    ``clean`` returns a list of Keyword instances and, for typed keywords that don't exist
+    yet, their names as strings. Nothing is created here: the names are turned into Keywords
+    when the report is saved (``utils_models.get_or_create_keywords``), so a form that is
+    never saved leaves no keywords behind. A typed name that matches an existing keyword
+    (case-insensitive) uses that keyword. A purely numeric value is taken as a pk when a
+    keyword with that pk exists, otherwise as a new name.
+    """
+
+    def clean(self, value):
+        value = self.prepare_value(value)
+        if not value:
+            if self.required:
+                raise ValidationError(self.error_messages['required'], code='required')
+            return []
+        if not isinstance(value, (list, tuple)):
+            raise ValidationError(self.error_messages['invalid_list'], code='invalid_list')
+
+        max_length = Keyword._meta.get_field('keyword').max_length
+        result, seen = [], set()
+        for item in value:
+            text = str(item).strip()
+            if not text:
+                continue
+            keyword = None
+            if text.isdigit():
+                keyword = self.queryset.filter(pk=int(text)).first()
+            if keyword is None:
+                if len(text) > max_length:
+                    raise ValidationError(
+                        f'Keyword "{text[:30]}..." is too long (at most {max_length} characters).',
+                        code='keyword_too_long')
+                keyword = self.queryset.filter(keyword__iexact=text).first() or text
+            key = keyword.pk if isinstance(keyword, Keyword) else text.lower()
+            if key not in seen:
+                seen.add(key)
+                result.append(keyword)
+        return result
+
+
 class AddEditReportForm(ModelForm):
     """A unified form for both adding and editing reports
     
@@ -83,21 +136,24 @@ class AddEditReportForm(ModelForm):
         ),
     )
 
-    publication_topics = forms.ModelMultipleChoiceField(
+    # Topics are list-only (plan registration T7): no tagging in the widget, and an unknown
+    # value posted anyway is a form error (TopicChoiceField).
+    publication_topics = TopicChoiceField(
         queryset=Topic.objects.all(),
         required=False,
         widget=s2forms.Select2TagWidget(
             attrs={
-                "data-tags": "true",  # Enable tagging
+                "data-tags": "false",  # Topics can only be chosen from the list
                 "data-token-separators": "[',', ';']",
-                "data-placeholder": "Add or select topics (separate by comma or enter)",
+                "data-placeholder": "Select topics",
                 "data-minimum-input-length": 0,
                 "style": "width: 100%;",  # Optional: Set widget width
             }
         ),
     )
 
-    publication_keywords = forms.ModelMultipleChoiceField(
+    # Keywords may be typed: unknown ones are created when the report is saved.
+    publication_keywords = KeywordTagField(
         queryset=Keyword.objects.all(),
         required=False,
         widget=s2forms.Select2TagWidget(

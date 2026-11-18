@@ -2,6 +2,7 @@
 import os
 import ast
 import datetime
+import functools
 import json
 import logging
 import pdb
@@ -69,11 +70,117 @@ from publications.permissions import (
 from publications.utils_basic import CaseInsensitively
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
-    handle_session_appendix_uploads, rename_publication_files
+    handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords
 )
 from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
 logger = logging.getLogger(__name__)
+
+
+# --- Add/edit report form: session data -------------------------------------------------
+# ReportFormView keeps the submitted form in the session until ReportFinalizeView saves it.
+# The data is bound to the form it was entered in ('add' or 'edit:<pk>'), so data entered for
+# one report can never be reviewed or saved as another one (plan registration T7).
+REPORT_FORM_DATA_KEY = 'form_data'
+REPORT_FORM_TARGET_KEY = 'form_data_for'
+
+
+def report_form_target(pk=None):
+    """'add', or 'edit:<pk>' for the edit form of report ``pk``."""
+    return 'add' if pk is None else f'edit:{int(pk)}'
+
+
+def store_report_form_data(session, target, data):
+    session[REPORT_FORM_DATA_KEY] = data
+    session[REPORT_FORM_TARGET_KEY] = target
+
+
+def get_report_form_data(session, target):
+    """The form data in the session if it was entered in the form ``target``, else None."""
+    if session.get(REPORT_FORM_TARGET_KEY) != target:
+        return None
+    return session.get(REPORT_FORM_DATA_KEY) or None
+
+
+def clear_report_form_data(session):
+    session.pop(REPORT_FORM_DATA_KEY, None)
+    session.pop(REPORT_FORM_TARGET_KEY, None)
+
+
+def _is_checked(value):
+    """A checkbox value from the session data (a list from request.POST, or a plain value)."""
+    values = value if isinstance(value, (list, tuple)) else [value]
+    return any(v in (True, 'true', 'True', 'on', '1') for v in values)
+
+
+# --- Add/edit report form: files after the commit ---------------------------------------
+# ReportFinalizeView changes only database rows inside its transaction and registers these
+# functions with transaction.on_commit, so a failed save leaves the files as they were.
+
+def _remove_file(path):
+    if path and os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            logger.exception("Could not remove %s", path)
+
+
+def _remove_temp_upload(temp_path):
+    """Remove a temporary upload and its directory under MEDIA_ROOT/temp/ when empty."""
+    _remove_file(temp_path)
+    temp_root = os.path.join(settings.MEDIA_ROOT, 'temp')
+    directory = os.path.dirname(temp_path)
+    if os.path.abspath(os.path.dirname(directory)) == os.path.abspath(temp_root):
+        try:
+            os.rmdir(directory)
+        except OSError:
+            pass  # not empty (another upload in the same second) or already gone
+
+
+def _place_uploaded_report_file(temp_path, final_path, old_path, thumbnail_path):
+    """After the commit: put the uploaded PDF at its final path.
+
+    A replaced PDF is kept on disk as ``<old name>.old`` (as before T7; it has no database
+    row any more). The thumbnail of the report is removed so that the cron job makes a new
+    one. On a file system error the old PDF is put back and the temporary upload is kept;
+    the error is logged (the database already points to ``final_path``).
+    """
+    backup = None
+    try:
+        os.makedirs(os.path.dirname(final_path), exist_ok=True)
+        if old_path and os.path.exists(old_path):
+            backup = old_path + '.old'
+            os.replace(old_path, backup)
+        shutil.move(temp_path, final_path)
+    except OSError:
+        logger.exception("Could not move the uploaded report file %s to %s", temp_path, final_path)
+        if backup and not os.path.exists(old_path):
+            try:
+                os.replace(backup, old_path)
+            except OSError:
+                logger.exception("Could not restore %s", old_path)
+        return
+    _remove_temp_upload(temp_path)
+    _remove_file(thumbnail_path)
+
+
+def _report_thumbnail_path(publication):
+    """The thumbnail that the generate_thumbnails command makes for the report's PDF."""
+    if not (publication.number and publication.year):
+        return None
+    return os.path.join(settings.MEDIA_ROOT, 'reports', str(publication.year), 'thumbs',
+                        f'{publication.number}_thumb.jpg')
+
+
+def _file_object_path(file_object):
+    """Absolute path of a FileObject's file, or None (no file, or a name outside MEDIA_ROOT)."""
+    if not file_object or not file_object.file:
+        return None
+    try:
+        return file_object.file.path
+    except Exception:  # SuspiciousFileOperation for legacy names outside MEDIA_ROOT
+        logger.warning("FileObject %s has a file name outside MEDIA_ROOT", file_object.pk)
+        return None
 
 
 class BaseView(View):
@@ -431,10 +538,9 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
             file_obj = handle_publication_file_upload(uploaded_file, user=self.request.user)
             session_data['uploaded_file_id'] = str(file_obj.id)
                 
-        # Store in session BEFORE any redirects
-        self.request.session['form_data'] = session_data
-        if self.is_edit_mode():
-            self.request.session['publication_id'] = self.kwargs['pk']
+        # Store in session BEFORE any redirects, bound to this form (add, or edit of this pk)
+        store_report_form_data(self.request.session, report_form_target(self.kwargs.get('pk')),
+                               session_data)
 
         # THEN: Check if workflow forms need to redirect to disambiguation
         if hasattr(form, 'has_workflow_redirect') and form.has_workflow_redirect():
@@ -455,7 +561,10 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
         for key, value in self.request.POST.lists():
             # Skip empty file field to avoid misinterpreting as an uploaded file
             if key == 'pdffile' and (not value or value == [''] or all(v == '' for v in value)):
-                print(f"🔍 DEBUG: Skipping empty pdffile field: {value}")
+                continue
+            # Set by form_valid from an upload in this request only, never from the POST
+            # (it names the FileObject that finalize moves into the report).
+            if key == 'uploaded_file_id':
                 continue
             session_data[key] = value
         return session_data
@@ -477,10 +586,14 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
         return None
 
     def _form_redirect(self):
-        """No form data in the session: back to the form."""
+        """No form data in the session for this form: back to the form."""
         if self.is_edit_mode():
             return redirect('publications:edit_report', pk=self.kwargs['pk'])
         return redirect('publications:add_report')
+
+    def _session_form_data(self):
+        """The session form data if it was entered in this form (add, or edit of this pk)."""
+        return get_report_form_data(self.request.session, report_form_target(self.kwargs.get('pk')))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -495,7 +608,7 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
             context['publication'] = None
 
         # Get review data from session
-        if 'form_data' not in self.request.session:
+        if self._session_form_data() is None:
             context['error'] = "No form data found in session. Please fill out the form first."
             return context
     
@@ -515,7 +628,7 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
 
     def _get_review_data(self):
         """Convert session data into a clean format for display and track changed fields"""
-        session_data = self.request.session.get('form_data', {})
+        session_data = self._session_form_data() or {}
         review_data = {}
 
 
@@ -700,7 +813,7 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
     
     def get(self, request, *args, **kwargs):
         """Handle GET requests - show the review page"""
-        if 'form_data' not in request.session:
+        if self._session_form_data() is None:
             return self._form_redirect()
 
         context = self.get_context_data(**kwargs)
@@ -716,7 +829,7 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
         """A POST to the review page (the template posts to the finalize URL directly) is
         passed on to the finalize step with a 307, so it stays a POST with its CSRF token;
         the finalize step checks the permission again."""
-        if 'form_data' not in request.session:
+        if self._session_form_data() is None:
             return self._form_redirect()
         if self.is_edit_mode():
             url = reverse('publications:edit_report_finalize', kwargs={'pk': kwargs['pk']})
@@ -763,73 +876,77 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
             return redirect('publications:edit_report_review', pk=kwargs['pk'])
         return redirect('publications:add_report_review')
     
+    def _target(self):
+        return report_form_target(self.kwargs.get('pk'))
+
+    def _form_redirect(self):
+        if self.is_edit_mode():
+            return redirect('publications:edit_report', pk=self.kwargs['pk'])
+        return redirect('publications:add_report')
+
+    def _review_redirect(self):
+        if self.is_edit_mode():
+            return redirect('publications:edit_report_review', pk=self.kwargs['pk'])
+        return redirect('publications:add_report_review')
+
     def post(self, request, *args, **kwargs):
-        """Save the publication with session data"""
+        """Save the publication with the session data of this form.
 
-        # 1. Get session data
-        session_data = self.request.session.get('form_data', {})
-        print(f"🔍 DEBUG: ReportFinalizeView:post - Session data found: {bool(session_data)}")
-        print(f"🔍 DEBUG: ReportFinalizeView:post - Session data keys: {list(session_data.keys())}")
-
+        Only database rows are changed inside the transaction; the files are moved after the
+        commit (transaction.on_commit), so a failed save leaves no report, no relations, no
+        new keywords and no moved files behind, and the temporary upload stays for a retry.
+        """
+        # 1. Session data of this form only (add, or edit of this pk)
+        session_data = get_report_form_data(request.session, self._target())
         if not session_data:
-            # No session data, redirect back
-            if self.is_edit_mode():
-                print(f"🔍 DEBUG: No session data, redirecting to edit_report")
-                return redirect('publications:edit_report', pk=kwargs['pk'])
-            else:
-                print(f"🔍 DEBUG: No session data, redirecting to add_report")
-                return redirect('publications:add_report')
+            if request.session.get(REPORT_FORM_DATA_KEY):
+                # Data of another add/edit form: never saved onto this report.
+                messages.error(request, 'The data in this session was entered for another report. '
+                                        'Please fill in the form again.')
+            return self._form_redirect()
 
-        # 2. Convert session data to form input format
+        # 2. Rebuild and validate the form from the session data
         form_input = self._session_data_to_form_input(session_data)
-
-        # 2. Prepare form kwargs
         form_kwargs = {'request': request}
         if self.is_edit_mode():
             form_kwargs['instance'] = self.get_object()
-
-        # 3. Create form instance with session data
-        form_class = self.get_form_class()
-        form = form_class(form_input, **form_kwargs)
-
-        print(f"🔍 DEBUG: ReportFinalizeView:post - Form instance created")
-
-        # 4. Validate and save
-        if form.is_valid():
-            print(f"🔍 DEBUG: Form is valid, proceeding to save publication")
-
-            try:
-                with transaction.atomic():
-                    publication = form.save(commit=False)
-                    publication.modified_by = request.user
-                    if not publication.pk:
-                        publication.created_by = request.user
-                    
-                    if not self.is_edit_mode() and 'year' in form_input and form_input['year']:
-                        publication.number = generate_next_report_number(form_input['year'])
-                       
-                    publication.save()
-                    self._handle_relationships(publication)
-                    self._handle_files(publication)
-                    publication.save()
-                    del request.session['form_data']            
-                return redirect('publications:report', pk=publication.pk)
-            except Exception as e:
-                messages.error(request, f'Error saving publication: {e}')
-                print(f"🔍 DEBUG: Error saving publication: {e}")
-                if self.is_edit_mode():
-                    return redirect('publications:edit_report_review', pk=kwargs['pk'])
-                else:
-                    return redirect('publications:add_report_review')
-        else:
-            # If invalid, redirect back to review
+        form = self.get_form_class()(form_input, **form_kwargs)
+        if not form.is_valid():
             logger.debug("ReportFinalizeView: form invalid in fields %s", sorted(form.errors))
             messages.error(request, 'Form data is invalid. Please check your input.')
-            if self.is_edit_mode():
-                return redirect('publications:edit_report_review', pk=kwargs['pk'])
-            else:
-                return redirect('publications:add_report_review')
-    
+            return self._review_redirect()
+
+        # 3. The uploaded PDF, if any: a temporary upload of this user
+        temp_upload = None
+        if session_data.get('uploaded_file_id'):
+            temp_upload = self._get_temp_upload(session_data['uploaded_file_id'])
+            if temp_upload is None:
+                messages.error(request, 'The uploaded PDF is no longer available. '
+                                        'Please upload it again.')
+                return self._form_redirect()
+
+        # 4. Save the database rows; files are moved after the commit
+        try:
+            with transaction.atomic():
+                publication = form.save(commit=False)
+                publication.modified_by = request.user
+                if not publication.pk:
+                    publication.created_by = request.user
+
+                if not self.is_edit_mode() and form_input.get('year'):
+                    publication.number = generate_next_report_number(form_input['year'])
+
+                publication.save()
+                self._handle_relationships(publication, session_data, form.cleaned_data)
+                self._handle_files(publication, session_data, temp_upload)
+        except Exception as e:
+            logger.exception("ReportFinalizeView: saving the report failed")
+            messages.error(request, f'Error saving publication: {e}')
+            return self._review_redirect()
+
+        clear_report_form_data(request.session)
+        return redirect('publications:report', pk=publication.pk)
+
     def _session_data_to_form_input(self, session_data):
         """Convert session data to form input format"""
         form_input = {}
@@ -837,8 +954,7 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
             if key in ['authors', 'supervisors', 'publication_topics', 'publication_keywords']:
                 form_input[key] = value
             elif key == 'delete_pdf':
-                # Normalize delete_pdf to boolean
-                form_input[key] = value in [True, 'true', 'True', 'on', '1']
+                form_input[key] = _is_checked(value)
             elif isinstance(value, list):
                 # If the value is a list, take the first item if it exists
                 if value:
@@ -853,11 +969,18 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
                 form_input[key] = value
         return form_input
 
+    def _get_temp_upload(self, file_object_id):
+        """The temporary upload ``file_object_id`` if it is one (under temp/) of this user."""
+        try:
+            return FileObject.objects.get(pk=int(file_object_id), file__startswith='temp/',
+                                          created_by=self.request.user)
+        except (FileObject.DoesNotExist, TypeError, ValueError):
+            return None
 
-    def _handle_relationships(self, publication):
-        """Handle authors, supervisors, topics, keywords"""
-        session_data = self.request.session['form_data']
-        
+    def _handle_relationships(self, publication, session_data, cleaned_data):
+        """Authors and supervisors (from the session data), topics and keywords (from the
+        cleaned form; typed keywords that don't exist yet are created here)."""
+
         # Authors
         publication.authorship_set.all().delete()
         for i, author_pk in enumerate(session_data.get('authors', [])):
@@ -867,8 +990,8 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
                 person=person,
                 author_id=i
             )
-        
-        # Supervisors  
+
+        # Supervisors
         publication.supervisorship_set.all().delete()
         for i, supervisor_pk in enumerate(session_data.get('supervisors', [])):
             person = Person.objects.get(pk=int(supervisor_pk))
@@ -877,171 +1000,78 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
                 person=person,
                 supervisor_id=i
             )
-        
-        # Topics
-        publication.publication_topics.clear()
-        for topic_pk in session_data.get('publication_topics', []):
-            try:
-                topic = Topic.objects.get(pk=int(topic_pk))
-                publication.publication_topics.add(topic)
-            except Topic.DoesNotExist:
-                print(f"🔍 DEBUG: Topic with PK {topic_pk} does not exist, skipping")
 
-        # Keywords
-        publication.publication_keywords.clear()
-        for keyword_pk in session_data.get('publication_keywords', []):
-            try:
-                keyword = Keyword.objects.get(pk=int(keyword_pk))
-                publication.publication_keywords.add(keyword)
-            except Keyword.DoesNotExist:
-                print(f"🔍 DEBUG: Keyword with PK {keyword_pk} does not exist, skipping")
+        # Topics: list-only, unknown ones were refused by the form (TopicChoiceField)
+        publication.publication_topics.set(cleaned_data.get('publication_topics') or [])
 
-    def _handle_files(self, publication):
-        """Handle file operations"""
-        session_data = self.request.session['form_data']
-        
-        if 'uploaded_file_id' in session_data:
-            print(f"🔍 DEBUG: ReportFinalizeView:_handle_files called with uploaded_file_id")
+        # Keywords: existing ones and new names (KeywordTagField)
+        publication.publication_keywords.set(
+            get_or_create_keywords(cleaned_data.get('publication_keywords') or []))
 
-            uploaded_file_obj = FileObject.objects.get(pk=session_data['uploaded_file_id'])
-           
-            original_file_obj_backup = self._temporarily_rename_existing_file(publication)
+    def _handle_files(self, publication, session_data, temp_upload):
+        """Database part of the file changes; the files themselves change after the commit."""
+        if temp_upload is not None:
+            self._replace_file(publication, temp_upload)
+        elif _is_checked(session_data.get('delete_pdf')):
+            self._delete_file(publication)
 
-            try:
-                final_file_obj = self._move_temp_file_to_final(uploaded_file_obj, publication)
-                publication.file = final_file_obj
-                publication.save()
-            except:
-                print(f"🔍 DEBUG: Error moving file to final location, restoring existing file")  
-                self._restore_existing_file(publication, original_file_obj_backup)              
-                # reraise exception
-                raise
+    def _replace_file(self, publication, temp_upload):
+        """The upload becomes the report's PDF at reports/<year>/<number>.pdf.
 
-            if original_file_obj_backup:
-                print(f"🔍 DEBUG: Deleting temporary file object: {original_file_obj_backup.pk}")
-                try:
-                    original_file_obj_backup.delete()  # Clean up the temporary file object
-                    print(f"🔍 DEBUG: File moved successfully to publication {publication.pk}: {final_file_obj.pk}")
-                except Exception as e:
-                    print(f"🔍 DEBUG: Error deleting temporary file object: {e}")
-                    pass
-        elif 'delete_pdf' in session_data and session_data['delete_pdf']:
-            print(f"🔍 DEBUG: Deleting existing file for publication {publication.pk}")
-            if publication.file:
-                # Store the file reference before deletion
-                file_to_delete = publication.file
-                
-                # First update the publication to remove the file reference
-                publication.file = None
-                publication.save(update_fields=['file'])
-                
-                # Delte the file on disk
-                if file_to_delete.file and os.path.exists(file_to_delete.file.path):
-                    print(f"🔍 DEBUG: Deleting file from disk: {file_to_delete.file.path}")
-                    os.remove(file_to_delete.file.path)
+        A new FileObject points to the final name; the old FileObject (if any) and the
+        temporary one are deleted. After the commit the old PDF is renamed to ``.old``, the
+        upload is moved into place and the temporary file and its directory are removed
+        (_place_uploaded_report_file)."""
+        old = publication.file
+        old_path = _file_object_path(old)
+        final_name = self._final_file_name(publication, temp_upload, old)
 
-                # Then delete the actual file object
-                file_to_delete.delete()
+        final = FileObject.objects.create(
+            file=final_name,
+            description=temp_upload.description,
+            created_by=temp_upload.created_by,
+            modified_by=self.request.user,
+        )
+        publication.file = final
+        publication.save(update_fields=['file'])
+        if old is not None:
+            old.delete()  # nothing points to it any more (Publication.file is CASCADE)
 
-    def _temporarily_rename_existing_file(self, publication):
-        """Will physically rename existing file on disk, forcing overwrite of any existing file 
-        with the same name"""
-        if publication.file:
-            print(f"🔍 DEBUG: Temporarily renaming existing file for publication {publication.pk}")
-            original_file_path = publication.file.file.path
-            print(f"🔍 DEBUG: Original file path: {original_file_path}")
-            # Create a temporary name to avoid conflicts
-            temp_file_path = original_file_path + '.old'
-            print(f"🔍 DEBUG: Temporary file path: {temp_file_path}")
-            # Rename the file
-            try:
-                os.rename(original_file_path, temp_file_path)
-                print(f"🔍 DEBUG: Existing file renamed to temporary path: {temp_file_path}")
-                # Update the publication file reference
-                publication.file.file.name = temp_file_path
-            except OSError as e:
-                print(f"🔍 DEBUG: Error renaming file: {e}")
-                publication.file.file = None  # Clear the file reference
-            publication.file.save() 
-            return publication.file
-        else:
-            return None
+        temp_path = _file_object_path(temp_upload)
+        temp_upload.delete()
 
-    def _restore_existing_file(self, publication, temp_file_object):
-        """Restore the existing file to its original name (needed if transactions fail)"""
+        transaction.on_commit(functools.partial(
+            _place_uploaded_report_file, temp_path, os.path.join(settings.MEDIA_ROOT, final_name),
+            old_path, _report_thumbnail_path(publication)))
 
-        print(f"🔍 DEBUG: Restoring existing file for publication {publication.pk}")
-        if temp_file_object.file:
-            temp_file_path = temp_file_object.file.path
-            original_file_path = temp_file_path.replace('.old', '')
-            if os.path.exists(temp_file_path):
-                print(f"🔍 DEBUG: Restoring file from {temp_file_path} to {original_file_path}")
-                # Rename back to original
-                os.rename(temp_file_path, original_file_path)
-                # Update the publication file reference
-                publication.file.file.name = original_file_path
-                publication.file.save()
-        
-    def _move_temp_file_to_final(self, temp_file_obj, publication):
-        """Move a temporary file to its final location"""
-                
-        print(f"🔍 DEBUG: Moving temp file to final location")
-        print(f"🔍 DEBUG: Temp file: {temp_file_obj.file.name}")
-        print(f"🔍 DEBUG: Publication: {publication.title} (#{publication.number})")
-        
-        # Create a new FileObject for the final location
-        final_file_obj = FileObject()
-        final_file_obj.created_by = temp_file_obj.created_by
-        final_file_obj.modified_by = temp_file_obj.modified_by
-        final_file_obj.description = temp_file_obj.description
-        final_file_obj.save()  # Save to get an ID
-        
-        # Determine final file path
-        pub_number = publication.number if publication.number else f"pub_{final_file_obj.id}"
-        year = publication.year if publication.year else 'unknown_year'
-        year_str = str(year)
-        
-        # Get original filename
-        original_filename = os.path.basename(temp_file_obj.file.name)
-        base_name, ext = os.path.splitext(original_filename)
-        
-        # Create final filename
-        final_filename = f"{pub_number}{ext}"
-        
-        # Create final path
-        final_upload_to = os.path.join('reports', year_str)
-        final_file_path = os.path.join(final_upload_to, final_filename)
-        
-        # Create directory if it doesn't exist
-        final_dir = os.path.join(settings.MEDIA_ROOT, final_upload_to)
-        os.makedirs(final_dir, exist_ok=True)
-        
-        # Handle filename conflicts
-        counter = 1
-        original_final_path = final_file_path
-        full_final_path = os.path.join(settings.MEDIA_ROOT, final_file_path)
-        
-        base_path, ext = os.path.splitext(original_final_path)
-        while os.path.exists(full_final_path):
-            final_file_path = f"{base_path}_{counter}{ext}"
-            full_final_path = os.path.join(settings.MEDIA_ROOT, final_file_path)
+    def _delete_file(self, publication):
+        """Remove the report's PDF: the FileObject now, the file and thumbnail after the commit."""
+        old = publication.file
+        if old is None:
+            return
+        old_path = _file_object_path(old)
+        publication.file = None
+        publication.save(update_fields=['file'])
+        old.delete()
+        for path in (old_path, _report_thumbnail_path(publication)):
+            transaction.on_commit(functools.partial(_remove_file, path))
+
+    def _final_file_name(self, publication, temp_upload, old):
+        """reports/<year>/<number><ext>, with _1, _2, ... when the name is taken. The old
+        PDF's own name counts as free: it is moved aside after the commit."""
+        ext = os.path.splitext(temp_upload.file.name)[1].lower() or '.pdf'
+        number = str(publication.number or f'pub_{publication.pk}').replace('/', '_').replace('\\', '_')
+        year = str(publication.year) if publication.year else 'unknown_year'
+        base = f'reports/{year}/{number}'
+        old_name = old.file.name if old is not None and old.file else None
+
+        candidate, counter = f'{base}{ext}', 1
+        while candidate != old_name and (
+                os.path.exists(os.path.join(settings.MEDIA_ROOT, candidate))
+                or FileObject.objects.filter(file=candidate).exists()):
+            candidate = f'{base}_{counter}{ext}'
             counter += 1
-        
-        # Copy the file from temp to final location
-        temp_full_path = temp_file_obj.file.path
-        
-        print(f"🔍 DEBUG: Copying from: {temp_full_path}")
-        print(f"🔍 DEBUG: Copying to: {full_final_path}")
-        
-        shutil.copy2(temp_full_path, full_final_path)
-        
-        # Set the file path on the final file object
-        final_file_obj.file.name = final_file_path
-        final_file_obj.save()
-        
-        print(f"🔍 DEBUG: File moved successfully to: {final_file_obj.file.name}")
-        
-        return final_file_obj
+        return candidate
 
 
 

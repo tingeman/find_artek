@@ -17,7 +17,26 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField
 
-from publications.models import Publication, FileObject, Appendenciesship
+from publications.models import Publication, FileObject, Appendenciesship, Keyword
+
+
+def get_or_create_keywords(items):
+    """Keyword instances for the cleaned value of ``KeywordTagField``: Keyword instances are
+    kept, names (str) become the existing keyword with that name (case-insensitive) or a new
+    one. Call it inside the transaction that saves the report, so a failed save creates none."""
+    keywords = []
+    for item in items:
+        if isinstance(item, Keyword):
+            keywords.append(item)
+            continue
+        name = str(item).strip()
+        if not name:
+            continue
+        keyword = Keyword.objects.filter(keyword__iexact=name).first()
+        if keyword is None:
+            keyword = Keyword.objects.create(keyword=name)
+        keywords.append(keyword)
+    return keywords
 
 
 def create_ordered_queryset(model_class, pk_list):

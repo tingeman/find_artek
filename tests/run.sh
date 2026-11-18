@@ -58,13 +58,14 @@ set -euo pipefail
 # person API (api.test_person_api_reports) and the feature API (api.test_feature_api_reports).
 # Phase 1b (registration, FA-R53/FA-R54): the role groups and their assignment at CAS login, the
 # model permission methods, the login redirect under the /find prefix, the write views, the
-# person data. Phase 2 (roadmap FA-R40) adds to this list and later replaces it with the whole
+# person data, the add/edit report form end to end (T7, FA-R55). Phase 2 (roadmap FA-R40) adds to this list and later replaces it with the whole
 # suite.
 DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
                     api.test_person_api_reports api.test_feature_api_reports
                     publications.test_roles publications.test_permissions_models
                     publications.test_login_redirect publications.test_report_access
-                    publications.test_write_access publications.test_person_privacy)
+                    publications.test_write_access publications.test_person_privacy
+                    publications.test_report_form)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
