@@ -104,6 +104,14 @@ TEST_FILTER='^smoke' bash tests/run.sh find_artek:local  # tests whose name matc
 
 Each test prints `PASS:`/`FAIL:`; the last line is `ALL <n> TESTS PASSED` (exit 0) or `<m> OF <n> TESTS FAILED` (exit 1). All containers, the network and the temporary directory are removed at the end, also on failure. The release build (`scripts/build_image.sh` in dtu_sus_web_server) runs `bash tests/run.sh <image>` in the checkout of the release tag and publishes nothing unless it exits 0.
 
+## Roles
+
+Every user who logs in through CAS gets the Django group `dtu_user` (set in `app-main/publications/roles.py`, at every login). The groups `artek_staff` and `artek_editor` come only from AD groups: the env variables `LDAP_GROUP_ARTEK_STAFF` and `LDAP_GROUP_ARTEK_EDITOR` hold the full DN of the AD group (nested groups count). Empty (the default) = nobody has the role. A role set by hand in the admin is removed at the user's next login; if the AD lookup fails, the current roles are kept. To give someone a role, ask DTU IT to add them to the AD group.
+
+- `artek_staff`: add reports and delete own reports.
+- `artek_editor`: add, edit, delete and verify any report, change report numbers, Excel import, edit any person and feature, delete any feature.
+- Superusers (set by hand) may do everything.
+
 ## Old TODO list
 
 Kept for reference; planned work is tracked in `docs/roadmap.md` (items FA-R<n>).
@@ -111,8 +119,8 @@ Kept for reference; planned work is tracked in `docs/roadmap.md` (items FA-R<n>)
 ### To do...
 
 ***URGENT***
-- [] In production, add/edit report form does not properly handle new persons not already in database
-- [] In production, add/edit report form fails during upload of pdf report.
+- [x] In production, add/edit report form does not properly handle new persons not already in database (fixed on `agent-registration`, T8; not yet released)
+- [] In production, add/edit report form fails during upload of pdf report. (The PDF handling was changed in T7 on `agent-registration`; retest at the 2026.3 release (FA-R12/FA-R20).)
 
 ***Not urgent***
 - [] MAJOR: change to postgresql/postgis backend! (to allow handling of coordinate transformations)
