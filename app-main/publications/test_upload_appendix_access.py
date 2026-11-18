@@ -9,6 +9,7 @@ import os
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.shortcuts import resolve_url
 from django.test import TestCase
 from django.urls import get_script_prefix, reverse
 
@@ -62,7 +63,7 @@ class UploadAppendixAccessTests(TestCase):
 
     def assertRedirectsToLogin(self, response):
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response['Location'].startswith(settings.LOGIN_URL + '?next='),
+        self.assertTrue(response['Location'].startswith(resolve_url(settings.LOGIN_URL) + '?next='),
                         response['Location'])
 
     def test_anonymous_get_redirects_to_login(self):

@@ -38,7 +38,13 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 CAS_SERVER_URL = 'https://auth2.dtu.dk/dtu/' # with multifactor
 CAS_VERSION = '2'
 
-LOGIN_URL = '/login'
+# URL name, not a path: Django reverses it, so it carries FORCE_SCRIPT_NAME ('/find' in
+# production -> /find/login; '' in development -> /login).
+LOGIN_URL = 'cas_ng_login'
+# Where django-cas-ng sends the user after login/logout when there is no ?next= and no
+# Referer. Its default '/' is a plain path, i.e. outside /find/ in production; a URL name is
+# reversed with the prefix.
+CAS_REDIRECT_URL = 'publications:frontpage'
 
 
 ALLOWED_HOSTS = [
