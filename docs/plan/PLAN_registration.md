@@ -57,7 +57,6 @@ Survey 2026-11-18 (paths under `app-main/`):
   | Change report number, Excel import, bulk delete | `change_publication` (import, number) / `delete_publication` (bulk) | – | – | yes |
   | Add person (form workflow, `add_person_ajax`) | `add_person` | yes | yes | yes |
   | Add feature to a report | `add_feature` and may edit the report | own | own | any |
-  | Delete feature | `delete_feature`, or `delete_own_feature` and created it | own | own | any |
   | Edit / delete feature (**changed 2026-11-18, T16**) | `change_feature`/`delete_feature`, or `edit_own_feature`/`delete_own_feature` and listed (author, supervisor, editor) on a report the feature belongs to; the creator alone no longer counts | listed | listed | any |
 
   Superusers keep everything (Django's `has_perm`). `DeleteReportView`'s rule "creator may delete" is replaced by the matrix (the creator of a report is normally its author or supervisor, so own).
