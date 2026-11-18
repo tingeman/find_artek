@@ -53,9 +53,11 @@ set -euo pipefail
 # at the release's baseline belong here (plan PLAN_release-path A4). 2026.1 had none
 # (publications/tests.py does not import; the app-main/test_*.py files are ad-hoc scripts, not
 # tests); an empty list is reported as "SKIP: django: ..." and not counted. From 2026.2: the
-# appendix upload form and access (FA-R52) tests. Phase 2 (roadmap FA-R40) adds to this list and later replaces it
+# appendix upload form and access (FA-R52) tests. From 2026.2.1: the reports listed through the
+# person API (api.test_person_api_reports). Phase 2 (roadmap FA-R40) adds to this list and later replaces it
 # with the whole suite.
-DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access)
+DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
+                    api.test_person_api_reports)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
