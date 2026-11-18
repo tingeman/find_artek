@@ -236,7 +236,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.2.tar.gz"   # = tarb
 
 - [ ] Done
 
-In web_server: `ansible/vars/releases.yml`, `webapp_find_artek` entry: `version: "2026.2"`, `tarball_sha256` from 5e. Then follow web_server's deploy procedure (database dump first, as in 4d step 1, file name `find_artek_pre_2026.2_...`; then the playbook). Checks on the host:
+In web_server: `ansible/vars/releases.yml`, `webapp_find_artek` entry: `version: "2026.2"`, `tarball_sha256` from 5e. Then `playbook_install_webapp_find_artek.yml` (web_server `f5b62ed` on `agent-fixes`, fast-forwarded into `develop/main`). No manual dump: a new version takes the playbook's promote path, which dumps, test-restores and copies the dump off-host before any change. Checks on the host:
 
 ```bash
 # SSH on sus-parcweb01
@@ -244,7 +244,7 @@ sudo docker ps --filter name=webapp-find-artek --format '{{.Names}}  {{.Image}} 
 sudo docker inspect -f '{{json .Config.Cmd}}' webapp-find-artek     # gunicorn ... --workers 2 --threads 2 --worker-class gthread --timeout 120
 curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/frontpage/   # 200
 # FA-R52: logged out, the upload page must not open (302 to the login, not 200)
-curl -sk -o /dev/null -w '%{http_code} %{redirect_url}\n' https://127.0.0.1/find/report/1/appendix/upload/
+curl -sk -o /dev/null -w '%{http_code} %{redirect_url}\n' https://127.0.0.1/find/publications/report/1/appendix/upload/
 # Was the hole used? Appendix files created without a user (read only; a list of ids, file names, dates)
 sudo docker exec fa-mariadb-service sh -c 'MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}" exec mariadb -uroot "${MARIADB_DATABASE:-$MYSQL_DATABASE}" -e "SELECT f.id, f.file, f.created_date, a.publication_id FROM publications_fileobject f JOIN publications_appendenciesship a ON a.fileobject_id = f.id WHERE f.created_by_id IS NULL ORDER BY f.created_date"'
 ```
