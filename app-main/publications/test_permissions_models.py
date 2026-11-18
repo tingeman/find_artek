@@ -7,8 +7,10 @@ Matrix (app label 'publications'; active superusers pass every has_perm):
 - Publication.is_deletable_by: logged in and (delete_publication, or delete_own_publication
   and own).
 - Publication.is_verifiable_by: verify_publication.
-- Feature.is_editable_by / is_deletable_by: change_feature / delete_feature, or
-  edit_own_feature / delete_own_feature and created_by is the user.
+- Feature.is_editable_by / is_deletable_by: logged in and (change_feature / delete_feature, or
+  edit_own_feature / delete_own_feature and listed as author, supervisor or editor on a report
+  the feature belongs to). Having created the feature does not count (T16); a feature on no
+  report is for editors only.
 - Person.is_editable_by / is_deletable_by: change_person / delete_person, or the *_own_*
   permission and the person is the user (Person.is_related_to_user).
 
@@ -149,65 +151,120 @@ class PublicationPermissionTests(TestCase):
 
 
 class FeaturePermissionTests(TestCase):
+    """Feature rights follow the report (plan registration T16)."""
+
+    OWN = ('edit_own_feature', 'delete_own_feature')
 
     @classmethod
     def setUpTestData(cls):
-        cls.creator = User.objects.create_user('s990001', password='x')
-        cls.other = User.objects.create_user('s990002', password='x')
-        cls.own = Feature.objects.create(name='own', date=datetime.date(2000, 1, 1))
-        Feature.objects.filter(pk=cls.own.pk).update(created_by=cls.creator, modified_by=cls.other)
-        cls.own.refresh_from_db()
-        cls.orphan = Feature.objects.create(name='orphan', date=datetime.date(2000, 1, 1))
-        cls.orphan.refresh_from_db()
+        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        cls.pub = Publication.objects.create(
+            type=pubtype, title='Listed report', number='99-01', year=1999)
+        cls.other_pub = Publication.objects.create(
+            type=pubtype, title='Other report', number='99-02', year=1999)
+        # Listed on cls.pub only: author (id_number), supervisor and editor (initials).
+        Authorship.objects.create(
+            publication=cls.pub, author_id=0,
+            person=Person.objects.create(first='Stu', last='Dent', id_number='s990001'))
+        Supervisorship.objects.create(
+            publication=cls.pub, supervisor_id=0,
+            person=Person.objects.create(first='Su', last='Pervisor', initials='supv'))
+        Editorship.objects.create(
+            publication=cls.pub, editor_id=0,
+            person=Person.objects.create(first='Ed', last='Itor', initials='edtr'))
+
+        cls.creator = User.objects.create_user('s990002', password='x')   # listed nowhere
+        cls.modifier = User.objects.create_user('s990003', password='x')  # listed nowhere
+
+        def feature(name, *pubs):
+            f = Feature.objects.create(name=name, date=datetime.date(2000, 1, 1))
+            Feature.objects.filter(pk=f.pk).update(created_by=cls.creator, modified_by=cls.modifier)
+            f.publications.add(*pubs)
+            f.refresh_from_db()
+            return f
+
+        # All created by cls.creator, who is listed on no report.
+        cls.on_pub = feature('on listed report', cls.pub)
+        cls.on_other = feature('on other report', cls.other_pub)
+        cls.on_both = feature('on both reports', cls.pub, cls.other_pub)
+        cls.orphan = feature('on no report')
+
+    def assertRights(self, user, feature, edit, delete):
+        self.assertIs(feature.is_editable_by(user), edit)
+        self.assertIs(feature.is_deletable_by(user), delete)
 
     def test_anonymous_gets_false(self):
-        for feature in (self.own, self.orphan):
-            self.assertFalse(feature.is_editable_by(AnonymousUser()))
-            self.assertFalse(feature.is_deletable_by(AnonymousUser()))
+        for feature in (self.on_pub, self.on_other, self.on_both, self.orphan):
+            with self.subTest(feature=feature.name):
+                self.assertRights(AnonymousUser(), feature, False, False)
 
-    def test_user_without_permissions_gets_false(self):
-        user = User.objects.get(pk=self.creator.pk)
-        self.assertFalse(self.own.is_editable_by(user))
-        self.assertFalse(self.own.is_deletable_by(user))
+    def test_listed_user_without_permissions_gets_false(self):
+        user = User.objects.create_user('s990001', password='x')
+        self.assertRights(user, self.on_pub, False, False)
 
-    def test_own_created_feature_editable_and_deletable(self):
-        user = _user('s990003', 'edit_own_feature', 'delete_own_feature')
-        Feature.objects.filter(pk=self.own.pk).update(created_by=user)
-        self.own.refresh_from_db()
-        self.assertTrue(self.own.is_editable_by(user))
-        self.assertTrue(self.own.is_deletable_by(user))
+    def test_listed_author_supervisor_editor_may_edit_and_delete(self):
+        # The features were created by someone else (cls.creator).
+        for username in ('s990001', 'supv', 'edtr'):
+            with self.subTest(username=username):
+                user = _user(username, *self.OWN)
+                self.assertRights(user, self.on_pub, True, True)
+                self.assertRights(user, self.on_both, True, True)
+                self.assertRights(user, self.on_other, False, False)
+                self.assertRights(user, self.orphan, False, False)
 
-    def test_modifier_is_not_owner(self):
-        # Only created_by counts; modified_by (self.other) does not own the feature.
-        for codename in ('edit_own_feature', 'delete_own_feature'):
-            self.other.user_permissions.add(
+    def test_edit_own_and_delete_own_are_separate(self):
+        user = _user('s990001', 'edit_own_feature')
+        self.assertRights(user, self.on_pub, True, False)
+        user = _user('supv', 'delete_own_feature')
+        self.assertRights(user, self.on_pub, False, True)
+
+    def test_creator_not_listed_may_not(self):
+        # Deliberate change (T16): created_by alone no longer gives rights.
+        for codename in self.OWN:
+            self.creator.user_permissions.add(
                 Permission.objects.get(content_type__app_label='publications', codename=codename))
-        user = User.objects.get(pk=self.other.pk)
-        self.assertFalse(self.own.is_editable_by(user))
-        self.assertFalse(self.own.is_deletable_by(user))
+        user = User.objects.get(pk=self.creator.pk)
+        for feature in (self.on_pub, self.on_other, self.on_both, self.orphan):
+            with self.subTest(feature=feature.name):
+                self.assertEqual(feature.created_by, user)
+                self.assertRights(user, feature, False, False)
 
-    def test_created_by_none_is_false_without_exception(self):
-        user = _user('s990004', 'edit_own_feature', 'delete_own_feature')
-        self.assertIsNone(self.orphan.created_by)
-        self.assertFalse(self.orphan.is_editable_by(user))
-        self.assertFalse(self.orphan.is_deletable_by(user))
+    def test_unrelated_user_may_not(self):
+        user = _user('s990999', *self.OWN)
+        for feature in (self.on_pub, self.on_other, self.on_both, self.orphan):
+            with self.subTest(feature=feature.name):
+                self.assertRights(user, feature, False, False)
+
+    def test_feature_on_no_report_only_for_editors(self):
+        self.assertRights(_user('s990001', *self.OWN), self.orphan, False, False)
+        self.assertRights(_user('staff3', 'change_feature', 'delete_feature'),
+                          self.orphan, True, True)
+
+    def test_unsaved_feature_is_false_without_exception(self):
+        unsaved = Feature(name='unsaved', date=datetime.date(2000, 1, 1))
+        self.assertRights(_user('s990001', *self.OWN), unsaved, False, False)
 
     def test_change_feature_edits_any(self):
         user = _user('staff1', 'change_feature')
-        self.assertTrue(self.own.is_editable_by(user))
+        self.assertTrue(self.on_other.is_editable_by(user))
         self.assertTrue(self.orphan.is_editable_by(user))
-        self.assertFalse(self.own.is_deletable_by(user))
+        self.assertFalse(self.on_other.is_deletable_by(user))
 
     def test_delete_feature_deletes_any(self):
         user = _user('staff2', 'delete_feature')
-        self.assertTrue(self.own.is_deletable_by(user))
+        self.assertTrue(self.on_other.is_deletable_by(user))
         self.assertTrue(self.orphan.is_deletable_by(user))
-        self.assertFalse(self.own.is_editable_by(user))
+        self.assertFalse(self.on_other.is_editable_by(user))
 
     def test_superuser_gets_everything(self):
         user = _user('admin', superuser=True)
-        self.assertTrue(self.orphan.is_editable_by(user))
-        self.assertTrue(self.orphan.is_deletable_by(user))
+        self.assertRights(user, self.orphan, True, True)
+
+    def test_inactive_listed_user_gets_false(self):
+        user = _user('s990001', *self.OWN)
+        user.is_active = False
+        user.save()
+        self.assertRights(User.objects.get(pk=user.pk), self.on_pub, False, False)
 
 
 class PersonPermissionTests(TestCase):

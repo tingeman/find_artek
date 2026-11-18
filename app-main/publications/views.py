@@ -293,7 +293,9 @@ class ReportView(BaseDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        associated_features = Feature.objects.filter(publications=self.object)
+        # The per-feature delete rule looks at the persons listed on the feature's reports.
+        associated_features = Feature.objects.filter(publications=self.object).prefetch_related(
+            'publications__authors', 'publications__supervisors', 'publications__editors')
         user = self.request.user
         can_edit_publication = self.object.is_editable_by(user) if user.is_authenticated else False
         can_delete_publication = self.object.is_deletable_by(user) if user.is_authenticated else False
@@ -2065,7 +2067,7 @@ class DeleteReportView(PublicationPermissionMixin, BaseView):
 
 class DeleteFeatureView(FeaturePermissionMixin, DeleteView, BaseView):
     """Needs ``delete_feature`` on the feature (delete_feature, or delete_own_feature and
-    created it; permissions.py)."""
+    listed on a report the feature belongs to; permissions.py)."""
     model = Feature
     template_name = 'publications/feature_confirm_delete.html'
     context_object_name = 'feature'

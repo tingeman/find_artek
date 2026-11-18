@@ -13,7 +13,8 @@ On a publication:
 
 On a feature:
 
-- ``delete_feature``: ``Feature.is_deletable_by`` (delete_feature, or delete_own_feature and creator)
+- ``delete_feature``: ``Feature.is_deletable_by`` (delete_feature, or delete_own_feature and
+                      listed on a report the feature belongs to)
 
 Without an object (a plain Django permission):
 

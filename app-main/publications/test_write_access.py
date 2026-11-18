@@ -7,7 +7,9 @@ user who may not (403), and a user who may (works), following the permission mat
 - bulk delete:                         delete_publication (artek_editor)
 - add feature (coordinates, map):      add_feature and may edit the report (dtu_user/artek_staff
                                        own, artek_editor any)
-- delete feature:                      delete_feature, or delete_own_feature and created it
+- delete feature:                      delete_feature, or delete_own_feature and listed on a
+                                       report the feature belongs to (T16; the creator alone
+                                       no longer counts)
 - add_person_ajax:                     add_person (every role group)
 
 Also: /debug-root/ is gone (404), the report page shows the feature buttons only to users who
@@ -164,74 +166,139 @@ class AddFeatureAccessTests(WriteAccessTestBase):
 
 
 class DeleteFeatureAccessTests(WriteAccessTestBase):
+    """Delete rights follow the report (T16): cls.pub lists cls.dtu_own (author) and
+    cls.staff_own (supervisor); cls.other_pub (verified, public) lists none of the users."""
 
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.own_feature = Feature.objects.create(
-            name='Own feature', date=datetime.date(2000, 1, 1), created_by=cls.dtu_own)
-        cls.other_feature = Feature.objects.create(
-            name='Other feature', date=datetime.date(2000, 1, 1), created_by=cls.editor)
-        for feature in (cls.own_feature, cls.other_feature):
-            feature.publications.add(cls.pub)
+        cls.other_pub = Publication.objects.create(
+            type=cls.pubtype, title='Other report', number='99-02', year=1999, verified=True)
+
+        def feature(name, created_by, *pubs):
+            f = Feature.objects.create(name=name, date=datetime.date(2000, 1, 1),
+                                       created_by=created_by)
+            f.publications.add(*pubs)
+            return f
+
+        # On cls.pub, created by a user who is not listed on it.
+        cls.pub_feature = feature('Feature on pub', cls.dtu_not_own, cls.pub)
+        # On cls.pub, created by an editor.
+        cls.editor_feature = feature('Editor feature', cls.editor, cls.pub)
+        # On cls.pub and cls.other_pub, created by a user listed on neither.
+        cls.both_feature = feature('Feature on both', cls.staff, cls.pub, cls.other_pub)
+        # Only on cls.other_pub, created by the author of cls.pub.
+        cls.other_feature = feature('Feature on other', cls.dtu_own, cls.other_pub)
+        # On no report, created by the author of cls.pub.
+        cls.orphan_feature = feature('Orphan feature', cls.dtu_own)
 
     def path(self, feature):
         return _path('delete_feature', pk=feature.pk)
 
-    def test_anonymous_redirected_to_login(self):
-        self.assertRedirectsToLogin(self.client.get(self.path(self.own_feature)))
-        self.assertRedirectsToLogin(self.client.post(self.path(self.own_feature)))
-        self.assertTrue(Feature.objects.filter(pk=self.own_feature.pk).exists())
+    def assertDeniedAndKept(self, feature):
+        self.assertDenied(self.client.get(self.path(feature)))
+        self.assertDenied(self.client.post(self.path(feature)))
+        self.assertTrue(Feature.objects.filter(pk=feature.pk).exists())
 
-    def test_users_who_did_not_create_the_feature_are_denied(self):
-        # staff_own may edit the report, but did not create the feature
-        for user in (self.dtu_not_own, self.staff, self.staff_own, self.no_role):
+    def test_anonymous_redirected_to_login(self):
+        for feature in (self.pub_feature, self.other_feature, self.orphan_feature):
+            with self.subTest(feature=feature.name):
+                self.assertRedirectsToLogin(self.client.get(self.path(feature)))
+                self.assertRedirectsToLogin(self.client.post(self.path(feature)))
+                self.assertTrue(Feature.objects.filter(pk=feature.pk).exists())
+
+    def test_users_not_listed_on_a_linked_report_are_denied(self):
+        # dtu_not_own created pub_feature and staff created both_feature, but neither is
+        # listed on a report of them: having created a feature no longer counts (T16).
+        for user in (self.dtu_not_own, self.staff, self.no_role):
             with self.subTest(user=user.username):
                 self.login(user)
-                self.assertDenied(self.client.get(self.path(self.own_feature)))
-                self.assertDenied(self.client.post(self.path(self.own_feature)))
-        self.login(self.dtu_own)
-        self.assertDenied(self.client.get(self.path(self.other_feature)))
-        self.assertDenied(self.client.post(self.path(self.other_feature)))
-        self.assertEqual(Feature.objects.count(), 2)
+                for feature in (self.pub_feature, self.both_feature, self.editor_feature):
+                    self.assertDeniedAndKept(feature)
 
-    def test_creator_deletes_own_feature(self):
+    def test_creator_not_listed_is_denied(self):
+        # dtu_own created other_feature and orphan_feature but is not listed on their reports
+        # (orphan_feature is on none); staff_own is listed on cls.pub only.
+        for user in (self.dtu_own, self.staff_own):
+            with self.subTest(user=user.username):
+                self.login(user)
+                self.assertDeniedAndKept(self.other_feature)
+                self.assertDeniedAndKept(self.orphan_feature)
+
+    def test_listed_author_deletes_feature_created_by_someone_else(self):
         self.login(self.dtu_own)
-        self.assertEqual(self.client.get(self.path(self.own_feature)).status_code, 200)
-        response = self.client.post(self.path(self.own_feature))
+        self.assertEqual(self.client.get(self.path(self.pub_feature)).status_code, 200)
+        response = self.client.post(self.path(self.pub_feature))
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': self.pub.pk}),
                              fetch_redirect_response=False)
-        self.assertFalse(Feature.objects.filter(pk=self.own_feature.pk).exists())
+        self.assertFalse(Feature.objects.filter(pk=self.pub_feature.pk).exists())
+
+    def test_listed_supervisor_deletes_feature_created_by_an_editor(self):
+        self.login(self.staff_own)
+        self.assertEqual(self.client.get(self.path(self.editor_feature)).status_code, 200)
+        self.client.post(self.path(self.editor_feature))
+        self.assertFalse(Feature.objects.filter(pk=self.editor_feature.pk).exists())
+
+    def test_listed_on_one_of_two_reports_may_delete(self):
+        self.login(self.dtu_own)
+        self.assertEqual(self.client.get(self.path(self.both_feature)).status_code, 200)
+        self.client.post(self.path(self.both_feature))
+        self.assertFalse(Feature.objects.filter(pk=self.both_feature.pk).exists())
 
     def test_editor_deletes_any_feature(self):
         self.login(self.editor)
-        self.client.post(self.path(self.own_feature))
-        self.assertFalse(Feature.objects.filter(pk=self.own_feature.pk).exists())
+        for feature in (self.pub_feature, self.other_feature, self.orphan_feature):
+            with self.subTest(feature=feature.name):
+                self.client.post(self.path(feature))
+                self.assertFalse(Feature.objects.filter(pk=feature.pk).exists())
 
     def test_unknown_feature_is_404_for_logged_in_user(self):
         self.login(self.editor)
         self.assertEqual(
-            self.client.get(_path('delete_feature', pk=self.other_feature.pk + 1000)).status_code,
+            self.client.get(_path('delete_feature', pk=self.orphan_feature.pk + 1000)).status_code,
             404)
 
-    def test_report_page_shows_delete_buttons_per_feature(self):
-        own_url = reverse('publications:delete_feature', kwargs={'pk': self.own_feature.pk})
-        other_url = reverse('publications:delete_feature', kwargs={'pk': self.other_feature.pk})
+    def assertDeleteButtons(self, response, features, deletable):
+        self.assertEqual(response.context['deletable_feature_ids'], deletable)
+        for feature in features:
+            url = reverse('publications:delete_feature', kwargs={'pk': feature.pk})
+            if feature.pk in deletable:
+                self.assertContains(response, url)
+            else:
+                self.assertNotContains(response, url)
+
+    def test_report_page_shows_delete_buttons_per_user(self):
+        on_pub = (self.pub_feature, self.editor_feature, self.both_feature)
+        all_on_pub = {f.pk for f in on_pub}
         cases = (
-            (self.dtu_own, {self.own_feature.pk}),
-            (self.editor, {self.own_feature.pk, self.other_feature.pk}),
-            (self.staff_own, set()),
+            (self.dtu_own, all_on_pub),      # author of cls.pub
+            (self.staff_own, all_on_pub),    # supervisor of cls.pub
+            (self.editor, all_on_pub),
+            (self.dtu_not_own, set()),       # created pub_feature, not listed
+            (self.staff, set()),             # created both_feature, not listed
+            (self.no_role, set()),
         )
         for user, deletable in cases:
             with self.subTest(user=user.username):
                 self.login(user)
                 response = self.client.get(_path('report', pk=self.pub.pk))
-                self.assertEqual(response.context['deletable_feature_ids'], deletable)
-                for pk, url in ((self.own_feature.pk, own_url), (self.other_feature.pk, other_url)):
-                    if pk in deletable:
-                        self.assertContains(response, url)
-                    else:
-                        self.assertNotContains(response, url)
+                self.assertDeleteButtons(response, on_pub, deletable)
+
+    def test_other_report_page_shows_delete_buttons_per_user(self):
+        on_other = (self.other_feature, self.both_feature)
+        cases = (
+            (None, set()),                   # anonymous (the report is verified, so visible)
+            (self.dtu_own, {self.both_feature.pk}),   # created other_feature; listed on pub
+            (self.editor, {f.pk for f in on_other}),
+        )
+        for user, deletable in cases:
+            with self.subTest(user=getattr(user, 'username', 'anonymous')):
+                self.client.logout()
+                if user is not None:
+                    self.login(user)
+                response = self.client.get(_path('report', pk=self.other_pub.pk))
+                self.assertEqual(response.status_code, 200)
+                self.assertDeleteButtons(response, on_other, deletable)
 
 
 class AddPersonAjaxAccessTests(WriteAccessTestBase):

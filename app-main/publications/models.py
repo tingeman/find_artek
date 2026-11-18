@@ -638,39 +638,49 @@ class Feature(BaseModel):
     def feature_type_list(self):
         return [f[0] for f in self.feature_types]
 
-    def is_created_by(self, entity):
-        """True if the user created this feature. Only created_by counts: a user who
-        merely modified a feature does not own it. False when created_by is unset
-        (e.g. the creating user was deleted) and for anonymous users."""
-        if not _is_authenticated_user(entity) or self.created_by_id is None:
+    def is_own_feature_of(self, entity):
+        """True if the user is listed (author, supervisor or editor;
+        Publication.is_own_publication_of) on at least one report this feature belongs to.
+        Who created the feature does not count. False for anonymous users, unsaved
+        features and features linked to no report."""
+        if not _is_authenticated_user(entity) or self.pk is None:
             return False
-        return self.created_by_id == entity.pk
+        return any(pub.is_own_publication_of(entity) for pub in self.publications.all())
 
     def is_editable_by(self, entity):
-        """Checks if entity (group or user) has permissions to edit this model instance"""
+        """Checks if the user may edit this feature: 'change_feature', or 'edit_own_feature'
+        and listed on a report the feature belongs to (is_own_feature_of)."""
 
-        # check for 'change_' permission
+        if not _is_authenticated_user(entity):
+            return False
+
+        # check for 'change_feature' permission
         if has_model_permission(entity, self._meta.app_label, 'change', self._meta.model_name):
             return True
 
-        # check for 'edit_own_' permission
+        # check for 'edit_own_feature' permission
         if has_model_permission(entity, self._meta.app_label, 'edit_own', self._meta.model_name):
-            if self.is_created_by(entity):
+            if self.is_own_feature_of(entity):
                 return True
 
         # if neither, return False
         return False
 
     def is_deletable_by(self, entity):
-        """Checks if entity (group or user) has permissions to delete this model instance"""
+        """Checks if the user may delete this feature: 'delete_feature', or
+        'delete_own_feature' and listed on a report the feature belongs to
+        (is_own_feature_of)."""
 
-        # check for 'delete_' permission
+        if not _is_authenticated_user(entity):
+            return False
+
+        # check for 'delete_feature' permission
         if has_model_permission(entity, self._meta.app_label, 'delete', self._meta.model_name):
             return True
 
-        # check for 'delete_own_' permission
+        # check for 'delete_own_feature' permission
         if has_model_permission(entity, self._meta.app_label, 'delete_own', self._meta.model_name):
-            if self.is_created_by(entity):
+            if self.is_own_feature_of(entity):
                 return True
 
         # if neither, return False
