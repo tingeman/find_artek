@@ -6,7 +6,7 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 **Fix release `2026.2.1` (you):** `develop/main` = `f5e7e79` (person API, feature API, old database copy removed; gate 22/22, 29 tests). Steps: [USER_STEPS_2026.2.1.md](USER_STEPS_2026.2.1.md) (backup to the share, tag, build, publish, deploy, checks). `develop/main` merged into `agent-registration`. After 2026.2.1: plan the history purge (FA-R77, own plan).
 
-On `agent-registration`: T1-T10, T12-T14, T16 done (gate 22/22, 217 tests). All agent tasks done (gate 22/22, 218 tests). Now: **T11** (you): release 2026.3, after 2026.2.1. Before T11: merge `develop/main` into `agent-registration`, fast-forward `develop/main` with your permission. Open: whether 2026.3 waits for the AD groups. Then T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
+On `agent-registration`: T1-T10, T12-T14, T16 done (gate 22/22, 217 tests). Now: **match flags** (T8 follow-up, decided 2026-11-19, implementer), then **T11** (you): release 2026.3, after 2026.2.1. Before T11: merge `develop/main` into `agent-registration`, fast-forward `develop/main` with your permission. Open: whether 2026.3 waits for the AD groups. Then T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
 
 Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
 
@@ -35,6 +35,7 @@ Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_dev
 - T14 2026-11-19: `docs/user-data-and-permissions.md`, linked from readme; confidential reports described by pointer only (FA-R75/FA-R30), decided by you 2026-11-19 (`81055b4`).
 - Decisions 2026-11-19: `.old` PDFs kept, other solutions later (FA-R79, low priority); post-commit file move kept.
 - 2026-11-19: "Use As-Is (Create Later)" removed from the person step (never worked: no version stored a `SKIP:` name; an author/supervisor needs a Person), decided by you; unconfirmed persons for editors belong to FA-R66 (commit on `agent-registration`).
+- Decision 2026-11-19 (after checking classic `hotfix-1.3.17`): classic had no "use as-is"; an unchosen name with DB matches became a new person with `exact_match`/`relaxed_match`/`multiple_match` set on the link (red !/? for logged-in users, merge page). Restore setting the flags in the form now; markers, merge page and the DTU directory option go to FA-R66.
 
 ## Open questions
 
