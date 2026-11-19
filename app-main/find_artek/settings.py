@@ -112,6 +112,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'publications.context_processors.URL_PREFIX',  #   # provides URL_PREFIX to any template
+                'publications.context_processors.AUTH_MARKER',  # login-state marker for the JS caches (FA-R75)
             ],
         },
     },

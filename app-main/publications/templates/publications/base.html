@@ -16,6 +16,39 @@
         var URL_PREFIX = "{{ URL_PREFIX }}";
     </script>
 
+    {% comment %}
+        Login-state marker (FA-R75, PLAN_confidential T6): "anon", or a hash of the session key
+        that changes on every login (publications.context_processors.AUTH_MARKER). When it
+        differs from the marker of the previous page in this tab, the cached API data in
+        sessionStorage (reportData*, featureData*) is dropped, so data loaded while logged in
+        doesn't survive a logout and anonymous data doesn't stay stale after a login.
+        Inline here and not in base.js: base.js is deferred, and page scripts can run before it
+        (inline ones such as the cache invalidation in report.html, or any non-deferred script).
+        This must run before anything reads the cache.
+    {% endcomment %}
+    <meta name="auth-marker" content="{{ AUTH_MARKER|default:'anon' }}">
+    <script>
+        (function () {
+            try {
+                var meta = document.querySelector('meta[name="auth-marker"]');
+                var marker = meta ? meta.getAttribute('content') : 'anon';
+                if (sessionStorage.getItem('authMarker') !== marker) {
+                    var stale = [];
+                    for (var i = 0; i < sessionStorage.length; i++) {
+                        var key = sessionStorage.key(i);
+                        if (key && (key.indexOf('reportData') === 0 || key.indexOf('featureData') === 0)) {
+                            stale.push(key);
+                        }
+                    }
+                    stale.forEach(function (key) { sessionStorage.removeItem(key); });
+                    sessionStorage.setItem('authMarker', marker);
+                }
+            } catch (e) {
+                // sessionStorage unavailable (private mode, blocked storage): nothing to clear.
+            }
+        })();
+    </script>
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
     <link rel="icon" href="{% static 'publications/img/artek_logo_absract_transparent_resized_favicon.ico' %}" type="image/x-icon" />
