@@ -4,7 +4,7 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-Plan drafted 2026-11-19, waiting for your approval. Starts after `agent-confidential` ([PLAN_confidential.md](PLAN_confidential.md)) is merged; then T0 (main session) and T1 (implementer).
+Plan approved 2026-11-19. Starts after `agent-confidential` ([PLAN_confidential.md](PLAN_confidential.md)) is merged; then T0 (main session) and T1 (implementer).
 
 ## Done
 

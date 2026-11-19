@@ -1,6 +1,6 @@
 # Plan: Test coverage (Phase 2)
 
-Status: **draft (2026-11-19)**. Roadmap: Phase 2; FA-R40, FA-R44, FA-R14, FA-R34, FA-R12 (the remaining part). Branch: `agent-test-coverage` (from `develop/main`), worked in its own worktree `..\find_artek_agent-test-coverage`. Starts **after `agent-confidential` is merged** (PLAN_confidential), so the smoke tests describe the final visibility rule and the two branches don't conflict in `api/views.py`, `tests/run.sh` and the test modules. Release: with the next release after that; the only behaviour changes are FA-R14 and FA-R34.
+Status: **approved 2026-11-19**. Roadmap: Phase 2; FA-R40, FA-R44, FA-R14, FA-R34, FA-R12 (the remaining part). Branch: `agent-test-coverage` (from `develop/main`), worked in its own worktree `..\find_artek_agent-test-coverage`. Starts **after `agent-confidential` is merged** (PLAN_confidential), so the smoke tests describe the final visibility rule and the two branches don't conflict in `api/views.py`, `tests/run.sh` and the test modules. Release: with the next release after that; the only behaviour changes are FA-R14 and FA-R34.
 
 ## Goal
 
