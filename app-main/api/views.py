@@ -2,12 +2,12 @@ import logging
 import json
 import http.client
 
-from django.db.models import Case, When, IntegerField, Q
+from django.db.models import Case, When, IntegerField
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from find_artek.search import get_query
 from publications.models import Publication, Topic, Feature, Person
 from publications import utils_models
-from publications.visibility import visible_publications
+from publications.visibility import visible_features, visible_publications
 from .serializers import PublicationSerializer, FeatureSerializer, PersonSerializer
 
 
@@ -67,21 +67,17 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
     )
     def list(self, request, *args, **kwargs):
         logger.warning("GetReportViewSet.list was called")
-        queryset = self.get_queryset(request)
+        queryset = self.get_queryset()
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    def get_queryset(self, request):
+    def get_queryset(self):
         """Filters the queryset based on the query parameters and returns the filtered queryset.
 
-        Also filters out any entries that have the word "confidential" in the field "comment"
-        and, for anonymous users, any entries where the field verified is False
-        (publications.visibility.visible_publications).
+        Only the reports the requesting user may see (publications.visibility, roadmap FA-R75):
+        list and detail (``/api/report/<pk>/``, 404 for a hidden report) both use it.
 
-        TODO: unvalidated entries should be shown when user is validated
-        TODO: confidential entries should be shown when user is validated with admin rights
-        
         Available filters:
         - topic: Filter by topic name
         - author_id: Filter by author ID
@@ -118,7 +114,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
                 queryset = queryset.filter(get_query(q, ['title', 'abstract', 'publication_keywords__keyword']))
             except Exception as e:
                 logger.error(f"Error while filtering queryset: {e}")
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                raise ValidationError({'q': 'Invalid search query.'})
             
         # ========== Order the queryset ==========
         # keep only unique entries
@@ -134,18 +130,9 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         ).order_by('-custom_order', '-number')
 
 
-        # ============ Remove confidential and unverified entries ============
-        # One rule for all API lists of publications: publications.visibility.
-        queryset_length_1 = len(queryset)
-
-        queryset = visible_publications(queryset, request.user)
-
-        queryset_length_2 = len(queryset)
-
-        if queryset_length_1 != queryset_length_2:
-            logger.warning(f"Removed {queryset_length_1 - queryset_length_2} confidential or unverified entries")
-
-        return queryset
+        # ============ Only the reports the user may see ============
+        # One rule for all publications in the API: publications.visibility.
+        return visible_publications(queryset, self.request.user)
 
 
 
@@ -186,22 +173,18 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
         # Obtain query parameters
         publication_id = self.request.query_params.get('publication_id', None)
 
-        # Only features of publications the user may see listed (publications.visibility,
-        # same rule as the report API). Features linked to no publication stay listed.
-        visible = visible_publications(Publication.objects.all(), self.request.user)
-
         # Filter the queryset based on the query parameters
         if publication_id:
-            # A hidden publication gives an empty result.
-            queryset = queryset.filter(publications__in=visible.filter(id=publication_id))
-        else:
-            queryset = queryset.filter(Q(publications__in=visible) | Q(publications__isnull=True))
+            # Features of that publication if the user may see it; a hidden publication
+            # gives an empty result.
+            visible = visible_publications(Publication.objects.filter(id=publication_id),
+                                           self.request.user)
+            queryset = queryset.filter(publications__in=visible)
 
-        # ========== Order the queryset ==========
-        # keep only unique entries
-        queryset = queryset.distinct()
-        
-        return queryset
+        # Only features the user may see (publications.visibility, same rule as the report
+        # API): no publication, or at least one visible one. Distinct rows; the detail of a
+        # hidden feature is 404.
+        return visible_features(queryset, self.request.user).distinct()
 
 
 

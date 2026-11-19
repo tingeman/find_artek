@@ -4,6 +4,11 @@ One rule per action, taken from the model methods (Publication.is_editable_by,
 is_deletable_by, is_verifiable_by, Feature.is_deletable_by) and Django permissions, so views,
 templates and tests share it.
 
+On a publication or a feature:
+
+- ``view``:        ``visibility.can_view_publication`` / ``visibility.can_view_feature``
+                   (roadmap FA-R75; the only action that can be True for anonymous users)
+
 On a publication:
 
 - ``edit``:        ``Publication.is_editable_by`` (change_publication, or edit_own_publication and own)
@@ -24,7 +29,7 @@ Without an object (a plain Django permission):
 - ``bulk_delete``: ``publications.delete_publication``
 - ``add_person``:  ``publications.add_person``
 
-Active superusers pass every check (Django's has_perm).
+Active superusers pass every check (Django's has_perm; for ``view`` the visibility rule).
 
 ``PermissionMixin`` (and its subclasses for a publication or a feature in the URL) puts this in
 front of a class-based view: a request with a method the view doesn't accept gets 405, an
@@ -40,7 +45,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
 from publications.models import Feature, Publication
+from publications.visibility import can_view_feature, can_view_publication
 
+VIEW = 'view'
 ADD = 'add'
 EDIT = 'edit'
 DELETE = 'delete'
@@ -60,10 +67,13 @@ GLOBAL_PERMISSIONS = {
 }
 PUBLICATION_ACTIONS = (EDIT, DELETE, VERIFY, ADD_FEATURE)
 FEATURE_ACTIONS = (DELETE_FEATURE,)
+# Actions on a publication or a feature (decided by the object's type).
+OBJECT_ACTIONS = (VIEW,)
 
-ACTIONS = tuple(GLOBAL_PERMISSIONS) + PUBLICATION_ACTIONS + FEATURE_ACTIONS
+ACTIONS = tuple(GLOBAL_PERMISSIONS) + PUBLICATION_ACTIONS + FEATURE_ACTIONS + OBJECT_ACTIONS
 
 DENIED_MESSAGES = {
+    VIEW: "You do not have permission to see this entry.",
     ADD: "You do not have permissions to add reports!",
     EDIT: "You do not have permissions to edit this publication!",
     DELETE: "You do not have permission to delete this publication.",
@@ -79,11 +89,18 @@ DENIED_MESSAGES = {
 def user_may(user, action, obj=None):
     """True if ``user`` may do ``action`` (one of ACTIONS).
 
-    ``obj`` is the publication for PUBLICATION_ACTIONS and the feature for FEATURE_ACTIONS;
-    it is ignored for the actions in GLOBAL_PERMISSIONS. Anonymous users get False.
+    ``obj`` is the publication for PUBLICATION_ACTIONS, the feature for FEATURE_ACTIONS and
+    either for OBJECT_ACTIONS; it is ignored for the actions in GLOBAL_PERMISSIONS. Anonymous
+    users get False, except for ``view`` (publications.visibility decides).
     """
     if action not in ACTIONS:
         raise ValueError(f"Unknown action: {action!r}")
+    if action == VIEW:
+        if isinstance(obj, Publication):
+            return can_view_publication(user, obj)
+        if isinstance(obj, Feature):
+            return can_view_feature(user, obj)
+        raise ValueError(f"Action {action!r} needs a publication or a feature, not {obj!r}")
     if not getattr(user, 'is_authenticated', False):
         return False
     if action in GLOBAL_PERMISSIONS:

@@ -12,9 +12,9 @@ def _request_user(serializer):
 
 
 def _visible_for_request(serializer, publications):
-    """Only the publications the requesting user may see listed (publications.visibility,
-    same rule as the report API). Without a request in the serializer context the user
-    counts as anonymous."""
+    """Only the publications the requesting user may see (publications.visibility, roadmap
+    FA-R75; same rule as the report API). Without a request in the serializer context the
+    user counts as anonymous."""
     return visible_publications(publications, _request_user(serializer))
 
 
@@ -29,7 +29,10 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Publication
-        fields = ['link_to_pdf_associated_with_this_publication', 'feature_count', 'id', 'number' , 'title', 'authors', 'file', 'type', 'feature_count']
+        fields = ['link_to_pdf_associated_with_this_publication', 'feature_count', 'id', 'number' , 'title', 'authors', 'file', 'type', 'feature_count', 'confidential']
+        # Only reports the user may see are serialized (publications.visibility); the flag
+        # tells the client which of them are confidential (FA-R75).
+        read_only_fields = ['confidential']
 
     def get_feature_count(self, obj):
         return obj.feature_set.count()

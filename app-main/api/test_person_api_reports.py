@@ -1,16 +1,21 @@
 """Publications listed through the person API follow the report API's rule.
 
-Confidential reports ("confidential" in ``comment``) are never listed; unverified reports
-only to logged-in users (publications.visibility.visible_publications). Before this fix
-/api/person/ listed number and title of every report of a person to anyone.
+Rule since FA-R75 (plan PLAN_confidential T2; publications.visibility): anonymous users see
+verified, not confidential reports; logged-in users see reports that are not confidential,
+and confidential ones only if they are listed on them (author, supervisor, editor), are in
+``artek_editor`` or are superusers. Before FA-R75 the keyword "confidential" in ``comment``
+hid a report from everyone; now the field ``Publication.confidential`` decides, and listed
+persons and artek_editor see confidential reports (tests changed deliberately). Before the
+2026.2.1 fix /api/person/ listed number and title of every report of a person to anyone.
 """
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser, Group, User
 from django.test import TestCase
 from django.urls import reverse
 
 from api.serializers import PersonSerializer
 from publications.models import Authorship, Person, Publication, PubType, Supervisorship
 from publications.test_upload_appendix_access import _app_path
+from publications.roles import ARTEK_EDITOR
 from publications.visibility import visible_publications
 
 
@@ -20,26 +25,30 @@ class PersonApiReportVisibilityTests(TestCase):
     def setUpTestData(cls):
         pubtype = PubType.objects.create(type='STUDENTREPORT')
 
-        def report(number, title, verified, comment=''):
+        def report(number, title, verified, confidential=False):
             return Publication.objects.create(
                 type=pubtype, number=number, title=title, year=1999,
-                verified=verified, comment=comment)
+                verified=verified, confidential=confidential)
 
         cls.public = report('99-01', 'Public report', verified=True)
         cls.unverified = report('99-02', 'Unverified report', verified=False)
         cls.confidential = report('99-03', 'Confidential report', verified=True,
-                                  comment='Report is CONFIDENTIAL until 2030')
+                                  confidential=True)
         cls.confidential_unverified = report('99-04', 'Confidential unverified report',
-                                             verified=False, comment='confidential')
+                                             verified=False, confidential=True)
 
         cls.author = Person.objects.create(first='Anna', last='Author')
-        cls.supervisor = Person.objects.create(first='Sven', last='Supervisor')
+        # Supervisor of every report; the user 'SVSU' below is this person (initials).
+        cls.supervisor = Person.objects.create(first='Sven', last='Supervisor', initials='svsu')
         for author_id, pub in enumerate(
                 [cls.public, cls.unverified, cls.confidential, cls.confidential_unverified]):
             Authorship.objects.create(publication=pub, person=cls.author, author_id=author_id)
             Supervisorship.objects.create(publication=pub, person=cls.supervisor, supervisor_id=0)
 
         cls.user = User.objects.create_user('s990001', password='x')
+        cls.listed_user = User.objects.create_user('SVSU', password='x')
+        cls.editor = User.objects.create_user('edit', password='x')
+        cls.editor.groups.add(Group.objects.get(name=ARTEK_EDITOR))
         cls.list_path = _app_path(reverse('api:person-list'))
 
     def _detail_path(self, person):
@@ -87,6 +96,21 @@ class PersonApiReportVisibilityTests(TestCase):
         self.assertEqual(self._numbers(self._person_from_detail(self.author)['authorships']), ['99-01', '99-02'])
         self.assertEqual(self._numbers(self._person_from_detail(self.supervisor)['supervisorships']), ['99-01', '99-02'])
 
+    # ---- listed persons and artek_editor see confidential reports (FA-R75) -------------
+
+    def test_listed_user_sees_confidential_reports(self):
+        self.client.force_login(self.listed_user)
+        everything = ['99-01', '99-02', '99-03', '99-04']
+        # Listed as supervisor on all four: also sees them as the author's authorships.
+        self.assertEqual(self._numbers(self._person_from_detail(self.supervisor)['supervisorships']), everything)
+        self.assertEqual(self._numbers(self._person_from_list(self.author)['authorships']), everything)
+
+    def test_artek_editor_sees_confidential_reports(self):
+        self.client.force_login(self.editor)
+        everything = ['99-01', '99-02', '99-03', '99-04']
+        self.assertEqual(self._numbers(self._person_from_list(self.author)['authorships']), everything)
+        self.assertEqual(self._numbers(self._person_from_detail(self.supervisor)['supervisorships']), everything)
+
     # ---- serializer without a request -----------------------------------------------
 
     def test_serializer_without_request_treats_user_as_anonymous(self):
@@ -103,6 +127,8 @@ class PersonApiReportVisibilityTests(TestCase):
                          ['99-01'])
         self.assertEqual(sorted(visible_publications(everything, self.user).values_list('number', flat=True)),
                          ['99-01', '99-02'])
+        self.assertEqual(sorted(visible_publications(everything, self.listed_user).values_list('number', flat=True)),
+                         ['99-01', '99-02', '99-03', '99-04'])
 
     def test_report_api_behaviour_unchanged(self):
         path = _app_path(reverse('api:report-list'))

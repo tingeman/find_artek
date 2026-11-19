@@ -61,6 +61,7 @@ set -euo pipefail
 # person data, the add/edit report form end to end (T7, FA-R55), typed new persons in it (T8, FA-R12). Phase 2 (roadmap FA-R40) adds to this list and later replaces it with the whole
 # suite.
 # FA-R75: the confidential field and its migration.
+# FA-R75 T2: the visibility rule and the API (FA-R76).
 DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
                     api.test_person_api_reports api.test_feature_api_reports
                     publications.test_roles publications.test_permissions_models
@@ -68,7 +69,8 @@ DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upl
                     publications.test_write_access publications.test_person_privacy
                     publications.test_report_form publications.test_menu
                     publications.test_report_form_persons
-                    publications.test_confidential_field)
+                    publications.test_confidential_field
+                    publications.test_visibility api.test_report_api)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
