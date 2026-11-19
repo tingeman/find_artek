@@ -6,7 +6,7 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 **Fix release `2026.2.1` (you):** `develop/main` = `f5e7e79` (person API, feature API, old database copy removed; gate 22/22, 29 tests). Steps: [USER_STEPS_2026.2.1.md](USER_STEPS_2026.2.1.md) (backup to the share, tag, build, publish, deploy, checks). `develop/main` merged into `agent-registration`. After 2026.2.1: plan the history purge (FA-R77, own plan).
 
-On `agent-registration`: T1-T10, T12, T13, T16 done (gate 22/22, 217 tests). Now: **T14** (doc drafted in the main session's scratchpad; waits for your answer on the confidential wording), then T11 (you). Then T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
+On `agent-registration`: T1-T10, T12-T14, T16 done (gate 22/22, 217 tests). T14 done. Now: your answer on the "Use As-Is" button (T8 follow-up), then T11 (you). Then T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
 
 Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
 
@@ -32,6 +32,8 @@ Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_dev
 - T9 2026-11-19: "Add" menu (desktop dropdown, mobile entries) via `perms`, same permissions as the view guards; 7 tests (`bada10a`)
 - T8 2026-11-19: reproduced on `bada10a` (5 failures, 2 errors: `int(name)` in finalize, supervisors workflow replaced the authors one, persons created before finalize); fixed: one workflow for both fields, choices written into the bound form data, `CREATE:`/`SKIP:` markers, persons created inside the finalize transaction, finalize with unresolved names goes to the workflow; 8 tests (`ee3b04f`). FA-R12 new-person bug fixed here, FA-R66 not needed for it.
 - T10 2026-11-19: test labels added per task (all 1b modules in the gate); readme roles section (AD groups only; the plan's "assign in the admin" was outdated), URGENT list updated; `ENVIRONMENT_SETUP.md`, `.dev.env.example` already correct (commit on `agent-registration`).
+- T14 2026-11-19: `docs/user-data-and-permissions.md`, linked from readme; confidential reports described by pointer only (FA-R75/FA-R30), decided by you 2026-11-19 (`81055b4`).
+- Decisions 2026-11-19: `.old` PDFs kept, other solutions later (FA-R79, low priority); post-commit file move kept.
 
 ## Open questions
 
@@ -42,7 +44,7 @@ Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_dev
 ## Notes for the next session
 
 - T8 found, out of scope: "Use As-Is (Create Later)" now does the same as "Create New Person" (drop one button?); dead code in `PersonWorkflowMixin.clean()` (`updated_form_data` merge, `CREATE:` branch) and the review template's hidden inputs from `updated_form_data` (~line 331); `management/commands/test_person_workflow.py` imports a missing module; debug prints in `mixins.py`.
-- Open for you (2026-11-19): T14 wording on confidential reports (plain, or only pointers to FA-R75/FA-R30); `.old` PDFs keep or delete; post-commit file move kept as planned.
+- Open for you (2026-11-19): "Use As-Is (Create Later)" button: never worked in any version (no code ever stored a `SKIP:` name; `Authorship`/`Supervisorship` need a Person); options in the session report.
 
 - T7 found, out of scope: `.old` PDFs pile up on disk without a DB row (keep or delete: open); a numeric typed keyword is read as a pk when that pk exists (Select2 sends text); a post-commit move failure leaves the DB pointing at a missing file on add (logged; alternative: copy before commit); re-submitting the form without re-picking the PDF orphans the first upload in `temp/`; review template links `uploaded_file.url` (FileObject has no `url`); T8 cause hint: typed person names reach `int(name)` in `_handle_relationships`, and `start_person_workflow` deletes `updated_form_data` before `PersonWorkflowMixin.clean()` uses it. Web_server: nginx `client_max_body_size` for `/find/` vs. 20 MB+ PDFs (check at T11).
 - T9 found, cosmetic (roadmap at plan end): `.mobile-menu-expanded` fixed height in `base.css`; stray `>` after the mobile logo link in `base.html`; mobile nav lacks Frontpage and API.
