@@ -58,7 +58,7 @@ A read-only command `check_media_access` walks `MEDIA_ROOT` and prints counts pe
 **Deployment contract (skill `deploy-contract`).** Port, prefix, paths, user, env names unchanged. New, for web_server (after the release is deployed, any order is safe because Django never sees `/find/media/` until nginx sends it):
 - remove the `location /find/media/ { alias ... }` block (the existing `/find/` location then proxies media requests to Django);
 - add `location /find/_protected_media/ { internal; alias /usr/share/nginx/staticfiles/find_artek_static/media/; }`;
-- functional checks: anonymous GET of a public report PDF → 200 `application/pdf`, a Range request → 206; a confidential or unverified report's PDF anonymously → 404; a thumbnail → 200; direct GET of `/find/_protected_media/...` → 404.
+- functional checks: anonymous GET of a public report PDF → 200 `application/pdf`, a Range request → 206; a confidential or unverified report's PDF anonymously → 404; a thumbnail → 200; direct GET of `/find/_protected_media/...` → 404; a slow download of a large PDF that takes longer than 120 s completes (e.g. `curl --limit-rate 200k -o NUL <url>`), and an interrupted one resumes (`curl -C -`).
 `MEDIA_ACCEL_REDIRECT_PREFIX` is a plain setting with a production default, not an env variable, so `webapp_find_artek.env` doesn't change.
 
 **Browser cache (T6).** `base.html` renders a login marker (`anon` or a per-session hash, not the user id or name); `base.js` clears the `reportData*`/`featureData*` keys when the marker differs from the stored one. No JS test setup exists (FA-R40): a Django test checks the marker in the page; the JS is checked by hand in the dev stack (T6 acceptance).
@@ -110,7 +110,7 @@ A read-only command `check_media_access` walks `MEDIA_ROOT` and prints counts pe
 
 ### T5. Checked file view (FA-R30)
 - Files: new `publications/media_access.py` (owner lookup + check), view and URL in `find_artek/urls.py` (replacing the dev `static()` route), `find_artek/settings.py` / `development_settings.py` (`MEDIA_ACCEL_REDIRECT_PREFIX`), `management/commands/check_media_access.py`, `add_edit_report_review.html` (temp file link to `file.file.url`), new `publications/test_media_access.py`.
-- Acceptance: design notes "Files" 1-5; path traversal refused; production settings answer with `X-Accel-Redirect`, dev settings stream the file.
+- Acceptance: design notes "Files" 1-5; path traversal refused; production settings answer with `X-Accel-Redirect` and **no body** (gunicorn never streams a file in production: it has 2 workers × 2 threads and a 120 s timeout, so slow downloads through it would block the app and be cut off), dev settings stream the file.
 - Tests (with `override_settings(MEDIA_ROOT=<tmp>)` and small fixture files, never real media): the T2 matrix for PDF, appendix, thumbnail (by number and by PDF stem); temp file for its uploader / another user / editor; unowned and `.old` files; `..`, encoded `%2e%2e`, absolute paths; missing file → 404; header and content type in accel mode; `Cache-Control` on restricted files; the command's counts on a fixture tree.
 - Validation: `validate`; `publications.test_media_access`; image tests (`tests/run.sh`, settings change).
 - Agent: implementer.
