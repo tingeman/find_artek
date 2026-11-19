@@ -405,19 +405,36 @@ def person_display_name(value):
     return None
 
 
+def match_flags(name):
+    """The match flags of a link to a new person ``name`` (as the classic app set them), from
+    the persons in the database that match the name. Call it before that person is created,
+    so it doesn't match itself. exact_match: one or more exact matches; relaxed_match: relaxed
+    matches but no exact one; multiple_match: more than one match of the kind that set the flag."""
+    matches = get_person_matches(name)
+    exact, relaxed = matches['exact'], matches['relaxed']
+    return {
+        'exact_match': bool(exact),
+        'relaxed_match': bool(relaxed) and not exact,
+        'multiple_match': len(exact) > 1 or (not exact and len(relaxed) > 1),
+    }
+
+
 def person_from_form_value(value, user, created):
-    """The Person for a value of the report form data: a pk, or a 'CREATE:<name>' /
-    'SKIP:<name>' marker from the workflow ("Create New Person" / "Use As-Is (Create Later)"),
-    for which a new person is created now (name parts parsed, created_by ``user``).
-    ``created`` maps the names already created in this save to their Person, so a name typed
-    as author and as supervisor is one person. Raises ValueError for an unresolved name."""
+    """The Person for a value of the report form data, and the match flags for its link:
+    a pk (no flags, ``{}``), or a 'CREATE:<name>' / 'SKIP:<name>' marker from the workflow
+    ("Create New Person"; SKIP: from older form data), for which a new person is created now
+    (name parts parsed, created_by ``user``) and the flags come from match_flags.
+    ``created`` maps the names already created in this save to (Person, flags), so a name typed
+    as author and as supervisor is one person with the same flags. Raises ValueError for an
+    unresolved name."""
     name = person_display_name(value)
     if name is None:
-        return Person.objects.get(pk=int(value))
+        return Person.objects.get(pk=int(value)), {}
     if not name:
         raise ValueError(f'Empty person name in {value!r}')
     if name not in created:
+        flags = match_flags(name)  # before the person exists
         person = Person(created_by=user, modified_by=user)
         person.set_names(name)  # saves
-        created[name] = person
+        created[name] = (person, flags)
     return created[name]

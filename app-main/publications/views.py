@@ -78,6 +78,9 @@ from publications.workflows.person import (
 
 logger = logging.getLogger(__name__)
 
+# Fields of an author/supervisor link (Personship) that flag it for a later merge of persons
+MATCH_FIELDS = ('exact_match', 'relaxed_match', 'multiple_match', 'match_string')
+
 
 # --- Add/edit report form: session data -------------------------------------------------
 # ReportFormView keeps the submitted form in the session until ReportFinalizeView saves it.
@@ -993,25 +996,23 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
         keywords that don't exist yet are created here)."""
         created = {}  # new persons of this save by name (author and supervisor: one person)
 
-        # Authors
-        publication.authorship_set.all().delete()
-        for i, author in enumerate(session_data.get('authors', [])):
-            person = person_from_form_value(author, self.request.user, created)
-            Authorship.objects.create(
-                publication=publication,
-                person=person,
-                author_id=i
-            )
-
-        # Supervisors
-        publication.supervisorship_set.all().delete()
-        for i, supervisor in enumerate(session_data.get('supervisors', [])):
-            person = person_from_form_value(supervisor, self.request.user, created)
-            Supervisorship.objects.create(
-                publication=publication,
-                person=person,
-                supervisor_id=i
-            )
+        # The links are deleted and recreated. A person linked again in the same role keeps
+        # the match flags of the old link; a new person gets the flags from its name.
+        roles = [
+            (publication.authorship_set, Authorship, 'author_id', session_data.get('authors', [])),
+            (publication.supervisorship_set, Supervisorship, 'supervisor_id',
+             session_data.get('supervisors', [])),
+        ]
+        for links, model, order_field, values in roles:
+            kept = {link.person_id: {field: getattr(link, field) for field in MATCH_FIELDS}
+                    for link in links.all()}
+            links.all().delete()
+            for i, value in enumerate(values):
+                person, flags = person_from_form_value(value, self.request.user, created)
+                if not flags:
+                    flags = kept.get(person.pk, {})
+                model.objects.create(publication=publication, person=person,
+                                     **{order_field: i}, **flags)
 
         # Topics: list-only, unknown ones were refused by the form (TopicChoiceField)
         publication.publication_topics.set(cleaned_data.get('publication_topics') or [])

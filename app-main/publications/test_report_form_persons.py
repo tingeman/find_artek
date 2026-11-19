@@ -11,7 +11,9 @@ walk that way as a browser would (following every redirect) and then save the re
 - the new persons are created when the report is saved, inside its transaction: a failed
   save (or an abandoned workflow) leaves no new person behind;
 - the form data stays bound to its form (add / edit:<pk>) through the workflow;
-- finalize with names that were never resolved sends the user to the workflow, saves nothing.
+- finalize with names that were never resolved sends the user to the workflow, saves nothing;
+- a new person whose name had matches flags its links (exact/relaxed/multiple_match, as in the
+  classic app), and an edit keeps the flags of a person linked again in the same role.
 
 Same setup as test_report_form (MEDIA_ROOT temporary, finalize in captureOnCommitCallbacks).
 """
@@ -25,6 +27,7 @@ from publications.test_report_form import (
 )
 from publications.test_upload_appendix_access import _app_path
 from publications.views import ReportFinalizeView, get_report_form_data, report_form_target
+from publications.workflows.person import get_person_matches
 
 NEW = 'new'  # choice in walk_workflow: "Create New Person"
 
@@ -262,3 +265,105 @@ class EditReportNewPersonsTests(ReportFormPersonTestBase):
         self.finalize(_path('edit_report_finalize', pk=report.pk))
         self.assertEqual(self.supervisors_of(report), [self.supervisor])
         self.assertEqual(Person.objects.count(), persons_before)
+
+
+class MatchFlagsTests(ReportFormPersonTestBase):
+    """Match flags on the author/supervisor links (Personship exact_match, relaxed_match,
+    multiple_match), as the classic app set them: a new person made for a typed name that had
+    matches in the database is flagged, so an editor can merge the persons later. An edit keeps
+    the flags of a person linked again in the same role."""
+
+    FLAGS = ('exact_match', 'relaxed_match', 'multiple_match')
+
+    def flags(self, link):
+        return {f: getattr(link, f) for f in self.FLAGS}
+
+    def expect(self, exact=False, relaxed=False, multiple=False):
+        return {'exact_match': exact, 'relaxed_match': relaxed, 'multiple_match': multiple}
+
+    def add_with_new_names(self, authors, supervisors=(), choices=None):
+        response = self.client.post(_path('add_report'), self.form_data(
+            authors=list(authors), supervisors=list(supervisors)))
+        self.walk_workflow(response, choices or {name: NEW for name in [*authors, *supervisors]})
+        self.finalize(_path('add_report_finalize'))
+        return Publication.objects.get(title='New report')
+
+    def new_person(self, last):
+        return Person.objects.filter(last=last).exclude(
+            pk__in=[self.author1.pk, self.author2.pk, self.supervisor.pk]).latest('pk')
+
+    def test_new_person_with_an_exact_match(self):
+        pub = self.add_with_new_names(['Ann Author'])
+        link = pub.authorship_set.get()
+        self.assertNotEqual(link.person, self.author1)
+        self.assertEqual(link.person, self.new_person('Author'))
+        self.assertEqual(self.flags(link), self.expect(exact=True))
+
+    def test_new_person_with_only_a_relaxed_match(self):
+        # "Andy Author": first initial + last name of Ann Author (initial_match, confidence 0.8)
+        matches = get_person_matches('Andy Author')
+        self.assertEqual((matches['exact'], matches['relaxed']), ([], [self.author1]))
+        pub = self.add_with_new_names(['Andy Author'])
+        link = pub.authorship_set.get()
+        self.assertEqual(link.person, self.new_person('Author'))
+        self.assertEqual(self.flags(link), self.expect(relaxed=True))
+
+    def test_new_person_with_two_exact_matches(self):
+        Person.objects.create(first='Ann', last='Author')
+        pub = self.add_with_new_names(['Ann Author'])
+        self.assertEqual(self.flags(pub.authorship_set.get()), self.expect(exact=True, multiple=True))
+
+    def test_new_person_with_two_relaxed_matches_is_multiple(self):
+        Person.objects.create(first='Alice', last='Author')
+        self.assertEqual(len(get_person_matches('Andy Author')['relaxed']), 2)
+        pub = self.add_with_new_names(['Andy Author'])
+        self.assertEqual(self.flags(pub.authorship_set.get()),
+                         self.expect(relaxed=True, multiple=True))
+
+    def test_new_person_without_matches_has_no_flags(self):
+        pub = self.add_with_new_names(['Jane Newcomer'])
+        self.assertEqual(self.flags(pub.authorship_set.get()), self.expect())
+
+    def test_same_new_name_as_author_and_supervisor_flags_both_links(self):
+        persons_before = Person.objects.count()
+        pub = self.add_with_new_names(['Ann Author'], ['Ann Author'])
+        self.assertEqual(Person.objects.count(), persons_before + 1)
+        author_link, supervisor_link = pub.authorship_set.get(), pub.supervisorship_set.get()
+        self.assertEqual(author_link.person, supervisor_link.person)
+        self.assertEqual(self.flags(author_link), self.expect(exact=True))
+        self.assertEqual(self.flags(supervisor_link), self.expect(exact=True))
+
+    def test_selected_existing_person_has_no_flags(self):
+        pub = self.add_with_new_names(['Ann Author'], choices={'Ann Author': self.author1})
+        link = pub.authorship_set.get()
+        self.assertEqual(link.person, self.author1)
+        self.assertEqual(self.flags(link), self.expect())
+
+    def test_edit_keeps_the_flags_of_a_kept_author(self):
+        report = self.make_report('25-07')
+        report.authorship_set.update(exact_match=True, multiple_match=True, match_string='Ann A.')
+        self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+            title='Edited report', authors=[str(self.author2.pk), str(self.author1.pk)],
+            supervisors=[str(self.supervisor.pk)]))
+        self.finalize(_path('edit_report_finalize', pk=report.pk))
+        report.refresh_from_db()
+        self.assertEqual(report.title, 'Edited report')
+        kept = report.authorship_set.get(person=self.author1)
+        self.assertEqual(kept.author_id, 1)
+        self.assertEqual(self.flags(kept), self.expect(exact=True, multiple=True))
+        self.assertEqual(kept.match_string, 'Ann A.')
+        self.assertEqual(self.flags(report.authorship_set.get(person=self.author2)), self.expect())
+        self.assertEqual(self.flags(report.supervisorship_set.get()), self.expect())
+
+    def test_edit_does_not_carry_flags_to_another_role(self):
+        report = self.make_report('25-08')
+        report.authorship_set.update(exact_match=True, match_string='Ann A.')
+        self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+            title='Edited report', authors=[str(self.author2.pk)],
+            supervisors=[str(self.author1.pk)]))
+        self.finalize(_path('edit_report_finalize', pk=report.pk))
+        link = report.supervisorship_set.get()
+        self.assertEqual(link.person, self.author1)
+        self.assertEqual(self.flags(link), self.expect())
+        self.assertEqual(link.match_string, '')
+        self.assertEqual(self.flags(report.authorship_set.get()), self.expect())
