@@ -14,7 +14,7 @@ from unittest import mock
 from django.contrib.auth.models import Group, User
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django_cas_ng.backends import CASBackend
 from django_cas_ng.signals import cas_user_authenticated
 
@@ -410,3 +410,12 @@ class AdUserInfoTests(TestCase):
             with self.assertRaises(roles.LdapLookupError):
                 roles.ad_user_info('s990001', [STAFF_DN])
         connection_cls.assert_not_called()
+
+
+class LdapBindIdentityTests(SimpleTestCase):
+    """The LDAP bind uses the account's UPN, not a DN tied to its OU (the account was moved)."""
+
+    def test_bind_identity_is_upn_without_ou(self):
+        from django.conf import settings
+        self.assertEqual(settings.AUTH_LDAP_BIND_DN, f'{settings.LDAP_BIND_USER}@win.dtu.dk')
+        self.assertNotIn('ou=', settings.AUTH_LDAP_BIND_DN.lower())

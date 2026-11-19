@@ -171,7 +171,9 @@ USE_LDAP = True     # Allow LDAP lookups using e.g. LDAP3
 
 AUTH_LDAP_SERVER_URI = 'ldaps://win.dtu.dk'
 LDAP_BIND_USER = os.getenv('LDAP_BIND_USER')
-AUTH_LDAP_BIND_DN = f'cn={LDAP_BIND_USER},ou=Funktionskonti,ou=BYG,ou=Institutter,DC=win,DC=dtu,DC=dk'
+# Bind as user@win.dtu.dk (userPrincipalName): AD accepts it wherever the service account sits.
+# A full DN broke when the account moved from OU=BYG to OU=SUS (found 2026-11-20).
+AUTH_LDAP_BIND_DN = f'{LDAP_BIND_USER}@win.dtu.dk'
 AUTH_LDAP_BIND_PASSWORD = os.getenv('LDAP_BIND_PASSWORD')
 AUTH_LDAP_USER_SEARCH_BASE = "ou=DTUBaseUsers,dc=win,dc=dtu,dc=dk"
 
