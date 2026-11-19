@@ -4,12 +4,14 @@ Plan: [PLAN_confidential.md](PLAN_confidential.md). Branch: `agent-confidential`
 
 ## Now
 
-T2 (rule and API) with the implementer. T6 written and its tests pass (236 with the gate labels), **not committed**: waits for your browser check of logout (see Notes). Release after `2026.3`.
+T3 (pages) with an implementer in the worktree (uses the dev stack); T5 (media view) in parallel with a second implementer in a detached worktree `..\find_artek_agent-confidential-t5` (no branch; validated with the image gate only; its diff is applied to `agent-confidential`, then that worktree is removed). T6 written and its tests pass (236 with the gate labels), **not committed**: waits for your browser check of logout (see Notes). Release after `2026.3`.
 
 ## Done
 
 - 2026-11-19: plan approved. T0: worktree `..\find_artek_agent-confidential` on `agent-confidential` from `develop/main` (`a9844c7`).
 - T1 2026-11-19: `Publication.confidential`, migration 0004 (flag from the comment, comment unchanged); `test_roles.RegistrationGroupsMigrationTests` changed deliberately to a `TransactionTestCase` (migrating back past 0004's DDL fails inside a transaction on MariaDB), assertions unchanged; gate 22/22, 231 tests (`a8b3d8b`).
+- T2 2026-11-19: `visibility.py` rule (anonymous: verified and not confidential; logged in: not confidential or listed; `artek_editor`/superuser all; features: no report or one visible), `VIEW` in `user_may`; API report list/detail (FA-R76 fixed, invalid `q` 400), features, `confidential` in the serializer; API visibility tests changed deliberately (field instead of comment; listed users and editors see confidential); 263 tests, gate 22/22 (`2c23899`).
+- Not done, found in T2: `/api/person/` still lists persons who appear only on hidden reports (names only; plan assumption); `/api/feature/?publication_id=abc` gives 500 (old bug, Phase 2).
 - 2026-11-19: decisions: keep `/find/media/` URLs, nginx proxies them to a checked Django view with X-Accel-Redirect; features with no report stay public; anyone who may edit a report may set `confidential`.
 
 ## Open questions
