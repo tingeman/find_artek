@@ -34,14 +34,17 @@ Active superusers pass every check (Django's has_perm; for ``view`` the visibili
 ``PermissionMixin`` (and its subclasses for a publication or a feature in the URL) puts this in
 front of a class-based view: a request with a method the view doesn't accept gets 405, an
 anonymous user is redirected to LOGIN_URL with ``next``, an unknown object is 404, a logged-in
-user who may not do the action gets 403, everything else proceeds. ``permission_required`` does
+user who may not do the action gets 403, everything else proceeds. ``view`` differs (the report
+and feature pages, plan PLAN_confidential T3): anonymous users are checked like everyone else
+and only redirected to the login when the entry is hidden from them, and a logged-in user who
+may not see the entry gets 404, so that its existence isn't confirmed. ``permission_required`` does
 the same for function views (or answers with JSON 401/403 for ajax endpoints).
 """
 from functools import wraps
 
 from django.contrib.auth.mixins import AccessMixin
 from django.contrib.auth.views import redirect_to_login
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
 
 from publications.models import Feature, Publication
@@ -158,11 +161,18 @@ class PermissionMixin(AccessMixin):
         # anonymous users (verify/unverify by GET is 405, not a login redirect).
         if request.method.lower() not in self.http_method_names:
             return self.http_method_not_allowed(request, *args, **kwargs)
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()   # redirect to LOGIN_URL with next
         action = self.get_required_permission()
+        # VIEW is the only action anonymous users may have: they are checked like everyone
+        # else and sent to the login only when the entry is hidden from them.
+        if not request.user.is_authenticated and action != VIEW:
+            return self.handle_no_permission()   # redirect to LOGIN_URL with next
         obj = self.get_permission_object()
         if not user_may(request.user, action, obj):
+            if not request.user.is_authenticated:
+                return self.handle_no_permission()
+            if action == VIEW:
+                # Not 403: a hidden entry looks like a missing one.
+                raise Http404("No such entry.")
             return self.permission_denied_response(action)
         return super().dispatch(request, *args, **kwargs)
 

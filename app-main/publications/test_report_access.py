@@ -145,10 +145,12 @@ class AddReportAccessTests(ReportAccessTestBase):
         self.assertFalse(new.verified)
         self.assertEqual(new.created_by, self.staff)
 
+        # Hidden from anonymous users (unverified): the report page sends them to the login
+        # (PLAN_confidential T3; before, an access-denied page with status 200).
         self.client.logout()
         response = self.client.get(_path('report', pk=new.pk))
-        self.assertTemplateUsed(response, 'publications/access_denied.html')
-        self.assertNotContains(response, 'New report')
+        self.assertRedirectsToLogin(response)
+        self.assertNotContains(response, 'New report', status_code=302)
 
 
 class EditReportAccessTests(ReportAccessTestBase):

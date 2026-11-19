@@ -62,6 +62,7 @@ set -euo pipefail
 # suite.
 # FA-R75: the confidential field and its migration.
 # FA-R75 T2: the visibility rule and the API (FA-R76).
+# FA-R75 T3: report and feature pages.
 DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
                     api.test_person_api_reports api.test_feature_api_reports
                     publications.test_roles publications.test_permissions_models
@@ -70,7 +71,8 @@ DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upl
                     publications.test_report_form publications.test_menu
                     publications.test_report_form_persons
                     publications.test_confidential_field
-                    publications.test_visibility api.test_report_api)
+                    publications.test_visibility api.test_report_api
+                    publications.test_pages_visibility)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).

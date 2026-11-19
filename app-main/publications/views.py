@@ -63,11 +63,12 @@ from publications.models import (
     Keyword, FileObject
 )
 from publications.permissions import (
-    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, VERIFY,
+    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, VERIFY, VIEW,
     FeaturePermissionMixin, PermissionMixin, PublicationPermissionMixin,
     ReportFormPermissionMixin, permission_required, user_may,
 )
 from publications.utils_basic import CaseInsensitively
+from publications.visibility import visible_features, visible_publications
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
     handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords
@@ -398,17 +399,25 @@ class PersonsView(BaseView):
 
 
 
-class ReportView(BaseDetailView):
+class ReportView(PublicationPermissionMixin, BaseDetailView):
+    """Report page. Shown to those who may see the report (permissions VIEW, the visibility
+    rule of FA-R75); hidden reports send anonymous users to the login and are 404 for others."""
+    permission = VIEW
     model = Publication
     template_name = 'publications/report.html'
     context_object_name = 'publication'
 
+    def get_object(self, queryset=None):
+        return self.publication   # loaded and checked by the mixin
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # The per-feature delete rule looks at the persons listed on the feature's reports.
-        associated_features = Feature.objects.filter(publications=self.object).prefetch_related(
-            'publications__authors', 'publications__supervisors', 'publications__editors')
         user = self.request.user
+        # The per-feature delete rule looks at the persons listed on the feature's reports.
+        associated_features = visible_features(
+            Feature.objects.filter(publications=self.object), user,
+        ).prefetch_related(
+            'publications__authors', 'publications__supervisors', 'publications__editors')
         can_edit_publication = self.object.is_editable_by(user) if user.is_authenticated else False
         can_delete_publication = self.object.is_deletable_by(user) if user.is_authenticated else False
         can_verify_publication = self.object.is_verifiable_by(user) if user.is_authenticated else False
@@ -429,14 +438,6 @@ class ReportView(BaseDetailView):
         })
         context['invalidate_feature_cache'] = self.request.session.pop('invalidate_feature_cache', False)
         return context
-
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if not self.object.verified and not request.user.is_authenticated:
-            context = self.get_context_data(object=self.object)
-            context['error'] = "You do not have permissions to access this publication!"
-            return render(request, 'publications/access_denied.html', context=context)
-        return super().get(request, *args, **kwargs)
 
 
 class ReportFormView(ReportFormPermissionMixin, BaseFormView):
@@ -1376,15 +1377,25 @@ class PersonView(BaseDetailView):
 
 
 
-class FeatureView(BaseDetailView):
+class FeatureView(FeaturePermissionMixin, BaseDetailView):
+    """Feature page. Same access as the report page (VIEW); lists only the feature's reports
+    the user may see (``visible_reports``)."""
+    permission = VIEW
     model = Feature
     template_name = 'publications/feature.html'
     context_object_name = 'feature'
 
+    def get_object(self, queryset=None):
+        return self.feature   # loaded and checked by the mixin
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         geometry = self.object.points or self.object.lines or self.object.polys
-        context.update({'geometry': geometry})
+        context.update({
+            'geometry': geometry,
+            'visible_reports': visible_publications(
+                self.object.publications.all(), self.request.user).order_by('number', 'pk'),
+        })
         return context
 
 

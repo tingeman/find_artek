@@ -61,7 +61,7 @@
             
             <!-- Title label above the actual title -->
             <div class="mb-2" style="font-weight: bold;">{% trans "Title" %}:</div>
-            <h5 class="mb-4 fw-bold" style="margin-bottom:0;">{{ publication.title }}</h5>
+            <h5 class="mb-4 fw-bold" style="margin-bottom:0;">{{ publication.title }}{% if publication.confidential %} <span class="badge badge-danger confidential-badge" title="{% trans "Only the persons listed on this report and ARTEK editors can see it" %}">{% trans "Confidential" %}</span>{% endif %}</h5>
             
             <!-- Table-like layout for bibliographic data -->
           <div class="bibliographic-data">

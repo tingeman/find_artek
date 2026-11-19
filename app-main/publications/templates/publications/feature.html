@@ -40,9 +40,9 @@
             <div class="row">
                 <span class="property">Report:</span>
                 <!-- TODO: fix layout -->
-                {% for report in feature.publications.all %}
-                    <!-- TODO fix href -->
-                    <span class="value"><a href="#">{{ report.title }}</a></span>
+                {# Only the reports the user may see (FA-R75); FeatureView passes them. #}
+                {% for report in visible_reports %}
+                    <span class="value"><a href="{% url 'publications:report' pk=report.pk %}">{{ report.title }}</a></span>
                 {% endfor %}
             </div>
     
@@ -79,13 +79,13 @@
             <div class="row">
                 <span class="property">Registered Files:</span>
                 {% for file in feature.files.all %}
-                    <span class="value"><a href="{{MEDIA_URL}}{{file.filelocation}}/{{file.filename}}" download>{{file.filename}}</a></span>
+                    <span class="value"><a href="{{ file.file.url }}" download>{{ file.filename }}</a></span>
                 {% endfor %}
             </div>
             <div class="row">
                 <span class="property">Registered Images:</span>
                 {% for image in feature.images.all %}
-                    <span class="value"><a href="{{MEDIA_URL}}{{image.filelocation}}/{{image.filename}}" download>{{image.filename}}</a></span>
+                    <span class="value"><a href="{{ image.image.url }}" download>{{ image.filename }}</a></span>
                 {% endfor %}
             </div>
         </div>
