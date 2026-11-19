@@ -17,10 +17,11 @@ T4 (form) with an implementer in the worktree (uses the dev stack); T5 (media vi
 
 ## Open questions
 
-- The dev database doesn't have migration 0004: with the worktree's code, report pages give 500 in the dev stack. Migrating the dev DB adds the column and flags 2 rows; afterwards the `develop/main` code can't insert reports there (NOT NULL column it doesn't know) until `migrate publications 0003`. Your call.
 - Anonymous users can tell a hidden report (302 to login) from a missing one (404); logged-in users can't. Acceptable, or send anonymous users to the login for unknown ids too?
 
 ## Notes for the next session
+
+- Dev DB migrated to 0004 on 2026-11-19 (your permission): 2 of 494 reports flagged. Before running `develop/main` code on the dev stack again: `migrate publications 0003` (else adding a report fails on the unknown NOT NULL column).
 
 - T6 (uncommitted in the worktree: `context_processors.py` `AUTH_MARKER`, `settings.py`, `base.html` inline script in the head, `test_auth_marker.py`; label `publications.test_auth_marker` still to add to `tests/run.sh`). Browser check at `http://localhost:8098/` (stack runs from the worktree): open the reports page logged in, devtools → Application → Session Storage shows `reportData*` and `authMarker`; log out, open the reports page: the `reportData*` keys are new (cleared and refetched) and `authMarker` is `anon`.
 - Phase 2 idea from T1: a shared helper for migration tests (a `TransactionTestCase` that always restores the latest migrations), so each new schema migration doesn't break older migration tests.
