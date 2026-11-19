@@ -18,9 +18,9 @@ Deployment impact (web_server):
 
 ## 0. Decide: wait for the AD groups?
 
-- [ ] Done
+- [x] Done: **wait** (decided 2026-11-19). Steps 1-7 start when IT has sent the DNs of both AD groups (requested 2026-11-18); put them into step 4.
 
-Without the DNs from IT only superusers can add, verify or import reports (staff and editors don't exist yet). Either wait, or release now with both variables empty and set them later (env change + playbook rerun, no new release).
+Without the DNs from IT only superusers can add, verify or import reports (staff and editors don't exist yet).
 
 ## 1. Tag `2026.3` locally
 

@@ -6,7 +6,7 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 Fix release `2026.2.1` deployed 2026-11-19 (tag `372719be3cd4`, server checks passed, `main` fast-forwarded): [USER_STEPS_2026.2.1_COMPLETE.md](../archive/USER_STEPS_2026.2.1_COMPLETE.md). Next outside this plan: the history purge (FA-R77, own plan).
 
-On `agent-registration`: T1-T10, T12-T14, T16 and the match flags done (gate 22/22, 227 tests). `develop/main` fast-forwarded to `agent-registration` (`7053ddc`) 2026-11-19 with your permission. Now: **T11** (you): [USER_STEPS_2026.3.md](USER_STEPS_2026.3.md). Open: whether 2026.3 waits for the AD groups. "Confidential" is its own plan after 2026.3 (FA-R75).
+On `agent-registration`: T1-T10, T12-T14, T16 and the match flags done (gate 22/22, 227 tests). `develop/main` fast-forwarded to `agent-registration` (`7053ddc`) 2026-11-19 with your permission. Now: **T11** (you): [USER_STEPS_2026.3.md](USER_STEPS_2026.3.md). 2026.3 **waits for the AD groups** (decided 2026-11-19): steps start when IT sends the DNs. "Confidential" is its own plan after 2026.3 (FA-R75).
 
 Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
 
@@ -42,7 +42,7 @@ Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_dev
 
 - FA-R73: informing DTU's data protection function about the database copy in the public repository: your decision.
 
-- AD groups requested from IT (2026-11-18): their DNs go into `LDAP_GROUP_ARTEK_STAFF` / `LDAP_GROUP_ARTEK_EDITOR`. Until then only superusers can add reports. Decide at T11 whether 2026.3 waits for them.
+- AD groups requested from IT (2026-11-18): their DNs go into `LDAP_GROUP_ARTEK_STAFF` / `LDAP_GROUP_ARTEK_EDITOR`. Until then only superusers can add reports. Decided 2026-11-19: 2026.3 waits for them.
 
 ## Notes for the next session
 
