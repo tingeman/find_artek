@@ -11,6 +11,8 @@ Context: find_artek is a Django 4.2 student-report database (apps `publications`
 | Plan | Phase | Branch | Status |
 |---|---|---|---|
 | [PLAN](plan/PLAN_registration.md), [STATUS](plan/STATUS_registration.md) (registration) | 1b | `agent-registration` (worktree `../find_artek_agent-registration`) | Approved 2026-11-18; T1, T3, T6 written, not validated (Docker down); see STATUS |
+| [PLAN](plan/PLAN_confidential.md), [STATUS](plan/STATUS_confidential.md) (confidential, FA-R75, FA-R30, FA-R76) | after 1b | `agent-confidential` (not created) | Draft 2026-11-19, waiting for approval; release after `2026.3`; needs a web_server nginx change |
+| [PLAN](plan/PLAN_test-coverage.md), [STATUS](plan/STATUS_test-coverage.md) (test coverage) | 2 | `agent-test-coverage` (not created) | Draft 2026-11-19, waiting for approval; starts after `agent-confidential` is merged |
 
 ## Finished plans
 
