@@ -1,0 +1,119 @@
+# User steps: release 2026.3 (registration, PLAN_registration T11)
+
+`develop/main` is at `7053ddc` (2026-11-19): the registration work of [PLAN_registration.md](PLAN_registration.md) (T1-T10, T12-T14, T16, match flags) on top of `2026.2.1`. Gate on the branch: 22/22, Django step 227 tests.
+
+What changes for users:
+
+- Roles: every CAS login gets group `dtu_user`; `artek_staff` / `artek_editor` only from the AD groups in `LDAP_GROUP_ARTEK_STAFF` / `LDAP_GROUP_ARTEK_EDITOR` (empty = nobody; superusers unaffected). Name and e-mail from AD at every login.
+- Every write view checks permissions (405 / login / 404 / 403); verify/unverify are POST buttons; `/debug-root/` is gone.
+- Report form: typed keywords created on save, topics list-only, PDF moved after the save, temp upload removed, typed new authors/supervisors work (new persons created on save, classic match flags set); "Use As-Is" button removed.
+- "Add" menu for staff and editors. Study numbers and student e-mails hidden from anonymous users.
+
+Deployment impact (web_server):
+
+- **Migration** `publications.0003_registration_groups`: data only, creates the three groups and their permission links; no existing row changes (the production copy has no auth groups). The playbook's normal path applies (dump, `migrate --plan`, `migrate`).
+- **New env variables** `LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR` (default empty) for `webapp_find_artek.env`; add them to the variable list in web_server's `docs/deploy/secrets.md`.
+- The AD lookup now runs at every CAS login (bind with `LDAP_BIND_USER` / `LDAP_BIND_PASSWORD` to `ldaps://win.dtu.dk`). If it fails, the login still works and a warning goes to the container log.
+- nginx: `client_max_body_size 300M` on `/find/` already (checked 2026-11-19). Port, paths, user, entrypoint and cron unchanged.
+
+## 0. Decide: wait for the AD groups?
+
+- [ ] Done
+
+Without the DNs from IT only superusers can add, verify or import reports (staff and editors don't exist yet). Either wait, or release now with both variables empty and set them later (env change + playbook rerun, no new release).
+
+## 1. Tag `2026.3` locally
+
+- [ ] Done
+
+```powershell
+# PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
+git log --oneline -3 develop/main                     # expect 7053ddc, or docs commits on top of it
+git tag -a 2026.3 -m "find_artek 2026.3: registration (roles from AD, permission checks, report form, Add menu)" develop/main
+git show --no-patch --format='%h %s' '2026.3^{commit}'
+```
+
+## 2. Build and test the bundle
+
+- [ ] Done
+
+```bash
+# WSL
+cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server
+bash scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP 2026.3
+cat release-out/webapp_find_artek/webapp_find_artek-2026.3.manifest.txt
+```
+
+Expect `RESULT: OK`, 22 tests, and the Django step `Ran 227 tests`. Paste the manifest.
+
+## 3. Publish to the releases share
+
+- [ ] Done
+
+```powershell
+# PowerShell
+$dst = '\\ait-pdfs\Qdrev\SUS\Groups\Arctic_backup\SUS-PArcWeb01\releases\webapp_find_artek'
+Get-ChildItem $dst                                   # must not contain webapp_find_artek-2026.3.* yet
+Copy-Item 'C:\thin\02_Code\docker_projects\dtu_sus_web_server\release-out\webapp_find_artek\webapp_find_artek-2026.3.*' $dst
+Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.3.tar.gz"   # = tarball_sha256 in the manifest
+```
+
+## 4. Env file and releases.yml (web_server)
+
+- [ ] Done
+
+1. In the secrets vault, `webapp_find_artek.env`: add two lines (DNs from IT, or empty):
+   ```
+   LDAP_GROUP_ARTEK_STAFF=
+   LDAP_GROUP_ARTEK_EDITOR=
+   ```
+   and add both names to the variable list of `webapp_find_artek.env` in web_server's `docs/deploy/secrets.md`.
+2. `ansible/vars/releases.yml`, `webapp_find_artek`: `version: "2026.3"`, `tarball_sha256` from the manifest, comment as for 2026.2.1 (previous: 2026.2.1, commit `372719be3cd4`, tarball_sha256 `c6edca0f91f60d490e043ce04309d4764fe855fc2f70a655094582b525d97c25`; one migration, data only). Commit.
+
+## 5. Deploy
+
+- [ ] Done
+
+```bash
+# WSL, web_server with step 4 committed
+cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server/ansible
+ansible-playbook -kK -i hosts playbook_install_webapp_find_artek.yml -v --ask-vault-pass
+```
+
+The playbook shows `migrate --plan` with `publications.0003_registration_groups` and takes a dump first.
+
+Server checks:
+
+```bash
+# SSH on sus-parcweb01
+sudo docker ps --filter name=webapp-find-artek --format '{{.Names}}  {{.Image}}  {{.Status}}'      # webapp_find_artek:2026.3, healthy
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/frontpage/          # 200
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/report/add/         # 302 (to the login)
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/debug-root/                       # 404
+sudo docker exec webapp-find-artek python manage.py showmigrations publications | tail -2          # [X] 0003_registration_groups
+```
+
+Rollback: put the `2026.2.1` entry back in `releases.yml` and rerun the playbook. Migration 0003 can stay (2026.2.1 ignores the groups) or be reversed with `migrate publications 0002` before the rollback (removes the three groups).
+
+## 6. Functional checks in the browser
+
+- [ ] Done
+
+1. Logged out: a person page shows no study number and no student e-mail; no "Add" menu; `/find/publications/report/add/` sends you to the DTU login.
+2. Log in with your own account, then the admin user page (`/find/admin/auth/user/`): your user has group `dtu_user`, first/last name and e-mail filled in. If not, look for a `publications.roles` warning in `sudo docker logs webapp-find-artek` (AD lookup failed).
+3. A student account (if one is at hand): username `sNNNNNN`, group `dtu_user`, name/e-mail set; no "Add" menu; `/find/publications/report/add/` → 403.
+4. As superuser (or editor once the groups exist): "Add" menu → "Add report". Add a test report with a typed new author, an existing supervisor, a new keyword and a PDF of ~20 MB (retests the production PDF bug, FA-R12/FA-R20). Expected: the person step asks about the typed name, the review shows "(new person)", the report is saved with the PDF and a number.
+5. Logged out: the test report is not shown (access denied) and not in the person's list. Logged in: verify it with the button, then delete it.
+6. On the server: `media/temp/` has no new folder from the test (`sudo ls -lt /mnt/Qdrev-arctic-web-data/staticfiles/find_artek_static/media/temp/ | head -3`).
+7. With the AD groups set: log in as a list member; the admin user page shows `artek_staff` / `artek_editor`.
+
+## 7. After the deploy
+
+- [ ] Done
+
+```powershell
+# PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
+git branch -f main 2026.3
+```
+
+Tell the main session; it closes PLAN_registration (roadmap, archive).

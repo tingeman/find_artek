@@ -12,6 +12,8 @@ No migration, no new env variable, no change to the deployment contract (only ne
 
 ## 0. Back up the old databases (FA-R73, FA-R74)
 
+Done 2026-11-19 (owner).
+
 - [ ] Copy the staging folder to the network backup share, then delete the local staging copy.
 
 ```powershell
