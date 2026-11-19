@@ -13,10 +13,10 @@ Sources there: `docker/compose_find_artek.yml` (the production stack), `ansible/
 
 | Item | Here | Used there by |
 |---|---|---|
-| URL prefix `/find/` | `FORCE_SCRIPT_NAME = '/find'`, `STATIC_URL`, `MEDIA_URL` in `app-main/find_artek/settings.py` | nginx `location /find/` (prefix stripped), `/find/static/`, `/find/media/` |
+| URL prefix `/find/` | `FORCE_SCRIPT_NAME = '/find'`, `STATIC_URL`, `MEDIA_URL` in `app-main/find_artek/settings.py` | nginx `location /find/` (prefix stripped), `/find/static/`; `/find/media/` goes to Django from the next release on (see Media files) |
 | Container port `8099`, gunicorn `find_artek.wsgi:application` | `Dockerfile` stage `prod`, CMD | nginx upstream `webapp-find-artek:8099` |
 | Container name `webapp-find-artek`, services `find-artek-mariadb-service` (container `fa-mariadb-service`) and `find-artek-phpmyadmin-service` | `docker-compose.yml` (dev); `MYSQL_HOST` | web_server's `docker/compose_find_artek.yml` (project `find_artek`), nginx, the playbook, USER_STEPS commands |
-| Paths `/mnt/shared-project-data/staticfiles` and `/media` | `STATIC_ROOT`, `MEDIA_ROOT`; compose volumes | bind mounts of the host's CIFS mount in web_server's compose, served by nginx directly |
+| Paths `/mnt/shared-project-data/staticfiles` and `/media` | `STATIC_ROOT`, `MEDIA_ROOT`; compose volumes | bind mounts of the host's CIFS mount in web_server's compose; nginx serves `staticfiles` directly, `media` only through Django and `/find/_protected_media/` (see Media files) |
 | App user `dockeruser`, uid/gid 30000 | `Dockerfile` (stage `runtime`) | ownership of static and media on the share (the host mounts it as uid/gid 30000) |
 | Env variable names (`SECRET_KEY`, `MYSQL_*`, `LDAP_*`, `ENABLE_CRON`, `THUMBNAIL_HEIGHT`, ...) | `settings.py`, compose, `.dev.env.example`, the table in `ENVIRONMENT_SETUP.md` | `webapp_find_artek.env` in web_server's secrets archive; `MYSQL_HOST` and `ENABLE_CRON: "true"` set in its compose |
 | Entrypoint and cron (thumbnails at 02:00 when `ENABLE_CRON=true`; job `/etc/cron.d/find_artek_thumbnails` as `dockeruser`, output in `docker logs` with `[thumbnails]`) | `scripts/docker-entrypoint.sh`, `docker/cron/find_artek_thumbnails`, `scripts/generate_thumbnails_cron.sh` | functional check "cron", M5 cron post-check |
@@ -25,6 +25,35 @@ Sources there: `docker/compose_find_artek.yml` (the production stack), `ansible/
 | Live data volume `find-artek-mariadb-prod` | not here | web_server's compose, `external: true`, never renamed |
 
 In place there since M5 (2026-11-17; don't fight it): the production compose is web_server's `docker/compose_find_artek.yml` (FA1), with no published port 8099 (nginx only) and phpMyAdmin on `127.0.0.1:6001` (SSH tunnel; FA2, FA-R23) with its own copy of `phpmyadmin-misc.ini`; no `init.sql` (FA1, FA3); MariaDB and phpMyAdmin pinned by digest in its `pins.env` (`PIN_FA_MARIADB`, `PIN_FA_PHPMYADMIN`; FA4). The Python base image is pinned here (`FA_PYTHON_IMAGE`, FA-R21).
+
+## Media files (FA-R30, FA-R75; from the next release on)
+
+Every request under `/find/media/` goes to Django (`publications/views_media.py`, `serve_media`), which applies the visibility rule (`docs/user-data-and-permissions.md`, section "Confidential and unverified reports"). In production Django does not send the file itself: it answers with an empty body and `X-Accel-Redirect: /find/_protected_media/<path>`, and nginx sends the file from that internal location. The prefix is the setting `MEDIA_ACCEL_REDIRECT_PREFIX` in `settings.py` (`/find/_protected_media/`), **not** an environment variable; `development_settings.py` sets it to `''`, so Django streams the file there. Changing the prefix needs the matching nginx location below.
+
+What web_server must do, **after the app release** that contains this change, in one nginx change (both steps together; never step 2 without step 1, or every media file gives 404):
+
+1. Add the internal location next to the other `/find/` locations:
+
+   ```nginx
+   location /find/_protected_media/ {
+       internal;
+       alias /usr/share/nginx/staticfiles/find_artek_static/media/;   # Trailing slash needed when location ends with /
+   }
+   ```
+
+2. In `docker/services/nginx/nginx.conf`, remove the `location /find/media/ { alias ...; }` block and its comment, so the general `location /find/` proxies media to Django. Until this is done nginx serves `/find/media/` from the share itself: nothing breaks, but the access check does not apply to the files yet.
+
+Rollback: restore the `/find/media/` alias block (the internal location can stay).
+
+Functional checks for "Functional checks per service", after the nginx change:
+
+- anonymous GET of the PDF of a public report (verified, not confidential) → 200, `Content-Type: application/pdf`; the same with `Range: bytes=0-99` → 206;
+- anonymous GET of the PDF of a confidential or unverified report → 404;
+- anonymous GET of a thumbnail → 200;
+- direct GET of `/find/_protected_media/<path>` → 404 (internal);
+- a throttled download of a PDF larger than 24 MB, `curl --limit-rate 200k -o /dev/null <url>`, runs for more than 120 s and completes; an interrupted one resumes with `curl -C - --limit-rate 200k -o <file> <url>`.
+
+Why: gunicorn only checks access and nginx sends the file, so a slow download neither holds one of gunicorn's 4 request slots (2 workers × 2 threads) nor runs into its 120 s timeout.
 
 ## Releases (FA5, from M5 on)
 

@@ -113,14 +113,7 @@ The report form (add and edit) has three steps: form, review, finalize; each re-
 
 ### Reports
 
-| | anonymous | logged in |
-|---|---|---|
-| Verified report: page, lists, API | yes | yes |
-| Unverified report (`verified = False`, e.g. a newly added one) | report page shows "access denied" (status 200); not in API lists | yes |
-| Report whose `comment` contains "confidential" | not in API lists; report pages: FA-R75 | not in API lists; report pages: FA-R75 |
-| PDF and other files under `/find/media/` | FA-R30 | FA-R30 |
-
-The API rule (`publications/visibility.py`, `visible_publications`) is used by the report list, the reports of a person and the reports of a feature (`/api/report/`, `/api/person/`, `/api/feature/`). Report pages and files: see FA-R75 and FA-R30.
+Who may see a report depends on whether it is verified and whether it is confidential. The table and the rule are in [Confidential and unverified reports](#confidential-and-unverified-reports). The API lists (`/api/report/`, `/api/person/`, `/api/feature/`) follow the same rule (`publications/visibility.py`, `visible_publications`).
 
 ### Persons
 
@@ -140,6 +133,27 @@ The person autocomplete (`PersonAutocompleteView`) is public and returns names a
 
 User data (`auth_user`) is not shown on any public page or in the API. It is visible in the Django admin to superusers.
 
+## Confidential and unverified reports
+
+Two properties decide who may see a report: **verified** (`Publication.verified`, set by an editor) and **confidential** (`Publication.confidential`, a checkbox in the report form). One rule covers the report pages, the feature pages, the API and the files under `/find/media/` (`publications/visibility.py`, `publications/media_access.py`).
+
+| Report | anonymous | logged in, not listed on the report | logged in, listed on the report | `artek_editor`, superuser |
+|---|---|---|---|---|
+| Verified, not confidential | yes | yes | yes | yes |
+| Not verified, not confidential (e.g. a newly added one) | no | yes | yes | yes |
+| Confidential, verified or not | no | no | yes | yes |
+
+"Listed on the report" means author, supervisor or editor of it, matched by username as described in [Own reports](#own-reports-how-a-user-is-matched-to-persons).
+
+- **Report and feature pages.** A hidden report sends an anonymous user to the login page; a logged-in user who may not see it gets 404. A feature is shown when it has no report or at least one visible report, and it lists only its visible reports.
+- **API.** Hidden reports are not in the lists (`/api/report/`, `/api/person/`, `/api/feature/`), and `/api/report/<id>/` answers 404 for them.
+- **Files.** A file under `/find/media/` (report PDF, appendix, thumbnail, feature file or image) is served only to a user who may see the report or feature that owns it. A temporary upload (`media/temp/`) is served only to its uploader and to editors. A file that belongs to no report or feature (old `<name>.old` PDFs, leftovers) is served only to editors and superusers. Any other request for a file gets 404. Django checks the access; in production nginx sends the file (see the deployment contract in `.claude/skills/deploy-contract/SKILL.md`).
+- **Browser.** Report and feature data cached in the browser is dropped when the login state changes, so a logged-out browser does not keep showing what a logged-in user saw.
+
+How the flag is set: anyone who may edit a report (see [Who may do what](#who-may-do-what)) can tick "confidential" in the add or edit form. Migration `publications/0004` set the flag once, on the reports whose `comment` contained "confidential" (case-insensitive). The comment text does not count any more: editors set the flag, and should check the flag rather than the comment.
+
+To see how many files of each kind may be downloaded by whom, run `python manage.py check_media_access` (read-only; `--list-unowned` also lists the files that belong to no report).
+
 ## Logs
 
 | Log | Content about users | Where |
@@ -156,8 +170,7 @@ Debug prints of form, POST and session data were removed in T5. Retention of the
 
 - **FA-R71**: link persons to the DTU phone book instead of showing staff e-mail addresses.
 - **FA-R72**: count the values in the old contact fields, then decide whether to drop the columns (migration on live data).
-- **FA-R75**: confidential reports on the report pages.
-- **FA-R30**: access control for `/find/media/`.
+- **FA-R75, FA-R30**: confidential and unverified reports and the access control for `/find/media/` are implemented on `agent-confidential` (see [Confidential and unverified reports](#confidential-and-unverified-reports)). Open until the release and until web_server's nginx serves `/find/media/` through Django.
 - **Retention**: how long inactive `auth_user` rows, sessions and log files are kept; not defined.
 - **FA-R59**: replace the hard-coded admin username list.
 - AD groups for `artek_staff` / `artek_editor` requested from IT (2026-11-18); until then the settings are empty.

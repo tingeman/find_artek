@@ -65,3 +65,5 @@ Read by the container scripts (`scripts/docker-entrypoint.sh`, `scripts/generate
 
 `DEBUG` in the templates is not read: `settings.py` sets `DEBUG = False`,
 `development_settings.py` sets `DEBUG = True`.
+
+`MEDIA_ACCEL_REDIRECT_PREFIX` is a setting, not an environment variable: `settings.py` sets `/find/_protected_media/` (the internal nginx location that sends the media files in production), `development_settings.py` sets `''` (Django streams the files). The nginx side is in `.claude/skills/deploy-contract/SKILL.md`.
