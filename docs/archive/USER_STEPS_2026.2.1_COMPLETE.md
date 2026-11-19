@@ -1,5 +1,7 @@
 # User steps: fix release 2026.2.1
 
+**Done 2026-11-19:** tag `2026.2.1` = `372719be3cd4` (code as `f5e7e79`), built and tested 2026-11-19T10:31:25Z, deployed on sus-parcweb01, server checks passed (container healthy, frontpage/person/feature API 200, no database files in the image, no unverified or confidential report in the person API), `main` fast-forwarded.
+
 `develop/main` is at `f5e7e79` (2026-11-18), on top of the release `2026.2`:
 
 - `70cfb8d` person API lists only the reports the report API shows (no confidential; unverified only for logged-in users)
@@ -15,7 +17,7 @@ No migration, no new env variable, no change to the deployment contract (only ne
 ```powershell
 # PowerShell; <share> = the backup share you choose, e.g. a folder next to the releases share
 $src = 'C:\thin\02_Code\docker_projects\00_static_data\find_artek_db_backups'
-$dst = '<share>\find_artek_db_backups'
+$dst = '\\ait-pdfs\Qdrev\SUS\Groups\Arctic_backup\SUS-PArcWeb01\find_artek_db_backups'
 robocopy $src $dst /E /COPY:DAT
 Get-Content "$dst\MANIFEST.txt"
 Get-ChildItem -Recurse -File $dst | Get-FileHash -Algorithm SHA256 | Format-Table Hash, Path -AutoSize   # = sha256 in MANIFEST.txt
@@ -93,7 +95,7 @@ Rollback: put the `2026.2` entry back in `releases.yml` and rerun the playbook (
 
 ## 5. After the deploy
 
-- [ ] Done
+- [x] Done
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP

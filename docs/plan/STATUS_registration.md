@@ -4,9 +4,9 @@ Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration`
 
 ## Now
 
-**Fix release `2026.2.1` (you):** `develop/main` = `f5e7e79` (person API, feature API, old database copy removed; gate 22/22, 29 tests). Steps: [USER_STEPS_2026.2.1.md](USER_STEPS_2026.2.1.md) (backup to the share, tag, build, publish, deploy, checks). `develop/main` merged into `agent-registration`. After 2026.2.1: plan the history purge (FA-R77, own plan).
+Fix release `2026.2.1` deployed 2026-11-19 (tag `372719be3cd4`, server checks passed, `main` fast-forwarded): [USER_STEPS_2026.2.1_COMPLETE.md](../archive/USER_STEPS_2026.2.1_COMPLETE.md). Next outside this plan: the history purge (FA-R77, own plan).
 
-On `agent-registration`: T1-T10, T12-T14, T16 done (gate 22/22, 217 tests). All agent tasks done (gate 22/22, 227 tests). Now: **T11** (you): release 2026.3, after 2026.2.1. Before T11: merge `develop/main` into `agent-registration`, fast-forward `develop/main` with your permission. Open: whether 2026.3 waits for the AD groups. Then T10 → T11. "Confidential" is its own plan after 2026.3 (FA-R75).
+On `agent-registration`: T1-T10, T12-T14, T16 and the match flags done (gate 22/22, 227 tests). Now: **T11** (you): release 2026.3. Before T11: merge `develop/main` into `agent-registration`, fast-forward `develop/main` with your permission. Open: whether 2026.3 waits for the AD groups. "Confidential" is its own plan after 2026.3 (FA-R75).
 
 Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
 
