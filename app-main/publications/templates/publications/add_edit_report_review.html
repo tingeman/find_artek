@@ -185,6 +185,18 @@
                                 </td>
                             </tr>
 
+                            <tr>
+                                <th scope="row">Confidential</th>
+                                <td>
+                                    <span class="review-confidential">{% if review_data.confidential %}Yes{% else %}No{% endif %}</span>
+                                    {% if changed_fields and 'confidential' in changed_fields %}
+                                        <span class="badge bg-success workflow-badge">
+                                            <i class="fas fa-sync-alt"></i> updated
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
                             <!--- PDF file handling:
                                     If review_data has existing_file_id, and changed_fields contains 'file', show the file name and size.
                                     If review_data has existing_file_id, show badge bg-warning "Current file will be replaced"

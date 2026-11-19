@@ -15,6 +15,7 @@ MEDIA_ROOT is a temporary directory per test. The PDF fixture is a generated one
 so the finalize requests run inside captureOnCommitCallbacks(execute=True).
 """
 import os
+import re
 import shutil
 import tempfile
 from unittest import mock
@@ -420,3 +421,89 @@ class SessionBindingTests(ReportFormTestBase):
                              fetch_redirect_response=False)
         self.finalize(_path('add_report_finalize'))
         self.assertUnchanged()
+
+
+
+class ConfidentialFormTests(ReportFormTestBase):
+    """The confidential checkbox (plan confidential T4): set on add, kept or cleared on edit,
+    shown on the review step. An unchecked box is absent from the POST and saves False."""
+
+    CHECKED = re.compile(r'<input type="checkbox" name="confidential"[^>]*\bchecked\b')
+
+    def add(self, **extra):
+        self.client.post(_path('add_report'), self.form_data(**extra))
+        self.finalize(_path('add_report_finalize'))
+        return Publication.objects.get(title='New report')
+
+    def test_add_with_confidential_checked_saves_true(self):
+        self.assertTrue(self.add(confidential='on').confidential)
+
+    def test_add_without_confidential_saves_false(self):
+        self.assertFalse(self.add().confidential)
+
+    def test_add_form_shows_the_checkbox_unchecked(self):
+        response = self.client.get(_path('add_report'))
+        self.assertContains(response, 'name="confidential"')
+        self.assertContains(response, 'Only the people listed on the report, artek_editor and '
+                                      'superusers can see it.')
+        self.assertNotRegex(response.content.decode(), self.CHECKED)
+
+    def test_edit_form_opens_with_the_current_value_checked(self):
+        pub = self.make_report('25-03')
+        pub.confidential = True
+        pub.save()
+        response = self.client.get(_path('edit_report', pk=pub.pk))
+        self.assertEqual(response.status_code, 200)
+        self.assertIs(response.context['form']['confidential'].value(), True)
+        self.assertRegex(response.content.decode(), self.CHECKED)
+
+        other = self.make_report('25-04')
+        response = self.client.get(_path('edit_report', pk=other.pk))
+        self.assertIs(response.context['form']['confidential'].value(), False)
+        self.assertNotRegex(response.content.decode(), self.CHECKED)
+
+    def test_edit_changing_only_the_title_keeps_confidential(self):
+        pub = self.make_report('25-03')
+        pub.confidential = True
+        pub.save()
+        # The edit form opens checked, so the browser posts the box with the other fields.
+        self.client.post(_path('edit_report', pk=pub.pk),
+                         self.form_data(title='Changed title', confidential='on'))
+        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        pub.refresh_from_db()
+        self.assertEqual(pub.title, 'Changed title')
+        self.assertTrue(pub.confidential)
+
+    def test_edit_clearing_confidential_saves_false(self):
+        pub = self.make_report('25-03')
+        pub.confidential = True
+        pub.save()
+        # Only the box changes (title as stored): the review step still counts it as a change.
+        self.client.post(_path('edit_report', pk=pub.pk), self.form_data(title='Existing report'))
+        response = self.client.get(_path('edit_report_review', pk=pub.pk))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<span class="review-confidential">No</span>')
+        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        pub.refresh_from_db()
+        self.assertEqual(pub.title, 'Existing report')
+        self.assertFalse(pub.confidential)
+
+    def test_edit_setting_confidential_saves_true(self):
+        pub = self.make_report('25-03')
+        self.client.post(_path('edit_report', pk=pub.pk),
+                         self.form_data(title='Existing report', confidential='on'))
+        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        pub.refresh_from_db()
+        self.assertTrue(pub.confidential)
+
+    def test_review_page_shows_the_value(self):
+        self.client.post(_path('add_report'), self.form_data(confidential='on'))
+        response = self.client.get(_path('add_report_review'))
+        # Plain-text checks: the review page as a whole is not valid HTML (a stray </div>),
+        # so html=True can't parse it.
+        self.assertContains(response, '<th scope="row">Confidential</th>')
+        self.assertContains(response, '<span class="review-confidential">Yes</span>')
+
+        self.client.post(_path('add_report'), self.form_data())
+        response = self.client.get(_path('add_report_review'))
+        self.assertContains(response, '<span class="review-confidential">No</span>')

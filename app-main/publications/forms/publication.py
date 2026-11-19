@@ -199,8 +199,16 @@ class AddEditReportForm(ModelForm):
         model = Publication
         # Include all fields including delete_pdf for edit mode
         fields = ['title', 'type', 'number', 'year', 'abstract', 'comment',
-                  'authors', 'supervisors', 'publication_topics', 'publication_keywords', 'pdffile', 'delete_pdf']
+                  'authors', 'supervisors', 'publication_topics', 'publication_keywords',
+                  'confidential', 'pdffile', 'delete_pdf']
         exclude = []
+        # Anyone who may edit the report may set or clear it (plan confidential T4). An
+        # unchecked box is absent from the POST and cleans to False.
+        labels = {'confidential': 'Confidential'}
+        help_texts = {
+            'confidential': 'Only the people listed on the report, artek_editor and '
+                            'superusers can see it.',
+        }
 
     def __init__(self, *args, **kwargs):
         logger.debug('In AddEditReportForm:__init__')

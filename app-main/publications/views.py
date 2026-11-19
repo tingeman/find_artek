@@ -485,6 +485,7 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
             'comment': publication.comment,
             'publication_topics': publication.publication_topics.all(),
             'publication_keywords': publication.publication_keywords.all(),
+            'confidential': publication.confidential,
         }
 
         initial_data['authors'] = [auth.person.pk for auth in publication.authorship_set.all().order_by('author_id')]
@@ -681,6 +682,8 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
             # If it's a list, take the first element
             raw_delete_pdf = raw_delete_pdf[0] if raw_delete_pdf else False
         review_data['delete_pdf'] = raw_delete_pdf in [True, 'true', 'True', 'on', '1']
+        # Unchecked checkbox: absent from the POST, so absent from the session data -> False
+        review_data['confidential'] = _is_checked(session_data.get('confidential', False))
 
 
         # Add file IDs to review data if they exist
@@ -808,6 +811,9 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
                     if set(new_items) != set(current_items):
                         changed_fields[field] = True
             
+            if 'confidential' in review_data and review_data['confidential'] != obj.confidential:
+                changed_fields['confidential'] = True
+
             # Check file changes - detect any changes in file state
             has_new_file = 'uploaded_file_id' in review_data and review_data['uploaded_file_id'] is not None
             has_delete_request = 'delete_pdf' in review_data and review_data['delete_pdf'] == True
@@ -967,7 +973,8 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
         for key, value in session_data.items():
             if key in ['authors', 'supervisors', 'publication_topics', 'publication_keywords']:
                 form_input[key] = value
-            elif key == 'delete_pdf':
+            elif key in ('delete_pdf', 'confidential'):
+                # Checkboxes: absent when unchecked (BooleanField cleans a missing key to False)
                 form_input[key] = _is_checked(value)
             elif isinstance(value, list):
                 # If the value is a list, take the first item if it exists
