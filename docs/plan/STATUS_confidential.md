@@ -4,7 +4,7 @@ Plan: [PLAN_confidential.md](PLAN_confidential.md). Branch: `agent-confidential`
 
 ## Now
 
-T7 (docs, deploy-contract skill, gate list) next. Before the release (T8): look at the 64 unowned files (see Notes). Release after `2026.3`.
+T1-T7 done. Next: T8 (release, you) after `2026.3`. Before the release (T8): look at the 64 unowned files (see Notes). Release after `2026.3`.
 
 ## Done
 
@@ -15,6 +15,7 @@ T7 (docs, deploy-contract skill, gate list) next. Before the release (T8): look 
 - T4 2026-11-19: `confidential` checkbox in the add/edit form (anyone who may edit), shown on the review step (a change of the flag alone counts as a change), saved in finalize; 8 tests, 281 tests (`5c9f827`).
 - T6 2026-11-19: login marker in `base.html` (`anon` or a hash of the session key) and an inline head script that drops `reportData*`/`featureData*` from sessionStorage when it changes; checked by you in the browser; 5 tests (`461a467`).
 - T5 2026-11-19: `media_access.py` + `serve_media` for every file under MEDIA_URL (owner lookup, rule, unowned files editors only, traversal and symlinks refused; X-Accel-Redirect to `/find/_protected_media/` in production, FileResponse in dev); command `check_media_access`; review page PDF link fixed; written in a detached worktree in parallel with T3/T4 and applied here; 314 tests, gate 22/22 (`672fe07`).
+- T7 2026-11-19: docs (`user-data-and-permissions.md` section, deploy-contract skill: nginx change = add internal `/find/_protected_media/` first, then remove the `/find/media/` alias, in one change; rollback; functional checks), gate list complete (`0269fa7`).
 - Decision 2026-11-19: anonymous users are redirected to the login for hidden reports (302) while unknown ids give 404; kept.
 - Not done, found in T2: `/api/person/` still lists persons who appear only on hidden reports (names only; plan assumption); `/api/feature/?publication_id=abc` gives 500 (old bug, Phase 2).
 - 2026-11-19: decisions: keep `/find/media/` URLs, nginx proxies them to a checked Django view with X-Accel-Redirect; features with no report stay public; anyone who may edit a report may set `confidential`.
