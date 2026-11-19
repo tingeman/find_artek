@@ -23,7 +23,7 @@ Deployment impact (web_server):
 
 ## 1. Tag `2026.3` locally
 
-- [ ] Done
+- [x] Done (2026-11-20)
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -34,7 +34,7 @@ git show --no-patch --format='%h %s' '2026.3^{commit}'
 
 ## 2. Build and test the bundle
 
-- [ ] Done
+- [x] Done (2026-11-20)
 
 ```bash
 # WSL
@@ -47,7 +47,7 @@ Expect `RESULT: OK`, 22 tests, and the Django step `Ran 228 tests`. Paste the ma
 
 ## 3. Publish to the releases share
 
-- [ ] Done
+- [x] Done (2026-11-20)
 
 ```powershell
 # PowerShell
@@ -59,7 +59,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.3.tar.gz"   # = tarb
 
 ## 4. Env file and releases.yml (web_server)
 
-- [ ] Done
+- [x] Done (2026-11-20)
 
 1. In the secrets vault, `webapp_find_artek.env`: add two lines (full DNs, no quotes):
    ```
@@ -71,7 +71,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.3.tar.gz"   # = tarb
 
 ## 5. Deploy
 
-- [ ] Done
+- [x] Done (2026-11-20)
 
 ```bash
 # WSL, web_server with step 4 committed
@@ -96,7 +96,7 @@ Rollback: put the `2026.2.1` entry back in `releases.yml` and rerun the playbook
 
 ## 6. Functional checks in the browser
 
-- [ ] Done
+- [ ] Done. 2026-11-20: checks 1, 2 and 7 passed; 3, 4, 5 and 6 not run yet.
 
 1. Logged out: a person page shows no study number and no student e-mail; no "Add" menu; `/find/publications/report/add/` sends you to the DTU login.
 2. Log in with your own account, then the admin user page (`/find/admin/auth/user/`): your user has group `dtu_user`, first/last name and e-mail filled in. If not, look for a `publications.roles` warning in `sudo docker logs webapp-find-artek` (AD lookup failed).
