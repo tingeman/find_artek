@@ -18,9 +18,7 @@ Deployment impact (web_server):
 
 ## 0. Decide: wait for the AD groups?
 
-- [x] Done: **wait** (decided 2026-11-19). Steps 1-7 start when IT has sent the DNs of both AD groups (requested 2026-11-18); put them into step 4.
-
-Without the DNs from IT only superusers can add, verify or import reports (staff and editors don't exist yet).
+- [x] Done: **wait** (decided 2026-11-19). The groups exist since 2026-11-19 (`SUS-IT-Artek-Staff-53763`, `SUS-IT-Artek-Editor-53764`; DNs looked up in AD, in step 4). Steps 1-7 can start.
 
 ## 1. Tag `2026.3` locally
 
@@ -62,10 +60,10 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.3.tar.gz"   # = tarb
 
 - [ ] Done
 
-1. In the secrets vault, `webapp_find_artek.env`: add two lines (DNs from IT, or empty):
+1. In the secrets vault, `webapp_find_artek.env`: add two lines (full DNs, no quotes):
    ```
-   LDAP_GROUP_ARTEK_STAFF=
-   LDAP_GROUP_ARTEK_EDITOR=
+   LDAP_GROUP_ARTEK_STAFF=CN=SUS-IT-Artek-Staff-53763,OU=SecurityGroups,OU=SUS,OU=DTUBasen,DC=win,DC=dtu,DC=dk
+   LDAP_GROUP_ARTEK_EDITOR=CN=SUS-IT-Artek-Editor-53764,OU=SecurityGroups,OU=SUS,OU=DTUBasen,DC=win,DC=dtu,DC=dk
    ```
    and add both names to the variable list of `webapp_find_artek.env` in web_server's `docs/deploy/secrets.md`.
 2. `ansible/vars/releases.yml`, `webapp_find_artek`: `version: "2026.3"`, `tarball_sha256` from the manifest, comment as for 2026.2.1 (previous: 2026.2.1, commit `372719be3cd4`, tarball_sha256 `c6edca0f91f60d490e043ce04309d4764fe855fc2f70a655094582b525d97c25`; one migration, data only). Commit.
@@ -105,7 +103,7 @@ Rollback: put the `2026.2.1` entry back in `releases.yml` and rerun the playbook
 4. As superuser (or editor once the groups exist): "Add" menu → "Add report". Add a test report with a typed new author, an existing supervisor, a new keyword and a PDF of ~20 MB (retests the production PDF bug, FA-R12/FA-R20). Expected: the person step asks about the typed name, the review shows "(new person)", the report is saved with the PDF and a number.
 5. Logged out: the test report is not shown (access denied) and not in the person's list. Logged in: verify it with the button, then delete it.
 6. On the server: `media/temp/` has no new folder from the test (`sudo ls -lt /mnt/Qdrev-arctic-web-data/staticfiles/find_artek_static/media/temp/ | head -3`).
-7. With the AD groups set: log in as a list member; the admin user page shows `artek_staff` / `artek_editor`.
+7. Log in as a member of the AD groups (log out and in again after being added; the role is set at login): the admin user page shows `artek_staff` / `artek_editor`, and the "Add" menu appears. A user in neither group has neither role.
 
 ## 7. After the deploy
 
