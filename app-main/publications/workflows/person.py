@@ -336,15 +336,10 @@ def disambiguate_person_step(request):
                 return redirect('publications:disambiguate_person_step')
             messages.error(request, "Empty name.")
 
-        elif action == 'skip':
-            # User wants to skip (keep original string, don't treat as person)
-            # Mark with SKIP: prefix so it won't trigger workflow again
-            workflow.resolve_current_person(f"SKIP:{current_person_name}")
-            
-            if workflow.is_complete():
-                return redirect('publications:complete_person_workflow')
-            else:
-                return redirect('publications:disambiguate_person_step')
+        # The former action 'skip' ("Use As-Is (Create Later)") is gone (decided 2026-11-19):
+        # an author or supervisor needs a Person, so it did the same as 'create_new'. Any
+        # other action shows the step again. SKIP: markers still in a session are read as
+        # CREATE: (person_from_form_value).
     
     # GET request - show disambiguation form
     matches = get_person_matches(current_person_name)

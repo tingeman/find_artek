@@ -26,13 +26,6 @@
                     <i class="fas fa-plus"></i> Create New Person
                 </button>
             </form>
-            <form method="post" style="width: 200px;">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="skip">
-                <button type="submit" class="btn btn-secondary w-100 py-2">
-                    <i class="fas fa-forward"></i> Use As-Is (Create Later)
-                </button>
-            </form>
         </div>
     </div>
     

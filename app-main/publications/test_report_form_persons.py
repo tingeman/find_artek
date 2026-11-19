@@ -178,6 +178,22 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         self.assertEqual([p.last for p in self.authors_of(pub)], ['Newcomer'])
 
 
+    def test_step_offers_no_use_as_is_and_ignores_the_old_skip_action(self):
+        """'Use As-Is (Create Later)' was removed (2026-11-19): the step page has no such
+        button, and a posted action 'skip' resolves nothing (the same step is shown again)."""
+        step_path = _app_path(reverse('publications:disambiguate_person_step'))
+        self.client.post(_path('add_report'), self.form_data(authors=['Jane Newcomer']))
+        page = self.client.get(step_path)
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'value="skip"')
+        self.assertNotContains(page, 'Use As-Is')
+        self.assertContains(page, 'value="create_new"')
+
+        again = self.client.post(step_path, {'action': 'skip'})
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(again.context['clean_name'], 'Jane Newcomer')
+
+
 class EditReportNewPersonsTests(ReportFormPersonTestBase):
 
     def test_edit_with_typed_new_author_and_supervisor(self):
