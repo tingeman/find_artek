@@ -112,6 +112,8 @@ Every user who logs in through CAS gets the Django group `dtu_user` (set in `app
 - `artek_editor`: add, edit, delete and verify any report, change report numbers, Excel import, edit any person and feature, delete any feature.
 - Superusers (set by hand) may do everything.
 
+What is stored about users and persons, and who sees what: [docs/user-data-and-permissions.md](docs/user-data-and-permissions.md).
+
 ## Old TODO list
 
 Kept for reference; planned work is tracked in `docs/roadmap.md` (items FA-R<n>).
