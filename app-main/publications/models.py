@@ -414,6 +414,9 @@ class Publication(BaseModel):
     timestamp = models.CharField(max_length=100, blank=True)
     grade = models.CharField(max_length=100, blank=True, null=True, default=None)
     verified = models.BooleanField(blank=False, default=False)
+    confidential = models.BooleanField(
+        default=False,
+        help_text='Only the people listed on the report, artek_editor and superusers can see it')
     quality = models.SmallIntegerField(choices=quality_flags, default=CREATED)
 
     _key = None   # a cache for temporary key

@@ -14,7 +14,7 @@ from unittest import mock
 from django.contrib.auth.models import Group, User
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django_cas_ng.backends import CASBackend
 from django_cas_ng.signals import cas_user_authenticated
 
@@ -47,7 +47,16 @@ def _expected(name):
     return {('publications', codename) for codename in EXPECTED_PERMISSIONS[name]}
 
 
-class RegistrationGroupsMigrationTests(TestCase):
+class RegistrationGroupsMigrationTests(TransactionTestCase):
+    # Migrating back to 0002 also unapplies the later schema migrations (0004 adds a column);
+    # MariaDB can't run that DDL inside a TestCase transaction. Restore the data after the
+    # flush and leave the test database at the latest migrations.
+    serialized_rollback = True
+
+    def tearDown(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+        super().tearDown()
 
     def test_groups_have_exactly_the_planned_permissions(self):
         for name in EXPECTED_PERMISSIONS:
