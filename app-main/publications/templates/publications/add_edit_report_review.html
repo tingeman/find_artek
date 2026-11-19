@@ -207,11 +207,11 @@
                                     <th scope="row">PDF File</th>
                                     <td>
                                         {% if review_data.existing_file_id and changed_fields and 'file' not in changed_fields %}
-                                            <a href="{{ review_data.uploaded_file.url }}" target="_blank">
+                                            <a href="{{ review_data.uploaded_file.file.url }}" target="_blank">
                                                 <i class="fas fa-file-pdf"></i> {{ review_data.existing_file.file.name|basename }} ({{ review_data.existing_file.file.size|filesizeformat }})
                                             </a>
                                         {% elif review_data.uploaded_file_id %}
-                                            <a href="{{ review_data.uploaded_file.url }}" target="_blank">
+                                            <a href="{{ review_data.uploaded_file.file.url }}" target="_blank">
                                                 <i class="fas fa-file-pdf"></i> {{ review_data.uploaded_file.file.name|basename }} ({{ review_data.uploaded_file.file.size|filesizeformat }})
                                             </a>
                                         {% else %}

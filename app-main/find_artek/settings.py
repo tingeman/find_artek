@@ -97,6 +97,12 @@ URL_PREFIX = '/find'             # Custom settings to provide URL_PREFIX to any 
 # Media url
 MEDIA_ROOT = '/mnt/shared-project-data/media'
 MEDIA_URL = '/find/media/'
+# Files under MEDIA_URL are served by publications.views_media.serve_media, which checks access
+# (FA-R30, FA-R75 T5) and then answers with an empty response and 'X-Accel-Redirect: <prefix><path>'
+# for nginx to send the file from its internal location (dtu_sus_web_server: location
+# /find/_protected_media/ { internal; alias <media share>; }). Until nginx proxies /find/media/
+# to Django, nginx serves media itself and the view isn't reached. Empty: Django streams the file.
+MEDIA_ACCEL_REDIRECT_PREFIX = '/find/_protected_media/'
 
 
 TEMPLATES = [

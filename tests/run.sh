@@ -63,6 +63,7 @@ set -euo pipefail
 # FA-R75: the confidential field and its migration.
 # FA-R75 T2: the visibility rule and the API (FA-R76).
 # FA-R75 T3: report and feature pages.
+# FA-R75 T5: checked media view (FA-R30).
 # FA-R75 T6: login marker that clears the browser's cached API data.
 DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
                     api.test_person_api_reports api.test_feature_api_reports
@@ -74,6 +75,7 @@ DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upl
                     publications.test_confidential_field
                     publications.test_visibility api.test_report_api
                     publications.test_pages_visibility
+                    publications.test_media_access
                     publications.test_auth_marker)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from

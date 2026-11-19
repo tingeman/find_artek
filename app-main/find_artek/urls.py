@@ -17,11 +17,11 @@ from django import views
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import RedirectView
 import django_cas_ng.views
 from publications_meta.views import AdminCasLoginView
+from publications.views_media import serve_media
 
 from django.urls import re_path
 from rest_framework import permissions
@@ -74,8 +74,21 @@ urlpatterns = [
 
 ]
 
+# Every file under MEDIA_URL goes through the checked view (FA-R30, FA-R75 T5), also in dev.
+# The route is MEDIA_URL without FORCE_SCRIPT_NAME (Django sees paths without the prefix):
+# production '/find/media/' - '/find' -> 'media/<path>'; dev settings (no prefix) ->
+# 'find/media/<path>'. In production nginx must proxy /find/media/ to Django (dtu_sus_web_server).
+def _media_route():
+    media_url = settings.MEDIA_URL
+    script_name = (settings.FORCE_SCRIPT_NAME or '').rstrip('/')
+    if script_name and media_url.startswith(script_name + '/'):
+        media_url = media_url[len(script_name):]
+    return media_url.lstrip('/') + '<path:path>'
+
+
+urlpatterns += [path(_media_route(), serve_media, name='media')]
+
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += staticfiles_urlpatterns()
 
     

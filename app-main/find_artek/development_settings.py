@@ -6,6 +6,7 @@ FORCE_SCRIPT_NAME = ''
 URL_PREFIX = ''
 STATIC_URL = '/static/'
 #MEDIA_URL = ''
+MEDIA_ACCEL_REDIRECT_PREFIX = ''   # no nginx in dev: the checked media view streams the file
 
 # Override LOGGING for development: DEBUG level, log to both console and file
 LOGGING['handlers']['file']['level'] = 'DEBUG'
