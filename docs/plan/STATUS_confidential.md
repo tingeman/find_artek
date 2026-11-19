@@ -27,7 +27,7 @@ T1-T7 done. Next: T8 (release, you) after `2026.3`. Before the release (T8): loo
 
 - `check_media_access` on the dev copy 2026-11-19: 2619 files; public 2547, restricted 8 (4 PDFs + 4 thumbnails of the hidden reports), **unowned 64** (editors only after the nginx switch): mostly PDFs in `reports/1996`-`2025`, a few thumbnails, `.xls`/`.xlsx`/`.txt`/`.jpg`, one in `uploads/`. Before the release: `--list-unowned` and decide per group (orphans vs. names that don't match their DB row, e.g. case or path differences; those would lose public access).
 
-- Dev DB migrated to 0004 on 2026-11-19 (your permission): 2 of 494 reports flagged. Before running `develop/main` code on the dev stack again: `migrate publications 0003` (else adding a report fails on the unknown NOT NULL column).
+- Dev DB migrated to 0004 on 2026-11-19 (your permission): 2 of 494 reports flagged. Reversed to 0003 on 2026-11-19 (from the confidential container) and the dev stack rebuilt from `develop/main`. To run `agent-confidential` again: `migrate` (0004 re-derives the flags from the comments); back to `develop/main`: `migrate publications 0003` from the confidential container first.
 
 - Phase 2 idea from T1: a shared helper for migration tests (a `TransactionTestCase` that always restores the latest migrations), so each new schema migration doesn't break older migration tests.
 
