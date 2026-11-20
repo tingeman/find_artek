@@ -47,8 +47,8 @@ DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
 $DC up -d --build                       # needs .dev.env; the code is copied into the image, so rebuild after changes
 $DC exec -T webapp-find-artek python manage.py check --settings find_artek.development_settings
 $DC exec -T webapp-find-artek python manage.py makemigrations --check --dry-run --settings find_artek.development_settings
-$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings find_artek.development_settings [<app or dotted.path>]
-$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --settings find_artek.development_settings && $DC exec -T webapp-find-artek coverage report   # optional, dev only (app-main/.coveragerc)
+$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --buffer --settings find_artek.development_settings [<app or dotted.path>]
+$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --buffer --settings find_artek.development_settings && $DC exec -T webapp-find-artek coverage report   # optional, dev only (app-main/.coveragerc)
 ```
 
 - The app runs at `http://localhost:8098/` (dev settings have no `/find` prefix), phpMyAdmin at `http://localhost:6002`.

@@ -82,7 +82,7 @@ class CasLoginViewTests(TestCase):
 
     def test_without_next_or_referer_returns_to_the_frontpage(self):
         # A logged-in user is sent on at once, to the same place a fresh login would go.
-        self.client.force_login(User.objects.create_user('s990002', password='x'))
+        self.client.force_login(User.objects.create_user('s990002'))
         response = self.client.get(app_path(reverse('cas_ng_login')))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], reverse('publications:frontpage'))

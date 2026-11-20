@@ -37,14 +37,18 @@ def api_path(name, **kwargs):
     return app_path(reverse(f'api:{name}', kwargs=kwargs))
 
 
-def make_user(username, *group_names, superuser=False, password='x'):
+def make_user(username, *group_names, superuser=False):
     """A user in ``dtu_user`` plus the named role groups (roles.py: members of artek_staff
     and artek_editor are also in dtu_user). ``superuser=True`` makes a superuser. The groups
-    come from the data migration 0003_registration_groups."""
+    come from the data migration 0003_registration_groups.
+
+    No password (unusable, as for users created at CAS login): tests log in with
+    ``force_login``, and hashing a password takes ~0.16 s, a third of the suite's run time
+    when every test user had one. Don't give test users a password unless a test needs it."""
     if superuser:
-        user = User.objects.create_superuser(username, password=password)
+        user = User.objects.create_superuser(username)
     else:
-        user = User.objects.create_user(username, password=password)
+        user = User.objects.create_user(username)
     user.groups.add(*(Group.objects.get(name=name) for name in (DTU_USER, *group_names)))
     return user
 

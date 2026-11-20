@@ -69,7 +69,7 @@ class PersonPrivacyTestBase(TestCase):
         cls.staff = Person.objects.create(
             first='Staf', last='Member', position='Associate professor', id_number='E-98765-STAFF',
             email='staff.member@example.org', **CONTACT_VALUES)
-        cls.user = User.objects.create_user('s990001', password='x')
+        cls.user = User.objects.create_user('s990001')
 
     def assertNoContactValues(self, text):
         for field, value in CONTACT_VALUES.items():
@@ -225,7 +225,7 @@ class ContactFieldsNotEditableTests(TestCase):
         model_admin = admin.site._registry.get(Person)
         if model_admin is None:
             return
-        superuser = User.objects.create_superuser('admin', password='x')
+        superuser = User.objects.create_superuser('admin')
         request = RequestFactory().get('/')
         request.user = superuser
         form_class = model_admin.get_form(request)

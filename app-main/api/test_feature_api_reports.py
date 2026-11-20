@@ -52,13 +52,13 @@ class FeatureApiReportVisibilityTests(TestCase):
         # the visible reports.
         cls.f_mixed = feature('F-mixed', cls.public, cls.unverified, cls.confidential)
 
-        cls.user = User.objects.create_user('s990001', password='x')
+        cls.user = User.objects.create_user('s990001')
         # Listed as author of the confidential report (by id_number).
-        cls.listed_user = User.objects.create_user('s990002', password='x')
+        cls.listed_user = User.objects.create_user('s990002')
         Authorship.objects.create(
             publication=cls.confidential, author_id=0,
             person=Person.objects.create(first='Li', last='Sted', id_number='s990002'))
-        cls.editor = User.objects.create_user('edit', password='x')
+        cls.editor = User.objects.create_user('edit')
         cls.editor.groups.add(Group.objects.get(name=ARTEK_EDITOR))
         cls.list_path = app_path(reverse('api:feature-list'))
 

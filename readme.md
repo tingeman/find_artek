@@ -93,7 +93,7 @@ versions. Rebuild and run `tests/run.sh` afterwards.
 
 ```bash
 docker build -t find_artek:local .                       # builds the last stage, prod
-bash tests/run.sh find_artek:local                       # everything (~6 min, mostly the Django suite)
+bash tests/run.sh find_artek:local                       # everything (~1.5 min)
 bash tests/run.sh --quick find_artek:local               # image checks only, no database (~10 s)
 TEST_FILTER='^smoke' bash tests/run.sh find_artek:local  # tests whose name matches (grep -E)
 ```
@@ -110,7 +110,7 @@ Each test prints `PASS:`/`FAIL:`; the last line is `ALL <n> TESTS PASSED` (exit 
 
 ```bash
 DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
-$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --settings find_artek.development_settings
+$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --buffer --settings find_artek.development_settings
 $DC exec -T webapp-find-artek coverage report                    # per module, missed lines, total
 $DC exec -T webapp-find-artek coverage report --include='*/publications/visibility.py'
 $DC exec -T webapp-find-artek coverage html                      # writes /app/htmlcov in the container

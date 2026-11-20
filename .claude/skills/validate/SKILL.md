@@ -35,8 +35,8 @@ The second fails if a model changed without a committed migration. For settings 
 ## 2. Tests
 
 ```bash
-$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings find_artek.development_settings <app or dotted.path>
-$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings find_artek.development_settings   # full suite
+$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --buffer --settings find_artek.development_settings <app or dotted.path>
+$DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --buffer --settings find_artek.development_settings   # full suite
 ```
 
 - Tests run against MariaDB (the GIS fields don't work on SQLite, so `find_artek.test_settings` is not usable). Django creates and drops its own `test_*` database.
@@ -49,7 +49,7 @@ $DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings fi
 Only when the brief asks for coverage numbers. `coverage` is in the dev image only (`requirements-dev.txt`); the production image and the release gate `tests/run.sh` don't use it. Configuration: `app-main/.coveragerc` (branch coverage on).
 
 ```bash
-$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --settings find_artek.development_settings
+$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --buffer --settings find_artek.development_settings
 $DC exec -T webapp-find-artek coverage report                                   # whole report
 $DC exec -T webapp-find-artek coverage report --include='*/publications/visibility.py,*/publications/permissions.py'
 ```
@@ -75,7 +75,7 @@ Needs no dev stack and no `.dev.env`: it uses a throwaway MariaDB with generated
 
 ```bash
 docker build -t find_artek:local .
-bash tests/run.sh find_artek:local            # full, ~6 min; what build_image.sh runs
+bash tests/run.sh find_artek:local            # full, ~1.5 min; what build_image.sh runs
 bash tests/run.sh --quick find_artek:local    # image checks only, ~10 s
 TEST_FILTER='^smoke' bash tests/run.sh find_artek:local
 ```

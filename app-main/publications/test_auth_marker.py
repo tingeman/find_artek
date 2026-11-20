@@ -25,7 +25,7 @@ class AuthMarkerTests(TestCase):
         cls.frontpage_path = app_path(reverse('publications:frontpage'))
         # A long explicit id, so "the id doesn't appear in the hex marker" is a meaningful check
         # (a one-digit id would appear in most hex strings by chance).
-        cls.user = User.objects.create_user('s990042', password='x', id=987654321)
+        cls.user = User.objects.create_user('s990042', id=987654321)
 
     def _marker(self, path=None):
         response = self.client.get(path or self.reports_path)

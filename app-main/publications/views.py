@@ -198,8 +198,6 @@ class BaseView(View):
             'base_template': self.base_template,
             # Other common context variables...
         }
-        print('In BaseView')
-        print(context.keys())
         return context
     
     def get(self, request, **kwargs):

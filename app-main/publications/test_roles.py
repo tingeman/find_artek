@@ -104,7 +104,7 @@ def _info(memberships=None, first_name='', last_name='', email=''):
 class CasLoginRolesTests(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user('s990001', password='x')
+        self.user = User.objects.create_user('s990001')
         self.staff = Group.objects.get(name='artek_staff')
         self.editor = Group.objects.get(name='artek_editor')
 
@@ -190,8 +190,8 @@ class CasLoginRolesTests(TestCase):
 
     @override_settings(LDAP_GROUP_ARTEK_STAFF=STAFF_DN, LDAP_GROUP_ARTEK_EDITOR=EDITOR_DN)
     def test_superuser_and_is_staff_untouched(self):
-        admin = User.objects.create_superuser('admin1', password='x')  # is_staff too
-        plain = User.objects.create_user('s990002', password='x', is_staff=False)
+        admin = User.objects.create_superuser('admin1')  # is_staff too
+        plain = User.objects.create_user('s990002', is_staff=False)
         for answer in ({STAFF_DN: True, EDITOR_DN: True}, {STAFF_DN: False, EDITOR_DN: False}):
             with mock.patch.object(roles, 'ad_user_info', return_value=_info(answer)):
                 _login(admin)
@@ -216,7 +216,7 @@ class CasLoginUserDetailsTests(TestCase):
     """T12: first_name / last_name / email from AD at login."""
 
     def setUp(self):
-        self.user = User.objects.create_user('s990001', password='x')
+        self.user = User.objects.create_user('s990001')
 
     def _set(self, **fields):
         User.objects.filter(pk=self.user.pk).update(**fields)

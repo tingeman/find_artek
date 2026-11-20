@@ -40,7 +40,7 @@ class WriteAccessTestBase(ReportAccessTestBase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.no_role = User.objects.create_user('norole', password='x')   # in no group
+        cls.no_role = User.objects.create_user('norole')   # in no group
 
 
 class DebugRootRemovedTests(WriteAccessTestBase):

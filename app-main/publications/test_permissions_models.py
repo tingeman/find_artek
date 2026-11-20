@@ -32,9 +32,9 @@ def _user(username, *codenames, superuser=False):
     """Create a user with the given 'publications' permissions and return a fresh copy
     (the permission cache of the instance that was changed would be stale)."""
     if superuser:
-        user = User.objects.create_superuser(username, password='x')
+        user = User.objects.create_superuser(username)
     else:
-        user = User.objects.create_user(username, password='x')
+        user = User.objects.create_user(username)
     for codename in codenames:
         user.user_permissions.add(
             Permission.objects.get(content_type__app_label='publications', codename=codename))
@@ -174,8 +174,8 @@ class FeaturePermissionTests(TestCase):
             publication=cls.pub, editor_id=0,
             person=Person.objects.create(first='Ed', last='Itor', initials='edtr'))
 
-        cls.creator = User.objects.create_user('s990002', password='x')   # listed nowhere
-        cls.modifier = User.objects.create_user('s990003', password='x')  # listed nowhere
+        cls.creator = User.objects.create_user('s990002')   # listed nowhere
+        cls.modifier = User.objects.create_user('s990003')  # listed nowhere
 
         def feature(name, *pubs):
             f = Feature.objects.create(name=name, date=datetime.date(2000, 1, 1))
@@ -200,7 +200,7 @@ class FeaturePermissionTests(TestCase):
                 self.assertRights(AnonymousUser(), feature, False, False)
 
     def test_listed_user_without_permissions_gets_false(self):
-        user = User.objects.create_user('s990001', password='x')
+        user = User.objects.create_user('s990001')
         self.assertRights(user, self.on_pub, False, False)
 
     def test_listed_author_supervisor_editor_may_edit_and_delete(self):

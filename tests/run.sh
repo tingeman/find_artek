@@ -441,7 +441,7 @@ t_django() {
   local out rc=0
   need_mgmt
   out="$(docker run --rm --network "$NET" --name "$PFX-django" "${APP_ENV[@]}" "$IMAGE" \
-    python manage.py test -v 1 --noinput --settings "$SETTINGS" 2>&1)" || rc=$?
+    python manage.py test -v 1 --noinput --buffer --settings "$SETTINGS" 2>&1)" || rc=$?
   [ "$rc" -eq 0 ] || fail_t "manage.py test exit code $rc:
 $(printf '%s\n' "$out" | grep -E '^(FAIL|ERROR):|^Ran |^FAILED' | head -n 15)
 $(tail_of "$out" 3)"

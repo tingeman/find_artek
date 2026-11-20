@@ -30,7 +30,7 @@ class AddMenuTests(TestCase):
         cls.dtu_user = make_user('s990001')
         cls.staff = make_user('staff', 'artek_staff')
         cls.editor = make_user('editor', 'artek_editor')
-        cls.superuser = User.objects.create_superuser('admin', password='x')
+        cls.superuser = User.objects.create_superuser('admin')
 
     def _navs(self, user=None):
         """(desktop nav HTML, mobile nav HTML) of the frontpage for ``user``."""

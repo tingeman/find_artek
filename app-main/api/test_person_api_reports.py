@@ -45,9 +45,9 @@ class PersonApiReportVisibilityTests(TestCase):
             Authorship.objects.create(publication=pub, person=cls.author, author_id=author_id)
             Supervisorship.objects.create(publication=pub, person=cls.supervisor, supervisor_id=0)
 
-        cls.user = User.objects.create_user('s990001', password='x')
-        cls.listed_user = User.objects.create_user('SVSU', password='x')
-        cls.editor = User.objects.create_user('edit', password='x')
+        cls.user = User.objects.create_user('s990001')
+        cls.listed_user = User.objects.create_user('SVSU')
+        cls.editor = User.objects.create_user('edit')
         cls.editor.groups.add(Group.objects.get(name=ARTEK_EDITOR))
         cls.list_path = app_path(reverse('api:person-list'))
 

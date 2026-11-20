@@ -28,8 +28,8 @@ class UploadAppendixAccessTests(TestCase):
             type=pubtype, title='Test report', number='99-01', year=1999, verified=True)
         cls.url = reverse('publications:upload_appendix', kwargs={'pk': cls.publication.pk})
         cls.path = app_path(cls.url)
-        cls.plain_user = User.objects.create_user('s990001', password='x')
-        cls.editor = User.objects.create_user('editor', password='x')
+        cls.plain_user = User.objects.create_user('s990001')
+        cls.editor = User.objects.create_user('editor')
         cls.editor.user_permissions.add(
             Permission.objects.get(codename='change_publication',
                                    content_type__app_label='publications'))
