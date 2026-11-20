@@ -36,7 +36,7 @@ Status: **approved 2026-11-19**. Roadmap: Phase 2; FA-R40, FA-R44, FA-R14, FA-R3
 
 ## Assumptions
 
-- T7b: a two-digit year in a report number above the current two-digit year means 19YY, otherwise 20YY (numbers in the data start at `96`). Debug `print` calls in the import are replaced by `logger.debug` where the code is touched. The import stays Excel only.
+- T7b: year from a report number (decided 2026-11-20): two-digit prefix 90-99 means 19YY, below 90 means 20YY (there are no reports before 1996). Debug `print` calls in the import are replaced by `logger.debug` where the code is touched. The import stays Excel only.
 - Phase 2 adds tests and fixes bugs it finds within the rule above; it doesn't refactor views (FA-R66) or upgrade Django (Phase 3).
 - The smoke table's expected statuses are today's behaviour after PLAN_confidential; a status that looks wrong is a bug under the rule above, not silently encoded.
 - `publications_meta` gets smoke tests for its one view and nothing else.
