@@ -247,8 +247,8 @@ def add_persons_to_publication(names, pub, field, user):
                     else:
                         print("🔍 DEBUG:    WARNING: No match found. Not added!")
                         msgstr = "{0} identified by '{1}' was not found in " \
-                                "database. Please add {0} manually!"
-                        msgstr = msgstr.format(field[:-1].title(), s)
+                                "database. Please add {2} manually!"
+                        msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
                         personmessages.append((messages.WARNING, msgstr))
                         continue
                 else:
@@ -345,7 +345,8 @@ def add_topics_to_publication(topics, pub, user):
 
     existing_model_topics = [t.topic for t in pub.publication_topics.all()]  # list of model bound topic
 
-    topics = [word.strip(string.punctuation) for word in topics.split()]
+    # An empty topic cell gives None: no topics (it raised AttributeError and stopped the import).
+    topics = [word.strip(string.punctuation) for word in (topics or '').split()]
 
     for t in topics:
         if CaseInsensitively(t) in existing_model_topics:

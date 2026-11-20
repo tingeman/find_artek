@@ -437,8 +437,8 @@ def get_from_studynumber(s, user, force_ldap=False):
         # Now see if it is in LDAP directory
         result = find_ldap_person(name=s)
         if result:
-            p = get_or_create_person_from_ldap(person=result[0],
-                                                           user=user, save=False)
+            p = get_or_create_person_from_ldap(ldap_object=result[0],
+                                               user=user, save=False)
             match = "ldap"
         else:
             p = None
@@ -459,7 +459,7 @@ def get_from_initials(s, user, force_ldap=False):
         # Now see if it is in LDAP directory
         result = find_ldap_person(initials=s)
         if result:
-            p = get_or_create_person_from_ldap(person=result[0],
+            p = get_or_create_person_from_ldap(ldap_object=result[0],
                                                user=user, save=False)
             match = "ldap"
         else:
@@ -505,7 +505,7 @@ def get_from_namestring(s, user):
 
     pybtex_person = pybtexPerson(s)
 
-    if not (person.first() and person.last()):
+    if not (pybtex_person.first() and pybtex_person.last()):
         p = None
         match = None
     else:
