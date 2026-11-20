@@ -7,7 +7,10 @@ Everything is made up: no names, study numbers or files from the real database.
 from django.contrib.auth.models import Group, User
 from django.urls import get_script_prefix, reverse
 
-from publications.models import Authorship, Publication, PubType
+from publications.models import (
+    Authorship, Editorship, Keyword, Keywordship, Person, Publication, PubType, Supervisorship,
+    Topic, Topicship,
+)
 from publications.roles import DTU_USER
 
 
@@ -49,13 +52,29 @@ def report_type():
     return PubType.objects.create(type='STUDENTREPORT')
 
 
+def make_person(first, last, **fields):
+    """A Person with the given (made-up) first and last name and other model fields."""
+    return Person.objects.create(first=first, last=last, **fields)
+
+
 def make_report(pubtype, number, *, verified, confidential, title=None, year=1999, authors=(),
-                **fields):
-    """A report ``number`` with title ``Report <number>`` unless given. ``authors`` are
-    Persons, listed in that order (author_id 0, 1, ...). Other model fields via ``fields``."""
+                supervisors=(), editors=(), topics=(), keywords=(), **fields):
+    """A report ``number`` with title ``Report <number>`` unless given. ``authors``,
+    ``supervisors`` and ``editors`` are Persons, listed in that order (author_id,
+    supervisor_id, editor_id 0, 1, ...). ``topics`` and ``keywords`` are names; the Topic or
+    Keyword is created if it doesn't exist. Other model fields via ``fields``."""
     pub = Publication.objects.create(
         type=pubtype, number=number, title=f'Report {number}' if title is None else title,
         year=year, verified=verified, confidential=confidential, **fields)
     for author_id, person in enumerate(authors):
         Authorship.objects.create(publication=pub, person=person, author_id=author_id)
+    for supervisor_id, person in enumerate(supervisors):
+        Supervisorship.objects.create(publication=pub, person=person, supervisor_id=supervisor_id)
+    for editor_id, person in enumerate(editors):
+        Editorship.objects.create(publication=pub, person=person, editor_id=editor_id)
+    for name in topics:
+        Topicship.objects.create(publication=pub, topic=Topic.objects.get_or_create(topic=name)[0])
+    for name in keywords:
+        Keywordship.objects.create(
+            publication=pub, keyword=Keyword.objects.get_or_create(keyword=name)[0])
     return pub
