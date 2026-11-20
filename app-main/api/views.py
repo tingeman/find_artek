@@ -3,6 +3,7 @@ import json
 import http.client
 
 from django.db.models import Case, When, IntegerField
+from django.utils.functional import lazy
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
@@ -27,24 +28,28 @@ logger.warning("views.py is loaded")
 logger = logging.getLogger('api')
 logger.warning("views.py is loaded")
 
+def _topic_parameter_description():
+    """Description of the ``topic`` query parameter, with the topics in the database.
+
+    Called when the Swagger schema is generated, not when the module is imported: a query at
+    import time breaks ``manage.py check`` and ``migrate`` on an empty database (FA-R14).
+    """
+    topics = "".join(f"\t{topic.topic}\n" for topic in Topic.objects.all())
+    return ("Filter publications by topic name. Available topics are:\n\n "
+            f"{topics} \n if no topic is provided, all reports are returned.")
+
+
 class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
 
     serializer_class = PublicationSerializer
-
-    def get_available_topics():
-        string_of_topics = ""
-        topics = Topic.objects.all()
-        for topic in topics:
-            string_of_topics += f"\t{topic.topic}\n"
-        return string_of_topics
-
 
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter(
                 name='topic',
                 in_=openapi.IN_QUERY,
-                description=f"Filter publications by topic name. Available topics are:\n\n {get_available_topics()} \n if no topic is provided, all reports are returned.",
+                # lazy: drf-yasg evaluates it when it renders the schema (each request)
+                description=lazy(_topic_parameter_description, str)(),
                 type=openapi.TYPE_STRING,
             ),
             openapi.Parameter(

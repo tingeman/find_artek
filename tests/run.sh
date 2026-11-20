@@ -20,7 +20,8 @@
 #   names the same MariaDB and
 #   phpMyAdmin digests as compose.pins.env. One container (--network none) and docker image inspect.
 # * smoke tests (marked slow): a throwaway MariaDB (FA_MARIADB_IMAGE of compose.pins.env) on a
-#   private --internal network, with generated credentials. migrate, check, check --deploy
+#   private --internal network, with generated credentials. check on the empty database,
+#   migrate, check, check --deploy
 #   (warnings are reported, not failed), makemigrations --check, all with the production
 #   settings (find_artek.settings). Then the image's own command twice: without ENABLE_CRON
 #   (must become healthy, answer 200 on /publications/frontpage/ from the network, run no
@@ -65,6 +66,7 @@ set -euo pipefail
 # FA-R75 T3: report and feature pages.
 # FA-R75 T5: checked media view (FA-R30).
 # FA-R75 T6: login marker that clears the browser's cached API data.
+# FA-R14 (PLAN_test-coverage T2): the URLconf and the checks need no database.
 DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
                     api.test_person_api_reports api.test_feature_api_reports
                     publications.test_roles publications.test_permissions_models
@@ -76,7 +78,8 @@ DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upl
                     publications.test_visibility api.test_report_api
                     publications.test_pages_visibility
                     publications.test_media_access
-                    publications.test_auth_marker)
+                    publications.test_auth_marker
+                    api.test_empty_database)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
@@ -326,11 +329,12 @@ db_setup() {
 mgmt_setup() {
   run_setup db
   [ -n "${F[db.ready.out]:-}" ] || return 0
-  # The commands in order: migrate first, the others need the tables. migrate needs
-  # --skip-checks (roadmap FA-R14: api/views.py queries Topic at import time, so the system
-  # checks fail on an empty database).
+  # The commands in order: check on the still empty database first (nothing may query the
+  # database at import time, roadmap FA-R14), then migrate with its system checks; the others
+  # need the tables.
   facts mgmt "$(docker run --rm --network "$NET" --name "$PFX-mgmt" "${APP_ENV[@]}" "$IMAGE" sh -c "$EMIT"'
-    emit migrate python manage.py migrate --skip-checks --noinput --settings '"$SETTINGS"'
+    emit emptycheck python manage.py check --settings '"$SETTINGS"'
+    emit migrate python manage.py migrate --noinput --settings '"$SETTINGS"'
     emit check python manage.py check --settings '"$SETTINGS"'
     emit deploy python manage.py check --deploy --settings '"$SETTINGS"'
     emit makemig python manage.py makemigrations --check --dry-run --settings '"$SETTINGS"'
@@ -341,6 +345,7 @@ need_mgmt() { need_db; [ -n "${F[mgmt.migrate.rc]:-}" ] || fail_t "the managemen
 
 t_migrate() {
   need_mgmt
+  expect "check on the empty database ($(tail_of "${F[mgmt.emptycheck.out]:-}"))" "${F[mgmt.emptycheck.rc]:-}" "0"
   expect "migrate ($(tail_of "${F[mgmt.migrate.out]:-}"))" "${F[mgmt.migrate.rc]}" "0"
   echo "INFO: test database $DB_IMAGE ready after ${F[db.ready.out]} s"
 }
@@ -506,7 +511,7 @@ add_test "image: Dockerfile stages runtime, dev, prod, prod last" t_stages
 add_test "repo: dev compose MariaDB and phpMyAdmin images equal compose.pins.env (digests)" t_dev_pins
 
 needs mgmt
-add_test --slow "smoke: migrate --skip-checks on an empty MariaDB" t_migrate
+add_test --slow "smoke: check and migrate on an empty MariaDB" t_migrate
 add_test --slow "smoke: manage.py check passes (production settings)" t_check
 add_test --slow "smoke: manage.py check --deploy has no errors" t_check_deploy
 add_test --slow "smoke: makemigrations --check reports no changes" t_makemigrations
