@@ -51,7 +51,6 @@ urlpatterns = [
     # path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
     
     # AJAX endpoints for person disambiguation workflow
-    path("ajax/person/check/", views.check_person_ajax, name="check_person_ajax"),
     path("ajax/person/add/", views.add_person_ajax, name="add_person_ajax"),
     
     # Multi-step person disambiguation workflow
