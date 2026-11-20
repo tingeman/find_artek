@@ -11,7 +11,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from publications.models import FileObject, Publication, PubType
-from publications.test_upload_appendix_access import _app_path
+from publications.test_factories import app_path as _app_path
 
 PDF_NAME = 'reports/1998/98-71.pdf'   # no file on disk is needed: only the URL is rendered
 

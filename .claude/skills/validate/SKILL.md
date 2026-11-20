@@ -75,12 +75,12 @@ Needs no dev stack and no `.dev.env`: it uses a throwaway MariaDB with generated
 
 ```bash
 docker build -t find_artek:local .
-bash tests/run.sh find_artek:local            # full, ~40-55 s; what build_image.sh runs
+bash tests/run.sh find_artek:local            # full, ~6 min; what build_image.sh runs
 bash tests/run.sh --quick find_artek:local    # image checks only, ~10 s
 TEST_FILTER='^smoke' bash tests/run.sh find_artek:local
 ```
 
-Report the last line (`ALL <n> TESTS PASSED` / `<m> OF <n> TESTS FAILED`) and the names of the `FAIL:` lines. `INFO:`/`SKIP:` lines are not failures (e.g. the `check --deploy` warnings W004/W008, FA-R31; `SKIP: django: ...` while `DJANGO_TEST_LABELS` is empty).
+Report the last line (`ALL <n> TESTS PASSED` / `<m> OF <n> TESTS FAILED`) and the names of the `FAIL:` lines. `INFO:`/`SKIP:` lines are not failures (e.g. the `check --deploy` warnings W004/W008, FA-R31). For the `django:` test, also report its `INFO:` line (`Ran <n> tests`, `OK (skipped=<k>)`).
 
 ## 5. Secrets guard
 

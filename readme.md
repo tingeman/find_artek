@@ -93,14 +93,14 @@ versions. Rebuild and run `tests/run.sh` afterwards.
 
 ```bash
 docker build -t find_artek:local .                       # builds the last stage, prod
-bash tests/run.sh find_artek:local                       # everything (~40-55 s)
+bash tests/run.sh find_artek:local                       # everything (~6 min, mostly the Django suite)
 bash tests/run.sh --quick find_artek:local               # image checks only, no database (~10 s)
 TEST_FILTER='^smoke' bash tests/run.sh find_artek:local  # tests whose name matches (grep -E)
 ```
 
 - **image:** user `dockeruser` (uid/gid 30000), `WORKDIR /app`, the entrypoint, gunicorn on `0.0.0.0:8099` without `--reload`, a `HEALTHCHECK`, `pip check`, the key packages import (GDAL, GEOS), no compilers or admin tools, the thumbnail cron file, the `Dockerfile`'s `ARG PYTHON_IMAGE` equals `FA_PYTHON_IMAGE` in `compose.pins.env` (by digest), stages `runtime`, `dev`, `prod` with `prod` last.
 - **smoke:** a throwaway MariaDB on an `--internal` network with generated credentials; `migrate --skip-checks` (FA-R14), `check`, `check --deploy` (warnings reported, not failed), `makemigrations --check`, all with the production settings; the image's own command becomes healthy and answers 200 on `/publications/frontpage/`; with `ENABLE_CRON=true` the cron daemon runs and the thumbnail job, run as cron runs it, succeeds and logs to `docker logs`; no log contains the generated secrets.
-- **django:** `manage.py test` with the labels in `DJANGO_TEST_LABELS` at the top of the script. Empty in 2026.1 (no test passes at baseline), so it prints `SKIP: django: ...`; Phase 2 fills it.
+- **django:** the whole Django test suite: `manage.py test` without labels (discovers every `test_*.py` module in the apps), with the production settings against the throwaway MariaDB. The `INFO:` line shows Django's `Ran <n> tests` and `OK (skipped=<k>)`. New test modules need no change in the script.
 
 Each test prints `PASS:`/`FAIL:`; the last line is `ALL <n> TESTS PASSED` (exit 0) or `<m> OF <n> TESTS FAILED` (exit 1). All containers, the network and the temporary directory are removed at the end, also on failure. The release build (`scripts/build_image.sh` in dtu_sus_web_server) runs `bash tests/run.sh <image>` in the checkout of the release tag and publishes nothing unless it exits 0.
 

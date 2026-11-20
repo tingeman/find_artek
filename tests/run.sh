@@ -28,8 +28,12 @@
 #   cron) and with ENABLE_CRON=true (healthy, cron daemon running, the thumbnail job run as
 #   cron runs it exits 0, reaches the DB and logs to docker logs). No log contains the
 #   generated secrets.
-# * Django tests (marked slow): manage.py test with the labels in DJANGO_TEST_LABELS below,
-#   against the throwaway MariaDB (Django creates and drops test_find_artek). See there.
+# * Django tests (marked slow): the whole Django test suite, i.e. manage.py test without
+#   labels, which discovers every test_*.py module of the project's apps (publications, api,
+#   ...), with the production settings against the throwaway MariaDB (Django creates and
+#   drops test_find_artek). One test in this script; its INFO line shows Django's "Ran <n>
+#   tests" and "OK" lines (the latter with the number of skipped Django tests, if any). A new
+#   test module needs no change here.
 #
 # Nothing leaves the workstation: the app has no network access except to the throwaway DB,
 # and no real secrets are used. All containers have names starting with a unique prefix and
@@ -50,37 +54,6 @@
 # full suite (no TEST_FILTER, no --quick) is what the release build runs.
 # shellcheck disable=SC2329  # test functions are called indirectly through run_test
 set -euo pipefail
-
-# Django test labels run by the release gate (manage.py test <labels>). Only tests that pass
-# at the release's baseline belong here (plan PLAN_release-path A4). 2026.1 had none
-# (publications/tests.py does not import; the app-main/test_*.py files are ad-hoc scripts, not
-# tests); an empty list is reported as "SKIP: django: ..." and not counted. From 2026.2: the
-# appendix upload form and access (FA-R52) tests. From 2026.2.1: the reports listed through the
-# person API (api.test_person_api_reports) and the feature API (api.test_feature_api_reports).
-# Phase 1b (registration, FA-R53/FA-R54): the role groups and their assignment at CAS login, the
-# model permission methods, the login redirect under the /find prefix, the write views, the
-# person data, the add/edit report form end to end (T7, FA-R55), typed new persons in it (T8, FA-R12). Phase 2 (roadmap FA-R40) adds to this list and later replaces it with the whole
-# suite.
-# FA-R75: the confidential field and its migration.
-# FA-R75 T2: the visibility rule and the API (FA-R76).
-# FA-R75 T3: report and feature pages.
-# FA-R75 T5: checked media view (FA-R30).
-# FA-R75 T6: login marker that clears the browser's cached API data.
-# FA-R14 (PLAN_test-coverage T2): the URLconf and the checks need no database.
-DJANGO_TEST_LABELS=(publications.test_upload_appendix_form publications.test_upload_appendix_access
-                    api.test_person_api_reports api.test_feature_api_reports
-                    publications.test_roles publications.test_permissions_models
-                    publications.test_login_redirect publications.test_report_access
-                    publications.test_write_access publications.test_person_privacy
-                    publications.test_report_form publications.test_menu
-                    publications.test_report_form_persons
-                    publications.test_confidential_field
-                    publications.test_visibility api.test_report_api
-                    publications.test_pages_visibility
-                    publications.test_media_access
-                    publications.test_auth_marker
-                    api.test_empty_database
-                    publications.test_report_thumbnail_link)
 
 # Settings for all manage.py commands here: the production settings (DEBUG=False, values from
 # the environment), i.e. what the release runs. LDAP_* stay unset (only used at login).
@@ -468,11 +441,12 @@ t_django() {
   local out rc=0
   need_mgmt
   out="$(docker run --rm --network "$NET" --name "$PFX-django" "${APP_ENV[@]}" "$IMAGE" \
-    python manage.py test -v 1 --noinput --settings "$SETTINGS" "${DJANGO_TEST_LABELS[@]}" 2>&1)" || rc=$?
+    python manage.py test -v 1 --noinput --settings "$SETTINGS" 2>&1)" || rc=$?
   [ "$rc" -eq 0 ] || fail_t "manage.py test exit code $rc:
-$(printf '%s\n' "$out" | grep -E '^(FAIL|ERROR):|^Ran |^FAILED|Error' | head -n 10)
+$(printf '%s\n' "$out" | grep -E '^(FAIL|ERROR):|^Ran |^FAILED' | head -n 15)
 $(tail_of "$out" 3)"
-  echo "INFO: $(printf '%s\n' "$out" | grep -E '^Ran ' | tail -n 1)"
+  echo "INFO: $(printf '%s\n' "$out" | grep -E '^Ran ' | tail -n 1);" \
+    "$(printf '%s\n' "$out" | grep -E '^OK' | tail -n 1)"
 }
 
 # ---- run -----------------------------------------------------------------------------
@@ -523,11 +497,7 @@ add_test --slow "smoke: app log has no traceback and no generated secret" t_app_
 add_test --slow "smoke: ENABLE_CRON=true: app healthy and cron daemon running" t_cron_daemon
 add_test --slow "smoke: ENABLE_CRON=true: thumbnail job run as cron runs it exits 0, reaches the DB, logs to docker logs" t_cron_job
 needs mgmt
-if [ "${#DJANGO_TEST_LABELS[@]}" -gt 0 ]; then
-  add_test --slow "django: manage.py test ${DJANGO_TEST_LABELS[*]}" t_django
-else
-  add_test --slow "django: tests" "SKIP:no test labels configured (Phase 2, DJANGO_TEST_LABELS in tests/run.sh)"
-fi
+add_test --slow "django: manage.py test (whole suite, discovered)" t_django
 
 # Selection: one grep over all names (line numbers of the matching names)
 SELECTED=() SKIPPED=0

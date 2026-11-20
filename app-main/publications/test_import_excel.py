@@ -35,7 +35,7 @@ from publications.models import (
 )
 from publications.roles import ARTEK_EDITOR
 from publications.test_factories import (
-    ldap_entry, make_person, make_report, make_user, page_path,
+    app_path, ldap_entry, make_person, make_report, make_user, page_path,
 )
 
 HEADER = ['number', 'year', 'title', 'type', 'topic', 'authors', 'supervisors']
@@ -518,13 +518,20 @@ class XlsxTemplateTests(_ExcelCase):
 class XlsxUploadPageTests(_ExcelCase):
     """The upload page with the real parser (access rules: test_write_access)."""
 
-    def upload(self, path, name='reports.xlsx', follow=True):
+    def upload(self, path, name='reports.xlsx'):
+        """Post the file and follow the redirect to the page that shows the messages.
+
+        Followed by hand: with the '/find' prefix (production settings) the Location includes
+        it, and the test client's follow=True would request it as a path (404).
+        """
         with open(path, 'rb') as f:
             content = f.read()
-        return self.client.post(page_path('add_reports_from_file_upload'), {
+        response = self.client.post(page_path('add_reports_from_file_upload'), {
             'file_type': 'xlsx',
             'file': SimpleUploadedFile(name, content),
-        }, follow=follow)
+        })
+        self.assertEqual(response.status_code, 302)
+        return self.client.get(app_path(response.url))
 
     def setUp(self):
         super().setUp()
