@@ -55,8 +55,10 @@
           <div class="content-wrapper">
             <!-- Preview image absolutely positioned to the right -->
             <div class="preview-image-container">
+              {% if publication.file %}<a href="{{ publication.file.file.url }}" target="_blank" class="report-thumbnail-link" title="{% trans "Open the PDF" %}">{% endif %}
               <img src="{% thumb_file publication.file.file.name %}"
                    alt="preview-picture" class="img-fluid" style="border: 1px solid #BBB;">
+              {% if publication.file %}</a>{% endif %}
             </div>
             
             <!-- Title label above the actual title -->
