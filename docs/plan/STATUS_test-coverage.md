@@ -4,7 +4,7 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-You: set the coverage target from the T4 baseline (open question). Then T5 (URL smoke tests): implementer, in the worktree.
+T5 (URL smoke tests): implementer, in the worktree.
 
 ## Done
 
@@ -37,9 +37,12 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 
 ## Open questions
 
-- Coverage target per app and per critical module: set after the T4 baseline.
 
 ## Notes for the next session
+
+- Decided 2026-11-20: no numeric coverage target. Critical paths covered, beyond that what makes sense; tests check behaviour, not implementation; the report is a map for finding untested behaviour. One-off maintenance commands (normalize_pdf_filenames, analyze_srid_usage, generate_report_numbers, test_person_workflow) stay in the report, no tests in this plan.
+- `api/person_ajax_views.py` is at 0 %: T5 smoke tests should reach it (check whether it is routed at all).
+- CLAUDE.md (on the branch) still mentions `publications/tests.py` and a `publications/tests/` package; fix with T9's doc pass.
 
 - Found in T3, for T7 (person matching): with LDAP on, `utils_person.get_from_studynumber`/`get_from_initials` call `get_or_create_person_from_ldap(person=...)`, but the parameter is `ldap_object` (TypeError on any LDAP hit; reached only via `get_person_from_string`). `register_from_file.py` study-number warning with LDAP on uses `{0}` instead of `{2}` ("add Author manually"; cosmetic).
 - `USE_LDAP` for web_server: optional, default `true`; list it in the release USER_STEPS (T10).

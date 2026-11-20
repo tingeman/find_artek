@@ -5,7 +5,7 @@ Status: **approved 2026-11-19**. Roadmap: Phase 2; FA-R40, FA-R44, FA-R14, FA-R3
 ## Goal
 
 1. `manage.py test` with no labels discovers and runs the whole suite, green, in the dev stack and in `tests/run.sh` (FA-R40). The release gate runs the full suite instead of a label list.
-2. Coverage is measured (`coverage.py`, dev stack only) and meets the target set after the baseline (FA-R44); the critical paths below are covered whatever the number says.
+2. Coverage is measured (`coverage.py`, dev stack only) (FA-R44) and used as a map, not a target (decided 2026-11-20): the critical paths below are covered, and beyond them what makes sense. Tests check behaviour (what a user, a caller or the data sees), not implementation details; no tests written just to raise the number.
 3. Every URL has a smoke test, anonymous and logged in, and a test fails when a new URL has none.
 4. `check` and `migrate` work on an empty database (FA-R14); `tests/run.sh` drops its `--skip-checks` workaround.
 5. `USE_LDAP` comes from the environment, default `true` (FA-R34), with tests for on and off.
@@ -70,7 +70,7 @@ After `agent-confidential` is merged: `git worktree add -b agent-test-coverage .
 
 ### T4. Coverage measurement (FA-R44)
 - Files: `requirements-dev.in` → `python scripts/compile_lock.py` (dev lock), `app-main/.coveragerc`, `readme.md` (how to run), CLAUDE.md Commands and the `validate` skill (coverage command).
-- Acceptance: coverage runs in the dev stack; baseline per app and per critical module recorded in STATUS; you set the target (open question).
+- Acceptance: coverage runs in the dev stack; baseline per app and per critical module recorded in STATUS (no numeric target, decided 2026-11-20).
 - Validation: `validate`; dev image builds.
 - Agent: implementer; target: you.
 - Deployment impact: none (dev stage only).
@@ -91,7 +91,7 @@ After `agent-confidential` is merged: `git worktree add -b agent-test-coverage .
 
 ### T7. Workflows, commands, import
 - Files: tests for `publications/workflows/` and `utils_person.py` outside the form, `generate_thumbnails` and `cleanup_temp_files` (on a tmp `MEDIA_ROOT`, a generated one-page PDF), Excel import parsing (an `.xlsx` built in the test with `openpyxl`, `USE_LDAP=False`).
-- Acceptance: critical paths covered; coverage meets the target from T4, or STATUS lists what is missing and why.
+- Acceptance: critical paths covered by behaviour tests; STATUS lists notable uncovered code and why it is left (e.g. one-off maintenance commands).
 - Validation: `validate`; full suite with coverage.
 - Agent: implementer.
 - Deployment impact: none.
