@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T5 (URL smoke tests): implementer, in the worktree.
+T6 (models, relations, API lists): implementer, in the worktree.
 
 ## Done
 
+- T5 2026-11-20: `publications/test_smoke_urls.py`: 48 named URLs (+ root redirect) for anonymous, `dtu_user`, `artek_editor`; missing entry fails (checked); admin internals via `admin:index`; suite 342 OK, 1 skipped; coverage 56.6 % (views.py 70.2 %) (`e0286cc`). Before it, decided with you: dead `check_person_ajax` (500 on every call), its unused template and the unrouted `api/person_ajax_views.py` removed (`56c7d1e`).
 - T4 2026-11-20: `coverage` 7.16.2 dev-only (`requirements-dev.in`/lock, production lock unchanged, not in the production image), `app-main/.coveragerc` (branch on, `include_namespace_packages` because `management/commands/` has no `__init__.py`), readme/CLAUDE.md/validate skill; suite 337 OK, 1 skipped; image `--quick` 12/12 (`e21318d`). Baseline below.
 - T3 2026-11-20: `USE_LDAP` from env (`find_artek/env.py` `env_bool`; unset/empty = true, invalid value = `ImproperlyConfigured`); bug fixed: `utils_person` imported `find_artek.settings` directly, so `override_settings`/dev settings were ignored (now `django.conf.settings`); all LDAP uses checked, all guarded; `test_ldap_setting`, `test_import_ldap_off` (16 tests); suite 337 OK, 1 skipped; image tests 22/22 (implementer run) (`1e785df`).
 - T2 2026-11-20: `check` and `migrate` pass on an empty DB; Swagger topic list built lazily (drf-yasg renders `lazy` strings, list now current per request); `api.test_empty_database` (5 tests); `tests/run.sh` runs `check` on the empty MariaDB, no `--skip-checks`; suite 321 OK, 1 skipped; image tests 22/22 (implementer run) (`36abed0`).
@@ -40,8 +41,11 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 
 ## Notes for the next session
 
+- Found in T5, for T7 (workflows): `PersonSelectView` (`select-persons`) `get_session_config` reverses `publications:publication_final_save` and `publications:edit_report_final_save`, which no longer exist: its POST likely raises NoReverseMatch. Check whether the view is reachable from the UI (`ReportFormView.select_persons_url`); test or remove (ask).
+- Found in T5: management command `test_person_workflow` imports `publications.person_workflow`, which doesn't exist (dead command); candidate for FA-R41 leftovers.
+- Found in T5, roadmap candidate: `publications_meta/views.py` hard-codes the two usernames allowed into the admin via `admin-cas-login` (access rule; out of scope here).
+
 - Decided 2026-11-20: no numeric coverage target. Critical paths covered, beyond that what makes sense; tests check behaviour, not implementation; the report is a map for finding untested behaviour. One-off maintenance commands (normalize_pdf_filenames, analyze_srid_usage, generate_report_numbers, test_person_workflow) stay in the report, no tests in this plan.
-- `api/person_ajax_views.py` is at 0 %: T5 smoke tests should reach it (check whether it is routed at all).
 - CLAUDE.md (on the branch) still mentions `publications/tests.py` and a `publications/tests/` package; fix with T9's doc pass.
 
 - Found in T3, for T7 (person matching): with LDAP on, `utils_person.get_from_studynumber`/`get_from_initials` call `get_or_create_person_from_ldap(person=...)`, but the parameter is `ldap_object` (TypeError on any LDAP hit; reached only via `get_person_from_string`). `register_from_file.py` study-number warning with LDAP on uses `{0}` instead of `{2}` ("add Author manually"; cosmetic).
