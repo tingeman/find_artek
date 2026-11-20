@@ -1,13 +1,14 @@
 # Status: Test coverage (Phase 2)
 
-Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-coverage` (from `develop/main`), worktree `..\find_artek_agent-test-coverage`.
+Plan: [PLAN_test-coverage_COMPLETE.md](PLAN_test-coverage_COMPLETE.md). Branch: `agent-test-coverage` (from `develop/main`), worktree `..\find_artek_agent-test-coverage`.
 
 ## Now
 
-T10 release 2026.5: tagged, built, published and in web_server `releases.yml` (`6b0304d`). Next (you): deploy and the checks in [USER_STEPS_2026.5.md](USER_STEPS_2026.5.md) steps 5-7 (step 7 = T8, PDF upload). Then the main session closes the plan (Finish).
+Plan finished 2026-11-20 (release `2026.5` deployed and checked). Archived; deferred items in the roadmap (FA-R88 to FA-R92, additions to FA-R57, FA-R70).
 
 ## Done
 
+- T10, T8 2026-11-20: 2026.5 deployed (you), server and browser checks pass. 100 MB PDF refused by the form's 50 MB limit (FA-R88); deleted report still in the cached list (FA-R89).
 - T10 (part) 2026-11-20: `develop/main` fast-forwarded to `60bec29`, tag `2026.5` (local), bundle built and tested (22/22, Django 538 OK), on the releases share, web_server `releases.yml` committed (`6b0304d`).
 - T9 follow-up 2026-11-20: suite 60 s -> 23 s (dev), gate 2m11 -> 1m32: test users without password (212 PBKDF2 hashes of ~0.16 s; all tests use `force_login`), `--buffer`, debug `print` in `BaseView` removed. `--parallel` rejected: needs `mysqldump` in the production image (gate checks no admin tools). Dev 538 OK, 1 skipped; image tests 22/22 (`a3ac558`).
 - T9 2026-11-20: `tests/run.sh` runs the whole discovered suite (no `DJANGO_TEST_LABELS`), production settings; docs and skills updated; three `test_import_excel` upload-page tests fixed for the `/find` prefix (followed the prefixed redirect as a path, 404) and `test_report_thumbnail_link` import fixed after the merge (`8b1e4fd`); failure summary shows FAIL/ERROR lines only. Dev 538 OK, 1 skipped; image tests 22/22, Django 538 OK; full gate ~6 min (`b21c38f`).

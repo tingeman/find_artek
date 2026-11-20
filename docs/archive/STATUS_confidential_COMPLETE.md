@@ -37,4 +37,4 @@ Plan: [PLAN_confidential.md](PLAN_confidential_COMPLETE.md). Branch: `agent-conf
 
 - Phase 2 idea from T1: a shared helper for migration tests (a `TransactionTestCase` that always restores the latest migrations), so each new schema migration doesn't break older migration tests.
 
-- Runs before [PLAN_test-coverage.md](../plan/PLAN_test-coverage.md): both touch `api/views.py`, `tests/run.sh` and the test modules.
+- Runs before [PLAN_test-coverage.md](PLAN_test-coverage_COMPLETE.md): both touch `api/views.py`, `tests/run.sh` and the test modules.

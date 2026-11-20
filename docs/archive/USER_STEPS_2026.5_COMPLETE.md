@@ -1,6 +1,6 @@
 # User steps: release 2026.5 (test coverage, PLAN_test-coverage T10 and T8)
 
-`develop/main` is at `60bec29` (2026-11-20): T1-T9 of [PLAN_test-coverage.md](PLAN_test-coverage.md) plus the thumbnail fix `4f45f6d`. Gate on `a3ac558` (same code): 22/22, Django step 538 tests OK.
+`develop/main` is at `60bec29` (2026-11-20): T1-T9 of [PLAN_test-coverage_COMPLETE.md](PLAN_test-coverage_COMPLETE.md) plus the thumbnail fix `4f45f6d`. Gate on `a3ac558` (same code): 22/22, Django step 538 tests OK.
 
 What changes for users:
 
@@ -61,7 +61,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.5.tar.gz"   # = tarb
 
 ## 5. Deploy the app (you)
 
-- [ ] Not done.
+- [x] Done (2026-11-20): `webapp_find_artek:2026.5` healthy, frontpage 200, migrations unchanged (`0004`), no traceback or error in the log.
 
 ```bash
 # WSL
@@ -85,6 +85,8 @@ Rollback: put the `2026.4` entry back in `releases.yml` (commented out above the
 
 ## 6. Functional checks in the browser (you)
 
+- [x] Done (2026-11-20): all browser checks pass. Found: a deleted report still shows in the report list (browser cache): FA-R89.
+
 Reload with Ctrl+F5 first.
 
 1. Logged out, a public report's page (e.g. `14-07`): click the thumbnail: the PDF opens.
@@ -93,6 +95,8 @@ Reload with Ctrl+F5 first.
 4. `https://arctic.sustain.dtu.dk/find/api/report/?author_id=abc` gives 400.
 
 ## 7. PDF upload in production (T8, you)
+
+- [x] Done (2026-11-20): a 100 MB PDF is refused by the form with "File cannot exceed 50 Mb" (the form's own limit, `forms/publication.py:560`); upload itself works (~20 MB in 2026.3.1). Raising the limit: FA-R88.
 
 As editor, open the edit form of a test report and upload a large PDF (~50 MB). If it fails, note the size, the error page and the time; the main session then checks Django's upload settings and nginx `client_max_body_size` / timeouts in web_server. Delete the test report afterwards.
 
