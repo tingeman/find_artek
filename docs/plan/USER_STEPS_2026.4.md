@@ -107,7 +107,7 @@ Reload with Ctrl+F5 first.
 
 ## 7. nginx: media through Django (web_server)
 
-- [ ] Done. nginx.conf committed by you (web_server `6ae31af`) and live after the nginx playbook 2026-11-20. The playbook's check "find_artek's folders are not listed" then failed: it expected 403 for `/find/media/`, which Django now answers with 404 (its 404 page, so the route works). Fixed by the main session (not committed): check expects 404 for `/find/media/` and `/find/_protected_media/`; web_server docs (`find_artek_admin.md`, `infrastructure.md`, `usage_statistics.md`, playbook header) updated. Commit and rerun the nginx playbook.
+- [x] Done (2026-11-20): nginx.conf (web_server `6ae31af`) live. The playbook's listing check first failed (expected 403 for `/find/media/`, Django answers 404); check and web_server docs fixed by the main session, committed and redeployed by you.
 
 Both edits together in `docker/services/nginx/nginx.conf` of web_server (deploy-contract skill, section "Media files"; never remove the alias without adding the internal location, or every media file gives 404):
 
@@ -147,7 +147,7 @@ A few seconds of downtime for all sites. Rollback: restore the old block and rer
 
 ## 8. Functional checks (media)
 
-- [ ] Done
+- [x] Done (2026-11-20): all `curl` checks as expected (200/206 public PDF, 404 for `12-05`, `15-28`, `_protected_media`, `96-02`; thumbnail 200; throttled 26 MB download complete after 2 min 7 s; resume 206, full size). As superuser the `12-05` PDF opens from the report page link and the list icon. The report page thumbnail is not a link (never was, also before 2026.4).
 
 ```bash
 # WSL (from the DTU network or VPN)
