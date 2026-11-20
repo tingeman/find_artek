@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T6 (models, relations, API lists): implementer, in the worktree.
+T7 (workflows, commands, import): implementer, in the worktree. Open question below (`author_id=abc` 500) first or alongside.
 
 ## Done
 
+- T6 2026-11-20: `publications/test_models.py`, `api/test_report_list.py`, `api/test_person_api.py`, `api/test_next_report_number.py` (64 tests); factories `make_person`, `make_report(supervisors=, editors=, topics=, keywords=)`; bug fixed: `Person.sorted_authorships/supervisorships/editorships` used non-existent related names (AttributeError; unused, no visible change) (`24838dd`, `5bfe2ad`); suite 406 OK, 1 skipped; coverage 58.5 % (views.py 73.3, models.py 85.7, api/views.py 98.1).
 - T5 2026-11-20: `publications/test_smoke_urls.py`: 48 named URLs (+ root redirect) for anonymous, `dtu_user`, `artek_editor`; missing entry fails (checked); admin internals via `admin:index`; suite 342 OK, 1 skipped; coverage 56.6 % (views.py 70.2 %) (`e0286cc`). Before it, decided with you: dead `check_person_ajax` (500 on every call), its unused template and the unrouted `api/person_ajax_views.py` removed (`56c7d1e`).
 - T4 2026-11-20: `coverage` 7.16.2 dev-only (`requirements-dev.in`/lock, production lock unchanged, not in the production image), `app-main/.coveragerc` (branch on, `include_namespace_packages` because `management/commands/` has no `__init__.py`), readme/CLAUDE.md/validate skill; suite 337 OK, 1 skipped; image `--quick` 12/12 (`e21318d`). Baseline below.
 - T3 2026-11-20: `USE_LDAP` from env (`find_artek/env.py` `env_bool`; unset/empty = true, invalid value = `ImproperlyConfigured`); bug fixed: `utils_person` imported `find_artek.settings` directly, so `override_settings`/dev settings were ignored (now `django.conf.settings`); all LDAP uses checked, all guarded; `test_ldap_setting`, `test_import_ldap_off` (16 tests); suite 337 OK, 1 skipped; image tests 22/22 (implementer run) (`1e785df`).
@@ -38,9 +39,12 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 
 ## Open questions
 
+- Found in T6: `/api/report/?author_id=abc` (or `supervisor_id=abc`) gives 500 (`api/views.py:111-115`, ValueError on a non-numeric id). Return 400 like an invalid `q`? Changes the API response, so asked.
 
 ## Notes for the next session
 
+- Found in T6, for T7: command `generate_report_numbers` imports `publications.utils` (doesn't exist; functions are in `utils_models`): broken. `utils_models.generate_next_report_number(exclude_ids=...)` has no effect (filters an unused set); no caller passes it. `utils_models.py` 178-316 (batch numbering, format checks) uncovered.
+- Roadmap candidate (refactor, not a fix): `Person.sorted_*` use `.extra(CAST(year AS INTEGER))` though `year` is an IntegerField.
 - Found in T5, for T7 (workflows): `PersonSelectView` (`select-persons`) `get_session_config` reverses `publications:publication_final_save` and `publications:edit_report_final_save`, which no longer exist: its POST likely raises NoReverseMatch. Check whether the view is reachable from the UI (`ReportFormView.select_persons_url`); test or remove (ask).
 - Found in T5: management command `test_person_workflow` imports `publications.person_workflow`, which doesn't exist (dead command); candidate for FA-R41 leftovers.
 - Found in T5, roadmap candidate: `publications_meta/views.py` hard-codes the two usernames allowed into the admin via `admin-cas-login` (access rule; out of scope here).
