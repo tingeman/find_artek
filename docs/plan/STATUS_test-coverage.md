@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T7 (workflows, commands, import): implementer, in the worktree. First commit: remove `PersonSelectView` (decided 2026-11-20).
+T7 follow-up (implementer, in the worktree), two fixes decided 2026-11-20, each its own commit: (1) `utils_person.get_or_create_person_from_ldap` match query (`|` where `&` was meant, `utils_person.py:694-696`); (2) `cleanup_temp_files`: remove the temp-publication part (only old files in `media/temp/` are deleted, never DB rows). Then T9 (merge `develop/main` first).
 
 ## Done
 
+- T7 2026-11-20: `test_utils_person`, `test_workflow_person`, `test_management_commands`, `test_import_excel` (93 tests). Bugs fixed: LDAP lookups passed `person=` (TypeError), `get_from_namestring` NameError on every plain name, an empty topic cell stopped the Excel import, LDAP warning text (`1c0e529`). Before it, `PersonSelectView` removed (`43a0514`). Suite 498 OK, 1 skipped; coverage 69.7 % (utils_person 68.7, register_from_file 76.8, workflows/person 95.5, generate_thumbnails 81.5, cleanup_temp_files 72.7).
 - 2026-11-20 (decided with you): `PersonSelectView` (`/select/persons/`) is removed with its template and unused forms. It is a predecessor of the person workflow (`workflows/person.py`, `PersonWorkflowMixin`), and it reads session keys that nothing writes, so its POST gives 500.
 - 2026-11-20 (decided with you): non-numeric `author_id`/`supervisor_id` on `/api/report/` gives 400 instead of 500 (`3fac0b7`); suite 407 OK, 1 skipped.
 - T6 2026-11-20: `publications/test_models.py`, `api/test_report_list.py`, `api/test_person_api.py`, `api/test_next_report_number.py` (64 tests); factories `make_person`, `make_report(supervisors=, editors=, topics=, keywords=)`; bug fixed: `Person.sorted_authorships/supervisorships/editorships` used non-existent related names (AttributeError; unused, no visible change) (`24838dd`, `5bfe2ad`); suite 406 OK, 1 skipped; coverage 58.5 % (views.py 73.3, models.py 85.7, api/views.py 98.1).
@@ -43,6 +44,13 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 
 
 ## Notes for the next session
+
+- For the roadmap at Finish (decided 2026-11-20, from T7):
+  - New FA-R item, Excel import robustness: an extra column (e.g. `comments`; the field is `comment`) or an unknown `type` aborts the import; there is no transaction, so earlier rows stay; the `keywords` column is ignored; a re-import duplicates reports under new numbers, so the update branch (`register_from_file.py` ~168-198) is unreachable; a number starting `90-` gets the year 2090.
+  - New FA-R item (FA-R41 style), dead code: `utils_person.get_person_from_string`, `get_from_*`, `get_from_namestring`, `add_persons_to_publication` (broken), `choose_person`; only tests call them. Also the four remaining commented `AddEditReportView` lines in `urls.py`.
+  - FA-R70 addition: `cleanup_temp_files` leaves the `FileObject` row of a deleted temp file, and it deletes an upload older than max-age even while that form is still open.
+  - Live data check (roadmap): imports with LDAP on may have linked wrong persons (the `get_or_create_person_from_ldap` bug); not checked.
+  - Import cycle `workflows/person.py` <-> `forms/mixins.py` (works only when forms load first).
 
 - Found in T6, for T7: command `generate_report_numbers` imports `publications.utils` (doesn't exist; functions are in `utils_models`): broken. `utils_models.generate_next_report_number(exclude_ids=...)` has no effect (filters an unused set); no caller passes it. `utils_models.py` 178-316 (batch numbering, format checks) uncovered.
 - Roadmap candidate (refactor, not a fix): `Person.sorted_*` use `.extra(CAST(year AS INTEGER))` though `year` is an IntegerField.
