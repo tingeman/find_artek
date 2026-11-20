@@ -68,7 +68,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.4.tar.gz"   # = tarb
 
 ## 5. Deploy the app
 
-- [ ] Done
+- [x] Done (2026-11-20): deployed, host checks pass. `check_media_access` in production: 2630 files, public 2554, restricted 14 (incl. 4 temp), unowned 62: the same 16 mangled `ø`/`Ø` names as in dev (so broken in production already), the 1996-2000 orphans, and old upload names of reports that now have their PDF under the number (`01-06a`, `11-30_1`, title-named 2014/2015 PDFs, checked by title in the dev DB). Nothing linked loses access.
 
 ```bash
 # WSL, web_server with step 4 committed
@@ -96,7 +96,7 @@ Rollback: reverse the migration with the 2026.4 container **first** (2026.3.1 do
 
 ## 6. Functional checks in the browser (app)
 
-- [ ] Done
+- [x] Done (2026-11-20): all browser checks pass (`/report/382/` → login, public pages open, Confidential badge shown).
 
 Reload with Ctrl+F5 first.
 

@@ -4,7 +4,7 @@ Plan: [PLAN_confidential.md](PLAN_confidential.md). Branch: `agent-confidential`
 
 ## Now
 
-T8: `2026.4` tagged (`debfb94`), built (22/22, 316 tests), on the releases share, `releases.yml` updated (not committed). Next: you commit `releases.yml` and deploy, steps 5-9 of [USER_STEPS_2026.4.md](USER_STEPS_2026.4.md).
+T8: 2026.4 deployed, steps 5-6 pass. Next: you, step 7 (nginx change in web_server) and step 8 (media checks), then step 9.
 
 ## Done
 
@@ -19,6 +19,7 @@ T8: `2026.4` tagged (`debfb94`), built (22/22, 316 tests), on the releases share
 - 2026-11-20: worktree `agent-registration` removed. `develop/main` (2026.3.1 and docs) merged into `agent-confidential` (`0b13b6e`; conflict in `test_roles.py` imports only); check, makemigrations clean, gate 22/22, 316 tests; full suite 318 with the 2 known import errors of the legacy `publications/tests.py` and `app-main/test_file_upload.py` (PLAN_test-coverage deletes them).
 - 2026-11-20: dev DB migrated to 0004 again (your OK, stays there). Unowned files (64) reviewed: 35 orphan `FileObject` rows linked to nothing, 13 files with no row (copies, stale thumbnails, a test upload), 16 `ø`/`Ø` names mangled in the dev copy whose DB rows (linked) have the correct name and whose correct file is missing. No unowned file is linked from a page, so default deny hides nothing users can reach today. Deferred: FA-R86 (orphans), FA-R87 (mangled names; check production in step 5).
 - 2026-11-20: `develop/main` fast-forwarded to `debfb94` (your OK); tag `2026.4`; bundle tarball_sha256 `8b4c9b73...`; share copy verified; web_server `releases.yml` edited.
+- 2026-11-20: 2026.4 deployed by you, host and browser checks pass; production `check_media_access`: 62 unowned, same groups as dev, nothing linked loses access (FA-R86, FA-R87 updated).
 - Decision 2026-11-19: anonymous users are redirected to the login for hidden reports (302) while unknown ids give 404; kept.
 - Not done, found in T2: `/api/person/` still lists persons who appear only on hidden reports (names only; plan assumption); `/api/feature/?publication_id=abc` gives 500 (old bug, Phase 2).
 - 2026-11-19: decisions: keep `/find/media/` URLs, nginx proxies them to a checked Django view with X-Accel-Redirect; features with no report stay public; anyone who may edit a report may set `confidential`.
