@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T7b (Excel import, all or nothing, added 2026-11-20 for this release): implementer, in the worktree, once you approve the task. Then T9 (merge `develop/main` first).
+T9 (gate runs the full suite): implementer, in the worktree; merge `develop/main` into `agent-test-coverage` first (thumbnail fix `4f45f6d`). T8 (PDF upload in production) waits for the release.
 
 ## Done
 
+- T7b 2026-11-20: Excel import checked and all or nothing (one transaction, problems listed by sheet and row), existing numbers skipped, column aliases, title may be empty, editors optional, existing topics only, keywords imported, year rule 90-99 = 19YY; new template `static/publications/docs/ARTEK_report_list.xlsx` with a Help sheet (the page link was broken: file missing, `{{STATIC_URL}}` empty) (`e549ecd`). Suite 536 OK, 1 skipped; coverage 71.0 % (register_from_file 97.3).
 - T7 follow-ups 2026-11-20: directory-entry person match fixed (empty initials/id_number no longer match; an entry without identifiers no longer matches every person; an exact match is preferred) (`f73c34e`); `cleanup_temp_files` never deletes DB rows, the crashing temp-publication part removed (`c5ed19f`). Suite 509 OK, 1 skipped; coverage 70.0 %.
 - T7 2026-11-20: `test_utils_person`, `test_workflow_person`, `test_management_commands`, `test_import_excel` (93 tests). Bugs fixed: LDAP lookups passed `person=` (TypeError), `get_from_namestring` NameError on every plain name, an empty topic cell stopped the Excel import, LDAP warning text (`1c0e529`). Before it, `PersonSelectView` removed (`43a0514`). Suite 498 OK, 1 skipped; coverage 69.7 % (utils_person 68.7, register_from_file 76.8, workflows/person 95.5, generate_thumbnails 81.5, cleanup_temp_files 72.7).
 - 2026-11-20 (decided with you): `PersonSelectView` (`/select/persons/`) is removed with its template and unused forms. It is a predecessor of the person workflow (`workflows/person.py`, `PersonWorkflowMixin`), and it reads session keys that nothing writes, so its POST gives 500.
@@ -45,6 +46,8 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 
 
 ## Notes for the next session
+
+- T7b: a row that fails the first check (type, topic, authors, number/year) isn't saved even temporarily, so its person problems show only on the next upload. Functional check after the release: the template link on the `/find/` upload page downloads the file. Release notes for editors: the import is now all or nothing; existing numbers are skipped instead of renumbered.
 
 - For the roadmap at Finish (decided 2026-11-20, from T7):
   - New FA-R item (FA-R41 style), dead code: `utils_person.get_person_from_string`, `get_from_*`, `get_from_namestring`, `add_persons_to_publication` (broken), `choose_person`; only tests call them. Also the four remaining commented `AddEditReportView` lines in `urls.py`.
