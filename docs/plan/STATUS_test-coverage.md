@@ -4,7 +4,7 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T9 (gate runs the full suite): implementer, in the worktree; merge `develop/main` into `agent-test-coverage` first (thumbnail fix `4f45f6d`). T8 (PDF upload in production) waits for the release.
+T9 (gate runs the full suite): implementer running in the worktree; `develop/main` merged into `agent-test-coverage` (`8b1e4fd`, `tests/run.sh` label conflict resolved, both labels kept). T8 (PDF upload in production) waits for the release.
 
 ## Done
 
