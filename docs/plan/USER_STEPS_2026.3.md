@@ -96,7 +96,7 @@ Rollback: put the `2026.2.1` entry back in `releases.yml` and rerun the playbook
 
 ## 6. Functional checks in the browser
 
-- [ ] Done. 2026-11-20: checks 1, 2 and 7 passed; 3, 4, 5 and 6 not run yet.
+- [ ] Done. 2026-11-20: checks 1 and 2 passed; 7 open (AD groups had no members at the first login; members added 2026-11-20, waiting for AD replication); 3-6 not run yet.
 
 1. Logged out: a person page shows no study number and no student e-mail; no "Add" menu; `/find/publications/report/add/` sends you to the DTU login.
 2. Log in with your own account, then the admin user page (`/find/admin/auth/user/`): your user has group `dtu_user`, first/last name and e-mail filled in. If not, look for a `publications.roles` warning in `sudo docker logs webapp-find-artek` (AD lookup failed).
