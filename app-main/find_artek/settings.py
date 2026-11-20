@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from pathlib import Path
 
+from .env import env_bool
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -174,7 +176,11 @@ AUTHENTICATION_BACKENDS = (
 )
 
 
-USE_LDAP = True     # Allow LDAP lookups using e.g. LDAP3
+# LDAP lookups with ldap3 (AD roles and name/e-mail at CAS login, person lookup in the Excel
+# import). Env USE_LDAP (true/false, 1/0, yes/no, on/off; unset or empty = true). When false,
+# no LDAP connection is made: roles and user fields stay as stored, the Excel import only
+# matches persons already in the database.
+USE_LDAP = env_bool('USE_LDAP', default=True)
 
 AUTH_LDAP_SERVER_URI = 'ldaps://win.dtu.dk'
 LDAP_BIND_USER = os.getenv('LDAP_BIND_USER')

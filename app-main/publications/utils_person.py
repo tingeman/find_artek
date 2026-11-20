@@ -15,7 +15,8 @@ from django.db.models import Q
 from pybtex.database import Person as pybtexPerson
 from pybtex.bibtex import utils as pybtex_utils     # functions for splitting strings in a tex aware fashion etc.
 
-from find_artek import settings
+# The active settings (DJANGO_SETTINGS_MODULE, override_settings), not the module find_artek.settings.
+from django.conf import settings
 from publications import models
 
 from publications.utils_basic import get_tag, remove_tags

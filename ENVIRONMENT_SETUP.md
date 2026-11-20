@@ -51,6 +51,7 @@ Read by the app (`app-main/find_artek/settings.py`):
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | Database name and app user (the MariaDB container also creates them from these) |
 | `MYSQL_HOST` | Database host; set by the compose files (here and in web_server) to `find-artek-mariadb-service` |
 | `SECRET_KEY` | Django secret key (50+ random characters) |
+| `USE_LDAP` | LDAP lookups on or off: `true`/`false` (also `1`/`0`, `yes`/`no`, `on`/`off`, case-insensitive); unset or empty = `true`, any other value stops the app at startup (`ImproperlyConfigured`). Production `true` (default, web_server need not set it). `false`: no LDAP connection, roles and user names stay as stored at login, the Excel import only matches persons already in the database; the `LDAP_*` variables are then not needed |
 | `LDAP_BIND_USER`, `LDAP_BIND_PASSWORD` | Read-only AD account for LDAP lookups (`ldaps://win.dtu.dk`) |
 | `LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR` | Full DN of the AD group whose members (nested groups count) get the Django group `artek_staff` / `artek_editor` at every CAS login; empty (default) = nobody has the role. Needs `LDAP_BIND_USER` / `LDAP_BIND_PASSWORD` |
 
