@@ -1,0 +1,46 @@
+# Coverage configuration for the dev stack (coverage is in requirements-dev.txt, so only the
+# dev image has it; the production image and the release gate tests/run.sh don't use it).
+# Run from /app in the container, see readme.md ("Test coverage"):
+#   coverage run manage.py test -v 1 --noinput --settings find_artek.development_settings
+#   coverage report
+
+[run]
+branch = True
+# Relative to the working directory /app (owned by the app user, so writable). The data file
+# and htmlcov/ are ignored by git and kept out of the build context (.dockerignore).
+data_file = .coverage
+source =
+    publications
+    api
+    publications_meta
+    find_artek
+omit =
+    */migrations/*
+    # Test modules and helpers (publications/test_*.py, api/test_*.py). Not */test_*.py: that
+    # would also drop the management command publications/.../test_person_workflow.py.
+    */publications/test_*.py
+    */api/test_*.py
+    */tests.py
+    */tests/*
+    */test_factories.py
+    */find_artek/test_settings.py
+    # Server entry points, never imported by the test runner
+    */find_artek/wsgi.py
+    */find_artek/asgi.py
+
+[report]
+# publications/management/commands/ and templatetags/ have no __init__.py: without this,
+# commands the tests never import (generate_thumbnails, cleanup_temp_files, ...) would be
+# missing from the report instead of showing 0 %.
+include_namespace_packages = True
+show_missing = True
+skip_covered = False
+skip_empty = True
+precision = 1
+sort = Cover
+exclude_also =
+    if __name__ == .__main__.:
+    raise NotImplementedError
+
+[html]
+directory = htmlcov

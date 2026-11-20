@@ -2,6 +2,9 @@
 # file, then regenerate requirements-dev.txt with scripts/compile_lock.py.
 #
 # The production lock is the constraint, so the dev lock only adds packages and never changes
-# a production version. Empty for now: the dev stage installs no extra Python packages
-# (it adds only Debian packages); add tools here when needed.
+# a production version.
 -c requirements.txt
+
+# Test coverage measurement in the dev stack (config: app-main/.coveragerc; see readme.md).
+# Not used by the release gate tests/run.sh.
+coverage

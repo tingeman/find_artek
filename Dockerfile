@@ -143,8 +143,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mc \
     && rm -rf /var/lib/apt/lists/*
 # Dev-only Python packages (compiled with requirements.txt as constraint, so they never change
-# a production version; empty for now, pip then installs nothing). As dockeruser, who owns
-# the venv.
+# a production version; e.g. coverage). As dockeruser, who owns the venv.
 USER dockeruser
 COPY --chown=dockeruser:dockeruser ./app-main/requirements-dev.txt /tmp/requirements-dev.txt
 RUN set -ex && \

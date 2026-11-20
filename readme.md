@@ -104,6 +104,21 @@ TEST_FILTER='^smoke' bash tests/run.sh find_artek:local  # tests whose name matc
 
 Each test prints `PASS:`/`FAIL:`; the last line is `ALL <n> TESTS PASSED` (exit 0) or `<m> OF <n> TESTS FAILED` (exit 1). All containers, the network and the temporary directory are removed at the end, also on failure. The release build (`scripts/build_image.sh` in dtu_sus_web_server) runs `bash tests/run.sh <image>` in the checkout of the release tag and publishes nothing unless it exits 0.
 
+### Test coverage (dev stack only)
+
+`coverage` is a dev-only package (`app-main/requirements-dev.in`, installed in the `dev` stage only; the production image doesn't contain it and `tests/run.sh` doesn't use it). The configuration is `app-main/.coveragerc` (apps `publications`, `api`, `publications_meta`, `find_artek`; migrations, test modules, `test_settings.py`, wsgi/asgi left out; branch coverage on). From the repository root, in Git Bash, with the dev stack running (rebuild after code changes):
+
+```bash
+DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
+$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --settings find_artek.development_settings
+$DC exec -T webapp-find-artek coverage report                    # per module, missed lines, total
+$DC exec -T webapp-find-artek coverage report --include='*/publications/visibility.py'
+$DC exec -T webapp-find-artek coverage html                      # writes /app/htmlcov in the container
+$DC cp webapp-find-artek:/app/htmlcov ./htmlcov               # open htmlcov/index.html
+```
+
+The data file `/app/.coverage` and `htmlcov/` live in the container (gone after a rebuild); both are in `.gitignore` and `.dockerignore`.
+
 ## Roles
 
 Every user who logs in through CAS gets the Django group `dtu_user` (set in `app-main/publications/roles.py`, at every login). The groups `artek_staff` and `artek_editor` come only from AD groups: the env variables `LDAP_GROUP_ARTEK_STAFF` and `LDAP_GROUP_ARTEK_EDITOR` hold the full DN of the AD group (nested groups count). Empty (the default) = nobody has the role. A role set by hand in the admin is removed at the user's next login; if the AD lookup fails, the current roles are kept. To give someone a role, ask DTU IT to add them to the AD group.

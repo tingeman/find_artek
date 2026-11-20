@@ -44,6 +44,18 @@ $DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings fi
 - If the suite already failed before your change, say which tests, and don't count them against the task.
 - Report pass/fail counts and the names of failures, not the raw output.
 
+### 2a. Coverage (optional, dev only)
+
+Only when the brief asks for coverage numbers. `coverage` is in the dev image only (`requirements-dev.txt`); the production image and the release gate `tests/run.sh` don't use it. Configuration: `app-main/.coveragerc` (branch coverage on).
+
+```bash
+$DC exec -T webapp-find-artek coverage run manage.py test -v 1 --noinput --settings find_artek.development_settings
+$DC exec -T webapp-find-artek coverage report                                   # whole report
+$DC exec -T webapp-find-artek coverage report --include='*/publications/visibility.py,*/publications/permissions.py'
+```
+
+The suite result of the `coverage run` counts like a normal test run. Report the total and the modules the task touched (statements, missed, branch %), not the whole table.
+
 ## 3. Shell scripts
 
 ```bash

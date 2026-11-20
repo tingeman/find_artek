@@ -12,3 +12,6 @@
 **/*.db
 **/*.log
 app-main/venv
+**/.coverage
+**/.coverage.*
+**/htmlcov
