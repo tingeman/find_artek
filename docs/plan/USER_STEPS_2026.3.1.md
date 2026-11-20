@@ -10,7 +10,7 @@ Deployment impact (web_server): none beyond the version. No migration, no new en
 
 ## 1. Tag `2026.3.1` locally
 
-- [ ] Done
+- [x] Done (2026-11-20, by the main session): tag on `8833bda`.
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -21,7 +21,7 @@ git show --no-patch --format='%h %s' '2026.3.1^{commit}'
 
 ## 2. Build and test the bundle
 
-- [ ] Done
+- [x] Done (2026-11-20): `RESULT: OK`, 22/22, `Ran 229 tests`; tarball_sha256 `8dfccba315f8fc1df510c681f3aaeb085859458d3b518a90d0cebd02dca14ad7`, image_id `sha256:13131e7962ef...`, built 2026-11-20T00:31:28Z.
 
 ```bash
 # WSL
@@ -34,7 +34,7 @@ Expect `RESULT: OK`, 22 tests, and the Django step `Ran 229 tests`. Paste the ma
 
 ## 3. Publish to the releases share
 
-- [ ] Done
+- [x] Done (2026-11-20): copied, hash on the share matches the manifest.
 
 ```powershell
 # PowerShell
@@ -46,7 +46,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.3.1.tar.gz"   # = ta
 
 ## 4. releases.yml (web_server)
 
-- [ ] Done
+- [x] Done (2026-11-20): entry and comment written by the main session; **not committed** (web_server config: you commit it).
 
 `ansible/vars/releases.yml`, `webapp_find_artek`: `version: "2026.3.1"`, `tarball_sha256` from the manifest. Paste the manifest and the main session writes the comment (previous: 2026.3, commit `9ba6b2cd6695`, tarball_sha256 `a8c9b76c8945bbc7b19c343a5235ed00e630399a0d430853a4d7e79403f1e480`). The env file needs no change. Commit.
 
