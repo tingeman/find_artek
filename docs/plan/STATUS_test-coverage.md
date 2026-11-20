@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T7 (workflows, commands, import): implementer, in the worktree.
+T7 (workflows, commands, import): implementer, in the worktree. First commit: remove `PersonSelectView` (decided 2026-11-20).
 
 ## Done
 
+- 2026-11-20 (decided with you): `PersonSelectView` (`/select/persons/`) is removed with its template and unused forms. It is a predecessor of the person workflow (`workflows/person.py`, `PersonWorkflowMixin`), and it reads session keys that nothing writes, so its POST gives 500.
 - 2026-11-20 (decided with you): non-numeric `author_id`/`supervisor_id` on `/api/report/` gives 400 instead of 500 (`3fac0b7`); suite 407 OK, 1 skipped.
 - T6 2026-11-20: `publications/test_models.py`, `api/test_report_list.py`, `api/test_person_api.py`, `api/test_next_report_number.py` (64 tests); factories `make_person`, `make_report(supervisors=, editors=, topics=, keywords=)`; bug fixed: `Person.sorted_authorships/supervisorships/editorships` used non-existent related names (AttributeError; unused, no visible change) (`24838dd`, `5bfe2ad`); suite 406 OK, 1 skipped; coverage 58.5 % (views.py 73.3, models.py 85.7, api/views.py 98.1).
 - T5 2026-11-20: `publications/test_smoke_urls.py`: 48 named URLs (+ root redirect) for anonymous, `dtu_user`, `artek_editor`; missing entry fails (checked); admin internals via `admin:index`; suite 342 OK, 1 skipped; coverage 56.6 % (views.py 70.2 %) (`e0286cc`). Before it, decided with you: dead `check_person_ajax` (500 on every call), its unused template and the unrouted `api/person_ajax_views.py` removed (`56c7d1e`).
