@@ -17,6 +17,7 @@ walk that way as a browser would (following every redirect) and then save the re
 
 Same setup as test_report_form (MEDIA_ROOT temporary, finalize in captureOnCommitCallbacks).
 """
+import re
 from unittest import mock
 
 from django.urls import reverse
@@ -195,6 +196,23 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         again = self.client.post(step_path, {'action': 'skip'})
         self.assertEqual(again.status_code, 200)
         self.assertEqual(again.context['clean_name'], 'Jane Newcomer')
+
+    def test_step_forms_post_to_the_step(self):
+        """Every form on the step page names the step URL as its action. With a PDF selected,
+        file-upload.js submits the report form by XHR; the forms must not depend on the address
+        bar, which could still show the report form (2026.3: 'Create person' posted back to
+        report/add/ and showed an empty form, found 2026-11-20)."""
+        Person.objects.create(first='Jane', last='Newcomer')    # offers 'select existing' forms
+        step_url = reverse('publications:disambiguate_person_step')
+        self.client.post(_path('add_report'), self.form_data(authors=['Jane Newcomer']))
+        page = self.client.get(_app_path(step_url))
+        self.assertEqual(page.status_code, 200)
+        html = page.content.decode()
+        forms = re.findall(r'<form\s[^>]*>', html)
+        step_forms = [f for f in forms if 'method="post"' in f]
+        self.assertGreaterEqual(len(step_forms), 2, 'create and select forms expected')
+        for tag in step_forms:
+            self.assertIn(f'action="{step_url}"', tag)
 
 
 class EditReportNewPersonsTests(ReportFormPersonTestBase):

@@ -80,6 +80,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Upload complete
         xhr.addEventListener('load', function() {
+            // The server redirected (person workflow or review step): go there in the browser.
+            // Copying that page into this one left the address bar on the form URL, so forms
+            // without an action on the next page posted back to the form (found 2026-11-20).
+            if (xhr.status === 200 && xhr.responseURL &&
+                    xhr.responseURL.split('#')[0] !== new URL(form.action, window.location.href).href) {
+                window.location.assign(xhr.responseURL);
+                return;
+            }
             if (xhr.status === 200) {
                 // Parse response and redirect if needed
                 try {
