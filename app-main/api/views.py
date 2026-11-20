@@ -108,9 +108,17 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
                 raise NotFound('Topic not found')
             queryset = queryset.filter(publication_topics=topic_obj)
         
+        # Person ids must be whole numbers; anything else is a client error (400), not a 500.
+        for name, value in (('author_id', author_id), ('supervisor_id', supervisor_id)):
+            if value:
+                try:
+                    int(value)
+                except ValueError:
+                    raise ValidationError({name: f'{name} must be a whole number.'})
+
         if author_id:
             queryset = queryset.filter(authors__id=author_id)
-        
+
         if supervisor_id:
             queryset = queryset.filter(supervisors__id=supervisor_id)
 

@@ -68,6 +68,14 @@ class ReportListFilterTests(TestCase):
         self.assertEqual(self.numbers(supervisor_id=self.ann.pk), ['05-02'])
         self.assertEqual(self.numbers(supervisor_id=self.ben.pk), [])
 
+    def test_non_numeric_person_id_is_400(self):
+        for param in ('author_id', 'supervisor_id'):
+            for value in ('abc', '1.5', '12x'):
+                with self.subTest(param=param, value=value):
+                    response = self.client.get(self.path, {param: value})
+                    self.assertEqual(response.status_code, 400)
+                    self.assertIn(param, response.json())
+
     def test_unknown_person_gives_an_empty_list(self):
         self.assertEqual(self.numbers(author_id=999999), [])
         self.assertEqual(self.numbers(supervisor_id=999999), [])
