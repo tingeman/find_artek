@@ -107,7 +107,7 @@ Reload with Ctrl+F5 first.
 
 ## 7. nginx: media through Django (web_server)
 
-- [ ] Done
+- [ ] Done. Edit made by the main session 2026-11-20 in web_server `docker/services/nginx/nginx.conf` (block replaced as below, `nginx -t` passes with the pinned image and a throwaway cert); **not committed**: review, commit, run the nginx playbook.
 
 Both edits together in `docker/services/nginx/nginx.conf` of web_server (deploy-contract skill, section "Media files"; never remove the alias without adding the internal location, or every media file gives 404):
 
