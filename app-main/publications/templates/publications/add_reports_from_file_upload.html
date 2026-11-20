@@ -1,4 +1,5 @@
 {% extends base_template %}
+{% load static %}
 {% block title %}Administrative menu{% endblock %}
 {% block head %}
     <!-- Bootstrap CSS (if not already included in base) -->
@@ -16,13 +17,23 @@
                     <h4 class="mb-0">Add publications from file upload</h4>
                 </div>
                 <div class="card-body">
-                    <p>You may upload an Excel file with publication information to be added to the database.<br>
-                    The file should contain information about several one publication per row.<br>
-                    Although the drop down box below indicates other file formats also, only the
-                    excel file parser has been implemented.</p>
+                    <p>Upload an Excel file (.xlsx) with one report per row; the first row holds
+                    the column names. Only Excel files can be imported.</p>
+                    <ul>
+                        <li>Required columns: <strong>title</strong>, <strong>authors</strong>,
+                        and <strong>number</strong> or <strong>year</strong>. Each row needs at
+                        least one author and a number or a year; the title may be left empty
+                        and filled in later.</li>
+                        <li>Optional: type, topic, supervisors, editors, abstract, keywords,
+                        comment.</li>
+                        <li><strong>All or nothing:</strong> if any row has an error, nothing is
+                        imported and every problem is listed with its sheet and row.</li>
+                        <li>A report number that already exists: the row is skipped and the
+                        existing report is not changed.</li>
+                    </ul>
 
-                    <p>A template for the Excel file is available here:
-                        <a href="{{STATIC_URL}}publications/docs/ARTEK_report_list.xlsx" class="btn btn-outline-info btn-sm" target="_blank">Report Excel file template</a>
+                    <p>The template explains each column on its Help sheet:
+                        <a href="{% static 'publications/docs/ARTEK_report_list.xlsx' %}" class="btn btn-outline-info btn-sm" target="_blank">Report Excel file template</a>
                     </p>
 
                     {% if messages %}

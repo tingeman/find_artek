@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""Excel import of reports (the upload page add_reports_from_file_upload).
+
+The whole file is imported in one transaction: if any row has an error, nothing is saved
+(no reports, persons, topics or keywords, also no persons taken from the directory), and every
+problem is reported as "Sheet '<name>', row <n>: <problem>". The template with the columns is
+static/publications/docs/ARTEK_report_list.xlsx (its "Help" sheet explains them).
+"""
 
 import openpyxl
 import os.path
@@ -6,7 +13,7 @@ import datetime
 import dateutil.parser
 import string
 import re
-import latexcodec
+import latexcodec  # noqa: F401  (registers the 'latex' codec)
 import codecs
 
 from pybtex.database import Person as pybtexPerson
@@ -14,11 +21,11 @@ from pybtex.database import Person as pybtexPerson
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib import messages
+from django.db import transaction
 
 from publications import models, utils_person
 
-from publications.utils_basic import CaseInsensitively
-from publications.utils_models import generate_next_report_number
+from publications.utils_models import get_or_create_keywords
 
 # from django.shortcuts import get_object_or_404  # Not used
 # import pdb  # Not used
@@ -30,344 +37,364 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# Publication types the import accepts (all are numbered reports).
+REPORT_TYPES = ['STUDENTREPORT', 'MASTERSTHESIS', 'PHDTHESIS', 'DIPLOMPROJEKT', 'BACHELORTHESIS']
+DEFAULT_TYPE = 'STUDENTREPORT'
+
+# Column names (lower case) and the singular/plural spellings accepted for them.
+COLUMN_ALIASES = {
+    'number': 'number', 'year': 'year', 'title': 'title', 'type': 'type',
+    'topic': 'topic', 'topics': 'topic',
+    'author': 'authors', 'authors': 'authors',
+    'supervisor': 'supervisors', 'supervisors': 'supervisors',
+    'editor': 'editors', 'editors': 'editors',
+    'abstract': 'abstract',
+    'keyword': 'keywords', 'keywords': 'keywords',
+    'comment': 'comment', 'comments': 'comment',
+}
+# Columns of the template, in its order ('editors' is accepted too, but not in the template).
+# Persons columns, linked in this order.
+TEMPLATE_COLUMNS = ['number', 'year', 'title', 'type', 'topic', 'authors', 'supervisors',
+                    'abstract', 'keywords', 'comment']
+PERSON_COLUMNS = ['authors', 'supervisors', 'editors']
+# Columns that must be present. Cells: authors must be filled; title may be empty.
+REQUIRED_COLUMNS = ['title', 'authors']   # and 'number' or 'year'
+# A sheet with this name (any case) is not imported: the template's explanations.
+HELP_SHEET = 'help'
+
+re_list_sep = re.compile(r'\s*[,;]\s*')
+re_number_prefix = re.compile(r'^(\d{2})-')
+
+
+class _Rollback(Exception):
+    """Raised inside the import transaction when a row had an error."""
+
+
+def year_from_number(number):
+    """The year of a report number 'YY-NN': 90-99 is 19YY, below 90 is 20YY (there are no
+    reports before 1996). None if the number has no two-digit prefix."""
+    match = re_number_prefix.match(number)
+    if not match:
+        return None
+    yy = int(match.group(1))
+    return (1900 if yy >= 90 else 2000) + yy
+
+
+def split_list(value):
+    """Items of a comma- or semicolon-separated cell, stripped, empty ones dropped."""
+    return [item for item in re_list_sep.split((value or '').strip()) if item.strip()]
+
+
+def _cell_text(value):
+    """The text of a cell (None and blank give ''). Whole floats lose their '.0'."""
+    if value is None:
+        return ''
+    if isinstance(value, float) and value.is_integer():
+        value = int(value)
+    return str(value).strip()
+
+
+class _Row:
+    """One data row of a sheet, checked (pass 1) and then saved (pass 2)."""
+
+    def __init__(self, sheet, sheet_index, row_number, values):
+        self.sheet = sheet
+        self.sheet_index = sheet_index
+        self.row_number = row_number
+        self.values = values      # column name -> raw cell value
+        self.number = ''
+        self.year = None
+        self.pubtype = None
+        self.topics = []
+        self.skip = False         # number already in the database
+        self.failed = False       # has a problem; not saved
+
+    def text(self, column):
+        return _cell_text(self.values.get(column))
+
+    def where(self):
+        return f"Sheet '{self.sheet}', row {self.row_number}"
+
+
+class _Import:
+    """State of one import: problems, notes for the page, report numbers in use."""
+
+    def __init__(self, user):
+        self.user = user
+        self.errors = []      # problems that stop the import: (sheet index, row, seq, text)
+        self.notes = []       # (level, message) shown with the result
+        self.numbers = {}     # report number given in the file -> its first row
+        self.taken = set()    # numbers given in the file or assigned during the import
+
+    def error(self, row, problem):
+        row.failed = True
+        self._add_error(row.sheet_index, row.row_number, f'{row.where()}: {problem}')
+
+    def _add_error(self, sheet_index, row_number, text):
+        """Row number 0: a problem of the whole sheet (listed first for its sheet)."""
+        self.errors.append((sheet_index, row_number, len(self.errors), text))
+
+    def problems(self):
+        """The problems by sheet, then row, then the order they were found in."""
+        return [text for *_key, text in sorted(self.errors)]
+
+    # ---- pass 1: read and check the sheets ------------------------------------------------
+
+    def read_sheet(self, ws, index):
+        """The checked rows of a sheet (``index``: its position in the file), or [] (with a
+        warning or error) if it can't be used."""
+        name = ws.title
+        if ws.max_row < 2 or ws.max_column == 0:
+            self.notes.append((messages.WARNING, f"Sheet '{name}' is empty, nothing imported."))
+            return []
+
+        columns, unknown = [], []
+        for cell in ws[1]:
+            header = _cell_text(cell.value)
+            column = COLUMN_ALIASES.get(header.lower())
+            if header and not column:
+                unknown.append(header)
+            columns.append(column)
+        if unknown:
+            self.notes.append((messages.WARNING,
+                               f"Sheet '{name}': unknown columns ignored: {', '.join(unknown)}."))
+        missing = [c for c in REQUIRED_COLUMNS if c not in columns]
+        if 'number' not in columns and 'year' not in columns:
+            missing.append('number or year')
+        if missing:
+            self._add_error(index, 0,
+                            f"Sheet '{name}': required columns missing: {', '.join(missing)}.")
+            return []
+
+        rows = []
+        for row_number, cells in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            values = {}
+            for column, value in zip(columns, cells):
+                if column and column not in values:
+                    values[column] = value
+            if all(_cell_text(v) == '' for v in values.values()):
+                continue   # blank row
+            row = _Row(name, index, row_number, values)
+            self.check_row(row)
+            rows.append(row)
+        return rows
+
+    def check_row(self, row):
+        """Problems that need no saving: authors, number, year, type, topics, numbers in use.
+        The title may be empty (entries prepared before the reports are written)."""
+        if not any(n.strip() for n in utils_person.parse_name_list(row.text('authors'))):
+            self.error(row, 'at least one author is required.')
+
+        raw_number = row.values.get('number')
+        if isinstance(raw_number, (datetime.date, datetime.datetime)):
+            self.error(row, 'the number was read as a date by Excel; format the number column '
+                            'as text and type the number again (e.g. 99-01).')
+            return
+        row.number = row.text('number')
+
+        year = row.text('year')
+        if year:
+            try:
+                row.year = int(year)
+            except ValueError:
+                self.error(row, f"year '{year}' is not a number.")
+        elif row.number:
+            row.year = year_from_number(row.number)
+            if row.year is None:
+                self.error(row, f"no year, and the number '{row.number}' does not start with "
+                                f"a two-digit year (e.g. 99-01).")
+        else:
+            self.error(row, 'a number or a year is required.')
+
+        type_name = row.text('type') or DEFAULT_TYPE
+        row.pubtype = models.PubType.objects.filter(type__iexact=type_name).first()
+        if row.pubtype is None or row.pubtype.type not in REPORT_TYPES:
+            self.error(row, f"type '{type_name}' is not accepted; accepted types: "
+                            f"{', '.join(REPORT_TYPES)}.")
+
+        for name in split_list(row.text('topic')):
+            topic = models.Topic.objects.filter(topic__iexact=name).first()
+            if topic is None:
+                valid = ', '.join(sorted(models.Topic.objects.values_list('topic', flat=True)))
+                self.error(row, f"unknown topic '{name}'; valid topics: {valid}.")
+            elif topic not in row.topics:
+                row.topics.append(topic)
+
+        if row.number:
+            first = self.numbers.get(row.number)
+            if first is not None:
+                self.error(row, f"number '{row.number}' is also in {first.where()}.")
+                return
+            self.numbers[row.number] = row
+            self.taken.add(row.number)
+            existing = models.Publication.objects.filter(number=row.number).first()
+            if existing is not None:
+                row.skip = True
+                report = (f"'{existing.title}' [id:{existing.pk}]" if existing.title
+                          else f"[id:{existing.pk}]")
+                self.notes.append((messages.WARNING,
+                                   f"{row.where()}: report number '{row.number}' already exists "
+                                   f"(report {report}); row skipped, the existing report was "
+                                   f"not changed."))
+
+    # ---- pass 2: save ---------------------------------------------------------------------
+
+    def next_number(self, year):
+        """The next free number 'YY-NN' for ``year``: not in the database and not given or
+        assigned anywhere in the file."""
+        suffix = str(year)[-2:]
+        used = set(models.Publication.objects.filter(number__startswith=f'{suffix}-')
+                   .values_list('number', flat=True)) | self.taken
+        for increment in range(1, 1000):
+            candidate = f'{suffix}-{increment:02d}'
+            if candidate not in used:
+                self.taken.add(candidate)
+                return candidate
+        raise ValueError(f'No free report number for {year}.')
+
+    def save_row(self, row):
+        """Create the report of a checked row. Returns True if it was created."""
+        if row.skip or row.failed:
+            return False
+        if not row.number:
+            row.number = self.next_number(row.year)
+            self.notes.append((messages.INFO,
+                               f"{row.where()}: report number '{row.number}' assigned."))
+        pub = models.Publication.objects.create(
+            type=row.pubtype, number=row.number, year=row.year, title=row.text('title'),
+            abstract=row.text('abstract'), comment=row.text('comment'),
+            created_by=self.user, modified_by=self.user)
+        logger.debug('Excel import: %s: report %s [id:%s] created', row.where(), pub.number,
+                     pub.pk)
+        for field in PERSON_COLUMNS:
+            for _level, problem in add_persons_to_publication(row.text(field), pub, field,
+                                                              self.user):
+                self.error(row, problem)
+        for topic in row.topics:
+            pub.publication_topics.add(topic)
+        for keyword in get_or_create_keywords(split_list(row.text('keywords'))):
+            pub.publication_keywords.add(keyword)
+        return True
+
 
 def xlsx_pubs(filepath, user=None):
-    current_user = user  # User.objects.get(username='thin')
-
-    filemessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
-
-    # Load the workbook using openpyxl
+    """Import the reports of the Excel file ``filepath`` (relative to MEDIA_ROOT, or absolute)
+    in one transaction. Returns the messages for the page as (level, text) tuples. If any row
+    has an error, nothing is saved and the messages list every problem."""
     wb = openpyxl.load_workbook(os.path.join(settings.MEDIA_ROOT, filepath), data_only=True)
+    job = _Import(user)
+    sheets, created = [], {}
+    try:
+        with transaction.atomic():
+            sheets = [(ws.title, job.read_sheet(ws, index))
+                      for index, ws in enumerate(wb.worksheets)
+                      if ws.title.strip().lower() != HELP_SHEET]
+            # Rows without problems are saved also when others have some, so that the
+            # problems of persons are found too; everything is rolled back then.
+            for name, rows in sheets:
+                created[name] = sum(job.save_row(row) for row in rows)
+            if job.errors:
+                raise _Rollback()
+    except _Rollback:
+        count = len(job.errors)
+        result = [(messages.ERROR,
+                   f"Nothing was imported: the file has {count} problem{'s' if count != 1 else ''}."
+                   f" Correct the file and upload it again.")]
+        result += [(messages.ERROR, problem) for problem in job.problems()]
+        result += [note for note in job.notes if note[0] == messages.WARNING]
+        return result
 
-    # Expected column names in the xlsx file.
-    expected_col_names = ['number', 'year', 'title', 'type', 'topic', 'authors', 'supervisors']
-    opt_col_names = ['abstract', 'comments', 'keywords']
-
-    # Iterate through each sheet in the workbook
-    sheet_counter = 0
-    for sheetname in wb.sheetnames:
-        ws = wb[sheetname]
-        current_sheet_name = sheetname
-
-        # ignore empty sheets
-        if ws.max_row < 2 or ws.max_column == 0:
-            filemessages.append((messages.WARNING, f"Sheet '{current_sheet_name}' is empty, nothing imported."))
+    result = list(job.notes)
+    for name, rows in sheets:
+        if not rows:
             continue
-
-        sheet_counter += 1
-
-        # Make list of column names from the first row
-        col_names = []
-        for cell in ws[1]:
-            col_names.append(str(cell.value).strip() if cell.value else "")
-
-        # Ignore sheets that do not have the expected columns, include in the message the missing columns
-        if not all(col in col_names for col in expected_col_names):
-            missing_cols = [col for col in expected_col_names if col not in col_names]
-            filemessages.append((messages.WARNING, f"Sheet '{current_sheet_name}' is missing columns: {', '.join(missing_cols)}, nothing imported."))
-            continue
-
-        try:
-            number_col = col_names.index('number')
-        except ValueError:
-            number_col = None
-
-        # iterate over report entries (skip header row)
-        report_counter = 0
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            
-            number_val = row[number_col] if number_col is not None else None
-            
-            print(" ")
-            print(f"🔍 DEBUG: processing report {number_val}")
-
-            print(f"🔍 DEBUG: row data: {row}")
-
-            # create dictionary of field:value pairs
-            kwargs = {}
-            for idx, val in enumerate(row):
-                colname = col_names[idx]
-                if val and colname:
-                    try:
-                        kwargs[colname] = str(val).strip()
-                    except Exception:
-                        kwargs[colname] = val
-
-            # extract the foreignkey entries
-            fk_dict = {k: kwargs.pop(k) for k in list(kwargs.keys()) if k in ['type', 'journal']}
-            # extract the m2m entries
-            m2m_dict = {k: kwargs.pop(k) for k in list(kwargs.keys()) if k in ['authors', 'editors', 'supervisors', 'keywords', 'topic', 'URLs']}
-
-            # handle user information
-            kwargs['created_by'] = current_user
-            kwargs['modified_by'] = current_user
-
-            ### HANDLE FOREIGNKEY RELATIONSHIPS ###
-
-            # handle publication type
-            kwargs['type'] = models.PubType.objects.get(type=fk_dict.pop('type', 'STUDENTREPORT'))
-
-            # handle journal if present
-            if 'journal' in fk_dict and fk_dict['journal']:
-                kwargs['journal'] = models.Journal.objects.get(type=fk_dict.pop('journal'))
-
-            # If year is not given, and this is a report,
-            # compose the year from the report number
-            if kwargs['type'].type in ['STUDENTREPORT', 'MASTERSTHESIS', 'PHDTHESIS', 'DIPLOMPROJEKT','BACHELORTHESIS']:
-                print(f"🔍 DEBUG: this is a {kwargs['type'].type}")
-                if 'number' in kwargs:
-                    print(f"🔍 DEBUG: Report number specified: {kwargs['number']}")
-                    if 'year' not in kwargs:
-                        if kwargs['number'][0:2] > '90':
-                            kwargs['year'] = '19' + kwargs['number'][0:2]
-                        else:
-                            kwargs['year'] = '20' + kwargs['number'][0:2]
-                    if models.Publication.objects.filter(number=kwargs['number']).exists():
-                        old_number = kwargs['number']
-                        kwargs['number'] = generate_next_report_number(kwargs['year'])
-                        filemessages.append((messages.INFO, f"Publication number '{old_number}' already exists, assigning next available number '{kwargs['number']}'."))
-                        print(f"🔍 DEBUG: Number existed, assigned new report number: {kwargs['number']}")
-                elif 'year' in kwargs:
-                    print(f"🔍 DEBUG: Report number not specified, constructing from year: {kwargs['year']}")
-                    kwargs['number'] = generate_next_report_number(kwargs['year'])
-                    print(f"🔍 DEBUG: Constructed report number: {kwargs['number']}")
-                else:
-                    print(f"🔍 DEBUG: No report number or year specified, unable to construct report number. Skipping...!")
-                    continue
-            else:
-                filemessages.append((messages.WARNING, f"Only publications of type 'STUDENTREPORT', 'MASTERSTHESIS', 'PHDTHESIS', 'DIPLOMPROJEKT', or 'BACHELORTHESIS' are supported. Skipping report...!"))
-                print(f"🔍 DEBUG: Unsupported publication type: {kwargs['type'].type}. Skipping...!")
-                continue
-
-            print(f"🔍 DEBUG: kwargs: {kwargs}")
-
-            # Create or update publication
-            instance, created = models.Publication.objects.get_or_create(
-                number=kwargs['number'],
-                defaults=kwargs
-            )
-
-            report_counter += 1
-            if created:
-                print("🔍 DEBUG: Publication registered!")
-
-                ### HANDLE M2M RELATIONSHIPS
-
-                # Handle authors, editors, supervisors etc. here!
-                for field in ['authors', 'supervisors', 'editors']:
-                    names = m2m_dict.pop(field, None)
-                    personmessages = add_persons_to_publication(names, instance, field, current_user)
-                    for m in personmessages:
-                        filemessages.append(m)
-
-                # Handle the topics
-                topics = m2m_dict.pop('topic', None)
-                add_topics_to_publication(topics, instance, current_user)
-
-            else:
-                print(f"🔍 DEBUG: Publication [id:{instance.id}] exist in database!")
-                # A report with this number was already in the database
-                # update any missing values
-                updated = False
-                for attr, value in kwargs.items():
-                    if not getattr(instance, attr):
-                        setattr(instance, attr, value)
-                        print(f"🔍 DEBUG: Attribute '{attr}' set.")
-                        updated = True
-
-                instance.save()
-
-                if m2m_dict:
-                    for field in ['authors', 'supervisors', 'editors']:
-                        names = m2m_dict.pop(field, None)
-                        if len(getattr(instance, field).all()) == 0 and names:
-                            personmessages = add_persons_to_publication(names, instance, field, current_user)
-                            for m in personmessages:
-                                filemessages.append(m)
-                            updated = True
-                    topics = m2m_dict.pop('topic', None)
-                    if len(instance.publication_topics.all()) == 0 and topics:
-                        add_topics_to_publication(topics, instance, current_user)
-                        updated = True
-
-                if not updated:
-                    filemessages.append((messages.WARNING, f"Publication '{instance.title}' exists in database, no attributes changed."))
-                    print("🔍 DEBUG: No attributes updated!")
-                else:
-                    filemessages.append((messages.WARNING, f"Publication '{instance.title}' exists in database, some attributes were updated."))
-                instance.save()
-
-        total_rows = ws.max_row - 1
-        if report_counter != total_rows:
-            filemessages.append((messages.INFO, f"{report_counter} of {total_rows} publications registered/updated from sheet '{current_sheet_name}'."))
-        else:
-            filemessages.append((messages.SUCCESS, f"{report_counter} of {total_rows} publications registered/updated from sheet '{current_sheet_name}'."))
-
-    return filemessages
-
+        skipped = sum(1 for row in rows if row.skip)
+        level = messages.SUCCESS if not skipped else messages.INFO
+        result.append((level, f"Sheet '{name}': {created[name]} report"
+                              f"{'s' if created[name] != 1 else ''} created, {skipped} "
+                              f"row{'s' if skipped != 1 else ''} skipped."))
+    return result
 
 
 def add_persons_to_publication(names, pub, field, user):
-    personmessages = []  # Will hold tuples of e.g. (messages.INFO, "info text")
+    """Link the persons in ``names`` (one cell of the column ``field``: 'authors',
+    'supervisors' or 'editors') to ``pub``, in order. Returns the problems as
+    (messages.ERROR, text) tuples; xlsx_pubs reports them as row errors.
 
-    # return if no names passed
+    - A study number or initials: the person in the database, else (USE_LDAP on) the one in the
+      DTU directory, created here. Not found: a problem.
+    - A name 'Given Surname' (or 'Surname, Given'): always a new person; the link is flagged
+      exact_match / relaxed_match / multiple_match if persons with that name exist. A name
+      without a given name: a problem.
+    """
+    problems = []
+
     if not names or not names.strip():
-        return personmessages
+        return problems
 
-    # define pubplication-person through-table
-    # Ensure capitalized (upper), singular form (e.g. 'Author'+ship, 'Editor'+ship, 'Supervisor'+ship)
+    # Through-table, e.g. 'authors' -> Authorship
     through_tbl = getattr(models, field[0].upper() + field[1:-1] + 'ship')
+    role = field[:-1].lower()
+    use_ldap = bool(getattr(settings, 'USE_LDAP', False))
+    where = 'the database or the DTU directory' if use_ldap else 'the database'
 
-    kwargs = dict()
-
-    # Parse author names to a list, use only non-empty items
     person_entity_list = [s for s in utils_person.parse_name_list(names) if s]
-    kwargs[field] = person_entity_list
 
     for id, s in enumerate(person_entity_list):
-        print(f"🔍 DEBUG: Processing person: {s}")
+        logger.debug('Excel import: %s %d: %s', role, id, s)
         exact_match = False
         multiple_match = False
         relaxed_match = False
 
-        if re.search('[a-zA-Z]{1}[0-9]{6}', s):
-            # This is a study number...
-
-            # See if it is in our own database
-            p, match = utils_person.get_person(id_number=s, exact=True)
-            if not p:
-                if (hasattr(settings, 'USE_LDAP') and settings.USE_LDAP):
-                    # Now see if it is in LDAP directory
-                    result = utils_person.find_ldap_person(name=s)
-                    if result:
-                        p = utils_person.get_or_create_person_from_ldap(ldap_object=result[0],
-                                                                    user=user)
-                        exact_match = True
-                        print("🔍 DEBUG:    LDAP match")
-                    else:
-                        print("🔍 DEBUG:    WARNING: No match found. Not added!")
-                        msgstr = "{0} identified by '{1}' was not found in " \
-                                "database. Please add {2} manually!"
-                        msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
-                        personmessages.append((messages.WARNING, msgstr))
-                        continue
-                else:
-                    print("🔍 DEBUG:    WARNING: No match found in local database. Not added!")
-                    print("🔍 DEBUG:    (LDAP access not activated in settings)")
-                    msgstr = "{0} identified by '{1}' was not found in " \
-                             "database. Please add {2} manually!"
-                    msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
-                    personmessages.append((messages.WARNING, msgstr))
-                    continue
+        if re.search('[a-zA-Z]{1}[0-9]{6}', s) or len(re.split('[^A-Za-z]', s)) == 1:
+            # A study number, or only consecutive letters: initials
+            if re.search('[a-zA-Z]{1}[0-9]{6}', s):
+                p, match = utils_person.get_person(id_number=s, exact=True)
+                ldap_query = {'name': s}
             else:
-                print("🔍 DEBUG:    DB match")
-        elif len(re.split('[^A-Za-z]',s)) == 1:
-            # this is an entry with only consecutive letters = initials
-
-            # See if it is in our own database
-            p, match = utils_person.get_person(initials=s, exact=True)
-            if not p:
-                if hasattr(settings, 'USE_LDAP') and settings.USE_LDAP:
-                    # Now see if it is in LDAP directory
-                    result = utils_person.find_ldap_person(initials=s)
-                    if result:
-                        p = utils_person.get_or_create_person_from_ldap(ldap_object=result[0],
+                p, match = utils_person.get_person(initials=s, exact=True)
+                ldap_query = {'initials': s}
+            if not p and use_ldap:
+                result = utils_person.find_ldap_person(**ldap_query)
+                if result:
+                    p = utils_person.get_or_create_person_from_ldap(ldap_object=result[0],
                                                                     user=user)
-                        exact_match = True
-                        print("🔍 DEBUG:    LDAP match")
-                    else:
-                        print("🔍 DEBUG:    WARNING: No match found. Not added!")
-                        msgstr = "{0} identified by '{1}' was not found in " \
-                                "database. Please add {2} manually!"
-                        msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
-                        personmessages.append((messages.WARNING, msgstr))
-                        continue
-                else:
-                    print("🔍 DEBUG:    WARNING: No match found in local database. Not added!")
-                    print("🔍 DEBUG:    (LDAP access not activated in settings)")
-                    msgstr = "{0} identified by '{1}' was not found in " \
-                             "database. Please add {2} manually!"
-                    msgstr = msgstr.format(field[:-1].title(), s, field[:-1].lower())
-                    personmessages.append((messages.WARNING, msgstr))
-                    continue
-            else:
-                print("🔍 DEBUG:    DB match")
+                    exact_match = True
+                    logger.debug('Excel import:    directory match')
+            if not p:
+                problems.append((messages.ERROR, f"{role} '{s}' was not found in {where}."))
+                continue
         else:
-            # otherwise... this is just a name...
+            # A name
             pybtex_person = pybtexPerson(s)
 
             if not (pybtex_person.first() and pybtex_person.last()):
-                msgstr = "The {0} name '{1}' does not contain enough " \
-                         "information to add it to the database (must " \
-                         "contain at least given and sur names)."
-                msgstr = msgstr.format(field[:-1].lower(), s)
-                personmessages.append((messages.ERROR, msgstr))
+                problems.append((messages.ERROR,
+                                 f"{role} name '{s}' needs a given name and a surname "
+                                 f"('Given Surname'), or give a study number or initials."))
                 continue
 
-            print(f"🔍 DEBUG:    Processing person {id}: {pybtex_person}")
-
-            # Get existing persons using relaxed naming
+            # Existing persons with this name (exact, else relaxed) only flag the link.
             p, match = utils_person.get_person(pybtex_person=pybtex_person)
 
             if len(p) > 1:
-                # More than one exact return, flag multiple_match
                 multiple_match = True
             if match == 'db_exact' and len(p) > 0:
-                # if exact match flag exact_match
                 exact_match = True
             elif match == 'db_relaxed' and len(p) > 0:
-                # if relaxed match flag relaxed_match
                 relaxed_match = True
 
             # Create new person, also if matched
             p = utils_person.create_person_from_pybtex(pybtex_person=pybtex_person, user=user)
 
-        if p:
-            # add the person to the author/supervisor/editor-relationship
-            tmp = through_tbl(person=p[0],
-                              publication=pub,
-                              exact_match=exact_match,
-                              multiple_match=multiple_match,
-                              relaxed_match=relaxed_match,
-                              **{field[:-1]+'_id': id})
-            tmp.save()
+        through_tbl.objects.create(person=p[0],
+                                   publication=pub,
+                                   exact_match=exact_match,
+                                   multiple_match=multiple_match,
+                                   relaxed_match=relaxed_match,
+                                   **{field[:-1] + '_id': id})
 
-    return personmessages
-
-
-def add_topics_to_publication(topics, pub, user):
-    # Get list of topics already attached
-    # Iterate through posted topics
-    # Is topic in existing list: continue
-    # Is topic in database? add to m2m relationship
-    # Topics cannot be added if they do not exist... drop it
-    # remove any remaining model bound topics that were not in post
-
-    existing_model_topics = [t.topic for t in pub.publication_topics.all()]  # list of model bound topic
-
-    # An empty topic cell gives None: no topics (it raised AttributeError and stopped the import).
-    topics = [word.strip(string.punctuation) for word in (topics or '').split()]
-
-    for t in topics:
-        if CaseInsensitively(t) in existing_model_topics:
-            existing_model_topics.remove(CaseInsensitively(t))
-            continue
-
-        mt = models.Topic.objects.filter(topic__iexact=t)
-        if not mt:
-            mt = models.Topic(topic=t)
-            mt.save()
-            mt = [mt]
-
-        # add only the first topic returned
-        pub.publication_topics.add(mt[0])
-
-    # Now remove any remaining topic
-    if existing_model_topics:
-        for t in existing_model_topics:
-            pub.publication_topics.remove(pub.publication_topics.get(topic=t))
-
-    pub.save()
+    return problems
 
 
 # def xlsx_features(filepath):
