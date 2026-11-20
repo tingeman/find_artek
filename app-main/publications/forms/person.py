@@ -414,24 +414,6 @@ class PersonSelectForm(forms.Form):
     #     return selected_authors
 
 
-class AuthorSelectForm(PersonSelectForm):
-    person_type = "author"
-    def __init__(self, *args, authors=None, **kwargs):
-        super().__init__(*args, persons=authors, **kwargs)
-
-
-class SupervisorSelectForm(PersonSelectForm):
-    person_type = "supervisor"
-    def __init__(self, *args, supervisors=None, **kwargs):
-        super().__init__(*args, persons=supervisors, **kwargs)
-
-
-class EditorSelectForm(PersonSelectForm):
-    person_type = "editor"
-    def __init__(self, *args, editors=None, **kwargs):
-        super().__init__(*args, persons=editors, **kwargs)
-
-
 class AddPersonForm(forms.ModelForm):
     """Form for creating new Person instances"""
     

@@ -8,7 +8,7 @@ from .base import (
 )
 from .person import (
     AddPersonForm, PersonHeavySelect2TagWidget,
-    AuthorSelectForm, SupervisorSelectForm, EditorSelectForm, PersonSelectForm
+    PersonSelectForm
 )
 from .publication import (
     AddEditReportForm, AddEditReportFinalSaveForm, PublicationForm,

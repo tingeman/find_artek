@@ -36,10 +36,8 @@ urlpatterns = [
 
     # path('add/report/', views.AddEditReportView.as_view(), name='add_report'),
     # path('add/report/review/', views.AddEditReportReviewView.as_view(), name='review_add_report'),
-    # path('add/report/finalize/', views.AddEditReportView.as_view(), name='publication_final_save'),
     # path('report/<int:pk>/edit/', views.AddEditReportView.as_view(), name='edit_report'),
     # path('report/<int:pk>/edit/review/', views.AddEditReportReviewView.as_view(), name='review_edit_report'),
-    # path('report/<int:pk>/edit/finalize/', views.AddEditReportView.as_view(), name='edit_report_final_save'),
     path('report/<int:pk>/delete/', views.DeleteReportView.as_view(), name='delete_report'),
     path('report/<int:pk>/change-number/', views.ChangeReportNumberView.as_view(), name='change_report_number'),
     path('report/<int:report_pk>/add-feature-by-coordinates/', views.AddFeatureCoordinatesView.as_view(), name='add_feature_coordinates'),
@@ -47,7 +45,6 @@ urlpatterns = [
     path('report/<int:pub_id>/verify/', views.VerifyReportView.as_view(), name='verify_report'),
     path('report/<int:pub_id>/unverify/', views.UnverifyReportView.as_view(), name='unverify_report'),
     path("test/autocomplete/person/", views.PersonAutocompleteView.as_view(), name="person-autocomplete"),
-    path("select/persons/", views.PersonSelectView.as_view(), name="select-persons"),
     # path("ajax/next-report-number/", views.GetNextReportNumberView.as_view(), name="get_next_report_number"),
     
     # AJAX endpoints for person disambiguation workflow

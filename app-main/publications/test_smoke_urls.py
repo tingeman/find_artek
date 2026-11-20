@@ -139,7 +139,6 @@ SMOKE = {
                                           Redirect(report_page), method='post'),
 
     # --- publications: person workflow and ajax
-    'publications:select-persons': entry(None, LOGIN, 200, 200),
     # POST only; JSON 401 for anonymous users (test_write_access).
     'publications:add_person_ajax': entry(None, 401, 200, 200, method='post',
                                           data={'name': 'Smoke Newperson'}, extra=AJAX),

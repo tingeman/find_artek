@@ -50,7 +50,7 @@ from .register_from_file import xlsx_pubs
 from find_artek.search import get_query
 from publications.forms import (
     LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
-    PublicationForm, AuthorSelectForm, SupervisorSelectForm, DeleteReportForm,
+    PublicationForm, DeleteReportForm,
     AddFeatureByCoordinatesForm, AddFeatureByMap, PersonWorkflowMixin, 
     UploadAppendixForm, ChangeReportNumberForm
 )
@@ -446,7 +446,6 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
     Add needs add_publication, edit needs Publication.is_editable_by (permissions.py)."""
     model = Publication
     template_name = 'publications/add_edit_report.html'
-    select_persons_url = 'select-persons'
     
     def get_form_class(self):
         return WorkflowAddEditReportForm
@@ -1123,145 +1122,6 @@ class UnverifyReportView(_SetVerifiedView):
     """Unverify a report (it is hidden from anonymous users again)."""
     verified = False
     done = 'unverified'
-
-
-@method_decorator(login_required, name='dispatch')
-class PersonSelectView(BaseView):
-    template_name = 'publications/persons_select.html'
-    
-    def __init__(self, *args, **kwargs):
-        print('In PersonSelectView:__init__')
-        super().__init__(*args, **kwargs)
-
-    def get_session_config(self):
-        """Get session configuration based on the action parameter"""
-        action = self.request.GET.get('action', 'add')
-        
-        if action == 'edit':
-            return {
-                'session_key': 'edit_report_form_data',
-                'redirect_url': 'publications:edit_report_final_save',
-                'action': 'edit'
-            }
-        else:
-            return {
-                'session_key': 'add_report_form_data', 
-                'redirect_url': 'publications:publication_final_save',
-                'action': 'add'
-            }
-
-    def get(self, request):
-        print('In PersonSelectView:get')
-        
-        config = self.get_session_config()
-        session_data = self.request.session.get(config['session_key'], {})
-        authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])   
-
-        if authors:
-            authors_form = AuthorSelectForm(authors=authors)
-        else:
-            authors_form = None
-
-        if supervisors:
-            supervisors_form = SupervisorSelectForm(supervisors=supervisors)
-        else:
-            supervisors_form = None
-
-        return render(request, self.template_name, {
-            'authors_form': authors_form,
-            'supervisors_form': supervisors_form,
-            'action': config['action']
-        })
-
-    def post(self, request):
-        config = self.get_session_config()
-        session_data = self.request.session.get(config['session_key'], {})
-        authors = session_data.get('authors', [])
-        supervisors = session_data.get('supervisors', [])  
-
-        if authors:
-            authors_form = AuthorSelectForm(request.POST, authors=authors)
-        else:
-            authors_form = None
-
-        if supervisors:
-            supervisors_form = SupervisorSelectForm(request.POST, supervisors=supervisors)
-        else:
-            supervisors_form = None
-
-        author_form_valid = False
-        if (authors_form is not None) and (authors_form.is_valid()):
-            selected_authors = []
-            for key, value in authors_form.cleaned_data.items():
-                if key.startswith("author_"):
-                    if value == 'create_new':
-                        # Create a new Person instance
-                        name = authors[int(key.split('_')[1])]
-                        person = Person.objects.create(name=name)
-                        selected_authors.append(person.pk)
-                    else:
-                        # Use the selected Person primary key
-                        selected_authors.append(int(value))
-
-            # Update the session with the selected author primary keys
-            session_data['authors'] = selected_authors
-            author_form_valid = True
-        elif authors_form is not None:
-            print(f"PersonSelectView:post: authors_form not valid")
-        else:
-            print(f"PersonSelectView:post: authors_form is None")
-            author_form_valid = True
-
-        supervisor_form_valid = False
-        if (supervisors_form is not None) and (supervisors_form.is_valid()):
-            selected_supervisors = []
-            for key, value in supervisors_form.cleaned_data.items():
-                if key.startswith("supervisor_"):
-                    if value == 'create_new':
-                        # Create a new Person instance
-                        name = supervisors[int(key.split('_')[1])]
-                        person = Person.objects.create(name=name)
-                        selected_supervisors.append(person.pk)
-                    else:
-                        # Use the selected Person primary key
-                        selected_supervisors.append(int(value))
-
-            # Update the session with the selected supervisor primary keys
-            session_data['supervisors'] = selected_supervisors
-            supervisor_form_valid = True
-        elif supervisors_form is not None:
-            print(f"PersonSelectView:post: supervisors_form not valid")
-        else:
-            print(f"PersonSelectView:post: supervisors_form is None")
-            supervisor_form_valid = True
-
-        # Update the session data with the new author and supervisor selections
-        self.request.session[config['session_key']] = session_data
-        self.request.session.modified = True
-
-        if author_form_valid and supervisor_form_valid:
-            print(f"PersonSelectView:post: redirecting to {config['redirect_url']}")
-            return redirect(config['redirect_url'])
-        else:
-            print(f"PersonSelectView:post: forms are invalid, redirecting back to select_persons")
-            return render(request, self.template_name, {
-                'authors_form': authors_form,
-                'supervisors_form': supervisors_form,
-                'action': config['action']
-            })
-          
-
-
-
-
-
-
-
-          
-
-
-
 
 
 class PersonAutocompleteView(View):
