@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T2 (empty database, FA-R14): implementer, in the worktree.
+T3 (`USE_LDAP` from the environment, FA-R34): implementer, in the worktree.
 
 ## Done
 
+- T2 2026-11-20: `check` and `migrate` pass on an empty DB; Swagger topic list built lazily (drf-yasg renders `lazy` strings, list now current per request); `api.test_empty_database` (5 tests); `tests/run.sh` runs `check` on the empty MariaDB, no `--skip-checks`; suite 321 OK, 1 skipped; image tests 22/22 (implementer run) (`36abed0`).
 - T1 2026-11-20: `manage.py test` with no labels runs the whole suite (316 tests, OK, 1 skipped = the `/find` prefix test); old `tests.py`, stubs and `app-main/test_*.py` removed; shared helpers in `publications/test_factories.py`; CLAUDE.md, validate skill, `datatransfer_script.sh` updated (`f02e5ea`).
 - T0 2026-11-20: worktree and branch `agent-test-coverage` from `develop/main` (`3d69785`), `.dev.env` copied.
 - 2026-11-19: decision: `publications/tests.py` and the `app-main/test_*.py` scripts are deleted; their intent is re-covered with fixture tests.
