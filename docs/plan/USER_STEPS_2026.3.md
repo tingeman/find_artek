@@ -96,7 +96,7 @@ Rollback: put the `2026.2.1` entry back in `releases.yml` and rerun the playbook
 
 ## 6. Functional checks in the browser
 
-- [ ] Done. 2026-11-20: checks 1 and 2 passed; 7 open (AD groups had no members at the first login; members added 2026-11-20, waiting for AD replication); 3, 5, 6 not run yet. **Check 4 failed** (2026-11-20 00:05): with a PDF, "Create person" in the person step posted back to `report/add/` and showed an empty form; nothing saved, the PDF left in `media/temp/1795133116`. Cause: `file-upload.js` sends the form by XHR and copies the redirected page into the current one, so the person step's forms (no `action`) posted to the address bar URL. Fix `72e3242` on `agent-fixes` (2026.3.1).
+- [ ] Done. 2026-11-20: checks 1 and 2 passed; 7 open (AD groups had no members at the first login; members added 2026-11-20, waiting for AD replication); 3, 5, 6 not run yet. **Check 4 failed** (2026-11-20 00:05): with a PDF, "Create person" in the person step posted back to `report/add/` and showed an empty form; nothing saved, the PDF left in `media/temp/1795133116`. Cause: `file-upload.js` sends the form by XHR and copies the redirected page into the current one, so the person step's forms (no `action`) posted to the address bar URL. Fix `84a5273` (2026.3.1); checks 3-7 continue in [USER_STEPS_2026.3.1.md](USER_STEPS_2026.3.1.md).
 
 1. Logged out: a person page shows no study number and no student e-mail; no "Add" menu; `/find/publications/report/add/` sends you to the DTU login.
 2. Log in with your own account, then the admin user page (`/find/admin/auth/user/`): your user has group `dtu_user`, first/last name and e-mail filled in. If not, look for a `publications.roles` warning in `sudo docker logs webapp-find-artek` (AD lookup failed).
