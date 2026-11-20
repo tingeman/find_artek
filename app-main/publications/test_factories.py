@@ -4,6 +4,8 @@ No tests here (discovery imports the module because of its name and finds no Tes
 Everything is made up: no names, study numbers or files from the real database.
 """
 
+from types import SimpleNamespace
+
 from django.contrib.auth.models import Group, User
 from django.urls import get_script_prefix, reverse
 
@@ -78,3 +80,13 @@ def make_report(pubtype, number, *, verified, confidential, title=None, year=199
         Keywordship.objects.create(
             publication=pub, keyword=Keyword.objects.get_or_create(keyword=name)[0])
     return pub
+
+
+def ldap_entry(sn, given_name, *, company='DTU', name='', title=None, employee_id=None,
+               department=None, initials=None):
+    """A fake ldap3 directory entry (for a mocked find_ldap_person): every attribute has a
+    ``.value`` as in ldap3. company 'Studerende' with ``name`` = study number is a student;
+    a ``title`` makes an employee (employee_id, department)."""
+    values = dict(sn=sn, givenName=given_name, company=company, name=name, title=title,
+                  employeeID=employee_id, department=department, initials=initials)
+    return SimpleNamespace(**{key: SimpleNamespace(value=value) for key, value in values.items()})

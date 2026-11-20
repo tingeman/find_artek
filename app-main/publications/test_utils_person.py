@@ -6,22 +6,13 @@ in the directory. The directory is never contacted: find_ldap_person is mocked a
 fake entries. All names, study numbers and initials are made up.
 """
 
-from types import SimpleNamespace
 from unittest import mock
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from publications import utils_person
 from publications.models import Person
-from publications.test_factories import make_person, make_user
-
-
-def ldap_entry(sn, given_name, *, company='DTU', name='', title=None, employee_id=None,
-               department=None, initials=None):
-    """A fake ldap3 entry: every attribute has a ``.value`` as in ldap3."""
-    values = dict(sn=sn, givenName=given_name, company=company, name=name, title=title,
-                  employeeID=employee_id, department=department, initials=initials)
-    return SimpleNamespace(**{key: SimpleNamespace(value=value) for key, value in values.items()})
+from publications.test_factories import ldap_entry, make_person, make_user
 
 
 def student_entry(study_number, sn='Zqdent', given_name='Stu'):
@@ -319,3 +310,64 @@ class LdapEntryToPersonTests(_UserCase):
         self.assertEqual((person.first, person.last, person.position),
                          ('Stu', 'Zqnew', 'student'))
         self.assertEqual(person.modified_by, self.user)
+
+
+class LdapEntryMatchingTests(_UserCase):
+    """get_or_create_person_from_ldap with an entry that has both an id_number and initials:
+    an existing person matches when both match, or one matches and the other is empty in the
+    database. A person never matches only because one of their fields is empty (before the
+    fix, every person with empty initials or an empty id_number matched)."""
+
+    def entry(self):
+        return ldap_entry('Zqvisor', 'Su', title='Lektor', employee_id='99001',
+                          department='Zq Dept', initials='zqsa')
+
+    def get_or_create(self, entry=None):
+        [person] = utils_person.get_or_create_person_from_ldap(
+            ldap_object=entry or self.entry(), user=self.user)
+        return person
+
+    def assertNewPerson(self, person, *unrelated):
+        self.assertNotIn(person, unrelated)
+        self.assertEqual((person.id_number, person.initials, person.last),
+                         ('99001', 'zqsa', 'Zqvisor'))
+        self.assertEqual(person.created_by, self.user)
+
+    def test_unrelated_persons_with_empty_fields_are_not_matched(self):
+        no_initials = make_person('Un', 'Zqrel', id_number='s990100')
+        no_id_number = make_person('Ot', 'Zqher', initials='zqot')
+        self.assertNewPerson(self.get_or_create(), no_initials, no_id_number)
+
+    def test_same_id_number_other_initials_is_not_matched(self):
+        other = make_person('Su', 'Zqvisor', id_number='99001', initials='zqxx')
+        self.assertNewPerson(self.get_or_create(), other)
+
+    def test_same_initials_other_id_number_is_not_matched(self):
+        other = make_person('Su', 'Zqvisor', id_number='88001', initials='zqsa')
+        self.assertNewPerson(self.get_or_create(), other)
+
+    def test_exact_match(self):
+        existing = make_person('Su', 'Zqvisor', id_number='99001', initials='zqsa')
+        self.assertEqual(self.get_or_create(), existing)
+
+    def test_id_number_match_with_empty_initials(self):
+        existing = make_person('Su', 'Zqvisor', id_number='99001')
+        self.assertEqual(self.get_or_create(), existing)
+
+    def test_initials_match_with_empty_id_number(self):
+        existing = make_person('Su', 'Zqvisor', initials='zqsa')
+        self.assertEqual(self.get_or_create(), existing)
+
+    def test_exact_match_is_preferred(self):
+        make_person('Su', 'Zqvisor', initials='zqsa')
+        make_person('Su', 'Zqvisor', id_number='99001')
+        exact = make_person('Su', 'Zqvisor', id_number='99001', initials='zqsa')
+        self.assertEqual(self.get_or_create(), exact)
+
+    def test_entry_without_id_number_and_initials_matches_nobody(self):
+        # Before the fix, the empty query matched every person and returned one of them.
+        existing = make_person('Any', 'Zqbody', id_number='s990101', initials='zqab')
+        person = self.get_or_create(ldap_entry('Zqnone', 'No'))
+        self.assertNotEqual(person, existing)
+        self.assertEqual((person.last, person.id_number, person.initials),
+                         ('Zqnone', '', ''))

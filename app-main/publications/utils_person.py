@@ -686,27 +686,25 @@ def get_or_create_person_from_ldap(ldap_object=None, user=None, save=True):
     initials = kwargs.get('initials', '')
 
     # Build query to find existing person
-    q = Q()
     if id_number and initials:
-        # Match entries where both id_number and initials match the provided values
-        # or where one of them is empty or null (in the database), return entries
-        # that match the non-null attribute.
-        q = (Q(id_number=id_number) & Q(initials=initials)) |   \
-            (Q(id_number=id_number) | (Q(initials='') | Q(initials__isnull=True))) |   \
-            (Q(initials=initials) | (Q(id_number='') | Q(id_number__isnull=True)))
+        # A person matches when both id_number and initials match, or when one of them
+        # matches and the other is empty or null in the database. An empty field alone
+        # never matches. An exact match on both is preferred.
+        exact = Q(id_number=id_number) & Q(initials=initials)
+        q = exact | \
+            (Q(id_number=id_number) & (Q(initials='') | Q(initials__isnull=True))) | \
+            (Q(initials=initials) & (Q(id_number='') | Q(id_number__isnull=True)))
+        p = models.Person.objects.filter(exact) or models.Person.objects.filter(q)
     elif id_number:
         # if only id_number is provided, match on that
-        q = Q(id_number=id_number)
+        p = models.Person.objects.filter(id_number=id_number)
     elif initials:
         # if only initials is provided, match on that
-        q = Q(initials=initials)
+        p = models.Person.objects.filter(initials=initials)
     else:
-        # if neither id_number nor initials is provided, we cannot match on anything
-        q = Q()
-
-    # Now filter the Person model with the query
-    # This will return a queryset of Person objects that match the query
-    p = models.Person.objects.filter(q)
+        # Neither id_number nor initials: nothing to match on, so no existing person
+        # (the former empty Q() matched every person and returned an arbitrary one).
+        p = models.Person.objects.none()
 
     # If we don't have any matches, create a new Person object
     # and set the created_by and modified_by fields to the user

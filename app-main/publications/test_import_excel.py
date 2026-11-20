@@ -21,7 +21,9 @@ from django.test import TestCase, override_settings
 from publications import register_from_file
 from publications.models import Person, Publication, PubType
 from publications.roles import ARTEK_EDITOR
-from publications.test_factories import make_person, make_report, make_user, page_path
+from publications.test_factories import (
+    ldap_entry, make_person, make_report, make_user, page_path,
+)
 
 HEADER = ['number', 'year', 'title', 'type', 'topic', 'authors', 'supervisors']
 
@@ -219,3 +221,22 @@ class XlsxUploadPageTests(_ExcelCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Only .xlsx files are supported.', response.context['form'].errors['file'])
         self.assertFalse(Publication.objects.exists())
+
+
+@override_settings(USE_LDAP=True)
+class XlsxImportLdapMatchTests(_ExcelCase):
+
+    def test_supervisor_from_directory_is_not_linked_to_a_person_with_empty_initials(self):
+        # The database has a student with empty initials (cls.student). Before the fix of
+        # get_or_create_person_from_ldap, the supervisor found in the directory by initials
+        # was linked to that student.
+        entry = ldap_entry('Zqvisor', 'Ny', title='Lektor', employee_id='99002',
+                           department='Zq Dept', initials='zqny')
+        with mock.patch('publications.utils_person.find_ldap_person',
+                        return_value=[entry]) as find:
+            self.import_sheets({'Reports': [HEADER, row('99-01', 1999, 'T', '', 'zqny')]})
+        find.assert_called_once_with(initials='zqny')
+        [supervisor] = self.supervisors(Publication.objects.get(number='99-01'))
+        self.assertNotEqual(supervisor, self.student)
+        self.assertEqual((supervisor.initials, supervisor.id_number, supervisor.last),
+                         ('zqny', '99002', 'Zqvisor'))
