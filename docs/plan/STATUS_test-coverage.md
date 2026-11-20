@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T9 done. Next: fast-forward `develop/main` to `agent-test-coverage` (needs your permission), then T10 release (you) with T8 (PDF upload in production) after the deploy.
+T10 release 2026.5: tagged, built, published and in web_server `releases.yml` (`6b0304d`). Next (you): deploy and the checks in [USER_STEPS_2026.5.md](USER_STEPS_2026.5.md) steps 5-7 (step 7 = T8, PDF upload). Then the main session closes the plan (Finish).
 
 ## Done
 
+- T10 (part) 2026-11-20: `develop/main` fast-forwarded to `60bec29`, tag `2026.5` (local), bundle built and tested (22/22, Django 538 OK), on the releases share, web_server `releases.yml` committed (`6b0304d`).
 - T9 follow-up 2026-11-20: suite 60 s -> 23 s (dev), gate 2m11 -> 1m32: test users without password (212 PBKDF2 hashes of ~0.16 s; all tests use `force_login`), `--buffer`, debug `print` in `BaseView` removed. `--parallel` rejected: needs `mysqldump` in the production image (gate checks no admin tools). Dev 538 OK, 1 skipped; image tests 22/22 (`a3ac558`).
 - T9 2026-11-20: `tests/run.sh` runs the whole discovered suite (no `DJANGO_TEST_LABELS`), production settings; docs and skills updated; three `test_import_excel` upload-page tests fixed for the `/find` prefix (followed the prefixed redirect as a path, 404) and `test_report_thumbnail_link` import fixed after the merge (`8b1e4fd`); failure summary shows FAIL/ERROR lines only. Dev 538 OK, 1 skipped; image tests 22/22, Django 538 OK; full gate ~6 min (`b21c38f`).
 - T7b 2026-11-20: Excel import checked and all or nothing (one transaction, problems listed by sheet and row), existing numbers skipped, column aliases, title may be empty, editors optional, existing topics only, keywords imported, year rule 90-99 = 19YY; new template `static/publications/docs/ARTEK_report_list.xlsx` with a Help sheet (the page link was broken: file missing, `{{STATIC_URL}}` empty) (`e549ecd`). Suite 536 OK, 1 skipped; coverage 71.0 % (register_from_file 97.3).
