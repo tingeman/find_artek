@@ -36,6 +36,7 @@ Status: **approved 2026-11-19**. Roadmap: Phase 2; FA-R40, FA-R44, FA-R14, FA-R3
 
 ## Assumptions
 
+- T7b: a two-digit year in a report number above the current two-digit year means 19YY, otherwise 20YY (numbers in the data start at `96`). Debug `print` calls in the import are replaced by `logger.debug` where the code is touched. The import stays Excel only.
 - Phase 2 adds tests and fixes bugs it finds within the rule above; it doesn't refactor views (FA-R66) or upgrade Django (Phase 3).
 - The smoke table's expected statuses are today's behaviour after PLAN_confidential; a status that looks wrong is a bug under the rule above, not silently encoded.
 - `publications_meta` gets smoke tests for its one view and nothing else.
@@ -95,6 +96,23 @@ After `agent-confidential` is merged: `git worktree add -b agent-test-coverage .
 - Validation: `validate`; full suite with coverage.
 - Agent: implementer.
 - Deployment impact: none.
+
+### T7b. Excel import: checked, all or nothing (added 2026-11-20)
+Decided with you 2026-11-20, for the upcoming release (the import is important for daily work). Found in T7: an extra column or an unknown type aborts the import halfway (rows before it stay, the page says "could not be read"); a re-upload duplicates every report under new numbers; topics are split on spaces and unknown words created; keywords are dropped; the template linked from the upload page is missing from the static files (404) and its columns (`author`, `supervisor`, no `year`) are refused by the parser.
+- Behaviour:
+  - **All or nothing**: the whole file is imported in one transaction. If any row has an error, nothing is saved (no reports, persons, topics, keywords, LDAP persons), and the page lists every problem as "Sheet '<name>', row <n>: <problem>". Without errors, the page reports what was created and skipped per sheet.
+  - **Columns**: header names are case-insensitive, singular or plural (`author`/`authors`, `supervisor`/`supervisors`, `comment`/`comments`, `keyword`/`keywords`, `topic`/`topics`). Required: `title`, `authors`, and `number` or `year` (columns; per row, a number or a year is required). Optional: `type` (default `STUDENTREPORT`), `topic`, `supervisors`, `abstract`, `keywords`, `comment`. Unknown columns: warning naming them, ignored. A sheet without the required columns: error.
+  - **Existing report number**: the row is skipped with a warning naming the existing report; the existing report is not changed. The same number twice in one file: error.
+  - **Type**: unknown type or a non-report type: row error listing the accepted types.
+  - **Topics**: split on comma or semicolon; existing topics only, matched case-insensitively; an unknown topic is a row error listing the valid topics.
+  - **Keywords**: split on comma or semicolon; existing keywords reused case-insensitively, new ones created (as in the form).
+  - **Persons**: study number or initials that can't be found (DB, then the directory when `USE_LDAP`) is a row error. Plain names: today's behaviour (always a new person, link flagged exact/relaxed/multiple match). A name with too little information (no given name): row error.
+  - **New template** `ARTEK_report_list.xlsx` in the repository's static files (`publications/static/publications/docs/`), columns `number, year, title, type, topic, authors, supervisors, abstract, keywords, comment`, with a second sheet or cell comments explaining each column; the upload page's short help text describes the columns and the all-or-nothing rule.
+- Files: `publications/register_from_file.py`, `views.py` (`AddReportsFromFileUploadView`, messages only if needed), `templates/publications/add_reports_from_file_upload.html`, the template file, `test_import_excel.py`.
+- Tests: each rule above; a file with one bad row among good rows saves nothing (no Publication, Person, Topic, Keyword rows added); re-upload of the same file creates nothing and warns per row; several rows with only a year get distinct numbers; the shipped template's headers are accepted by the parser (keeps template and parser in step); the upload page as editor.
+- Validation: `validate`; full suite with coverage.
+- Agent: implementer.
+- Deployment impact: none to the contract. The template is a new static file, published by `collectstatic` in the release; functional check after the release: the template link on `/find/` upload page downloads the file.
 
 ### T8. PDF upload in production (FA-R12, you)
 Upload a large PDF (~50 MB) through the edit form on production with a test report, after 2026.3 is deployed. If it fails, note the size, the error page and the time; the main session then checks Django's upload settings and web_server's nginx `client_max_body_size` / timeouts and writes a test for the Django part.

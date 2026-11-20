@@ -4,7 +4,7 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T9 (gate runs the full suite): implementer, in the worktree; merge `develop/main` into `agent-test-coverage` first (thumbnail fix `4f45f6d`). T8 (PDF upload in production) waits for the release.
+T7b (Excel import, all or nothing, added 2026-11-20 for this release): implementer, in the worktree, once you approve the task. Then T9 (merge `develop/main` first).
 
 ## Done
 
@@ -47,7 +47,6 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 ## Notes for the next session
 
 - For the roadmap at Finish (decided 2026-11-20, from T7):
-  - New FA-R item, Excel import robustness: an extra column (e.g. `comments`; the field is `comment`) or an unknown `type` aborts the import; there is no transaction, so earlier rows stay; the `keywords` column is ignored; a re-import duplicates reports under new numbers, so the update branch (`register_from_file.py` ~168-198) is unreachable; a number starting `90-` gets the year 2090.
   - New FA-R item (FA-R41 style), dead code: `utils_person.get_person_from_string`, `get_from_*`, `get_from_namestring`, `add_persons_to_publication` (broken), `choose_person`; only tests call them. Also the four remaining commented `AddEditReportView` lines in `urls.py`.
   - FA-R70 addition: `cleanup_temp_files` leaves the `FileObject` row of a deleted temp file, and it deletes an upload older than max-age even while that form is still open.
   - Live data check (roadmap): imports with LDAP on may have linked wrong persons (the `get_or_create_person_from_ldap` bug); not checked.
