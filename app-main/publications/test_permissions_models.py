@@ -23,8 +23,9 @@ from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.test import TestCase
 
 from publications.models import (
-    Authorship, Editorship, Feature, Person, Publication, PubType, Supervisorship,
+    Authorship, Editorship, Feature, Person, Publication, Supervisorship,
 )
+from publications.test_factories import report_type
 
 
 def _user(username, *codenames, superuser=False):
@@ -44,7 +45,7 @@ class PublicationPermissionTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
         cls.pub = Publication.objects.create(
             type=pubtype, title='Own report', number='99-01', year=1999)
         cls.other_pub = Publication.objects.create(
@@ -157,7 +158,7 @@ class FeaturePermissionTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
         cls.pub = Publication.objects.create(
             type=pubtype, title='Listed report', number='99-01', year=1999)
         cls.other_pub = Publication.objects.create(

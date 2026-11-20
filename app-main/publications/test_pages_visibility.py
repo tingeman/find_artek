@@ -12,16 +12,15 @@ The expected answers are written out by hand (not computed from the code under t
 import datetime
 
 from django.conf import settings
-from django.contrib.auth.models import Group, User
 from django.shortcuts import resolve_url
 from django.test import TestCase
 from django.urls import reverse
 
 from publications.models import (
-    Authorship, Feature, FileObject, ImageObject, ImageObjectship, Person, Publication, PubType,
+    Authorship, Feature, FileObject, ImageObject, ImageObjectship, Person,
 )
-from publications.roles import ARTEK_EDITOR, ARTEK_STAFF, DTU_USER
-from publications.test_upload_appendix_access import _app_path
+from publications.roles import ARTEK_EDITOR, ARTEK_STAFF
+from publications.test_factories import app_path, make_report, make_user, report_type
 
 # Reports of the fixture (by number); their titles are 'Hidden-check title <number>'.
 P = '98-01'    # public: verified, not confidential
@@ -74,12 +73,11 @@ class PageVisibilityTestBase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
 
         def report(number, verified, confidential):
-            return Publication.objects.create(
-                type=pubtype, number=number, title=title(number), year=1998,
-                verified=verified, confidential=confidential)
+            return make_report(pubtype, number, verified=verified, confidential=confidential,
+                               title=title(number), year=1998)
 
         cls.pubs = {
             P: report(P, verified=True, confidential=False),
@@ -97,24 +95,13 @@ class PageVisibilityTestBase(TestCase):
             feature.publications.set([cls.pubs[n] for n in numbers])
             cls.features[name] = feature
 
-        groups = {name: Group.objects.get(name=name)
-                  for name in (DTU_USER, ARTEK_STAFF, ARTEK_EDITOR)}
-
-        def user(username, *group_names, superuser=False):
-            if superuser:
-                u = User.objects.create_superuser(username, password='x')
-            else:
-                u = User.objects.create_user(username, password='x')
-            u.groups.add(groups[DTU_USER], *(groups[g] for g in group_names))
-            return u
-
         cls.users = {
             'anonymous': None,
-            'dtu': user('s980999'),                       # not listed
-            'author': user('S980001'),                    # author (id_number, other case)
-            'staff': user('stfx', ARTEK_STAFF),           # not listed
-            'artek_editor': user('edtx', ARTEK_EDITOR),   # not listed
-            'superuser': user('root98', superuser=True),
+            'dtu': make_user('s980999'),                       # not listed
+            'author': make_user('S980001'),                    # author (id_number, other case)
+            'staff': make_user('stfx', ARTEK_STAFF),           # not listed
+            'artek_editor': make_user('edtx', ARTEK_EDITOR),   # not listed
+            'superuser': make_user('root98', superuser=True),
         }
 
     def get_as(self, user_key, url_name, pk):
@@ -122,7 +109,7 @@ class PageVisibilityTestBase(TestCase):
         user = self.users[user_key]
         if user is not None:
             self.client.force_login(user)
-        return self.client.get(_app_path(reverse(f'publications:{url_name}', kwargs={'pk': pk})))
+        return self.client.get(app_path(reverse(f'publications:{url_name}', kwargs={'pk': pk})))
 
     def assertStatus(self, response, expected):
         if expected == 302:

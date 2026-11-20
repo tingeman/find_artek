@@ -7,7 +7,8 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 
-from publications.models import Publication, PubType
+from publications.models import Publication
+from publications.test_factories import report_type
 
 APP = 'publications'
 BEFORE = [(APP, '0003_registration_groups')]
@@ -20,13 +21,13 @@ class ConfidentialFieldTests(TestCase):
         self.assertFalse(Publication().confidential)
 
     def test_saved_publication_defaults_to_false(self):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
         pub = Publication.objects.create(type=pubtype, title='New report', year=2026)
         pub.refresh_from_db()
         self.assertFalse(pub.confidential)
 
     def test_flag_can_be_set(self):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
         pub = Publication.objects.create(
             type=pubtype, title='Secret report', year=2026, confidential=True)
         pub.refresh_from_db()

@@ -6,13 +6,12 @@
 - An invalid ``q`` is a 400 (it returned a Response from inside ``get_queryset`` before).
 - Every report carries the read-only flag ``confidential``.
 """
-from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 
-from publications.models import Authorship, Person, Publication, PubType
-from publications.roles import ARTEK_EDITOR, DTU_USER
-from publications.test_upload_appendix_access import _app_path
+from publications.models import Authorship, Person
+from publications.roles import ARTEK_EDITOR
+from publications.test_factories import app_path, make_report, make_user, report_type
 
 P, U, C, CU, CO = '99-01', '99-02', '99-03', '99-04', '99-05'
 ALL = {P, U, C, CU, CO}
@@ -22,12 +21,11 @@ class ReportApiVisibilityTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
 
         def report(number, verified, confidential):
-            return Publication.objects.create(
-                type=pubtype, number=number, title=f'Title of {number}', year=1999,
-                verified=verified, confidential=confidential)
+            return make_report(pubtype, number, verified=verified, confidential=confidential,
+                               title=f'Title of {number}')
 
         cls.pubs = {
             P: report(P, True, False),
@@ -44,20 +42,12 @@ class ReportApiVisibilityTests(TestCase):
         Authorship.objects.create(publication=cls.pubs[P], person=other, author_id=1)
         cls.author = author
 
-        dtu = Group.objects.get(name=DTU_USER)
-        editor = Group.objects.get(name=ARTEK_EDITOR)
-
-        def user(username, *groups):
-            u = User.objects.create_user(username, password='x')
-            u.groups.add(dtu, *groups)
-            return u
-
         cls.users = {
-            'dtu': user('s990999'),
-            'author': user('S990001'),
-            'artek_editor': user('edit', editor),
+            'dtu': make_user('s990999'),
+            'author': make_user('S990001'),
+            'artek_editor': make_user('edit', ARTEK_EDITOR),
         }
-        cls.list_path = _app_path(reverse('api:report-list'))
+        cls.list_path = app_path(reverse('api:report-list'))
 
     EXPECTED = {
         'anonymous': {P},
@@ -72,7 +62,7 @@ class ReportApiVisibilityTests(TestCase):
             self.client.force_login(self.users[key])
 
     def detail_path(self, pub):
-        return _app_path(reverse('api:report-detail', kwargs={'pk': pub.pk}))
+        return app_path(reverse('api:report-detail', kwargs={'pk': pub.pk}))
 
     def list_numbers(self, **params):
         response = self.client.get(self.list_path, params)
@@ -108,7 +98,7 @@ class ReportApiVisibilityTests(TestCase):
                         self.assertNotIn(f'Title of {number}', response.content.decode())
 
     def test_detail_of_unknown_report_is_404(self):
-        response = self.client.get(_app_path(reverse('api:report-detail', kwargs={'pk': 999999})))
+        response = self.client.get(app_path(reverse('api:report-detail', kwargs={'pk': 999999})))
         self.assertEqual(response.status_code, 404)
 
     def test_anonymous_list_contains_no_hidden_titles(self):

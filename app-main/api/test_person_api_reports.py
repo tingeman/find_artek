@@ -13,8 +13,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from api.serializers import PersonSerializer
-from publications.models import Authorship, Person, Publication, PubType, Supervisorship
-from publications.test_upload_appendix_access import _app_path
+from publications.models import Authorship, Person, Publication, Supervisorship
+from publications.test_factories import app_path, report_type
 from publications.roles import ARTEK_EDITOR
 from publications.visibility import visible_publications
 
@@ -23,7 +23,7 @@ class PersonApiReportVisibilityTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
 
         def report(number, title, verified, confidential=False):
             return Publication.objects.create(
@@ -49,10 +49,10 @@ class PersonApiReportVisibilityTests(TestCase):
         cls.listed_user = User.objects.create_user('SVSU', password='x')
         cls.editor = User.objects.create_user('edit', password='x')
         cls.editor.groups.add(Group.objects.get(name=ARTEK_EDITOR))
-        cls.list_path = _app_path(reverse('api:person-list'))
+        cls.list_path = app_path(reverse('api:person-list'))
 
     def _detail_path(self, person):
-        return _app_path(reverse('api:person-detail', kwargs={'pk': person.pk}))
+        return app_path(reverse('api:person-detail', kwargs={'pk': person.pk}))
 
     def _numbers(self, entries):
         return sorted(entry['number'] for entry in entries)
@@ -131,7 +131,7 @@ class PersonApiReportVisibilityTests(TestCase):
                          ['99-01', '99-02', '99-03', '99-04'])
 
     def test_report_api_behaviour_unchanged(self):
-        path = _app_path(reverse('api:report-list'))
+        path = app_path(reverse('api:report-list'))
         anonymous = self.client.get(path, {'author_id': self.author.pk})
         self.assertEqual(anonymous.status_code, 200)
         self.assertEqual(self._numbers(anonymous.json()), ['99-01'])

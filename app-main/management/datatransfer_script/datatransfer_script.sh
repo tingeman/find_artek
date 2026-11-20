@@ -212,6 +212,6 @@ python ${APP_ROOT}/manage.py makemigrations publications && python ${APP_ROOT}/m
 # Echo in green text 'starting unittest', sleep for 1 second, then echo in green text 'finished unittest'
 echo -e "\e[32mstarting unittest\e[0m"
 sleep 1
-python ${APP_ROOT}/manage.py test publications.tests
+python ${APP_ROOT}/manage.py test publications
 # ---------------- Refactor models ends here ---------------- #
 # ---------------- # PROBLEM 2 ENDS HERE # ---------------- #

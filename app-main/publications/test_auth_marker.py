@@ -10,24 +10,19 @@ import re
 
 from django.contrib.auth.models import User
 from django.test import TestCase
-from django.urls import get_script_prefix, reverse
+from django.urls import reverse
+
+from publications.test_factories import app_path
 
 MARKER_RE = re.compile(r'<meta name="auth-marker" content="([^"]*)">')
-
-
-def _app_path(url):
-    """The path the test client must request for a reversed URL (see test_menu.py:
-    reverse() includes FORCE_SCRIPT_NAME, PATH_INFO doesn't)."""
-    prefix = get_script_prefix()
-    return '/' + url[len(prefix):] if url.startswith(prefix) else url
 
 
 class AuthMarkerTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.reports_path = _app_path(reverse('publications:reports'))
-        cls.frontpage_path = _app_path(reverse('publications:frontpage'))
+        cls.reports_path = app_path(reverse('publications:reports'))
+        cls.frontpage_path = app_path(reverse('publications:frontpage'))
         # A long explicit id, so "the id doesn't appear in the hex marker" is a meaningful check
         # (a one-digit id would appear in most hex strings by chance).
         cls.user = User.objects.create_user('s990042', password='x', id=987654321)

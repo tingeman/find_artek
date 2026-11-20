@@ -23,10 +23,8 @@ from unittest import mock
 from django.urls import reverse
 
 from publications.models import Person, Publication
-from publications.test_report_form import (
-    ReportFormTestBase, _failing_after_handle_files, _path,
-)
-from publications.test_upload_appendix_access import _app_path
+from publications.test_factories import app_path, page_path
+from publications.test_report_form import ReportFormTestBase, _failing_after_handle_files
 from publications.views import ReportFinalizeView, get_report_form_data, report_form_target
 from publications.workflows.person import get_person_matches
 
@@ -48,21 +46,21 @@ class ReportFormPersonTestBase(ReportFormTestBase):
                              f'expected a redirect, got {response.status_code}')
             location = response['Location']
             if location == step_url:
-                page = self.client.get(_app_path(location))
+                page = self.client.get(app_path(location))
                 self.assertEqual(page.status_code, 200)
                 name = page.context['clean_name']
                 steps.append((page.context['field_name'], name))
                 choice = choices[name]
                 if choice == NEW:
-                    response = self.client.post(_app_path(location), {'action': 'create_new'})
+                    response = self.client.post(app_path(location), {'action': 'create_new'})
                 else:
                     offered = {p.pk for p in page.context['exact_matches']}
                     offered |= {p.pk for p in page.context['relaxed_matches']}
                     self.assertIn(choice.pk, offered, f'{choice} not offered for "{name}"')
-                    response = self.client.post(_app_path(location), {
+                    response = self.client.post(app_path(location), {
                         'action': 'select_existing', 'person_id': str(choice.pk)})
             elif location == complete_url:
-                response = self.client.get(_app_path(location))
+                response = self.client.get(app_path(location))
             else:
                 return response, steps
         self.fail('the person workflow did not end')
@@ -82,7 +80,7 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
 
     def test_typed_new_author_and_supervisor_are_created_on_save(self):
         persons_before = Person.objects.count()
-        response = self.client.post(_path('add_report'), self.form_data(
+        response = self.client.post(page_path('add_report'), self.form_data(
             authors=[str(self.author1.pk), 'Jane Newcomer', str(self.author2.pk)],
             supervisors=['Neusup, Carl', str(self.supervisor.pk)],
         ))
@@ -95,12 +93,12 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         self.assertIsNotNone(get_report_form_data(self.client.session, 'add'))
         self.assertEqual(Person.objects.count(), persons_before)
 
-        review = self.client.get(_path('add_report_review'))
+        review = self.client.get(page_path('add_report_review'))
         self.assertEqual(review.status_code, 200)
         self.assertContains(review, 'Jane Newcomer')
         self.assertContains(review, 'Neusup')
 
-        response, _ = self.finalize(_path('add_report_finalize'))
+        response, _ = self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': pub.pk}),
                              fetch_redirect_response=False)
@@ -115,7 +113,7 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
 
     def test_typed_name_of_existing_person_is_reused(self):
         persons_before = Person.objects.count()
-        response = self.client.post(_path('add_report'), self.form_data(
+        response = self.client.post(page_path('add_report'), self.form_data(
             authors=['Ann Author', str(self.author2.pk)],
             supervisors=[str(self.supervisor.pk)],
         ))
@@ -124,7 +122,7 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         self.assertRedirects(response, reverse('publications:add_report_review'),
                              fetch_redirect_response=False)
 
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual(self.authors_of(pub), [self.author1, self.author2])
         self.assertEqual(self.supervisors_of(pub), [self.supervisor])
@@ -132,10 +130,10 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
 
     def test_same_new_name_as_author_and_supervisor_is_one_person(self):
         persons_before = Person.objects.count()
-        response = self.client.post(_path('add_report'), self.form_data(
+        response = self.client.post(page_path('add_report'), self.form_data(
             authors=['Jane Newcomer'], supervisors=['Jane Newcomer']))
         self.walk_workflow(response, {'Jane Newcomer': NEW})
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         jane = Person.objects.get(last='Newcomer')
         self.assertEqual(self.authors_of(pub), [jane])
@@ -144,19 +142,19 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
 
     def test_failed_save_leaves_no_new_person(self):
         persons_before = Person.objects.count()
-        response = self.client.post(_path('add_report'), self.form_data(
+        response = self.client.post(page_path('add_report'), self.form_data(
             authors=['Jane Newcomer'], supervisors=['Neusup, Carl']))
         self.walk_workflow(response, {'Jane Newcomer': NEW, 'Neusup, Carl': NEW})
 
         with mock.patch.object(ReportFinalizeView, '_handle_files', _failing_after_handle_files()):
-            response, _ = self.finalize(_path('add_report_finalize'))
+            response, _ = self.finalize(page_path('add_report_finalize'))
         self.assertRedirects(response, reverse('publications:add_report_review'),
                              fetch_redirect_response=False)
         self.assertFalse(Publication.objects.exists())
         self.assertEqual(Person.objects.count(), persons_before)
 
         # The data is still there: the retry saves the report with both new persons.
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual([p.last for p in self.authors_of(pub)], ['Newcomer'])
         self.assertEqual([p.last for p in self.supervisors_of(pub)], ['Neusup'])
@@ -167,9 +165,9 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         it): finalize saves nothing and sends the user through the workflow first."""
         persons_before = Person.objects.count()
         # The form starts the workflow; the user leaves it and posts the review page instead.
-        self.client.post(_path('add_report'), self.form_data(authors=['Jane Newcomer']))
+        self.client.post(page_path('add_report'), self.form_data(authors=['Jane Newcomer']))
 
-        response, _ = self.finalize(_path('add_report_finalize'))
+        response, _ = self.finalize(page_path('add_report_finalize'))
         self.assertFalse(Publication.objects.exists())
         response, steps = self.walk_workflow(response, {'Jane Newcomer': NEW})
         self.assertEqual(steps, [('authors', 'Jane Newcomer')])
@@ -177,7 +175,7 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
                              fetch_redirect_response=False)
         self.assertEqual(Person.objects.count(), persons_before)
 
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual([p.last for p in self.authors_of(pub)], ['Newcomer'])
 
@@ -185,8 +183,8 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
     def test_step_offers_no_use_as_is_and_ignores_the_old_skip_action(self):
         """'Use As-Is (Create Later)' was removed (2026-11-19): the step page has no such
         button, and a posted action 'skip' resolves nothing (the same step is shown again)."""
-        step_path = _app_path(reverse('publications:disambiguate_person_step'))
-        self.client.post(_path('add_report'), self.form_data(authors=['Jane Newcomer']))
+        step_path = app_path(reverse('publications:disambiguate_person_step'))
+        self.client.post(page_path('add_report'), self.form_data(authors=['Jane Newcomer']))
         page = self.client.get(step_path)
         self.assertEqual(page.status_code, 200)
         self.assertNotContains(page, 'value="skip"')
@@ -204,8 +202,8 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         report/add/ and showed an empty form, found 2026-11-20)."""
         Person.objects.create(first='Jane', last='Newcomer')    # offers 'select existing' forms
         step_url = reverse('publications:disambiguate_person_step')
-        self.client.post(_path('add_report'), self.form_data(authors=['Jane Newcomer']))
-        page = self.client.get(_app_path(step_url))
+        self.client.post(page_path('add_report'), self.form_data(authors=['Jane Newcomer']))
+        page = self.client.get(app_path(step_url))
         self.assertEqual(page.status_code, 200)
         html = page.content.decode()
         forms = re.findall(r'<form\s[^>]*>', html)
@@ -222,7 +220,7 @@ class EditReportNewPersonsTests(ReportFormPersonTestBase):
         other = self.make_report('25-04', title='Other report')
         persons_before = Person.objects.count()
 
-        response = self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+        response = self.client.post(page_path('edit_report', pk=report.pk), self.form_data(
             title='Edited report',
             authors=[str(self.author1.pk), 'Jane Newcomer'],
             supervisors=['Neusup, Carl'],
@@ -238,10 +236,10 @@ class EditReportNewPersonsTests(ReportFormPersonTestBase):
         self.assertIsNone(get_report_form_data(session, report_form_target(other.pk)))
         self.assertIsNone(get_report_form_data(session, 'add'))
 
-        review = self.client.get(_path('edit_report_review', pk=report.pk))
+        review = self.client.get(page_path('edit_report_review', pk=report.pk))
         self.assertEqual(review.status_code, 200)
 
-        response, _ = self.finalize(_path('edit_report_finalize', pk=report.pk))
+        response, _ = self.finalize(page_path('edit_report_finalize', pk=report.pk))
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': report.pk}),
                              fetch_redirect_response=False)
         report.refresh_from_db()
@@ -259,14 +257,14 @@ class EditReportNewPersonsTests(ReportFormPersonTestBase):
         """The workflow started in the edit form of one report, then the user fills in the
         add form; finishing the old workflow later must not write into the add form's data."""
         report = self.make_report('25-06')
-        self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+        self.client.post(page_path('edit_report', pk=report.pk), self.form_data(
             authors=['Jane Newcomer']))
-        self.client.post(_path('add_report'), self.form_data(title='Another new report'))
+        self.client.post(page_path('add_report'), self.form_data(title='Another new report'))
         add_data = get_report_form_data(self.client.session, 'add')
 
-        step = _path('disambiguate_person_step')
+        step = page_path('disambiguate_person_step')
         response = self.client.post(step, {'action': 'create_new'})
-        response = self.client.get(_app_path(response['Location']))
+        response = self.client.get(app_path(response['Location']))
         self.assertEqual(get_report_form_data(self.client.session, 'add'), add_data)
         self.assertIsNone(get_report_form_data(self.client.session, report_form_target(report.pk)))
         self.assertRedirects(response, reverse('publications:edit_report', kwargs={'pk': report.pk}),
@@ -275,12 +273,12 @@ class EditReportNewPersonsTests(ReportFormPersonTestBase):
     def test_edit_with_typed_name_of_existing_person(self):
         report = self.make_report('25-05')
         persons_before = Person.objects.count()
-        response = self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+        response = self.client.post(page_path('edit_report', pk=report.pk), self.form_data(
             title='Edited report', authors=[str(self.author1.pk)], supervisors=['Sue Pervisor']))
         response, _ = self.walk_workflow(response, {'Sue Pervisor': self.supervisor})
         self.assertRedirects(response, reverse('publications:edit_report_review', kwargs={'pk': report.pk}),
                              fetch_redirect_response=False)
-        self.finalize(_path('edit_report_finalize', pk=report.pk))
+        self.finalize(page_path('edit_report_finalize', pk=report.pk))
         self.assertEqual(self.supervisors_of(report), [self.supervisor])
         self.assertEqual(Person.objects.count(), persons_before)
 
@@ -300,10 +298,10 @@ class MatchFlagsTests(ReportFormPersonTestBase):
         return {'exact_match': exact, 'relaxed_match': relaxed, 'multiple_match': multiple}
 
     def add_with_new_names(self, authors, supervisors=(), choices=None):
-        response = self.client.post(_path('add_report'), self.form_data(
+        response = self.client.post(page_path('add_report'), self.form_data(
             authors=list(authors), supervisors=list(supervisors)))
         self.walk_workflow(response, choices or {name: NEW for name in [*authors, *supervisors]})
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         return Publication.objects.get(title='New report')
 
     def new_person(self, last):
@@ -360,10 +358,10 @@ class MatchFlagsTests(ReportFormPersonTestBase):
     def test_edit_keeps_the_flags_of_a_kept_author(self):
         report = self.make_report('25-07')
         report.authorship_set.update(exact_match=True, multiple_match=True, match_string='Ann A.')
-        self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+        self.client.post(page_path('edit_report', pk=report.pk), self.form_data(
             title='Edited report', authors=[str(self.author2.pk), str(self.author1.pk)],
             supervisors=[str(self.supervisor.pk)]))
-        self.finalize(_path('edit_report_finalize', pk=report.pk))
+        self.finalize(page_path('edit_report_finalize', pk=report.pk))
         report.refresh_from_db()
         self.assertEqual(report.title, 'Edited report')
         kept = report.authorship_set.get(person=self.author1)
@@ -376,10 +374,10 @@ class MatchFlagsTests(ReportFormPersonTestBase):
     def test_edit_does_not_carry_flags_to_another_role(self):
         report = self.make_report('25-08')
         report.authorship_set.update(exact_match=True, match_string='Ann A.')
-        self.client.post(_path('edit_report', pk=report.pk), self.form_data(
+        self.client.post(page_path('edit_report', pk=report.pk), self.form_data(
             title='Edited report', authors=[str(self.author2.pk)],
             supervisors=[str(self.author1.pk)]))
-        self.finalize(_path('edit_report_finalize', pk=report.pk))
+        self.finalize(page_path('edit_report_finalize', pk=report.pk))
         link = report.supervisorship_set.get()
         self.assertEqual(link.person, self.author1)
         self.assertEqual(self.flags(link), self.expect())

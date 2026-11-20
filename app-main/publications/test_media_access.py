@@ -22,7 +22,7 @@ from io import StringIO
 from urllib.parse import quote
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, Group, User
+from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import resolve
@@ -33,9 +33,10 @@ from publications.media_access import (
 )
 from publications.models import (
     Appendenciesship, Authorship, Feature, FileObject, ImageObject, ImageObjectship, Person,
-    Publication, PubType,
+    Publication,
 )
-from publications.roles import ARTEK_EDITOR, DTU_USER
+from publications.roles import ARTEK_EDITOR
+from publications.test_factories import make_user, report_type
 
 ACCEL_PREFIX = '/find/_protected_media/'
 
@@ -158,22 +159,13 @@ class MediaFixtureMixin(MediaTreeMixin):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
-        groups = {name: Group.objects.get(name=name) for name in (DTU_USER, ARTEK_EDITOR)}
-
-        def user(username, *group_names, superuser=False):
-            if superuser:
-                u = User.objects.create_superuser(username, password='x')
-            else:
-                u = User.objects.create_user(username, password='x')
-            u.groups.add(groups[DTU_USER], *(groups[g] for g in group_names))
-            return u
+        pubtype = report_type()
 
         cls.users = {
-            'dtu': user('s990999'),
-            'author': user('s990001'),
-            'artek_editor': user('edit', ARTEK_EDITOR),
-            'superuser': user('root', superuser=True),
+            'dtu': make_user('s990999'),
+            'author': make_user('s990001'),
+            'artek_editor': make_user('edit', ARTEK_EDITOR),
+            'superuser': make_user('root', superuser=True),
         }
         author = Person.objects.create(first='Stu', last='Dent', id_number='S990001')
 

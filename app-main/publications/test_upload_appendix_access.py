@@ -13,31 +13,21 @@ from django.contrib.auth.models import Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.shortcuts import resolve_url
 from django.test import TestCase, override_settings
-from django.urls import get_script_prefix, reverse
+from django.urls import reverse
 
-from publications.models import Appendenciesship, FileObject, Publication, PubType
-
-
-def _app_path(url):
-    """The path the test client must request for a reversed URL.
-
-    With FORCE_SCRIPT_NAME ('/find' in the production settings the release gate uses),
-    reverse() includes the prefix, but the test client sends its path as PATH_INFO, so the
-    prefix has to be removed. Without a prefix (development settings) the URL is unchanged.
-    """
-    prefix = get_script_prefix()
-    return '/' + url[len(prefix):] if url.startswith(prefix) else url
+from publications.models import Appendenciesship, FileObject, Publication
+from publications.test_factories import app_path, report_type
 
 
 class UploadAppendixAccessTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
         cls.publication = Publication.objects.create(
             type=pubtype, title='Test report', number='99-01', year=1999, verified=True)
         cls.url = reverse('publications:upload_appendix', kwargs={'pk': cls.publication.pk})
-        cls.path = _app_path(cls.url)
+        cls.path = app_path(cls.url)
         cls.plain_user = User.objects.create_user('s990001', password='x')
         cls.editor = User.objects.create_user('editor', password='x')
         cls.editor.user_permissions.add(
@@ -89,7 +79,7 @@ class UploadAppendixAccessTests(TestCase):
     def test_unknown_publication_is_404_for_logged_in_user(self):
         self.client.force_login(self.editor)
         url = reverse('publications:upload_appendix', kwargs={'pk': self.publication.pk + 1000})
-        self.assertEqual(self.client.get(_app_path(url)).status_code, 404)
+        self.assertEqual(self.client.get(app_path(url)).status_code, 404)
 
     def test_editor_can_open_page_and_add_file_to_session(self):
         self.client.force_login(self.editor)

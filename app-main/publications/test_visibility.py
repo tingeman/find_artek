@@ -17,7 +17,7 @@ from django.contrib.auth.models import AnonymousUser, Group, User
 from django.test import TestCase
 
 from publications.models import (
-    Authorship, Editorship, Feature, Person, Publication, PubType, Supervisorship,
+    Authorship, Editorship, Feature, Person, Publication, Supervisorship,
 )
 from publications.permissions import EDIT, VIEW, user_may
 from publications.roles import ARTEK_EDITOR, ARTEK_STAFF, DTU_USER
@@ -25,6 +25,7 @@ from publications.visibility import (
     can_view_feature, can_view_publication, listed_on_q, sees_all, visible_features,
     visible_publications,
 )
+from publications.test_factories import make_report, make_user, report_type
 
 # Publications of the fixture (by number).
 P = '99-01'    # public: verified, not confidential
@@ -72,12 +73,11 @@ class VisibilityMatrixTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
 
         def report(number, verified, confidential, comment=''):
-            return Publication.objects.create(
-                type=pubtype, number=number, title=f'Report {number}', year=1999,
-                verified=verified, confidential=confidential, comment=comment)
+            return make_report(pubtype, number, verified=verified, confidential=confidential,
+                               comment=comment)
 
         cls.pubs = {
             P: report(P, verified=True, confidential=False),
@@ -107,29 +107,18 @@ class VisibilityMatrixTests(TestCase):
             feature.publications.set([cls.pubs[n] for n in numbers])
             cls.features[name] = feature
 
-        groups = {name: Group.objects.get(name=name)
-                  for name in (DTU_USER, ARTEK_STAFF, ARTEK_EDITOR)}
-
-        def user(username, *group_names, superuser=False):
-            if superuser:
-                u = User.objects.create_superuser(username, password='x')
-            else:
-                u = User.objects.create_user(username, password='x')
-            u.groups.add(groups[DTU_USER], *(groups[g] for g in group_names))
-            return u
-
         cls.user_pks = {
-            'dtu': user('s990999').pk,
-            'author': user('s990001').pk,
-            'supervisor': user('supv').pk,
-            'editor_listed': user('EDTR').pk,
-            'staff': user('stfo', ARTEK_STAFF).pk,
-            'artek_editor': user('edit', ARTEK_EDITOR).pk,
-            'superuser': user('root', superuser=True).pk,
+            'dtu': make_user('s990999').pk,
+            'author': make_user('s990001').pk,
+            'supervisor': make_user('supv').pk,
+            'editor_listed': make_user('EDTR').pk,
+            'staff': make_user('stfo', ARTEK_STAFF).pk,
+            'artek_editor': make_user('edit', ARTEK_EDITOR).pk,
+            'superuser': make_user('root', superuser=True).pk,
         }
         # create_user refuses an empty user name; the database doesn't.
         blank_user = User.objects.create(username='')
-        blank_user.groups.add(groups[DTU_USER])
+        blank_user.groups.add(Group.objects.get(name=DTU_USER))
         cls.user_pks['blank'] = blank_user.pk
 
     def get_user(self, key):

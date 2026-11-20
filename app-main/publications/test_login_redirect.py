@@ -16,8 +16,8 @@ from django.shortcuts import resolve_url
 from django.test import TestCase
 from django.urls import reverse
 
-from publications.models import Publication, PubType
-from publications.test_upload_appendix_access import _app_path
+from publications.models import Publication
+from publications.test_factories import app_path, report_type
 
 
 def _expected_login_redirect(next_path):
@@ -30,7 +30,7 @@ class LoginRedirectTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
         cls.publication = Publication.objects.create(
             type=pubtype, title='Test report', number='99-02', year=1999, verified=True)
         cls.upload_url = reverse('publications:upload_appendix',
@@ -38,7 +38,7 @@ class LoginRedirectTests(TestCase):
 
     def assertRedirectsToCasLogin(self, url, query_string=''):
         """GET url (as reversed, i.e. with the script prefix) anonymously."""
-        response = self.client.get(_app_path(url) + query_string)
+        response = self.client.get(app_path(url) + query_string)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], _expected_login_redirect(url + query_string))
         return response
@@ -58,7 +58,7 @@ class LoginRedirectTests(TestCase):
     def test_production_prefix_stays_under_find(self):
         if settings.FORCE_SCRIPT_NAME != '/find':
             self.skipTest("only with FORCE_SCRIPT_NAME = '/find' (production settings, tests/run.sh)")
-        response = self.client.get(_app_path(self.upload_url))
+        response = self.client.get(app_path(self.upload_url))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response['Location'].startswith('/find/login?next=/find/'),
                         response['Location'])
@@ -72,7 +72,7 @@ class CasLoginViewTests(TestCase):
         query = QueryDict(mutable=True)
         query['next'] = next_path
         response = self.client.get(
-            _app_path(reverse('cas_ng_login')) + '?' + query.urlencode(safe='/'))
+            app_path(reverse('cas_ng_login')) + '?' + query.urlencode(safe='/'))
         self.assertEqual(response.status_code, 302)
         location = response['Location']
         self.assertTrue(location.startswith(settings.CAS_SERVER_URL), location)
@@ -83,6 +83,6 @@ class CasLoginViewTests(TestCase):
     def test_without_next_or_referer_returns_to_the_frontpage(self):
         # A logged-in user is sent on at once, to the same place a fresh login would go.
         self.client.force_login(User.objects.create_user('s990002', password='x'))
-        response = self.client.get(_app_path(reverse('cas_ng_login')))
+        response = self.client.get(app_path(reverse('cas_ng_login')))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], reverse('publications:frontpage'))

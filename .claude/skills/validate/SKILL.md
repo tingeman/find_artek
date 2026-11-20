@@ -40,7 +40,7 @@ $DC exec -T webapp-find-artek python manage.py test -v 1 --noinput --settings fi
 ```
 
 - Tests run against MariaDB (the GIS fields don't work on SQLite, so `find_artek.test_settings` is not usable). Django creates and drops its own `test_*` database.
-- Known problem: `publications/tests.py` and the package `publications/tests/` exist side by side. If discovery fails with an import error for `publications.tests`, report it; don't move or rename test files unless the brief says so.
+- Test modules are `publications/test_*.py` and `api/test_*.py`; helpers in `publications/test_factories.py`. If discovery fails with an import error, report it; don't move or rename test files unless the brief says so.
 - If the suite already failed before your change, say which tests, and don't count them against the task.
 - Report pass/fail counts and the names of failures, not the raw output.
 

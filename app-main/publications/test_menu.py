@@ -5,18 +5,12 @@ from Excel" to users with publications.change_publication (action ``manage``), i
 desktop and in the mobile navigation; nothing to anonymous users or a plain dtu_user. The
 menu must agree with the view guards (publications/permissions.py ``user_may``).
 """
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.test import TestCase
-from django.urls import get_script_prefix, reverse
+from django.urls import reverse
 
 from publications.permissions import ADD, MANAGE, user_may
-
-
-def _app_path(url):
-    """The path the test client must request for a reversed URL (see
-    test_upload_appendix_access: reverse() includes FORCE_SCRIPT_NAME, PATH_INFO doesn't)."""
-    prefix = get_script_prefix()
-    return '/' + url[len(prefix):] if url.startswith(prefix) else url
+from publications.test_factories import app_path, make_user
 
 
 DESKTOP_START = '<div class="default-header-content'
@@ -30,19 +24,12 @@ class AddMenuTests(TestCase):
     def setUpTestData(cls):
         cls.add_report_url = reverse('publications:add_report')
         cls.import_url = reverse('publications:add_reports_from_file_upload')
-        cls.frontpage_path = _app_path(reverse('publications:frontpage'))
+        cls.frontpage_path = app_path(reverse('publications:frontpage'))
 
-        def member(username, group_name):
-            user = User.objects.create_user(username, password='x')
-            user.groups.add(Group.objects.get(name=group_name))
-            return user
-
-        cls.dtu_user = member('s990001', 'dtu_user')
-        # Users in artek_staff/artek_editor are also in dtu_user (roles.py); keep that here.
-        cls.staff = member('staff', 'artek_staff')
-        cls.staff.groups.add(Group.objects.get(name='dtu_user'))
-        cls.editor = member('editor', 'artek_editor')
-        cls.editor.groups.add(Group.objects.get(name='dtu_user'))
+        # make_user: users in artek_staff/artek_editor are also in dtu_user (roles.py).
+        cls.dtu_user = make_user('s990001')
+        cls.staff = make_user('staff', 'artek_staff')
+        cls.editor = make_user('editor', 'artek_editor')
         cls.superuser = User.objects.create_superuser('admin', password='x')
 
     def _navs(self, user=None):
@@ -102,4 +89,4 @@ class AddMenuTests(TestCase):
             self.client.force_login(user)
             for url in paths:
                 with self.subTest(user=user.username, url=url):
-                    self.assertEqual(self.client.get(_app_path(url)).status_code, 200)
+                    self.assertEqual(self.client.get(app_path(url)).status_code, 200)

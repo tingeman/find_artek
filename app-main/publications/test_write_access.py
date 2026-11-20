@@ -29,7 +29,8 @@ from django.urls import reverse
 
 from publications import views
 from publications.models import Feature, Person, Publication
-from publications.test_report_access import ReportAccessTestBase, _path
+from publications.test_factories import page_path
+from publications.test_report_access import ReportAccessTestBase
 
 
 class WriteAccessTestBase(ReportAccessTestBase):
@@ -53,7 +54,7 @@ class DebugRootRemovedTests(WriteAccessTestBase):
 class ChangeReportNumberAccessTests(WriteAccessTestBase):
 
     def path(self):
-        return _path('change_report_number', pk=self.pub.pk)
+        return page_path('change_report_number', pk=self.pub.pk)
 
     def post_new_number(self):
         return self.client.post(self.path(), {'new_number': '99-55', 'confirm_change': 'on'})
@@ -78,7 +79,7 @@ class ChangeReportNumberAccessTests(WriteAccessTestBase):
     def test_unknown_report_is_404_for_logged_in_user(self):
         self.login(self.editor)
         self.assertEqual(
-            self.client.get(_path('change_report_number', pk=self.pub.pk + 1000)).status_code, 404)
+            self.client.get(page_path('change_report_number', pk=self.pub.pk + 1000)).status_code, 404)
 
 
 class AddFeatureAccessTests(WriteAccessTestBase):
@@ -99,8 +100,8 @@ class AddFeatureAccessTests(WriteAccessTestBase):
     def paths(self, pk=None):
         pk = self.pub.pk if pk is None else pk
         return {
-            'coordinates': _path('add_feature_coordinates', report_pk=pk),
-            'map': _path('add_feature_by_map', report_pk=pk),
+            'coordinates': page_path('add_feature_coordinates', report_pk=pk),
+            'map': page_path('add_feature_by_map', report_pk=pk),
         }
 
     def post_both(self, name):
@@ -156,7 +157,7 @@ class AddFeatureAccessTests(WriteAccessTestBase):
                               (self.dtu_not_own, False), (self.staff, False)):
             with self.subTest(user=user.username):
                 self.login(user)
-                response = self.client.get(_path('report', pk=self.pub.pk))
+                response = self.client.get(page_path('report', pk=self.pub.pk))
                 self.assertEqual(response.status_code, 200)
                 self.assertIs(response.context['can_add_feature'], allowed)
                 if allowed:
@@ -193,7 +194,7 @@ class DeleteFeatureAccessTests(WriteAccessTestBase):
         cls.orphan_feature = feature('Orphan feature', cls.dtu_own)
 
     def path(self, feature):
-        return _path('delete_feature', pk=feature.pk)
+        return page_path('delete_feature', pk=feature.pk)
 
     def assertDeniedAndKept(self, feature):
         self.assertDenied(self.client.get(self.path(feature)))
@@ -255,7 +256,7 @@ class DeleteFeatureAccessTests(WriteAccessTestBase):
     def test_unknown_feature_is_404_for_logged_in_user(self):
         self.login(self.editor)
         self.assertEqual(
-            self.client.get(_path('delete_feature', pk=self.orphan_feature.pk + 1000)).status_code,
+            self.client.get(page_path('delete_feature', pk=self.orphan_feature.pk + 1000)).status_code,
             404)
 
     def assertDeleteButtons(self, response, features, deletable):
@@ -281,7 +282,7 @@ class DeleteFeatureAccessTests(WriteAccessTestBase):
         for user, deletable in cases:
             with self.subTest(user=user.username):
                 self.login(user)
-                response = self.client.get(_path('report', pk=self.pub.pk))
+                response = self.client.get(page_path('report', pk=self.pub.pk))
                 self.assertDeleteButtons(response, on_pub, deletable)
 
     def test_other_report_page_shows_delete_buttons_per_user(self):
@@ -296,7 +297,7 @@ class DeleteFeatureAccessTests(WriteAccessTestBase):
                 self.client.logout()
                 if user is not None:
                     self.login(user)
-                response = self.client.get(_path('report', pk=self.other_pub.pk))
+                response = self.client.get(page_path('report', pk=self.other_pub.pk))
                 self.assertEqual(response.status_code, 200)
                 self.assertDeleteButtons(response, on_other, deletable)
 
@@ -305,7 +306,7 @@ class AddPersonAjaxAccessTests(WriteAccessTestBase):
     """add_person_ajax answers in JSON: 401 for anonymous users, 403 without add_person."""
 
     def post(self, name='New Person'):
-        return self.client.post(_path('add_person_ajax'), {'name': name},
+        return self.client.post(page_path('add_person_ajax'), {'name': name},
                                 HTTP_X_REQUESTED_WITH='XMLHttpRequest')
 
     def test_anonymous_gets_json_401(self):
@@ -322,7 +323,7 @@ class AddPersonAjaxAccessTests(WriteAccessTestBase):
         self.assertFalse(Person.objects.filter(last='Person').exists())
 
     def test_get_is_not_allowed(self):
-        self.assertEqual(self.client.get(_path('add_person_ajax')).status_code, 405)
+        self.assertEqual(self.client.get(page_path('add_person_ajax')).status_code, 405)
 
     def test_dtu_user_adds_person(self):
         self.login(self.dtu_not_own)
@@ -335,7 +336,7 @@ class AddPersonAjaxAccessTests(WriteAccessTestBase):
 class ExcelImportAccessTests(WriteAccessTestBase):
 
     def path(self):
-        return _path('add_reports_from_file_upload')
+        return page_path('add_reports_from_file_upload')
 
     def upload(self, content=b'not really excel'):
         return self.client.post(self.path(), {
@@ -399,7 +400,7 @@ class ExcelImportAccessTests(WriteAccessTestBase):
 class BulkDeleteAccessTests(WriteAccessTestBase):
 
     def path(self):
-        return _path('bulk_delete_publications')
+        return page_path('bulk_delete_publications')
 
     def confirm_delete(self):
         return self.client.post(self.path(), {

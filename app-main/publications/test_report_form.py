@@ -20,16 +20,15 @@ import shutil
 import tempfile
 from unittest import mock
 
-from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from publications.models import (
-    Authorship, FileObject, Keyword, Person, Publication, PubType, Supervisorship, Topic,
+    Authorship, FileObject, Keyword, Person, Publication, Supervisorship, Topic,
 )
-from publications.roles import ARTEK_EDITOR, ARTEK_STAFF, DTU_USER
-from publications.test_upload_appendix_access import _app_path
+from publications.roles import ARTEK_EDITOR, ARTEK_STAFF
+from publications.test_factories import make_user, page_path, report_type
 from publications.views import (
     REPORT_FORM_DATA_KEY, ReportFinalizeView, get_report_form_data, report_form_target,
     store_report_form_data,
@@ -37,10 +36,6 @@ from publications.views import (
 
 FIXTURE_PDF = os.path.join(os.path.dirname(__file__), 'test_fixtures', 'one_page.pdf')
 YEAR = 2025
-
-
-def _path(name, **kwargs):
-    return _app_path(reverse(f'publications:{name}', kwargs=kwargs))
 
 
 def _fixture_bytes():
@@ -63,7 +58,7 @@ class ReportFormTestBase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.pubtype = PubType.objects.create(type='STUDENTREPORT')
+        cls.pubtype = report_type()
         cls.topic = Topic.objects.create(topic='Permafrost')
         cls.other_topic = Topic.objects.create(topic='Hydrology')
         cls.keyword = Keyword.objects.create(keyword='Ice')
@@ -71,11 +66,8 @@ class ReportFormTestBase(TestCase):
         cls.author2 = Person.objects.create(first='Bob', last='Writer')
         cls.supervisor = Person.objects.create(first='Sue', last='Pervisor', initials='supv')
 
-        dtu_user = Group.objects.get(name=DTU_USER)
-        cls.editor = User.objects.create_user('edtr', password='x')
-        cls.editor.groups.add(dtu_user, Group.objects.get(name=ARTEK_EDITOR))
-        cls.staff = User.objects.create_user('stfo', password='x')
-        cls.staff.groups.add(dtu_user, Group.objects.get(name=ARTEK_STAFF))
+        cls.editor = make_user('edtr', ARTEK_EDITOR)
+        cls.staff = make_user('stfo', ARTEK_STAFF)
 
     def setUp(self):
         self.media_root = tempfile.mkdtemp(prefix='test_report_form_')
@@ -142,7 +134,7 @@ class AddReportTests(ReportFormTestBase):
     def test_add_report_with_persons_topic_keywords_and_pdf(self):
         keywords_before = Keyword.objects.count()
 
-        response = self.client.post(_path('add_report'), {**self.form_data(), 'pdffile': self.pdf()})
+        response = self.client.post(page_path('add_report'), {**self.form_data(), 'pdffile': self.pdf()})
         self.assertRedirects(response, reverse('publications:add_report_review'),
                              fetch_redirect_response=False)
         # The PDF waits in MEDIA_ROOT/temp/ as a temporary FileObject; nothing else is saved.
@@ -152,11 +144,11 @@ class AddReportTests(ReportFormTestBase):
         self.assertEqual(Keyword.objects.count(), keywords_before)
         self.assertFalse(Publication.objects.exists())
 
-        response = self.client.get(_path('add_report_review'))
+        response = self.client.get(page_path('add_report_review'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Thaw slumps')
 
-        response, _ = self.finalize(_path('add_report_finalize'))
+        response, _ = self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': pub.pk}),
                              fetch_redirect_response=False)
@@ -187,22 +179,22 @@ class AddReportTests(ReportFormTestBase):
         self.assertNotIn(REPORT_FORM_DATA_KEY, self.client.session)
 
     def test_typed_keyword_that_exists_is_reused(self):
-        self.client.post(_path('add_report'),
+        self.client.post(page_path('add_report'),
                          self.form_data(publication_keywords=['ice', 'Ice ', str(self.keyword.pk)]))
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual(list(pub.publication_keywords.all()), [self.keyword])
         self.assertEqual(Keyword.objects.count(), 1)
 
     def test_staff_may_create_keywords(self):
         self.client.force_login(self.staff)
-        self.client.post(_path('add_report'), self.form_data(publication_keywords=['Snow']))
-        self.finalize(_path('add_report_finalize'))
+        self.client.post(page_path('add_report'), self.form_data(publication_keywords=['Snow']))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual([k.keyword for k in pub.publication_keywords.all()], ['Snow'])
 
     def test_unknown_topic_is_a_form_error(self):
-        response = self.client.post(_path('add_report'), {
+        response = self.client.post(page_path('add_report'), {
             **self.form_data(publication_topics=[str(self.topic.pk), 'Glaciology']),
             'pdffile': self.pdf(),
         })
@@ -217,7 +209,7 @@ class AddReportTests(ReportFormTestBase):
         self.assertFalse(Topic.objects.filter(topic='Glaciology').exists())
 
     def test_unknown_topic_pk_is_a_form_error(self):
-        response = self.client.post(_path('add_report'),
+        response = self.client.post(page_path('add_report'),
                                     self.form_data(publication_topics=['999999']))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Unknown topic', response.context['form'].errors['publication_topics'][0])
@@ -225,22 +217,22 @@ class AddReportTests(ReportFormTestBase):
     def test_pdf_of_several_mb_passes_the_form(self):
         size = 6 * 1024 * 1024
         content = b'%PDF-1.4\n' + b'0' * (size - 9)
-        response = self.client.post(_path('add_report'),
+        response = self.client.post(page_path('add_report'),
                                     {**self.form_data(), 'pdffile': self.pdf(content, 'big.pdf')})
         self.assertRedirects(response, reverse('publications:add_report_review'),
                              fetch_redirect_response=False)
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual(os.path.getsize(pub.file.file.path), size)
         self.assertEqual(self.temp_files(), [])
 
     def test_failure_in_finalize_leaves_no_report_no_keyword_and_no_moved_file(self):
-        self.client.post(_path('add_report'), {**self.form_data(), 'pdffile': self.pdf()})
+        self.client.post(page_path('add_report'), {**self.form_data(), 'pdffile': self.pdf()})
         temp_upload = FileObject.objects.get()
         temp_path = temp_upload.file.path
 
         with mock.patch.object(ReportFinalizeView, '_handle_files', _failing_after_handle_files()):
-            response, callbacks = self.finalize(_path('add_report_finalize'))
+            response, callbacks = self.finalize(page_path('add_report_finalize'))
 
         self.assertRedirects(response, reverse('publications:add_report_review'),
                              fetch_redirect_response=False)
@@ -256,7 +248,7 @@ class AddReportTests(ReportFormTestBase):
         # The form data stays, so the user can try again.
         self.assertIsNotNone(get_report_form_data(self.client.session, 'add'))
 
-        response, _ = self.finalize(_path('add_report_finalize'))
+        response, _ = self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertEqual(pub.file.file.name, f'reports/{YEAR}/25-01.pdf')
         self.assertFalse(os.path.exists(temp_path))
@@ -266,9 +258,9 @@ class AddReportTests(ReportFormTestBase):
         another report's file must not be moved into the new report."""
         other = self.make_report('25-07', with_pdf=True)
         other_file = other.file
-        self.client.post(_path('add_report'),
+        self.client.post(page_path('add_report'),
                          {**self.form_data(), 'uploaded_file_id': str(other_file.pk)})
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         pub = Publication.objects.get(title='New report')
         self.assertIsNone(pub.file)
         other.refresh_from_db()
@@ -276,7 +268,7 @@ class AddReportTests(ReportFormTestBase):
         self.assertTrue(os.path.exists(self.media('reports', str(YEAR), '25-07.pdf')))
 
     def test_temporary_upload_of_another_user_is_refused(self):
-        self.client.post(_path('add_report'), self.form_data())
+        self.client.post(page_path('add_report'), self.form_data())
         foreign = FileObject.objects.create(file='temp/1/temp_1_x.pdf', created_by=self.staff)
         session = self.client.session
         data = get_report_form_data(session, 'add')
@@ -284,7 +276,7 @@ class AddReportTests(ReportFormTestBase):
         store_report_form_data(session, 'add', data)
         session.save()
 
-        response, _ = self.finalize(_path('add_report_finalize'))
+        response, _ = self.finalize(page_path('add_report_finalize'))
         self.assertRedirects(response, reverse('publications:add_report'),
                              fetch_redirect_response=False)
         self.assertFalse(Publication.objects.exists())
@@ -297,13 +289,13 @@ class EditReportFileTests(ReportFormTestBase):
         pub = self.make_report('25-07', with_pdf=True)
         old_file_pk = pub.file.pk
 
-        response = self.client.post(_path('edit_report', pk=pub.pk),
+        response = self.client.post(page_path('edit_report', pk=pub.pk),
                                     {**self.form_data(title='Changed title'), 'pdffile': self.pdf()})
         self.assertRedirects(response, reverse('publications:edit_report_review', kwargs={'pk': pub.pk}),
                              fetch_redirect_response=False)
-        self.assertEqual(self.client.get(_path('edit_report_review', pk=pub.pk)).status_code, 200)
+        self.assertEqual(self.client.get(page_path('edit_report_review', pk=pub.pk)).status_code, 200)
 
-        response, _ = self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        response, _ = self.finalize(page_path('edit_report_finalize', pk=pub.pk))
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': pub.pk}),
                              fetch_redirect_response=False)
 
@@ -325,8 +317,8 @@ class EditReportFileTests(ReportFormTestBase):
 
     def test_edit_adds_a_pdf_to_a_report_without_one(self):
         pub = self.make_report('25-08')
-        self.client.post(_path('edit_report', pk=pub.pk), {**self.form_data(), 'pdffile': self.pdf()})
-        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        self.client.post(page_path('edit_report', pk=pub.pk), {**self.form_data(), 'pdffile': self.pdf()})
+        self.finalize(page_path('edit_report_finalize', pk=pub.pk))
         pub.refresh_from_db()
         self.assertEqual(pub.file.file.name, f'reports/{YEAR}/25-08.pdf')
         self.assertTrue(os.path.exists(self.media('reports', str(YEAR), '25-08.pdf')))
@@ -334,8 +326,8 @@ class EditReportFileTests(ReportFormTestBase):
     def test_edit_deletes_the_pdf(self):
         pub = self.make_report('25-07', with_pdf=True)
         old_file_pk = pub.file.pk
-        self.client.post(_path('edit_report', pk=pub.pk), {**self.form_data(), 'delete_pdf': 'on'})
-        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        self.client.post(page_path('edit_report', pk=pub.pk), {**self.form_data(), 'delete_pdf': 'on'})
+        self.finalize(page_path('edit_report_finalize', pk=pub.pk))
         pub.refresh_from_db()
         self.assertIsNone(pub.file)
         self.assertFalse(FileObject.objects.filter(pk=old_file_pk).exists())
@@ -344,11 +336,11 @@ class EditReportFileTests(ReportFormTestBase):
     def test_failure_in_edit_finalize_leaves_report_and_files_unchanged(self):
         pub = self.make_report('25-07', with_pdf=True)
         old_file = pub.file
-        self.client.post(_path('edit_report', pk=pub.pk),
+        self.client.post(page_path('edit_report', pk=pub.pk),
                          {**self.form_data(title='Changed title'), 'pdffile': self.pdf()})
 
         with mock.patch.object(ReportFinalizeView, '_handle_files', _failing_after_handle_files()):
-            response, callbacks = self.finalize(_path('edit_report_finalize', pk=pub.pk))
+            response, callbacks = self.finalize(page_path('edit_report_finalize', pk=pub.pk))
 
         self.assertRedirects(response, reverse('publications:edit_report_review', kwargs={'pk': pub.pk}),
                              fetch_redirect_response=False)
@@ -379,33 +371,33 @@ class SessionBindingTests(ReportFormTestBase):
         self.assertEqual(Publication.objects.count(), 2)
 
     def test_edit_data_of_one_report_is_not_saved_onto_another(self):
-        self.client.post(_path('edit_report', pk=self.report_a.pk), self.form_data(title='Meant for A'))
+        self.client.post(page_path('edit_report', pk=self.report_a.pk), self.form_data(title='Meant for A'))
         self.assertEqual(self.client.session['form_data_for'], report_form_target(self.report_a.pk))
 
-        response, _ = self.finalize(_path('edit_report_finalize', pk=self.report_b.pk))
+        response, _ = self.finalize(page_path('edit_report_finalize', pk=self.report_b.pk))
         self.assertRedirects(response, reverse('publications:edit_report', kwargs={'pk': self.report_b.pk}),
                              fetch_redirect_response=False)
         self.assertUnchanged()
 
-        response = self.client.get(_path('edit_report_review', pk=self.report_b.pk))
+        response = self.client.get(page_path('edit_report_review', pk=self.report_b.pk))
         self.assertRedirects(response, reverse('publications:edit_report', kwargs={'pk': self.report_b.pk}),
                              fetch_redirect_response=False)
 
         # The data still belongs to report A and is saved there.
-        self.finalize(_path('edit_report_finalize', pk=self.report_a.pk))
+        self.finalize(page_path('edit_report_finalize', pk=self.report_a.pk))
         self.assertEqual(Publication.objects.get(pk=self.report_a.pk).title, 'Meant for A')
         self.assertEqual(Publication.objects.get(pk=self.report_b.pk).title, 'Report B')
 
     def test_add_data_is_not_saved_onto_an_existing_report(self):
-        self.client.post(_path('add_report'), self.form_data(title='Meant as new'))
-        response, _ = self.finalize(_path('edit_report_finalize', pk=self.report_b.pk))
+        self.client.post(page_path('add_report'), self.form_data(title='Meant as new'))
+        response, _ = self.finalize(page_path('edit_report_finalize', pk=self.report_b.pk))
         self.assertRedirects(response, reverse('publications:edit_report', kwargs={'pk': self.report_b.pk}),
                              fetch_redirect_response=False)
         self.assertUnchanged()
 
     def test_edit_data_is_not_saved_as_a_new_report(self):
-        self.client.post(_path('edit_report', pk=self.report_a.pk), self.form_data(title='Meant for A'))
-        response, _ = self.finalize(_path('add_report_finalize'))
+        self.client.post(page_path('edit_report', pk=self.report_a.pk), self.form_data(title='Meant for A'))
+        response, _ = self.finalize(page_path('add_report_finalize'))
         self.assertRedirects(response, reverse('publications:add_report'),
                              fetch_redirect_response=False)
         self.assertUnchanged()
@@ -416,10 +408,10 @@ class SessionBindingTests(ReportFormTestBase):
         session['form_data'] = {'title': ['Old session'], 'type': [str(self.pubtype.pk)],
                                 'year': [str(YEAR)]}
         session.save()
-        response, _ = self.finalize(_path('edit_report_finalize', pk=self.report_b.pk))
+        response, _ = self.finalize(page_path('edit_report_finalize', pk=self.report_b.pk))
         self.assertRedirects(response, reverse('publications:edit_report', kwargs={'pk': self.report_b.pk}),
                              fetch_redirect_response=False)
-        self.finalize(_path('add_report_finalize'))
+        self.finalize(page_path('add_report_finalize'))
         self.assertUnchanged()
 
 
@@ -431,8 +423,8 @@ class ConfidentialFormTests(ReportFormTestBase):
     CHECKED = re.compile(r'<input type="checkbox" name="confidential"[^>]*\bchecked\b')
 
     def add(self, **extra):
-        self.client.post(_path('add_report'), self.form_data(**extra))
-        self.finalize(_path('add_report_finalize'))
+        self.client.post(page_path('add_report'), self.form_data(**extra))
+        self.finalize(page_path('add_report_finalize'))
         return Publication.objects.get(title='New report')
 
     def test_add_with_confidential_checked_saves_true(self):
@@ -442,7 +434,7 @@ class ConfidentialFormTests(ReportFormTestBase):
         self.assertFalse(self.add().confidential)
 
     def test_add_form_shows_the_checkbox_unchecked(self):
-        response = self.client.get(_path('add_report'))
+        response = self.client.get(page_path('add_report'))
         self.assertContains(response, 'name="confidential"')
         self.assertContains(response, 'Only the people listed on the report, artek_editor and '
                                       'superusers can see it.')
@@ -452,13 +444,13 @@ class ConfidentialFormTests(ReportFormTestBase):
         pub = self.make_report('25-03')
         pub.confidential = True
         pub.save()
-        response = self.client.get(_path('edit_report', pk=pub.pk))
+        response = self.client.get(page_path('edit_report', pk=pub.pk))
         self.assertEqual(response.status_code, 200)
         self.assertIs(response.context['form']['confidential'].value(), True)
         self.assertRegex(response.content.decode(), self.CHECKED)
 
         other = self.make_report('25-04')
-        response = self.client.get(_path('edit_report', pk=other.pk))
+        response = self.client.get(page_path('edit_report', pk=other.pk))
         self.assertIs(response.context['form']['confidential'].value(), False)
         self.assertNotRegex(response.content.decode(), self.CHECKED)
 
@@ -467,9 +459,9 @@ class ConfidentialFormTests(ReportFormTestBase):
         pub.confidential = True
         pub.save()
         # The edit form opens checked, so the browser posts the box with the other fields.
-        self.client.post(_path('edit_report', pk=pub.pk),
+        self.client.post(page_path('edit_report', pk=pub.pk),
                          self.form_data(title='Changed title', confidential='on'))
-        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        self.finalize(page_path('edit_report_finalize', pk=pub.pk))
         pub.refresh_from_db()
         self.assertEqual(pub.title, 'Changed title')
         self.assertTrue(pub.confidential)
@@ -479,31 +471,31 @@ class ConfidentialFormTests(ReportFormTestBase):
         pub.confidential = True
         pub.save()
         # Only the box changes (title as stored): the review step still counts it as a change.
-        self.client.post(_path('edit_report', pk=pub.pk), self.form_data(title='Existing report'))
-        response = self.client.get(_path('edit_report_review', pk=pub.pk))
+        self.client.post(page_path('edit_report', pk=pub.pk), self.form_data(title='Existing report'))
+        response = self.client.get(page_path('edit_report_review', pk=pub.pk))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<span class="review-confidential">No</span>')
-        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        self.finalize(page_path('edit_report_finalize', pk=pub.pk))
         pub.refresh_from_db()
         self.assertEqual(pub.title, 'Existing report')
         self.assertFalse(pub.confidential)
 
     def test_edit_setting_confidential_saves_true(self):
         pub = self.make_report('25-03')
-        self.client.post(_path('edit_report', pk=pub.pk),
+        self.client.post(page_path('edit_report', pk=pub.pk),
                          self.form_data(title='Existing report', confidential='on'))
-        self.finalize(_path('edit_report_finalize', pk=pub.pk))
+        self.finalize(page_path('edit_report_finalize', pk=pub.pk))
         pub.refresh_from_db()
         self.assertTrue(pub.confidential)
 
     def test_review_page_shows_the_value(self):
-        self.client.post(_path('add_report'), self.form_data(confidential='on'))
-        response = self.client.get(_path('add_report_review'))
+        self.client.post(page_path('add_report'), self.form_data(confidential='on'))
+        response = self.client.get(page_path('add_report_review'))
         # Plain-text checks: the review page as a whole is not valid HTML (a stray </div>),
         # so html=True can't parse it.
         self.assertContains(response, '<th scope="row">Confidential</th>')
         self.assertContains(response, '<span class="review-confidential">Yes</span>')
 
-        self.client.post(_path('add_report'), self.form_data())
-        response = self.client.get(_path('add_report_review'))
+        self.client.post(page_path('add_report'), self.form_data())
+        response = self.client.get(page_path('add_report_review'))
         self.assertContains(response, '<span class="review-confidential">No</span>')

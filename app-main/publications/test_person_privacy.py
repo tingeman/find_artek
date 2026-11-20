@@ -11,18 +11,15 @@ Checked on the person page, the person API (list and detail) and the person auto
 The rules themselves are in publications.person_privacy and Person.is_student().
 """
 from django.contrib import admin
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.forms import ModelForm
 from django.test import RequestFactory, SimpleTestCase, TestCase
-from django.urls import reverse
 
 from publications import forms as publication_forms
 from publications import person_privacy
 from publications.forms import AddPersonForm
 from publications.models import Person
-from publications.roles import DTU_USER
-from publications.test_report_access import _path
-from publications.test_upload_appendix_access import _app_path
+from publications.test_factories import api_path, make_user, page_path
 
 CONTACT_VALUES = {
     'phone': 'PHONE-4711-MARK',
@@ -35,10 +32,6 @@ CONTACT_VALUES = {
     'country': 'COUNTRY-MARK-ia',
     'homepage': 'https://homepage-mark.example.org/',
 }
-
-
-def _api_path(name, **kwargs):
-    return _app_path(reverse(f'api:{name}', kwargs=kwargs))
 
 
 class IsStudentTests(SimpleTestCase):
@@ -87,7 +80,7 @@ class PersonPrivacyTestBase(TestCase):
 class PersonPagePrivacyTests(PersonPrivacyTestBase):
 
     def page(self, person):
-        response = self.client.get(_path('person', pk=person.pk))
+        response = self.client.get(page_path('person', pk=person.pk))
         self.assertEqual(response.status_code, 200)
         return response.content.decode()
 
@@ -124,12 +117,12 @@ class PersonPagePrivacyTests(PersonPrivacyTestBase):
 class PersonApiPrivacyTests(PersonPrivacyTestBase):
 
     def list_data(self):
-        response = self.client.get(_api_path('person-list'))
+        response = self.client.get(api_path('person-list'))
         self.assertEqual(response.status_code, 200)
         return {item['id']: item for item in response.json()}, response.content.decode()
 
     def detail_data(self, person):
-        response = self.client.get(_api_path('person-detail', pk=person.pk))
+        response = self.client.get(api_path('person-detail', pk=person.pk))
         self.assertEqual(response.status_code, 200)
         return response.json(), response.content.decode()
 
@@ -178,7 +171,7 @@ class PersonAutocompletePrivacyTests(PersonPrivacyTestBase):
     """Looking a person up by study number would reveal the id_number to anonymous users."""
 
     def results(self, term):
-        response = self.client.get(_path('person-autocomplete'), {'term': term})
+        response = self.client.get(page_path('person-autocomplete'), {'term': term})
         self.assertEqual(response.status_code, 200)
         return [item['id'] for item in response.json()['results']]
 
@@ -206,10 +199,8 @@ class ContactFieldsNotEditableTests(TestCase):
             self.assertEqual(getattr(person, field), '', field)
 
     def test_add_person_ajax_post_does_not_store_contact_fields(self):
-        user = User.objects.create_user('s990002', password='x')
-        user.groups.add(Group.objects.get(name=DTU_USER))
-        self.client.force_login(user)
-        response = self.client.post(_path('add_person_ajax'),
+        self.client.force_login(make_user('s990002'))
+        response = self.client.post(page_path('add_person_ajax'),
                                     {'name': 'Ajax Person', **CONTACT_VALUES},
                                     HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200, response.content)

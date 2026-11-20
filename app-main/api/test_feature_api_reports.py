@@ -18,16 +18,16 @@ from django.test import TestCase
 from django.urls import reverse
 
 from api.serializers import FeatureSerializer
-from publications.models import Authorship, Feature, Person, Publication, PubType
+from publications.models import Authorship, Feature, Person, Publication
 from publications.roles import ARTEK_EDITOR
-from publications.test_upload_appendix_access import _app_path
+from publications.test_factories import app_path, report_type
 
 
 class FeatureApiReportVisibilityTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pubtype = PubType.objects.create(type='STUDENTREPORT')
+        pubtype = report_type()
 
         def report(number, title, verified, confidential=False):
             return Publication.objects.create(
@@ -60,7 +60,7 @@ class FeatureApiReportVisibilityTests(TestCase):
             person=Person.objects.create(first='Li', last='Sted', id_number='s990002'))
         cls.editor = User.objects.create_user('edit', password='x')
         cls.editor.groups.add(Group.objects.get(name=ARTEK_EDITOR))
-        cls.list_path = _app_path(reverse('api:feature-list'))
+        cls.list_path = app_path(reverse('api:feature-list'))
 
     def _list(self, **params):
         response = self.client.get(self.list_path, params)
@@ -69,7 +69,7 @@ class FeatureApiReportVisibilityTests(TestCase):
                 for f in response.json()}
 
     def _detail_status(self, feature):
-        return self.client.get(_app_path(reverse('api:feature-detail', kwargs={'pk': feature.pk}))).status_code
+        return self.client.get(app_path(reverse('api:feature-detail', kwargs={'pk': feature.pk}))).status_code
 
     # ---- anonymous ------------------------------------------------------------------
 

@@ -14,26 +14,21 @@ The users get their rights only from the role groups of migration 0003, as at a 
 id_number or initials of an author, supervisor or editor of the report.
 """
 from django.conf import settings
-from django.contrib.auth.models import Group, User
 from django.shortcuts import resolve_url
 from django.test import TestCase
 from django.urls import reverse
 
-from publications.models import Authorship, Person, Publication, PubType, Supervisorship
-from publications.roles import ARTEK_EDITOR, ARTEK_STAFF, DTU_USER
-from publications.test_upload_appendix_access import _app_path
+from publications.models import Authorship, Person, Publication, Supervisorship
+from publications.roles import ARTEK_EDITOR, ARTEK_STAFF
+from publications.test_factories import make_user, page_path, report_type
 from publications.views import report_form_target, store_report_form_data
-
-
-def _path(name, **kwargs):
-    return _app_path(reverse(f'publications:{name}', kwargs=kwargs))
 
 
 class ReportAccessTestBase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.pubtype = PubType.objects.create(type='STUDENTREPORT')
+        cls.pubtype = report_type()
         cls.pub = Publication.objects.create(
             type=cls.pubtype, title='Own report', number='99-01', year=1999, verified=False)
         cls.student = Person.objects.create(first='Stu', last='Dent', id_number='s990001')
@@ -41,20 +36,11 @@ class ReportAccessTestBase(TestCase):
         Authorship.objects.create(publication=cls.pub, person=cls.student, author_id=0)
         Supervisorship.objects.create(publication=cls.pub, person=cls.supervisor, supervisor_id=0)
 
-        dtu_user = Group.objects.get(name=DTU_USER)
-        staff = Group.objects.get(name=ARTEK_STAFF)
-        editor = Group.objects.get(name=ARTEK_EDITOR)
-
-        def user(username, *groups):
-            u = User.objects.create_user(username, password='x')
-            u.groups.add(dtu_user, *groups)
-            return u
-
-        cls.dtu_not_own = user('s990999')
-        cls.dtu_own = user('s990001')                  # author of cls.pub (id_number)
-        cls.staff = user('stfo', staff)                # not listed on cls.pub
-        cls.staff_own = user('supv', staff)            # supervisor of cls.pub (initials)
-        cls.editor = user('edtr', editor)              # not listed on cls.pub
+        cls.dtu_not_own = make_user('s990999')
+        cls.dtu_own = make_user('s990001')                     # author of cls.pub (id_number)
+        cls.staff = make_user('stfo', ARTEK_STAFF)             # not listed on cls.pub
+        cls.staff_own = make_user('supv', ARTEK_STAFF)         # supervisor of cls.pub (initials)
+        cls.editor = make_user('edtr', ARTEK_EDITOR)           # not listed on cls.pub
 
     def assertRedirectsToLogin(self, response):
         self.assertEqual(response.status_code, 302)
@@ -90,20 +76,20 @@ class AddReportAccessTests(ReportAccessTestBase):
     def test_anonymous_redirected_to_login(self):
         for name in ('add_report', 'add_report_review', 'add_report_finalize'):
             with self.subTest(name=name):
-                self.assertRedirectsToLogin(self.client.get(_path(name)))
-                self.assertRedirectsToLogin(self.client.post(_path(name), {'title': 'x'}))
+                self.assertRedirectsToLogin(self.client.get(page_path(name)))
+                self.assertRedirectsToLogin(self.client.post(page_path(name), {'title': 'x'}))
 
     def test_dtu_users_may_not_add(self):
         for user in (self.dtu_not_own, self.dtu_own):
             with self.subTest(user=user.username):
                 self.login(user, self.edit_form_data('Sneaked in'))
                 for name in ('add_report', 'add_report_review', 'add_report_finalize'):
-                    self.assertDenied(self.client.get(_path(name)))
-                    self.assertDenied(self.client.post(_path(name), {'title': 'x'}))
+                    self.assertDenied(self.client.get(page_path(name)))
+                    self.assertDenied(self.client.post(page_path(name), {'title': 'x'}))
 
     def test_finalize_without_permission_creates_nothing(self):
         self.login(self.dtu_own, self.edit_form_data('Sneaked in'))
-        self.assertDenied(self.client.post(_path('add_report_finalize')))
+        self.assertDenied(self.client.post(page_path('add_report_finalize')))
         self.assertEqual(Publication.objects.count(), 1)
         self.assertFalse(Publication.objects.filter(title='Sneaked in').exists())
 
@@ -111,34 +97,34 @@ class AddReportAccessTests(ReportAccessTestBase):
         for user in (self.staff, self.editor):
             with self.subTest(user=user.username):
                 self.login(user)
-                self.assertEqual(self.client.get(_path('add_report')).status_code, 200)
+                self.assertEqual(self.client.get(page_path('add_report')).status_code, 200)
 
     def test_review_and_finalize_without_form_data_go_back_to_the_form(self):
         self.login(self.staff)
-        response = self.client.get(_path('add_report_review'))
+        response = self.client.get(page_path('add_report_review'))
         self.assertRedirects(response, reverse('publications:add_report'),
                              fetch_redirect_response=False)
-        response = self.client.post(_path('add_report_finalize'))
+        response = self.client.post(page_path('add_report_finalize'))
         self.assertRedirects(response, reverse('publications:add_report'),
                              fetch_redirect_response=False)
 
     def test_finalize_get_saves_nothing_and_goes_to_review(self):
         self.login(self.editor, self.edit_form_data('New report'))
-        response = self.client.get(_path('add_report_finalize'))
+        response = self.client.get(page_path('add_report_finalize'))
         self.assertRedirects(response, reverse('publications:add_report_review'),
                              fetch_redirect_response=False)
         self.assertEqual(Publication.objects.count(), 1)
 
     def test_review_post_passes_on_to_finalize_with_307(self):
         self.login(self.staff, self.edit_form_data('New report'))
-        response = self.client.post(_path('add_report_review'))
+        response = self.client.post(page_path('add_report_review'))
         self.assertEqual(response.status_code, 307)
         self.assertEqual(response['Location'], reverse('publications:add_report_finalize'))
         self.assertEqual(Publication.objects.count(), 1)
 
     def test_staff_adds_report_which_stays_hidden_from_anonymous_users(self):
         self.login(self.staff, self.edit_form_data('New report'))
-        response = self.client.post(_path('add_report_finalize'))
+        response = self.client.post(page_path('add_report_finalize'))
         new = Publication.objects.get(title='New report')
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': new.pk}),
                              fetch_redirect_response=False)
@@ -148,7 +134,7 @@ class AddReportAccessTests(ReportAccessTestBase):
         # Hidden from anonymous users (unverified): the report page sends them to the login
         # (PLAN_confidential T3; before, an access-denied page with status 200).
         self.client.logout()
-        response = self.client.get(_path('report', pk=new.pk))
+        response = self.client.get(page_path('report', pk=new.pk))
         self.assertRedirectsToLogin(response)
         self.assertNotContains(response, 'New report', status_code=302)
 
@@ -166,20 +152,20 @@ class EditReportAccessTests(ReportAccessTestBase):
     def test_anonymous_redirected_to_login(self):
         for name in self.NAMES:
             with self.subTest(name=name):
-                self.assertRedirectsToLogin(self.client.get(_path(name, pk=self.pub.pk)))
-                self.assertRedirectsToLogin(self.client.post(_path(name, pk=self.pub.pk)))
+                self.assertRedirectsToLogin(self.client.get(page_path(name, pk=self.pub.pk)))
+                self.assertRedirectsToLogin(self.client.post(page_path(name, pk=self.pub.pk)))
 
     def test_users_who_may_not_edit_are_denied(self):
         for user in (self.dtu_not_own, self.staff):
             with self.subTest(user=user.username):
                 self.login(user, self.edit_form_data('Changed'))
                 for name in self.NAMES:
-                    self.assertDenied(self.client.get(_path(name, pk=self.pub.pk)))
-                    self.assertDenied(self.client.post(_path(name, pk=self.pub.pk)))
+                    self.assertDenied(self.client.get(page_path(name, pk=self.pub.pk)))
+                    self.assertDenied(self.client.post(page_path(name, pk=self.pub.pk)))
 
     def test_finalize_without_permission_changes_nothing(self):
         self.login(self.dtu_not_own, self.edit_form_data('Changed'))
-        self.assertDenied(self.client.post(_path('edit_report_finalize', pk=self.pub.pk)))
+        self.assertDenied(self.client.post(page_path('edit_report_finalize', pk=self.pub.pk)))
         self.pub.refresh_from_db()
         self.assertEqual(self.pub.title, 'Own report')
 
@@ -187,23 +173,23 @@ class EditReportAccessTests(ReportAccessTestBase):
         self.pub.created_by = self.dtu_not_own
         self.pub.save()
         self.login(self.dtu_not_own)
-        self.assertDenied(self.client.get(_path('edit_report', pk=self.pub.pk)))
+        self.assertDenied(self.client.get(page_path('edit_report', pk=self.pub.pk)))
 
     def test_own_users_and_editor_may_open_the_edit_form(self):
         for user in (self.dtu_own, self.staff_own, self.editor):
             with self.subTest(user=user.username):
                 self.login(user)
-                self.assertEqual(self.client.get(_path('edit_report', pk=self.pub.pk)).status_code, 200)
+                self.assertEqual(self.client.get(page_path('edit_report', pk=self.pub.pk)).status_code, 200)
 
     def test_editor_sees_the_review_page(self):
         self.login(self.editor, self.edit_form_data('Changed'))
-        response = self.client.get(_path('edit_report_review', pk=self.pub.pk))
+        response = self.client.get(page_path('edit_report_review', pk=self.pub.pk))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'publications/add_edit_report_review.html')
 
     def test_review_post_passes_on_to_finalize_with_307(self):
         self.login(self.dtu_own, self.edit_form_data('Changed'))
-        response = self.client.post(_path('edit_report_review', pk=self.pub.pk))
+        response = self.client.post(page_path('edit_report_review', pk=self.pub.pk))
         self.assertEqual(response.status_code, 307)
         self.assertEqual(response['Location'],
                          reverse('publications:edit_report_finalize', kwargs={'pk': self.pub.pk}))
@@ -213,7 +199,7 @@ class EditReportAccessTests(ReportAccessTestBase):
             with self.subTest(user=user.username):
                 title = f'Changed by {user.username}'
                 self.login(user, self.edit_form_data(title))
-                response = self.client.post(_path('edit_report_finalize', pk=self.pub.pk))
+                response = self.client.post(page_path('edit_report_finalize', pk=self.pub.pk))
                 self.assertRedirects(response, reverse('publications:report', kwargs={'pk': self.pub.pk}),
                                      fetch_redirect_response=False)
                 self.pub.refresh_from_db()
@@ -222,7 +208,7 @@ class EditReportAccessTests(ReportAccessTestBase):
 
     def test_unknown_publication_is_404_for_logged_in_user(self):
         self.login(self.editor)
-        self.assertEqual(self.client.get(_path('edit_report', pk=self.pub.pk + 1000)).status_code, 404)
+        self.assertEqual(self.client.get(page_path('edit_report', pk=self.pub.pk + 1000)).status_code, 404)
 
 
 class VerifyReportAccessTests(ReportAccessTestBase):
@@ -236,7 +222,7 @@ class VerifyReportAccessTests(ReportAccessTestBase):
     def test_get_is_refused_for_everyone_and_changes_nothing(self):
         for name, start in (('verify_report', False), ('unverify_report', True)):
             self._set(start)
-            path = _path(name, pub_id=self.pub.pk)
+            path = page_path(name, pub_id=self.pub.pk)
             with self.subTest(name=name, user='anonymous'):
                 self.assertEqual(self.client.get(path).status_code, 405)
             with self.subTest(name=name, user='editor'):
@@ -246,8 +232,8 @@ class VerifyReportAccessTests(ReportAccessTestBase):
             self.assertEqual(self._verified(), start)
 
     def test_anonymous_post_redirected_to_login(self):
-        self.assertRedirectsToLogin(self.client.post(_path('verify_report', pub_id=self.pub.pk)))
-        self.assertRedirectsToLogin(self.client.post(_path('unverify_report', pub_id=self.pub.pk)))
+        self.assertRedirectsToLogin(self.client.post(page_path('verify_report', pub_id=self.pub.pk)))
+        self.assertRedirectsToLogin(self.client.post(page_path('unverify_report', pub_id=self.pub.pk)))
         self.assertFalse(self._verified())
 
     def test_users_without_verify_permission_are_denied(self):
@@ -255,32 +241,32 @@ class VerifyReportAccessTests(ReportAccessTestBase):
             with self.subTest(user=user.username):
                 self.login(user)
                 self._set(False)
-                self.assertDenied(self.client.post(_path('verify_report', pub_id=self.pub.pk)))
+                self.assertDenied(self.client.post(page_path('verify_report', pub_id=self.pub.pk)))
                 self.assertFalse(self._verified())
                 self._set(True)
-                self.assertDenied(self.client.post(_path('unverify_report', pub_id=self.pub.pk)))
+                self.assertDenied(self.client.post(page_path('unverify_report', pub_id=self.pub.pk)))
                 self.assertTrue(self._verified())
 
     def test_editor_verifies_and_unverifies_by_post(self):
         self.login(self.editor)
         report_url = reverse('publications:report', kwargs={'pk': self.pub.pk})
-        response = self.client.post(_path('verify_report', pub_id=self.pub.pk))
+        response = self.client.post(page_path('verify_report', pub_id=self.pub.pk))
         self.assertRedirects(response, report_url, fetch_redirect_response=False)
         self.assertTrue(self._verified())
-        response = self.client.post(_path('unverify_report', pub_id=self.pub.pk))
+        response = self.client.post(page_path('unverify_report', pub_id=self.pub.pk))
         self.assertRedirects(response, report_url, fetch_redirect_response=False)
         self.assertFalse(self._verified())
 
     def test_unknown_publication_is_404_for_logged_in_user(self):
         self.login(self.editor)
         self.assertEqual(
-            self.client.post(_path('verify_report', pub_id=self.pub.pk + 1000)).status_code, 404)
+            self.client.post(page_path('verify_report', pub_id=self.pub.pk + 1000)).status_code, 404)
 
 
 class DeleteReportAccessTests(ReportAccessTestBase):
 
     def _path(self):
-        return _path('delete_report', pk=self.pub.pk)
+        return page_path('delete_report', pk=self.pub.pk)
 
     def test_anonymous_redirected_to_login(self):
         self.assertRedirectsToLogin(self.client.get(self._path()))
@@ -329,7 +315,7 @@ class UploadAppendixRoleTests(ReportAccessTestBase):
     """The appendix upload page by role (the view itself: test_upload_appendix_access)."""
 
     def _path(self):
-        return _path('upload_appendix', pk=self.pub.pk)
+        return page_path('upload_appendix', pk=self.pub.pk)
 
     def test_anonymous_redirected_to_login(self):
         self.assertRedirectsToLogin(self.client.get(self._path()))
@@ -353,7 +339,7 @@ class ReportPageActionsTests(ReportAccessTestBase):
 
     def test_editor_gets_post_form_for_verify_and_pencil(self):
         self.login(self.editor)
-        response = self.client.get(_path('report', pk=self.pub.pk))
+        response = self.client.get(page_path('report', pk=self.pub.pk))
         verify_url = reverse('publications:verify_report', kwargs={'pub_id': self.pub.pk})
         self.assertContains(response, f'<form method="post" action="{verify_url}"')
         self.assertContains(response, 'csrfmiddlewaretoken')
@@ -364,7 +350,7 @@ class ReportPageActionsTests(ReportAccessTestBase):
     def test_editor_gets_post_form_for_unverify(self):
         Publication.objects.filter(pk=self.pub.pk).update(verified=True)
         self.login(self.editor)
-        response = self.client.get(_path('report', pk=self.pub.pk))
+        response = self.client.get(page_path('report', pk=self.pub.pk))
         unverify_url = reverse('publications:unverify_report', kwargs={'pub_id': self.pub.pk})
         self.assertContains(response, f'<form method="post" action="{unverify_url}"')
         self.assertNotContains(response, f'href="{unverify_url}"')
@@ -375,7 +361,7 @@ class ReportPageActionsTests(ReportAccessTestBase):
         for user in (self.dtu_not_own, self.dtu_own, self.staff, self.staff_own):
             with self.subTest(user=user.username):
                 self.login(user)
-                response = self.client.get(_path('report', pk=self.pub.pk))
+                response = self.client.get(page_path('report', pk=self.pub.pk))
                 self.assertEqual(response.status_code, 200)
                 self.assertNotContains(response, verify_url)
                 self.assertNotContains(response, number_url)
