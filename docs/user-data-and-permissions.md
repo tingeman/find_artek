@@ -1,6 +1,6 @@
 # User data and permissions
 
-What find_artek stores about users and persons, where it comes from, and who may see and change what. It describes the code on `agent-registration` after T12, T13 and T16 (plan [registration](plan/PLAN_registration.md)). It also covers T7 (report form), T8 (new persons) and T9 (menu).
+What find_artek stores about users and persons, where it comes from, and who may see and change what. It describes the code on `agent-registration` after T12, T13 and T16 (plan [registration](archive/PLAN_registration_COMPLETE.md)). It also covers T7 (report form), T8 (new persons) and T9 (menu).
 
 Two kinds of people are in the database:
 

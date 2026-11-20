@@ -1,14 +1,10 @@
 # Status: Registration (Phase 1b)
 
-Plan: [PLAN_registration.md](PLAN_registration.md). Branch: `agent-registration` (from `develop/main` at `58286e0`), worktree `..\find_artek_agent-registration`.
+Plan: [PLAN_registration.md](PLAN_registration_COMPLETE.md). Branch: `agent-registration` (from `develop/main` at `58286e0`), worktree `..\find_artek_agent-registration`.
 
 ## Now
 
-Fix release `2026.2.1` deployed 2026-11-19 (tag `372719be3cd4`, server checks passed, `main` fast-forwarded): [USER_STEPS_2026.2.1_COMPLETE.md](../archive/USER_STEPS_2026.2.1_COMPLETE.md). Next outside this plan: the history purge (FA-R77, own plan).
-
-On `agent-registration`: T1-T10, T12-T14, T16 and the match flags done (gate 22/22, 227 tests). `develop/main` fast-forwarded to `agent-registration` (`7053ddc`) 2026-11-19 with your permission. Now: **T11** (you): [USER_STEPS_2026.3.md](USER_STEPS_2026.3.md). 2026.3 **waits for the AD groups** (decided 2026-11-19): steps start when IT sends the DNs. "Confidential" is its own plan after 2026.3 (FA-R75).
-
-Dev stack, PowerShell: from the worktree `$DC = @('compose','-p','find_artek_develop','-f','docker-compose.yml','-f','docker-compose.develop.yml'); docker @DC up -d --build`; back to develop/main: in `find_artek_DEVELOP`, `docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`. Shell snippets: pipe them in (`"<python>" | docker @DC exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings`); PowerShell drops inner double quotes in `-c '...'`. The registration worktree holds a copy of `.dev.env` (ignored by `*.env`). The `agent-fixes` worktree is `..\find_artek_agent-fixes`.
+**Finished 2026-11-20.** Releases `2026.3` and `2026.3.1` deployed, user steps done (student login not tried: no account). `main` at `2026.3.1`. Deferred items in the roadmap (FA-R80 to FA-R85; FA-R12 50 MB retest in PLAN_test-coverage T8).
 
 ## Done
 
