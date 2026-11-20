@@ -1,10 +1,10 @@
 # Status: Confidential and unverified reports (FA-R75, FA-R30)
 
-Plan: [PLAN_confidential.md](PLAN_confidential.md). Branch: `agent-confidential` (from `develop/main`), worktree `..\find_artek_agent-confidential` (copy of `.dev.env` in it).
+Plan: [PLAN_confidential.md](PLAN_confidential_COMPLETE.md). Branch: `agent-confidential` (from `develop/main`), worktree `..\find_artek_agent-confidential` (copy of `.dev.env` in it).
 
 ## Now
 
-T8: steps 0-8 done, 2026.4 live with the nginx change. Next: you, step 9 (`git branch -f main 2026.4`); then the main session closes the plan.
+**Complete 2026-11-20.** Release `2026.4` deployed with the web_server nginx change; `main` at `2026.4`. Deferred: FA-R86 (orphan media investigation), Phase 2 helper for migration tests (see Notes), `/api/person/` listing persons of hidden reports and `/api/feature/?publication_id=abc` 500 (Phase 2), report page thumbnail link (`agent-fixes` `d9e34f3`, next release).
 
 ## Done
 
@@ -22,6 +22,7 @@ T8: steps 0-8 done, 2026.4 live with the nginx change. Next: you, step 9 (`git b
 - 2026-11-20: 2026.4 deployed by you, host and browser checks pass; production `check_media_access`: 62 unowned, same groups as dev, nothing linked loses access (FA-R86, FA-R87 updated).
 - 2026-11-20: web_server `nginx.conf` edited for step 7 (not committed). Roadmap: FA-R86 rewritten as the orphan-media investigation (missing reports, garbled names, the rest in detail; not urgent, must not be forgotten; listed in phase "later"), FA-R87 merged into it.
 - 2026-11-20: step 7 (nginx, playbook check fixed) and step 8 (media checks) pass in production.
+- 2026-11-20: step 9 (`main` → `2026.4`) by you. Found at step 8: the report page thumbnail was never a link; fixed on `agent-fixes` (`d9e34f3`, test `test_report_thumbnail_link`, gate 22/22, 318 tests) for the next release. Plan archived, worktree `agent-confidential` removed.
 - Decision 2026-11-19: anonymous users are redirected to the login for hidden reports (302) while unknown ids give 404; kept.
 - Not done, found in T2: `/api/person/` still lists persons who appear only on hidden reports (names only; plan assumption); `/api/feature/?publication_id=abc` gives 500 (old bug, Phase 2).
 - 2026-11-19: decisions: keep `/find/media/` URLs, nginx proxies them to a checked Django view with X-Accel-Redirect; features with no report stay public; anyone who may edit a report may set `confidential`.
@@ -36,4 +37,4 @@ T8: steps 0-8 done, 2026.4 live with the nginx change. Next: you, step 9 (`git b
 
 - Phase 2 idea from T1: a shared helper for migration tests (a `TransactionTestCase` that always restores the latest migrations), so each new schema migration doesn't break older migration tests.
 
-- Runs before [PLAN_test-coverage.md](PLAN_test-coverage.md): both touch `api/views.py`, `tests/run.sh` and the test modules.
+- Runs before [PLAN_test-coverage.md](../plan/PLAN_test-coverage.md): both touch `api/views.py`, `tests/run.sh` and the test modules.

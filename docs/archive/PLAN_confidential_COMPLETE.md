@@ -1,5 +1,7 @@
 # Plan: Confidential and unverified reports (FA-R75, FA-R30)
 
+Status: **complete 2026-11-20** (release `2026.4`). Status: [STATUS_confidential_COMPLETE.md](STATUS_confidential_COMPLETE.md), release steps: [USER_STEPS_2026.4_COMPLETE.md](USER_STEPS_2026.4_COMPLETE.md).
+
 Status: **approved 2026-11-19**. Roadmap: FA-R75, FA-R30 (file access), FA-R76 (report API bugs, the detail endpoint must apply the rule). Branch: `agent-confidential` (from `develop/main`), worked in its own worktree `..\find_artek_agent-confidential`. Release: the first release after `2026.3` (e.g. `2026.4`); needs a web_server change (nginx) afterwards.
 
 ## Goal

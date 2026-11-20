@@ -1,6 +1,6 @@
 # User steps: release 2026.4 (confidential reports and checked media, PLAN_confidential T8)
 
-Branch `agent-confidential` is at `0b13b6e` (2026-11-20): T1-T7 of [PLAN_confidential.md](PLAN_confidential.md) plus a merge of `develop/main` (`2026.3.1` and docs). Gate on the branch: 22/22, Django step 316 tests. Step 0 puts it on `develop/main`.
+Branch `agent-confidential` is at `0b13b6e` (2026-11-20): T1-T7 of [PLAN_confidential.md](PLAN_confidential_COMPLETE.md) plus a merge of `develop/main` (`2026.3.1` and docs). Gate on the branch: 22/22, Django step 316 tests. Step 0 puts it on `develop/main`.
 
 What changes for users:
 
@@ -168,7 +168,7 @@ Then in the browser, logged in as editor: the PDF of `12-05` opens. The report p
 
 ## 9. After the deploy
 
-- [ ] Done
+- [x] Done (2026-11-20): `main` moved to `2026.4` by you; plan closed by the main session.
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
