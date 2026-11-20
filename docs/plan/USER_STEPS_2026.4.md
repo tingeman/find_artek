@@ -107,7 +107,7 @@ Reload with Ctrl+F5 first.
 
 ## 7. nginx: media through Django (web_server)
 
-- [ ] Done. Edit made by the main session 2026-11-20 in web_server `docker/services/nginx/nginx.conf` (block replaced as below, `nginx -t` passes with the pinned image and a throwaway cert); **not committed**: review, commit, run the nginx playbook.
+- [ ] Done. nginx.conf committed by you (web_server `6ae31af`) and live after the nginx playbook 2026-11-20. The playbook's check "find_artek's folders are not listed" then failed: it expected 403 for `/find/media/`, which Django now answers with 404 (its 404 page, so the route works). Fixed by the main session (not committed): check expects 404 for `/find/media/` and `/find/_protected_media/`; web_server docs (`find_artek_admin.md`, `infrastructure.md`, `usage_statistics.md`, playbook header) updated. Commit and rerun the nginx playbook.
 
 Both edits together in `docker/services/nginx/nginx.conf` of web_server (deploy-contract skill, section "Media files"; never remove the alias without adding the internal location, or every media file gives 404):
 
