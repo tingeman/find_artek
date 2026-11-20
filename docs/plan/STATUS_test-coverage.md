@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T7 follow-up (implementer, in the worktree), two fixes decided 2026-11-20, each its own commit: (1) `utils_person.get_or_create_person_from_ldap` match query (`|` where `&` was meant, `utils_person.py:694-696`); (2) `cleanup_temp_files`: remove the temp-publication part (only old files in `media/temp/` are deleted, never DB rows). Then T9 (merge `develop/main` first).
+T9 (gate runs the full suite): implementer, in the worktree; merge `develop/main` into `agent-test-coverage` first (thumbnail fix `4f45f6d`). T8 (PDF upload in production) waits for the release.
 
 ## Done
 
+- T7 follow-ups 2026-11-20: directory-entry person match fixed (empty initials/id_number no longer match; an entry without identifiers no longer matches every person; an exact match is preferred) (`f73c34e`); `cleanup_temp_files` never deletes DB rows, the crashing temp-publication part removed (`c5ed19f`). Suite 509 OK, 1 skipped; coverage 70.0 %.
 - T7 2026-11-20: `test_utils_person`, `test_workflow_person`, `test_management_commands`, `test_import_excel` (93 tests). Bugs fixed: LDAP lookups passed `person=` (TypeError), `get_from_namestring` NameError on every plain name, an empty topic cell stopped the Excel import, LDAP warning text (`1c0e529`). Before it, `PersonSelectView` removed (`43a0514`). Suite 498 OK, 1 skipped; coverage 69.7 % (utils_person 68.7, register_from_file 76.8, workflows/person 95.5, generate_thumbnails 81.5, cleanup_temp_files 72.7).
 - 2026-11-20 (decided with you): `PersonSelectView` (`/select/persons/`) is removed with its template and unused forms. It is a predecessor of the person workflow (`workflows/person.py`, `PersonWorkflowMixin`), and it reads session keys that nothing writes, so its POST gives 500.
 - 2026-11-20 (decided with you): non-numeric `author_id`/`supervisor_id` on `/api/report/` gives 400 instead of 500 (`3fac0b7`); suite 407 OK, 1 skipped.
