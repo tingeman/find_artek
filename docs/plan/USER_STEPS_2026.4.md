@@ -17,7 +17,7 @@ Deployment impact (web_server):
 
 ## 0. Fast-forward `develop/main` (main session, with your OK)
 
-- [ ] Done
+- [x] Done (2026-11-20, main session): `develop/main` fast-forwarded to `debfb94`.
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -27,7 +27,7 @@ git log --oneline -1 develop/main                     # the same commit as agent
 
 ## 1. Tag `2026.4` locally
 
-- [ ] Done
+- [x] Done (2026-11-20, main session, with your OK): tag on `debfb94`.
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -37,7 +37,7 @@ git show --no-patch --format='%h %s' '2026.4^{commit}'
 
 ## 2. Build and test the bundle
 
-- [ ] Done
+- [x] Done (2026-11-20, main session): `RESULT: OK`, 22/22, `Ran 316 tests`; tarball_sha256 `8b4c9b7339a449b46cd86f6b22817e87530c71eaeff9c013eb70083e06215a82`, image_id `sha256:1228d5763e4e...`, built 2026-11-20T06:54:13Z.
 
 ```bash
 # WSL
@@ -50,7 +50,7 @@ Expect `RESULT: OK`, 22 tests, and the Django step `Ran 316 tests`. Paste the ma
 
 ## 3. Publish to the releases share
 
-- [ ] Done
+- [x] Done (2026-11-20, main session): copied, hash on the share matches the manifest.
 
 ```powershell
 # PowerShell
@@ -62,7 +62,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.4.tar.gz"   # = tarb
 
 ## 4. releases.yml (web_server)
 
-- [ ] Done
+- [x] Done (2026-11-20): entry and comment written by the main session; **not committed** (web_server config: you commit it).
 
 `ansible/vars/releases.yml`, `webapp_find_artek`: `version: "2026.4"`, `tarball_sha256` from the manifest. Paste the manifest and the main session writes the comment (previous: 2026.3.1, tarball_sha256 `8dfccba315f8fc1df510c681f3aaeb085859458d3b518a90d0cebd02dca14ad7`). The env file needs no change. Commit.
 
