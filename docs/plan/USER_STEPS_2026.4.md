@@ -22,7 +22,7 @@ Deployment impact (web_server):
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
 git merge --ff-only agent-confidential
-git log --oneline -1 develop/main                     # 0b13b6e, or a docs commit on top
+git log --oneline -1 develop/main                     # the same commit as agent-confidential (a merge of develop/main docs on top of 0b13b6e)
 ```
 
 ## 1. Tag `2026.4` locally
