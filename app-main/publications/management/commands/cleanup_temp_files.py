@@ -1,13 +1,13 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from publications.models import Publication, FileObject
 import os
 import time
 import shutil
 
 
 class Command(BaseCommand):
-    help = 'Clean up orphaned temporary files in the media/temp directory'
+    help = ('Delete files under MEDIA_ROOT/temp/ older than --max-age, then empty directories '
+            'below temp/. Never deletes database rows.')
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -44,11 +44,6 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN - No files will actually be deleted'))
         
-        # Get all temp publication IDs to check which ones are still in session/workflow
-        temp_publication_ids = set()
-        for pub in Publication.objects.filter(title__startswith='temp_'):
-            temp_publication_ids.add(pub.id)
-        
         # Scan all subdirectories in temp folder
         for root, dirs, files in os.walk(temp_dir):
             for filename in files:
@@ -66,32 +61,6 @@ class Command(BaseCommand):
                     if file_age > max_age:
                         should_delete = True
                         reason = f"older than {max_age} seconds"
-                    
-                    # Check if the file is associated with a temp publication that no longer exists
-                    # Extract timestamp from directory name if possible
-                    rel_path = os.path.relpath(file_path, temp_dir)
-                    dir_name = os.path.dirname(rel_path)
-                    
-                    # Check if there are any FileObjects pointing to this file
-                    file_objects = FileObject.objects.filter(file__contains=rel_path)
-                    if file_objects.exists():
-                        # Check if any of these FileObjects belong to temp publications
-                        for file_obj in file_objects:
-                            if hasattr(file_obj, 'publication_set'):
-                                pubs = file_obj.publication_set.filter(title__startswith='temp_')
-                                if pubs.exists():
-                                    # Check if any temp publications are older than max_age
-                                    for pub in pubs:
-                                        pub_age = current_time - pub.created_at.timestamp()
-                                        if pub_age > max_age:
-                                            should_delete = True
-                                            reason = f"associated temp publication is older than {max_age} seconds"
-                                            break
-                    else:
-                        # No FileObject references this file, check age
-                        if file_age > max_age:
-                            should_delete = True
-                            reason = f"orphaned file older than {max_age} seconds"
                     
                     if should_delete:
                         if dry_run:
@@ -126,15 +95,6 @@ class Command(BaseCommand):
                     self.stdout.write(
                         self.style.ERROR(f'Error removing directory {root}: {e}')
                     )
-        
-        # Clean up orphaned temp publications
-        if not dry_run:
-            temp_pubs = Publication.objects.filter(title__startswith='temp_')
-            for pub in temp_pubs:
-                pub_age = current_time - pub.created_at.timestamp()
-                if pub_age > max_age:
-                    self.stdout.write(f'Deleting orphaned temp publication: {pub.title}')
-                    pub.delete()
         
         # Summary
         size_mb = deleted_size / (1024 * 1024)

@@ -10,14 +10,16 @@ import os
 import shutil
 import tempfile
 import time
+from datetime import timedelta
 from io import StringIO
 from unittest import mock
 
 from django.core.management import CommandError, call_command
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from PIL import Image
 
-from publications.models import FileObject
+from publications.models import FileObject, Publication
 from publications.test_factories import make_report, report_type
 
 
@@ -142,7 +144,7 @@ class GenerateThumbnailsTests(_MediaRootCase):
 
 class CleanupTempFilesTests(_MediaRootCase):
     """Files under MEDIA_ROOT/temp/ older than --max-age (default 1 h) are deleted, then empty
-    directories below temp/. The clock is moved forward (time.time in the command) instead of
+    directories below temp/. No database rows are deleted. The clock is moved forward (time.time in the command) instead of
     backdating the files, since the command uses the change time (ctime)."""
 
     OLD = 'temp/20261101-120000/upload.pdf'
@@ -190,3 +192,21 @@ class CleanupTempFilesTests(_MediaRootCase):
         out = self.run_command('cleanup_temp_files')
         self.assertEqual(self.files(), {self.OTHER})
         self.assertIn('Nothing to clean', out)
+
+    def test_temp_publication_is_not_deleted(self):
+        # The command used to delete publications titled 'temp_...' (and crashed on the
+        # missing field created_at); it only deletes files now.
+        pub = make_report(report_type(), '99-01', verified=False, confidential=False,
+                          title='temp_x')
+        Publication.objects.filter(pk=pub.pk).update(
+            created_date=timezone.now() - timedelta(days=30))
+        self.run_later(2 * 3600)
+        self.assertTrue(Publication.objects.filter(pk=pub.pk, title='temp_x').exists())
+        self.assertEqual(self.files(), {self.OTHER})
+
+    def test_old_file_of_a_file_object_is_deleted_and_the_row_stays(self):
+        # Today's behaviour (FA-R70): a FileObject pointing into temp/ doesn't protect its file.
+        fileobject = FileObject.objects.create(file=self.OLD)
+        self.run_later(2 * 3600)
+        self.assertEqual(self.files(), {self.OTHER})
+        self.assertTrue(FileObject.objects.filter(pk=fileobject.pk, file=self.OLD).exists())
