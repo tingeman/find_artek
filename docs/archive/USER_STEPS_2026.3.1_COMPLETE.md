@@ -52,7 +52,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.3.1.tar.gz"   # = ta
 
 ## 5. Deploy
 
-- [ ] Done
+- [x] Done (2026-11-20).
 
 ```bash
 # WSL, web_server with step 4 committed
@@ -75,7 +75,7 @@ Rollback: put the `2026.3` entry back in `releases.yml` and rerun the playbook (
 
 ## 6. Functional checks in the browser
 
-- [ ] Done
+- [x] Done (2026-11-20): checks 1-4 passed; check 5 (student account) not run, no account at hand.
 
 Reload with Ctrl+F5 first (the old `file-upload.js` may be cached).
 
@@ -91,7 +91,7 @@ Reload with Ctrl+F5 first (the old `file-upload.js` may be cached).
 
 ## 7. After the deploy
 
-- [ ] Done
+- [x] Done (2026-11-20).
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP

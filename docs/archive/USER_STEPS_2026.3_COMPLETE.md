@@ -1,6 +1,6 @@
 # User steps: release 2026.3 (registration, PLAN_registration T11)
 
-`develop/main` is at `7ae8a69` (2026-11-20): the registration work of [PLAN_registration.md](PLAN_registration.md) (T1-T10, T12-T14, T16, match flags) on top of `2026.2.1`, plus the LDAP bind fix `7ae8a69` (bind as `<LDAP_BIND_USER>@win.dtu.dk`; the old DN under `OU=BYG` failed since the service account moved to `OU=SUS service accounts`, so every LDAP lookup in production failed too). Gate on the branch: 22/22, Django step 228 tests.
+`develop/main` is at `7ae8a69` (2026-11-20): the registration work of [PLAN_registration.md](PLAN_registration_COMPLETE.md) (T1-T10, T12-T14, T16, match flags) on top of `2026.2.1`, plus the LDAP bind fix `7ae8a69` (bind as `<LDAP_BIND_USER>@win.dtu.dk`; the old DN under `OU=BYG` failed since the service account moved to `OU=SUS service accounts`, so every LDAP lookup in production failed too). Gate on the branch: 22/22, Django step 228 tests.
 
 What changes for users:
 
@@ -96,7 +96,7 @@ Rollback: put the `2026.2.1` entry back in `releases.yml` and rerun the playbook
 
 ## 6. Functional checks in the browser
 
-- [ ] Done. 2026-11-20: checks 1 and 2 passed; 7 open (AD groups had no members at the first login; members added 2026-11-20, waiting for AD replication); 3, 5, 6 not run yet. **Check 4 failed** (2026-11-20 00:05): with a PDF, "Create person" in the person step posted back to `report/add/` and showed an empty form; nothing saved, the PDF left in `media/temp/1795133116`. Cause: `file-upload.js` sends the form by XHR and copies the redirected page into the current one, so the person step's forms (no `action`) posted to the address bar URL. Fix `84a5273` (2026.3.1); checks 3-7 continue in [USER_STEPS_2026.3.1.md](USER_STEPS_2026.3.1.md).
+- [ ] Done. 2026-11-20: checks 1 and 2 passed; 7 open (AD groups had no members at the first login; members added 2026-11-20, waiting for AD replication); 3, 5, 6 not run yet. **Check 4 failed** (2026-11-20 00:05): with a PDF, "Create person" in the person step posted back to `report/add/` and showed an empty form; nothing saved, the PDF left in `media/temp/1795133116`. Cause: `file-upload.js` sends the form by XHR and copies the redirected page into the current one, so the person step's forms (no `action`) posted to the address bar URL. Fix `84a5273` (2026.3.1); checks 3-7 continue in [USER_STEPS_2026.3.1.md](USER_STEPS_2026.3.1_COMPLETE.md).
 
 1. Logged out: a person page shows no study number and no student e-mail; no "Add" menu; `/find/publications/report/add/` sends you to the DTU login.
 2. Log in with your own account, then the admin user page (`/find/admin/auth/user/`): your user has group `dtu_user`, first/last name and e-mail filled in. If not, look for a `publications.roles` warning in `sudo docker logs webapp-find-artek` (AD lookup failed).
