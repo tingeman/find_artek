@@ -4,10 +4,11 @@ Plan: [PLAN_test-coverage.md](PLAN_test-coverage.md). Branch: `agent-test-covera
 
 ## Now
 
-T9 (gate runs the full suite): implementer running in the worktree; `develop/main` merged into `agent-test-coverage` (`8b1e4fd`, `tests/run.sh` label conflict resolved, both labels kept). T8 (PDF upload in production) waits for the release.
+T9 done. Next: fast-forward `develop/main` to `agent-test-coverage` (needs your permission), then T10 release (you) with T8 (PDF upload in production) after the deploy.
 
 ## Done
 
+- T9 2026-11-20: `tests/run.sh` runs the whole discovered suite (no `DJANGO_TEST_LABELS`), production settings; docs and skills updated; three `test_import_excel` upload-page tests fixed for the `/find` prefix (followed the prefixed redirect as a path, 404) and `test_report_thumbnail_link` import fixed after the merge (`8b1e4fd`); failure summary shows FAIL/ERROR lines only. Dev 538 OK, 1 skipped; image tests 22/22, Django 538 OK; full gate ~6 min (`b21c38f`).
 - T7b 2026-11-20: Excel import checked and all or nothing (one transaction, problems listed by sheet and row), existing numbers skipped, column aliases, title may be empty, editors optional, existing topics only, keywords imported, year rule 90-99 = 19YY; new template `static/publications/docs/ARTEK_report_list.xlsx` with a Help sheet (the page link was broken: file missing, `{{STATIC_URL}}` empty) (`e549ecd`). Suite 536 OK, 1 skipped; coverage 71.0 % (register_from_file 97.3).
 - T7 follow-ups 2026-11-20: directory-entry person match fixed (empty initials/id_number no longer match; an entry without identifiers no longer matches every person; an exact match is preferred) (`f73c34e`); `cleanup_temp_files` never deletes DB rows, the crashing temp-publication part removed (`c5ed19f`). Suite 509 OK, 1 skipped; coverage 70.0 %.
 - T7 2026-11-20: `test_utils_person`, `test_workflow_person`, `test_management_commands`, `test_import_excel` (93 tests). Bugs fixed: LDAP lookups passed `person=` (TypeError), `get_from_namestring` NameError on every plain name, an empty topic cell stopped the Excel import, LDAP warning text (`1c0e529`). Before it, `PersonSelectView` removed (`43a0514`). Suite 498 OK, 1 skipped; coverage 69.7 % (utils_person 68.7, register_from_file 76.8, workflows/person 95.5, generate_thumbnails 81.5, cleanup_temp_files 72.7).
@@ -62,10 +63,8 @@ Most missed statements: views.py 339, utils_person 259, forms/mixins 187, regist
 - Found in T5, roadmap candidate: `publications_meta/views.py` hard-codes the two usernames allowed into the admin via `admin-cas-login` (access rule; out of scope here).
 
 - Decided 2026-11-20: no numeric coverage target. Critical paths covered, beyond that what makes sense; tests check behaviour, not implementation; the report is a map for finding untested behaviour. One-off maintenance commands (normalize_pdf_filenames, analyze_srid_usage, generate_report_numbers, test_person_workflow) stay in the report, no tests in this plan.
-- CLAUDE.md (on the branch) still mentions `publications/tests.py` and a `publications/tests/` package; fix with T9's doc pass.
 
 - Found in T3, for T7 (person matching): with LDAP on, `utils_person.get_from_studynumber`/`get_from_initials` call `get_or_create_person_from_ldap(person=...)`, but the parameter is `ldap_object` (TypeError on any LDAP hit; reached only via `get_person_from_string`). `register_from_file.py` study-number warning with LDAP on uses `{0}` instead of `{2}` ("add Author manually"; cosmetic).
 - `USE_LDAP` for web_server: optional, default `true`; list it in the release USER_STEPS (T10).
 - Dev stack from the worktree: add `-p find_artek_develop` to the compose command (the project name otherwise comes from the directory and the container names clash). A failed run left unused volumes `find_artek_agent-test-coverage_staticfiles_data`, `..._media_data` and network `find_artek_agent-test-coverage_docker_default`; remove them yourself if you like (`docker volume rm`, `docker network rm`).
-- `tests/run.sh` header comment (line 55) still describes the old `tests.py`; T9 rewrites it.
-- `develop/main` now has the thumbnail fix (`4f45f6d`, new label `publications.test_report_thumbnail_link` in `tests/run.sh`): merge `develop/main` into `agent-test-coverage` before T9 / before the fast-forward.
+- For T10 USER_STEPS: `build_image.sh` now takes ~6 min (whole Django suite); interface unchanged.
