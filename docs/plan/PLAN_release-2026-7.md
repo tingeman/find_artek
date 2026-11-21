@@ -1,6 +1,6 @@
-# Plan: Release 2026.7 (upload limit, report list speed and cache, autocomplete access, thumbnail errors, PDF metadata)
+# Plan: Release 2026.7 (upload limit, report list speed and cache, autocomplete access, thumbnail errors, PDF metadata, Administration page)
 
-Status: **approved (2026-11-21)**. Roadmap: FA-R88, FA-R97, FA-R89, FA-R82, FA-R69 (code part), FA-R98 (step 1). Branch: `agent-release-2026-7` (from `develop/main`). Release: `2026.7`.
+Status: **approved (2026-11-21)**. Roadmap: FA-R88, FA-R97, FA-R89, FA-R82, FA-R69 (code part), FA-R98 (step 1), FA-R100. Branch: `agent-release-2026-7` (from `develop/main`). Release: `2026.7`.
 
 Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They come later as a separate plan: a read-only admin page first, actions after the review (discussed 2026-11-21). T5's command is input for that plan.
 
@@ -12,7 +12,8 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 4. Anonymous users can't call the person autocomplete any more (FA-R82).
 5. When the nightly thumbnail job has errors, it ends with a non-zero exit and the cron wrapper logs a failure (FA-R69, code part).
 6. A read-only command reads the first pages of a report PDF's text layer and suggests year, study numbers (with the matching persons) and title. Its accuracy is measured on reports that are in the DB (FA-R98 step 1).
-7. Released as `2026.7`.
+7. The header's "Add" drop-down (partly hidden under the blue bar) is replaced by a link "Administration" to a page with picture tiles, laid out like the classic version's administration page (FA-R100).
+8. Released as `2026.7`.
 
 ## Current state
 
@@ -42,13 +43,18 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
   - A management command `extract_pdf_metadata` (read-only): `PATH…` (relative to `MEDIA_ROOT`), or `--unowned` (the orphan files of `check_media_access`), or `--evaluate N`. `--evaluate N` takes N reports that are in the DB and have a PDF and compares title, year and study numbers with the DB. It prints a hit rate per field and lists the misses. That shows whether the text layer is good enough before FA-R86 builds on it.
   - The output contains personal data (names, study numbers). It goes only to the terminal of whoever runs the command; nothing is stored. You run it, on the dev stack's media copy or in production (`docker exec`, read-only). The agents may not read media files (CLAUDE.md), so tests use small PDFs generated in the test.
   - Not exposed on the web in this plan. The prefill of the add-report form and the admin page come later (FA-R98, FA-R86).
+- **T6, Administration page (FA-R100, added 2026-11-21).** The header's "Add" drop-down (`base.html:91-109`, mobile entries `:202-208`) is cut off below the blue bar. The classic version (`old: app-classic/find_artek/publications/templates/publications/add_menu_2.html`, view `add_menu` at `old: publications/views.py:1395`, URL `/pubs/add/`) had a page "Administration" with picture tiles in the front page's style (`fmitem`/`fmimage`/`fmtext` from `frontpage.css`). The current app already has those CSS classes (`publications/static/publications/css/frontpage.css`, used by `frontpage.html:38-60`) and the classic tile images (`publications/static/publications/img/reports_190x150.jpg`, `add_person_190x150.png`, `add_feature_190x150.png`, `add_feature_file_190x150.png`).
+  - New page `publications/administration/` (name `publications:administration`, inside `/find/`), template `administration.html`, extending `base.html`, with the classic tiles, in the classic order: **Add report** (→ `publications:add_report`, shown as working to users with `add_publication`), **Add person** (FA-R58), **Add feature** (a feature is added from a report's page; the tile says so), **Import reports from Excel** (→ `publications:add_reports_from_file_upload`, working for `change_publication`), **Import features from Excel** (FA-R63). As you decided 2026-11-21, tiles that aren't built yet, or that the user lacks the permission for, are shown **greyed out with "not available yet"** (or "needs the editor role"), not as links. The classic "Backup" tile is dropped (backups are done by web_server). A "Django admin" tile for staff users (`user.is_staff`) is added.
+  - Access: the same guard as the old menu. Logged-out users are sent to the login, and logged-in users without `add_publication` or `change_publication` get 403 (as `publications/permissions.py`). No new data is shown, only links.
+  - Header: the drop-down is replaced by one plain link "Administration" (desktop and mobile), shown under the same `{% if perms… %}` condition as today. The CSS classes `header-nav-add-report`/`header-nav-import-excel` that tests may look for move to the tiles; tests that pin the drop-down change deliberately.
+  - The page is meant to grow: FA-R58 (persons), FA-R63, FA-R86 (orphan files) and FA-R98 (PDF prefill) get tiles here when they are built.
 - **No migration, no new env variable**, no change to port, paths, user, entrypoint, cron schedule or the `tests/run.sh` interface.
 
 ## Assumptions
 
-- One release `2026.7` at the end, with the usual user steps (`docs/plan/USER_STEPS_2026.7.md`, written at T6).
+- One release `2026.7` at the end, with the usual user steps (`docs/plan/USER_STEPS_2026.7.md`, written at T7).
 - The 300 MB limit applies to every user who is allowed to upload, per file. An appendix upload with several files can exceed 300 MB in one request; nginx then refuses it with 413, and the page says "per file".
-- The JS changes (T1, T2b) are checked by hand in the dev stack (T6). There's no JS test framework (FA-R40).
+- The JS changes (T1, T2b) are checked by hand in the dev stack (T7). There's no JS test framework (FA-R40).
 - T2b defaults to option A unless T2a's numbers say otherwise; the main session states the choice in the status file before T2b starts.
 - T5's study-number pattern is `s` + 6 digits (current DTU format). Older formats (e.g. `c`-numbers, 1990s) are listed as misses by `--evaluate` and added if they show up.
 - T5's test PDFs are built in the test: a minimal hand-written PDF with a text layer (a few lines in two font sizes), and an image-only PDF from Pillow for the "no text layer" case. Tests that need `pdftotext` are skipped with a clear reason only if the binary is missing (it's in every image, so they run in the dev stack and in `tests/run.sh`).
@@ -82,7 +88,7 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 
 ### T3. Person autocomplete for logged-in users only (FA-R82)
 - Files: `app-main/publications/views.py` (`PersonAutocompleteView`), `test_smoke_urls.py:109`, `test_person_privacy.py`, `test_select2_widgets.py` if it calls anonymously.
-- Acceptance: anonymous GET gives 403 with a JSON body and no person data, with or without a term. Logged-in users get results as before, including the study-number lookup. The report form's author/supervisor fields still work (T6 by hand).
+- Acceptance: anonymous GET gives 403 with a JSON body and no person data, with or without a term. Logged-in users get results as before, including the study-number lookup. The report form's author/supervisor fields still work (T7 by hand).
 - Tests: anonymous 403 (empty term, name term, study number); `dtu_user` and `artek_editor` get 200 with results. Existing tests changed deliberately, as in the design notes.
 - Validation: skill `validate`: `publications` tests, `check`.
 - Agent: implementer.
@@ -104,12 +110,20 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 - Agent: implementer.
 - Deployment impact: none (poppler is in the image; nothing new reachable).
 
-### T6. Dev checks and USER_STEPS_2026.7 (main session writes, you check)
+### T6. Administration page instead of the "Add" drop-down (FA-R100)
+- Files: `app-main/publications/urls.py`, `app-main/publications/views.py` (or a small new view module), new `templates/publications/administration.html`, `templates/publications/base.html` (desktop and mobile nav), `static/publications/css/frontpage.css` or a small new CSS file (greyed tile style); tests in a new `app-main/publications/test_administration.py`, `test_smoke_urls.py` (new URL), and existing menu tests (they change deliberately).
+- Acceptance: logged in with `add_publication` and/or `change_publication`, the header shows "Administration" (no drop-down), and the page shows the five classic tiles in the classic order plus "Django admin" for staff. Working tiles are links; unbuilt or not-permitted tiles are greyed, with the reason, and aren't links. Anonymous → login redirect; plain `dtu_user` without these permissions → 403 and no header link. Looks right on desktop and phone widths (T7 by hand).
+- Tests: header link present/absent per role (anonymous, `dtu_user`, `artek_editor`, a user with only `add_publication`, a superuser); page status per role; which tiles are links and which are greyed per role; the Django admin tile only for staff; smoke-test entry for `publications:administration`.
+- Validation: skill `validate`: `publications` tests, `check`.
+- Agent: implementer.
+- Deployment impact: none (a new page inside `/find/`, behind login and permissions).
+
+### T7. Dev checks and USER_STEPS_2026.7 (main session writes, you check)
 - Main session: merge `develop/main` into the branch, rerun the checks, write `docs/plan/USER_STEPS_2026.7.md` in the format of `USER_STEPS_2026.6.md` (dev checks, fast-forward, tag, `build_image.sh`, publish, `releases.yml`, deploy, production checks, after closing).
-- You, at http://localhost:8098/ (Ctrl+F5): upload a report PDF and an appendix over 50 MB; the report list and map load fast; delete, add and edit a report and see the change at once without logging out; author autocomplete works logged in; `/publications/test/autocomplete/person/?term=a` logged out gives 403. In the dev container: `python manage.py extract_pdf_metadata --evaluate 50 --settings find_artek.development_settings` and `--unowned`; tell the main session the hit rates (not the personal data).
+- You, at http://localhost:8098/ (Ctrl+F5): upload a report PDF and an appendix over 50 MB; the report list and map load fast; delete, add and edit a report and see the change at once without logging out; author autocomplete works logged in; `/publications/test/autocomplete/person/?term=a` logged out gives 403; "Administration" in the header opens the tile page (desktop and a narrow window), its working tiles open the add-report form and the Excel import. In the dev container: `python manage.py extract_pdf_metadata --evaluate 50 --settings find_artek.development_settings` and `--unowned`; tell the main session the hit rates (not the personal data).
 - Agent: you.
 
-### T7. Release 2026.7 (you)
+### T8. Release 2026.7 (you)
 - Per `USER_STEPS_2026.7.md`: fast-forward `develop/main` (main session, with your OK), tag `2026.7`, `build_image.sh`, publish, `releases.yml`, deploy, production checks. The next morning's thumbnail log shows `exit code 1` with the 2 known errors, as expected until FA-R69's data part is done.
 - Agent: you.
 
