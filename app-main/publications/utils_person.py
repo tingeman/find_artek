@@ -3,6 +3,7 @@
 # my_unicode = "This is a Unicode string"
 from http import server
 import ldap3
+from ldap3.utils.conv import escape_filter_chars
 import re
 import logging
 from publications.utils_basic import safe_latex_decode
@@ -22,6 +23,9 @@ from publications import models
 from publications.utils_basic import get_tag, remove_tags
 
 logger = logging.getLogger(__name__)
+
+# Seconds for connecting to and waiting for the directory (find_ldap_person), as roles.py.
+LDAP_TIMEOUT = 5
 
 re_name_sep_words = re.compile(r'\s*[;&\n]+\s*|\s+and\s+|\s+AND\s+|\s+og\s+|\s+OG\s+')
 re_space_sep = re.compile(r'(?<!,)\s(?!,)')  # used to find spaces that are not connected to commas
@@ -616,35 +620,41 @@ def find_ldap_person(**kwargs):
         logger.warning('LDAP is not enabled in settings, skipping LDAP search!')
         return []
     else:
-        print(f"🔍 DEBUG: utils_person:find_ldap_person: {kwargs}")
+        # Only the attribute names: the values are study numbers or initials.
+        logger.debug('find_ldap_person: search by %s', sorted(kwargs))
     # if not 'django_auth_ldap.backend.LDAPBackend' in settings.AUTHENTICATION_BACKENDS:
     #     return []
 
     # 1) Possibly make translation of attribute names?
     # 2) Generate search string
+    # The values are escaped: they can come from typed text (report form, Excel import).
     searchstr = ''
     for k,v in kwargs.items():
-        searchstr += '({0}={1})'.format(k,v)
+        searchstr += '({0}={1})'.format(k, escape_filter_chars(str(v)))
     if len(kwargs.keys()) >= 1:
         searchstr = '(&{0})'.format(searchstr)
 
     attributes = ['sn', 'givenName', 'department', 'company', 'title', 'employeeID', 'initials', 'name']
 
     # 3) Open connection, bind, and search for user
-    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, get_info='ALL')
-    # conn = ldap3.Connection(server, user=settings.AUTH_LDAP_BIND_DN, password=settings.AUTH_LDAP_BIND_PASSWORD, auto_bind=True)
+    # Timeouts, so an unreachable directory doesn't hang the request (the report form's person
+    # step asks the directory while the user waits). A failed connection or bind raises.
+    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, get_info='ALL',
+                          connect_timeout=LDAP_TIMEOUT)
     with ldap3.Connection(
         server,
         user=settings.AUTH_LDAP_BIND_DN,
         password=settings.AUTH_LDAP_BIND_PASSWORD,
-        auto_bind=True
+        auto_bind=True,
+        receive_timeout=LDAP_TIMEOUT,
     ) as conn:
         try:
             conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, searchstr, attributes=attributes)
             result = conn.entries
-        except Exception:
+        except Exception as exc:
             result = []
-            logger.warning(f'ldap search for {searchstr} failed!')
+            # No search string: it holds the study number or initials.
+            logger.warning('ldap search by %s failed (%s)', sorted(kwargs), type(exc).__name__)
 
     # 6) Return list of users matching the search criteria
     return result
@@ -790,15 +800,16 @@ def get_person_info_from_ldap_object(ldap_object=None):
     kwargs = get_full_name_kwargs(string=name)
     kwargs.update(get_relaxed_name_kwargs(string=name))
 
+    # An attribute missing in the entry is None; the Person fields are NOT NULL, so ''.
     if ldap_object.company.value == 'Studerende':
         # If we have a company 'Studerende', we assume it is a student
         kwargs['position'] = 'student'
-        kwargs['id_number'] = ldap_object.name.value
+        kwargs['id_number'] = ldap_object.name.value or ''
     elif ldap_object.title.value:
         # If we have a title, we assume it is an employee
         kwargs['position'] = ldap_object.title.value
-        kwargs['id_number'] = ldap_object.employeeID.value
-        kwargs['department'] = ldap_object.department.value
+        kwargs['id_number'] = ldap_object.employeeID.value or ''
+        kwargs['department'] = ldap_object.department.value or ''
 
     if ldap_object.initials.value:
         kwargs['initials'] = ldap_object.initials.value

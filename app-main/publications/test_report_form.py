@@ -54,6 +54,10 @@ def _failing_after_handle_files():
     return failing
 
 
+# No DTU directory: typed initials or a study number would make the person step ask LDAP
+# (release-2026-7 T12); the directory lookup is tested with LDAP mocked in
+# test_person_ldap_lookup.
+@override_settings(USE_LDAP=False)
 class ReportFormTestBase(TestCase):
 
     @classmethod

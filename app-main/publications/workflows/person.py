@@ -4,8 +4,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.db.models import QuerySet
-from publications.models import Person
+from publications import utils_person
+from publications.models import STUDY_NUMBER_RE, Person
 from publications.forms.person import AddPersonForm, PersonSelectForm
 import re
 import ast
@@ -92,7 +94,8 @@ class PersonWorkflowSession:
         return workflow['current_step'] >= len(workflow['pending_persons'])
     
     def get_resolved_persons(self):
-        """The choices per field: {field_name: {typed name: pk, 'CREATE:<name>' or 'SKIP:<name>'}}"""
+        """The choices per field: {field_name: {typed name: pk, 'CREATE:<name>', 'LDAP:...' or
+        'SKIP:<name>'}}"""
         resolved = {}
         for field_name, name, value in self.session['person_workflow'].get('resolved', []):
             resolved.setdefault(field_name, {})[name] = value
@@ -181,6 +184,140 @@ def get_person_matches(name_string):
     }
 
 
+# --- DTU directory (AD/LDAP) lookup in the step (plan release-2026-7 T12) --------------------
+#
+# A typed study number or initials is also looked up in the DTU directory (USE_LDAP on). A hit
+# that is not in the database yet is offered as an extra choice; choosing it stores the marker
+# 'LDAP:<identifier>:<name>' (identifier: the entry's study number or initials; name: for the
+# review page). Nothing is created before the report is saved: person_from_form_value asks the
+# directory again and uses utils_person.get_or_create_person_from_ldap. A hit that is already
+# in the database (same identifiers, as get_or_create_person_from_ldap matches them) is not
+# offered as a new person: the database person is shown, marked as found in the directory.
+
+DIRECTORY_PREFIX = 'LDAP:'
+# Initials typed instead of a name: 2-6 ASCII letters and nothing else (no directory query for
+# names with spaces, and nothing that would need escaping in an LDAP filter).
+INITIALS_RE = re.compile(r'^[A-Za-z]{2,6}$')
+
+
+class DirectoryLookupError(Exception):
+    """The directory could not be asked (USE_LDAP off, or the lookup failed)."""
+
+
+class DirectoryPersonError(ValueError):
+    """A person chosen from the directory can't be fetched at save; the message is for the
+    user (ReportFinalizeView shows it and saves nothing)."""
+
+
+def directory_query(text):
+    """The find_ldap_person arguments for a typed study number ({'name': ...}) or initials
+    ({'initials': ...}), after removing tags; None for anything else (e.g. a full name)."""
+    word = remove_tags(text or '').strip()
+    if STUDY_NUMBER_RE.match(word):
+        return {'name': word}
+    if INITIALS_RE.match(word):
+        return {'initials': word}
+    return None
+
+
+def _entry_value(entry, attribute):
+    """An ldap3 entry attribute as a stripped string ('' if missing or empty)."""
+    value = getattr(getattr(entry, attribute, None), 'value', None)
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else None
+    return str(value).strip() if value else ''
+
+
+def _ask_directory(query):
+    """The directory entries for ``query``. Raises DirectoryLookupError when USE_LDAP is off
+    or the lookup fails (one WARNING with the exception type only: no personal data)."""
+    if not getattr(settings, 'USE_LDAP', False):
+        raise DirectoryLookupError('DTU directory lookups are switched off')
+    try:
+        return list(utils_person.find_ldap_person(**query) or [])
+    except Exception as exc:
+        logger.warning('Person workflow: DTU directory lookup failed (%s)', type(exc).__name__)
+        raise DirectoryLookupError('the DTU directory could not be reached') from exc
+
+
+def _directory_hits(query, entries, user):
+    """The usable entries (the searched identifier and a name) as dicts for the step page:
+    identifier, name ('Given Surname'), position, department (no e-mail), ``person``: the
+    Person in the database with the same identifiers (get_or_create_person_from_ldap without
+    saving) or None, and the ldap3 ``entry``."""
+    attribute = next(iter(query))
+    hits = []
+    for entry in entries:
+        identifier = _entry_value(entry, attribute)
+        name = ' '.join(part for part in (_entry_value(entry, 'givenName'),
+                                          _entry_value(entry, 'sn')) if part)
+        if not name or identifier.lower() != query[attribute].lower():
+            continue
+        info = utils_person.get_person_info_from_ldap_object(entry)
+        person = utils_person.get_or_create_person_from_ldap(
+            ldap_object=entry, user=user, save=False)[0]
+        hits.append({
+            'identifier': identifier,
+            'name': name,
+            'position': info.get('position', ''),
+            'department': info.get('department', ''),
+            'person': person if person.pk else None,
+            'entry': entry,
+        })
+    return hits
+
+
+def directory_hits(text, user):
+    """The DTU directory entries for a typed study number or initials (_directory_hits);
+    [] for other text, with USE_LDAP off, when the lookup fails, or without a hit."""
+    query = directory_query(text)
+    if query is None:
+        return []
+    try:
+        return _directory_hits(query, _ask_directory(query), user)
+    except DirectoryLookupError:
+        return []
+
+
+def directory_marker(identifier, name):
+    """The report form value of a person chosen from the directory."""
+    return f'{DIRECTORY_PREFIX}{identifier}:{name}'
+
+
+def parse_directory_marker(value):
+    """(identifier, name) of an 'LDAP:<identifier>:<name>' value, else None."""
+    if not (isinstance(value, str) and value.startswith(DIRECTORY_PREFIX)):
+        return None
+    identifier, _, name = value[len(DIRECTORY_PREFIX):].partition(':')
+    return identifier.strip(), name.strip()
+
+
+def person_from_directory(value, user):
+    """The Person for an 'LDAP:' value, at save: the entry is fetched from the directory again
+    and get_or_create_person_from_ldap reuses a person with the same identifiers or creates
+    one (name parts, initials / id_number, position, department; created_by ``user``).
+    Raises DirectoryPersonError, with a message for the user, when the identifier is not a
+    study number or initials, the directory can't be asked, or it no longer has the entry."""
+    identifier, name = parse_directory_marker(value)
+    label = f'"{name}" ({identifier})' if name else f'"{identifier}"'
+    query = directory_query(identifier)
+    if query is None:
+        raise DirectoryPersonError(
+            f'{label} is not a study number or initials for the DTU directory.')
+    try:
+        hits = _directory_hits(query, _ask_directory(query), user)
+    except DirectoryLookupError as exc:
+        raise DirectoryPersonError(
+            f'{label} could not be fetched: {exc}. Please try again later, or go back to the '
+            'form and choose the person again.') from exc
+    if not hits:
+        raise DirectoryPersonError(
+            f'{label} is no longer in the DTU directory. Please go back to the form and choose '
+            'the person again.')
+    return utils_person.get_or_create_person_from_ldap(ldap_object=hits[0]['entry'],
+                                                       user=user)[0]
+
+
 def extract_person_names(form_data, field_name):
     """
     Extract person names from form data that need disambiguation.
@@ -249,7 +386,8 @@ def extract_person_names(form_data, field_name):
             continue
         
         # Skip items that were explicitly skipped by user, or chosen to be created on save
-        if name.startswith(('SKIP:', 'CREATE:')):
+        # (CREATE:, or LDAP: for a person from the DTU directory)
+        if name.startswith(('SKIP:', 'CREATE:', DIRECTORY_PREFIX)):
             continue
             
         # Check if name already has an ID tag
@@ -336,6 +474,28 @@ def disambiguate_person_step(request):
                 return redirect('publications:disambiguate_person_step')
             messages.error(request, "Empty name.")
 
+        elif action == 'select_directory':
+            # A person from the DTU directory: asked again (the page may be old); created
+            # when the report is saved (person_from_form_value), as for create_new.
+            identifier = request.POST.get('directory_id', '')
+            hit = next((h for h in directory_hits(current_person_name, request.user)
+                        if h['identifier'] == identifier), None)
+            if hit is None:
+                messages.error(request, "The DTU directory entry is not available (any more). "
+                                        "Please choose another option.")
+            else:
+                if hit['person'] is not None:
+                    # In the database in the meantime: that person, not a duplicate.
+                    workflow.resolve_current_person(str(hit['person'].pk))
+                else:
+                    workflow.resolve_current_person(directory_marker(hit['identifier'],
+                                                                     hit['name']))
+                    messages.success(request, f'"{hit["name"]}" will be added from the DTU '
+                                              'directory when the report is saved.')
+                if workflow.is_complete():
+                    return redirect('publications:complete_person_workflow')
+                return redirect('publications:disambiguate_person_step')
+
         # The former action 'skip' ("Use As-Is (Create Later)") is gone (decided 2026-11-19):
         # an author or supervisor needs a Person, so it did the same as 'create_new'. Any
         # other action shows the step again. SKIP: markers still in a session are read as
@@ -344,12 +504,27 @@ def disambiguate_person_step(request):
     # GET request - show disambiguation form
     matches = get_person_matches(current_person_name)
     clean_name = remove_tags(current_person_name)
-    
+    exact_matches, relaxed_matches = list(matches['exact']), list(matches['relaxed'])
+
+    # DTU directory hits (typed study number or initials): a new one is an extra choice; one
+    # already in the database is that person (added to the matches if missing), marked.
+    hits = directory_hits(current_person_name, request.user)
+    directory_choices = [hit for hit in hits if hit['person'] is None]
+    directory_person_ids = set()
+    for hit in hits:
+        person = hit['person']
+        if person is not None:
+            directory_person_ids.add(person.pk)
+            if person not in exact_matches and person not in relaxed_matches:
+                exact_matches.append(person)
+
     context = {
         'current_person_name': current_person_name,
         'clean_name': clean_name,
-        'exact_matches': matches['exact'],
-        'relaxed_matches': matches['relaxed'],
+        'exact_matches': exact_matches,
+        'relaxed_matches': relaxed_matches,
+        'directory_choices': directory_choices,
+        'directory_person_ids': directory_person_ids,
         'all_matches': matches.get('all_matches', []),
         'field_name': workflow.get_current_field(),
         'step_number': workflow.session['person_workflow']['current_step'] + 1,
@@ -405,6 +580,17 @@ def person_display_name(value):
     return None
 
 
+def person_review_label(value):
+    """How the review page shows a person made when the report is saved: 'Name (new person)'
+    for CREATE:/SKIP:, 'Name (identifier, from the DTU directory)' for LDAP:; None else."""
+    directory = parse_directory_marker(value)
+    if directory is not None:
+        identifier, name = directory
+        return f'{name or identifier} ({identifier}, from the DTU directory)'
+    name = person_display_name(value)
+    return None if name is None else f'{name} (new person)'
+
+
 def match_flags(name):
     """The match flags of a link to a new person ``name`` (as the classic app set them), from
     the persons in the database that match the name. Call it before that person is created,
@@ -421,12 +607,22 @@ def match_flags(name):
 
 def person_from_form_value(value, user, created):
     """The Person for a value of the report form data, and the match flags for its link:
-    a pk (no flags, ``{}``), or a 'CREATE:<name>' / 'SKIP:<name>' marker from the workflow
+    a pk (no flags, ``{}``), an 'LDAP:' marker (person_from_directory; no flags), or a
+    'CREATE:<name>' / 'SKIP:<name>' marker from the workflow
     ("Create New Person"; SKIP: from older form data), for which a new person is created now
     (name parts parsed, created_by ``user``) and the flags come from match_flags.
     ``created`` maps the names already created in this save to (Person, flags), so a name typed
     as author and as supervisor is one person with the same flags. Raises ValueError for an
     unresolved name."""
+    directory = parse_directory_marker(value)
+    if directory is not None:
+        # From the DTU directory (an existing person with the same identifiers is reused):
+        # no match flags. Keyed by identifier, so the same entry as author and supervisor is
+        # one person and asked once.
+        key = DIRECTORY_PREFIX + directory[0].lower()
+        if key not in created:
+            created[key] = (person_from_directory(value, user), {})
+        return created[key]
     name = person_display_name(value)
     if name is None:
         return Person.objects.get(pk=int(value)), {}

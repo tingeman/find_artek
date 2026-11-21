@@ -30,7 +30,34 @@
     </div>
     
     <div class="card-body">
-                    
+
+                    {% if directory_choices %}
+                    <div class="mb-4">
+                        <h4 class="mb-3">DTU Directory</h4>
+                        <p class="text-muted">Not in the database yet, found in the DTU directory. The person is added when the report is saved.</p>
+                        <form method="post" action="{% url 'publications:disambiguate_person_step' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="select_directory">
+                            <div class="list-group mb-3">
+                                {% for hit in directory_choices %}
+                                <label class="list-group-item list-group-item-action">
+                                    <input type="radio" name="directory_id" value="{{ hit.identifier }}"{% if forloop.first %} checked{% endif %}>
+                                    <div>
+                                        <strong>{{ hit.name }} ({{ hit.identifier }}) [DTU directory]</strong>
+                                        {% if hit.position or hit.department %}
+                                        <br><small class="text-muted">{{ hit.position }}{% if hit.position and hit.department %} | {% endif %}{{ hit.department }}</small>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-primary py-2 px-4 mt-2">
+                                Use the Person from the DTU Directory
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+
                     {% if exact_matches %}
                     <div class="mb-4">
                         <h4 class="mb-3">High Confidence Matches (95%+)</h4>
@@ -45,6 +72,7 @@
                                     <div>
                                         <strong>{{ person.get_full_name }}</strong>
                                         <span class="badge bg-success ms-2">High Match</span>
+                                        {% if person.pk in directory_person_ids %}<span class="badge bg-info ms-2">In DTU directory</span>{% endif %}
                                         <br>
                                         <small class="text-muted">
                                             PK: {{ person.pk }}
@@ -81,6 +109,7 @@
                                     <div>
                                         <strong>{{ person.get_full_name }}</strong>
                                         <span class="badge bg-warning ms-2">Possible Match</span>
+                                        {% if person.pk in directory_person_ids %}<span class="badge bg-info ms-2">In DTU directory</span>{% endif %}
                                         <br>
                                         <small class="text-muted">
                                             PK: {{ person.pk }}
@@ -146,7 +175,7 @@
                     </div>
                     {% endif %}
                     
-                    {% if not exact_matches and not relaxed_matches %}
+                    {% if not exact_matches and not relaxed_matches and not directory_choices %}
                     <div class="alert alert-warning">
                         <strong>No matching persons found.</strong><br>
                         You can create a new person with this name.

@@ -76,7 +76,8 @@ from publications.utils_models import (
     handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords
 )
 from publications.workflows.person import (
-    disambiguate_person_step, complete_person_workflow, person_display_name, person_from_form_value,
+    DirectoryPersonError, disambiguate_person_step, complete_person_workflow,
+    person_from_form_value, person_review_label,
 )
 
 logger = logging.getLogger(__name__)
@@ -721,9 +722,10 @@ class ReportReviewView(ReportFormPermissionMixin, BaseView):
         """Convert model IDs to string representations"""
         items = []
         for item_id in ids:
-            new_name = person_display_name(item_id) if this_model is Person else None
-            if new_name is not None:
-                items.append(f'{new_name} (new person)')  # created when the report is saved
+            # A new person or one from the DTU directory: made when the report is saved
+            new_label = person_review_label(item_id) if this_model is Person else None
+            if new_label is not None:
+                items.append(new_label)
                 continue
             try:
                 item = this_model.objects.get(pk=int(item_id))
@@ -978,6 +980,12 @@ class ReportFinalizeView(ReportFormPermissionMixin, BaseView):
                 publication.save()
                 self._handle_relationships(publication, session_data, form.cleaned_data)
                 self._handle_files(publication, session_data, temp_upload)
+        except DirectoryPersonError as e:
+            # A person chosen from the DTU directory can't be fetched (gone, directory down):
+            # nothing saved. No traceback or name in the log: not a server error.
+            logger.info("ReportFinalizeView: a person from the DTU directory could not be fetched")
+            messages.error(request, f'The report was not saved: {e}')
+            return self._review_redirect()
         except Exception as e:
             logger.exception("ReportFinalizeView: saving the report failed")
             messages.error(request, f'Error saving publication: {e}')
