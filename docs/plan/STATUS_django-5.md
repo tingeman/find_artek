@@ -1,6 +1,6 @@
 # Status: Django 5.2 LTS upgrade (Phase 3)
 
-Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..ind_artek_agent-django-5`).
+Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
 T1 (implementer): deprecation audit on 4.2, logout route removed.
