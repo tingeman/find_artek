@@ -3,7 +3,7 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-Owner reruns the dev checks (T9, USER_STEPS_2026.7 step 1, incl. 7 and 8 not yet done). Branch tip `5528305`.
+Owner reruns the dev checks (T9, USER_STEPS_2026.7 step 1, incl. 7 and 8 not yet done). Branch tip `61c330c` (T11, T12 on top of `5528305`).
 
 Dev checks 2026-11-21 (owner), round 1: Administration page OK; appendix 100+ MB OK; report PDF > 50 MB refused by the browser's cached old `file-upload.js` (server sends the new one; T11 versioned URLs); legend parentheses red/bold, table black/normal (T11); add/edit report page header spacing differs (Bootstrap 5.3 loaded on top of 4.6, T11); edit page titled "New report" (`publication`/`action` missing in the context, T11); marker opens the merge page, which has no Confirm (T11); `asska` not found: no directory lookup in the new step page (T12, owner wants it in 2026.7). Checks 7 and 8 not yet run.
 
