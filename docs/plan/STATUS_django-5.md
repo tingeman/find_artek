@@ -3,7 +3,7 @@
 Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
-T7 (simple-task): docs.
+T8 (you): dev checks, [USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) step 1. Then T9: fast-forward `develop/main` (with your OK), tag, build, deploy (steps 2-8).
 
 ## Done
 - T1 2026-11-21: no RemovedInDjango50/51 warnings from our code; drf-yasg `SWAGGER_USE_COMPAT_RENDERERS = False`; `accounts/logout/` and custom `LogoutView` removed; 543 tests; gate 22/22; `check --deploy` allowed warnings today: `security.W004 security.W008` (`bc4cd51`)
@@ -12,6 +12,7 @@ T7 (simple-task): docs.
 - T4 2026-11-21: Django 5.2.19, DRF 3.18.3, no code breakage; `SWAGGER_SETTINGS['LOGOUT_URL'] = 'cas_ng_logout'`; no RemovedInDjango60/61 warnings; no migrations; DB, tables and columns all utf8mb4_general_ci; 563 tests, coverage 71.1 %, gate 22/22; new `check --deploy` warning `gis.W001` (GDAL 3.6 < 3.9) -> T5 moves to trixie (`189a7c1`)
 - T5 2026-11-21: `python:3.13.18-slim-trixie` by digest (GDAL 3.10.3, GEOS 3.13.1, PROJ 9.6, poppler 25.03, libmariadb 11.8); no apt or lock version changes; `gis.W001` gone; prod image 881 -> 927 MB; 563 tests, gate 22/22 (`d3abad3`)
 - T6 2026-11-21: `tests/run.sh` `DEPLOY_WARNINGS_ALLOWED="security.W004 security.W008"`; a new ID fails, a vanished one is shown as INFO; test name now "... has no errors and only allowed warnings"; gate 22/22 (`d0088f1`)
+- T7 2026-11-21: CLAUDE.md (Django 5.2; `/find/media/` goes to Django since 2026.4), readme (Django bound, release notes 2026.6) (`1105aeb`)
 
 ## Open questions
 - `DeleteFeatureView.delete()` (`views.py:~2012`) has been dead for form POSTs since Django 4.0 (`DeleteViewCustomDeleteWarning`): its file cleanup (delete each `FileObject` file + row) never runs. Moving it to `form_valid()` would start deleting media files and rows shared through `Feature.files` (M2M): a data decision. Left as is; proposed for the roadmap at Finish.
