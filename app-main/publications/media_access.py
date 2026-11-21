@@ -269,3 +269,28 @@ class MediaIndex:
         levels = {level for values in owners.values() for level in values}
         level = next((lv for lv in LEVELS if lv in levels), EDITORS_ONLY)
         return cls, level
+
+
+def walk_media_files(index=None):
+    """Yield ``(relpath, class, level)`` for every file under MEDIA_ROOT (directories and
+    files in sorted order; ``relpath`` relative to MEDIA_ROOT with forward slashes), classified
+    with ``index`` (a new ``MediaIndex`` if None). Yields nothing if MEDIA_ROOT isn't a
+    directory. Used by ``check_media_access`` and ``extract_pdf_metadata --unowned``."""
+    root = settings.MEDIA_ROOT
+    if not os.path.isdir(root):
+        return
+    if index is None:
+        index = MediaIndex()
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames.sort()
+        for filename in sorted(filenames):
+            relpath = os.path.relpath(os.path.join(dirpath, filename), root)
+            relpath = relpath.replace(os.sep, '/')
+            cls, level = index.classify(relpath)
+            yield relpath, cls, level
+
+
+def unowned_media_files():
+    """The paths (relative to MEDIA_ROOT) of the files nothing owns, in walk order
+    (``check_media_access --list-unowned``)."""
+    return [relpath for relpath, cls, _ in walk_media_files() if cls == UNOWNED]

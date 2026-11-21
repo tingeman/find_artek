@@ -14,7 +14,7 @@ import os
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from publications.media_access import CLASSES, LEVELS, UNOWNED, MediaIndex
+from publications.media_access import CLASSES, LEVELS, UNOWNED, walk_media_files
 
 
 class Command(BaseCommand):
@@ -32,18 +32,12 @@ class Command(BaseCommand):
             self.stderr.write(f'MEDIA_ROOT {root} is not a directory.')
             return
 
-        index = MediaIndex()
         counts = {cls: dict.fromkeys(LEVELS, 0) for cls in CLASSES}
         unowned = []
-        for dirpath, dirnames, filenames in os.walk(root):
-            dirnames.sort()
-            for filename in sorted(filenames):
-                relpath = os.path.relpath(os.path.join(dirpath, filename), root)
-                relpath = relpath.replace(os.sep, '/')
-                cls, level = index.classify(relpath)
-                counts[cls][level] += 1
-                if cls == UNOWNED:
-                    unowned.append(relpath)
+        for relpath, cls, level in walk_media_files():
+            counts[cls][level] += 1
+            if cls == UNOWNED:
+                unowned.append(relpath)
 
         width = max(len(cls) for cls in CLASSES + ('total',))
         self.stdout.write(f'{"class":<{width}}  ' + '  '.join(f'{lv:>12}' for lv in LEVELS)
