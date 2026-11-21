@@ -80,6 +80,12 @@ INSTALLED_APPS = [
 # drf-yasg: no extra '.json'/'.yaml' spec renderers (the old format names with a dot, for
 # format-suffix URLs we don't have). The schema stays at /swagger/?format=openapi.
 SWAGGER_USE_COMPAT_RENDERERS = False
+# The Swagger UI's logout button POSTs (with CSRF token) to LOGOUT_URL; drf-yasg's default is
+# /accounts/logout/, which no longer exists. drf-yasg resolves URL names (resolve_url), and the
+# CAS logout takes POST since django-cas-ng 5.1. LOGIN_URL is taken from settings.LOGIN_URL.
+SWAGGER_SETTINGS = {
+    'LOGOUT_URL': 'cas_ng_logout',
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

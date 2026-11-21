@@ -10,7 +10,11 @@ CAS_VERSION '2') and the AD lookup (``roles.ad_user_info``) are mocked.
 - The login view stays csrf_exempt (the CAS server POSTs to it), the admin CAS login only lets
   its listed users through, and the CAS logout now also takes POST (django-cas-ng 5.1), with
   Django's CSRF check.
+- The Swagger UI's login link and logout form go to the CAS views (SWAGGER_SETTINGS, plan
+  "django-5" T4); drf-yasg's default logout URL /accounts/logout/ is gone since T1.
 """
+import html
+import re
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
@@ -180,3 +184,40 @@ class CasLogoutPostTests(TestCase):
         self.assertTrue(response['Location'].startswith(settings.CAS_SERVER_URL),
                         response['Location'])
         self.assertNotIn('_auth_user_id', self.client.session)
+
+
+class SwaggerUiAuthLinksTests(TestCase):
+    """The Swagger UI (drf-yasg) logs in and out through CAS (plan "django-5", T4)."""
+
+    LOGOUT_FORM = re.compile(r'<form method="post" action="([^"]*)">(.*?)</form>', re.S)
+    CSRF_INPUT = re.compile(r'name="csrfmiddlewaretoken" value="([^"]*)"')
+
+    def get_swagger_ui(self, client):
+        response = client.get(app_path(reverse('schema-swagger-ui')))
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def test_logged_in_logout_form_posts_to_cas_logout(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(make_user('s990016'))
+        page = self.get_swagger_ui(client)
+        self.assertNotIn('/accounts/logout/', page)
+        match = self.LOGOUT_FORM.search(page)
+        self.assertIsNotNone(match, 'no logout form on the Swagger UI page')
+        action = urlsplit(html.unescape(match.group(1)))
+        self.assertEqual(action.path, reverse('cas_ng_logout'))
+
+        # Submitting the form as rendered (its own CSRF token) logs out through CAS.
+        token = self.CSRF_INPUT.search(match.group(2)).group(1)
+        response = client.post(app_path(action.path) + '?' + action.query,
+                               {'csrfmiddlewaretoken': token})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response['Location'].startswith(settings.CAS_SERVER_URL),
+                        response['Location'])
+        self.assertNotIn('_auth_user_id', client.session)
+
+    def test_anonymous_login_link_goes_to_cas_login(self):
+        page = self.get_swagger_ui(Client())
+        match = re.search(r'<a id="auth" class="header__btn" href="([^"]*)"', page)
+        self.assertIsNotNone(match, 'no login link on the Swagger UI page')
+        self.assertEqual(urlsplit(html.unescape(match.group(1))).path, reverse('cas_ng_login'))
