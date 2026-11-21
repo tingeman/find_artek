@@ -22,8 +22,9 @@
 # * smoke tests (marked slow): a throwaway MariaDB (FA_MARIADB_IMAGE of compose.pins.env) on a
 #   private --internal network, with generated credentials. check on the empty database,
 #   migrate, check, check --deploy
-#   (warnings are reported, not failed), makemigrations --check, all with the production
-#   settings (find_artek.settings). Then the image's own command twice: without ENABLE_CRON
+#   (no errors, and no warning IDs outside DEPLOY_WARNINGS_ALLOWED: a new warning fails),
+#   makemigrations --check, all with the production settings (find_artek.settings). Then
+#   the image's own command twice: without ENABLE_CRON
 #   (must become healthy, answer 200 on /publications/frontpage/ from the network, run no
 #   cron) and with ENABLE_CRON=true (healthy, cron daemon running, the thumbnail job run as
 #   cron runs it exits 0, reaches the DB and logs to docker logs). No log contains the
@@ -324,13 +325,27 @@ t_migrate() {
   echo "INFO: test database $DB_IMAGE ready after ${F[db.ready.out]} s"
 }
 t_check() { need_mgmt; expect "check ($(tail_of "${F[mgmt.check.out]:-}"))" "${F[mgmt.check.rc]:-}" "0"; }
+# The warning IDs check --deploy may report (roadmap FA-R31 deals with them). An allowed ID
+# that is no longer reported is shown as INFO, so the set can be shrunk. Adding an ID is a
+# decision (plan, owner), not a way to make a failing release build pass.
+DEPLOY_WARNINGS_ALLOWED="security.W004 security.W008"
 t_check_deploy() {
-  local ids
+  local ids id new="" gone=""
   need_mgmt
   expect "check --deploy ($(tail_of "${F[mgmt.deploy.out]:-}" 8))" "${F[mgmt.deploy.rc]:-}" "0"
-  # Warnings are allowed for now (plan: errors fail, warnings are reported; roadmap FA-R31)
   ids="$(printf '%s\n' "${F[mgmt.deploy.out]:-}" | grep -oE '\([a-z_]+\.W[0-9]+\)' | tr -d '()' | sort -u | paste -sd ' ' -)"
+  local -a pats=()
+  for id in $ids; do
+    [[ " $DEPLOY_WARNINGS_ALLOWED " == *" $id "* ]] || { new="${new:+$new }$id"; pats+=(-e "($id)"); }
+  done
+  # The FAIL line names the new IDs; the lines below it are their messages
+  [ -z "$new" ] || fail_t "check --deploy warnings outside the allowed set ($DEPLOY_WARNINGS_ALLOWED): $new
+$(printf '%s\n' "${F[mgmt.deploy.out]:-}" | grep -F "${pats[@]}" | head -n 8)"
+  for id in $DEPLOY_WARNINGS_ALLOWED; do
+    [[ " $ids " == *" $id "* ]] || gone="${gone:+$gone }$id"
+  done
   [ -z "$ids" ] || echo "INFO: check --deploy warnings (allowed, FA-R31): $ids"
+  [ -z "$gone" ] || echo "INFO: check --deploy: allowed warnings no longer reported (shrink DEPLOY_WARNINGS_ALLOWED): $gone"
 }
 t_makemigrations() {
   need_mgmt
@@ -488,7 +503,7 @@ add_test "repo: dev compose MariaDB and phpMyAdmin images equal compose.pins.env
 needs mgmt
 add_test --slow "smoke: check and migrate on an empty MariaDB" t_migrate
 add_test --slow "smoke: manage.py check passes (production settings)" t_check
-add_test --slow "smoke: manage.py check --deploy has no errors" t_check_deploy
+add_test --slow "smoke: manage.py check --deploy has no errors and only allowed warnings" t_check_deploy
 add_test --slow "smoke: makemigrations --check reports no changes" t_makemigrations
 needs app
 add_test --slow "smoke: app with its own command becomes healthy (gunicorn PID 1 as uid 30000, no cron without ENABLE_CRON)" t_app_healthy
