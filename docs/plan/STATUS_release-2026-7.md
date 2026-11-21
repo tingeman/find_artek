@@ -3,9 +3,10 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-T5 (PDF metadata command) running, implementer. Then T6, T7, T8. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
+T6 (Administration page) running, implementer. Then T7, T8. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
 
 ## Done
+- T5 2026-11-21: `extract_pdf_metadata` (PATH, `--unowned`, `--evaluate N`), pdftotext text layer: title = largest text on page 1, year from report number or front page, study numbers `s` + 6 digits matched to persons; 628 tests (`61616b4`). The agent's final run was killed (low memory); the main session reran all checks.
 - T4 2026-11-21: generate_thumbnails exits 1 on errors (CommandError after the summary); gate 22/22 with job.rc 0; 605 tests (`e385e40`). For web_server (report at release): exit code changes; its cron post-check (`ansible/tasks/find_artek_checks.yml:26`) only checks daemon and cron file, unaffected; production logs `exit code 1` nightly until 01-06 and 14-28 are fixed.
 - T2b 2026-11-21: option A, no browser cache for the report list and map; `invalidate_feature_cache` flag removed; 603 tests (`e135e46`). Stale sentence in `base.html` comment (mentions the removed report.html cache script): fix in T6.
 - T3 2026-11-21: person autocomplete for logged-in users only, anonymous JSON 403; 599 tests (`732b7fc`)
