@@ -1,6 +1,6 @@
 # find_artek
 
-This repository is **find_artek**, a Django 4.2 database of student reports (apps `publications`, `api`, `publications_meta`; MariaDB with the GIS backend; CAS/LDAP login). It is served at `/find/` on the DTU SUS web server `sus-parcweb01` (`arctic.sustain.dtu.dk`, public). nginx serves `/find/static/` and `/find/media/` directly from the share; Django never sees those requests. `media/` holds (weakly) confidential reports.
+This repository is **find_artek**, a Django 5.2 LTS database of student reports (apps `publications`, `api`, `publications_meta`; MariaDB with the GIS backend; CAS/LDAP login). It is served at `/find/` on the DTU SUS web server `sus-parcweb01` (`arctic.sustain.dtu.dk`, public). nginx serves `/find/static/` directly from the share; `/find/media/` goes to Django, which checks access and has nginx send the file (`X-Accel-Redirect`, since 2026.4). `media/` holds (weakly) confidential reports.
 
 Related repositories (read them when needed, but don't change them unless I ask):
 

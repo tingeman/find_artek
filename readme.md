@@ -1,6 +1,6 @@
 # find_artek
 
-Django 4.2 database of student reports, served at `/find/` on `arctic.sustain.dtu.dk`.
+Django 5.2 LTS database of student reports, served at `/find/` on `arctic.sustain.dtu.dk`.
 Production is deployed from the repository `dtu_sus_web_server` (playbook
 `playbook_install_webapp_find_artek.yml`); planned work is in `docs/roadmap.md`. Environment
 variables and the dev setup: [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md).
@@ -56,7 +56,7 @@ check `gis.W001` needs, GDAL >= 3.9), by its multi-arch index digest. To move it
 ## Dependencies
 
 - Direct dependencies: `app-main/requirements.in` (bounds: the version production runs up to
-  the next major; Django held to `>=4.2,<4.3`), dev-only tools in
+  the next major; Django held to its LTS series, `>=5.2.19,<5.3`), dev-only tools in
   `app-main/requirements-dev.in`.
 - Locks: `app-main/requirements.txt` and `requirements-dev.txt`, generated, all transitive
   packages with hashes; never edit them by hand. The image installs with
@@ -87,6 +87,13 @@ versions. Rebuild and run `tests/run.sh` afterwards.
 
 ## Release notes
 
+- **2026.6** (Phase 3, PLAN_django-5): Django 4.2.30 → 5.2.19 LTS (supported until April
+  2028), Python 3.12.11 → 3.13.18 on Debian 13 trixie (GDAL 3.10: Django 5.2's `gis.W001`
+  warns for GDAL < 3.9), djangorestframework 3.18.3, drf-yasg 1.21.18, django-cas-ng 5.1.2,
+  django-select2 8.4.8; unused packages removed (django-taggit, psycopg, PyPDF2, python-dotenv,
+  ping3). `accounts/logout/` removed (unlinked; CAS logout `/logout` is the logout); a CAS login
+  link with an off-site `?next=` gives 400; the Swagger UI logout button goes to the CAS
+  logout. `tests/run.sh` fails on `check --deploy` warnings other than `security.W004`/`W008`.
 - **2026.2**: the appendix upload page requires login and permission to edit the report
   (FA-R52; before, anonymous users could attach files to any report). Django 4.2 → 4.2.30 (the final 4.2 patch; 4.2 LTS is end-of-life),
   djangorestframework 3.14.0 → 3.15.2 (the first version that supports Django 4.2; bound
