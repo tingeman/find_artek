@@ -3,7 +3,7 @@
 Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
-T8 (you): dev checks, [USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) step 1. Then T9: fast-forward `develop/main` (with your OK), tag, build, deploy (steps 2-8).
+T9: fast-forward `develop/main` (main session, with your OK), then you tag, build, deploy ([USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) steps 2-8).
 
 ## Done
 - T1 2026-11-21: no RemovedInDjango50/51 warnings from our code; drf-yasg `SWAGGER_USE_COMPAT_RENDERERS = False`; `accounts/logout/` and custom `LogoutView` removed; 543 tests; gate 22/22; `check --deploy` allowed warnings today: `security.W004 security.W008` (`bc4cd51`)
@@ -13,6 +13,8 @@ T8 (you): dev checks, [USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) step 1. Then 
 - T5 2026-11-21: `python:3.13.18-slim-trixie` by digest (GDAL 3.10.3, GEOS 3.13.1, PROJ 9.6, poppler 25.03, libmariadb 11.8); no apt or lock version changes; `gis.W001` gone; prod image 881 -> 927 MB; 563 tests, gate 22/22 (`d3abad3`)
 - T6 2026-11-21: `tests/run.sh` `DEPLOY_WARNINGS_ALLOWED="security.W004 security.W008"`; a new ID fails, a vanished one is shown as INFO; test name now "... has no errors and only allowed warnings"; gate 22/22 (`d0088f1`)
 - T7 2026-11-21: CLAUDE.md (Django 5.2; `/find/media/` goes to Django since 2026.4), readme (Django bound, release notes 2026.6) (`1105aeb`)
+- T8 fix 2026-11-21: dev test found that a typed "thin" (initials) got no match in the disambiguation step: `get_person_matches` only compared a single word with `id_number`. Now also `initials` (iexact, from 2 characters, confidence 0.9 like id_number). Never on develop/main before (only on the disambiguation branches); 569 tests, gate 22/22 (`2315198`)
+- T8 2026-11-21: your dev checks pass. CAS logout ends on DTU's logout page; the redirect (`https://auth2.dtu.dk/dtu/logout?url=<front page>`) is identical with django-cas-ng 5.0.1/python-cas 1.6 and 5.1.2/1.7.2, so not an upgrade change; DTU's CAS ignores `url` (CAS v2). Roadmap candidate with FA-R33 (CAS 3 would send `service`, and adds single logout).
 
 ## Open questions
 - `DeleteFeatureView.delete()` (`views.py:~2012`) has been dead for form POSTs since Django 4.0 (`DeleteViewCustomDeleteWarning`): its file cleanup (delete each `FileObject` file + row) never runs. Moving it to `form_valid()` would start deleting media files and rows shared through `Feature.files` (M2M): a data decision. Left as is; proposed for the roadmap at Finish.

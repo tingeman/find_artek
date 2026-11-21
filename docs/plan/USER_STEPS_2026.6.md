@@ -8,6 +8,7 @@ What changes for users:
 - `/find/publications/accounts/logout/` is gone (nothing linked it; the menu's logout is the CAS logout `/find/logout`, unchanged).
 - A login link with `?next=` pointing to another site gives 400 (before: the user was sent to that site after the CAS login).
 - The Swagger UI (`/find/swagger/`) "Django Logout" button works (it went to the removed URL).
+- Report form: a person's initials (DTU username, e.g. `thin`) typed instead of picked from the dropdown are matched in the "disambiguate person" step (before: only "create new person").
 
 Deployment impact (web_server):
 
@@ -17,7 +18,7 @@ Deployment impact (web_server):
 
 ## 1. Dev checks (T8, you)
 
-- [ ] Done
+- [x] Done (2026-11-21): all checks pass, after the initials fix (`2315198`). Logout stops on DTU's logout page: expected, see item 6.
 
 The dev stack already runs the branch (project `find_artek_develop`, started from the worktree). To rebuild it yourself:
 
@@ -30,11 +31,11 @@ docker compose -p find_artek_develop -f docker-compose.yml -f docker-compose.dev
 At http://localhost:8098/ (Ctrl+F5 first):
 
 1. Log in through CAS. Your roles show (the "Add" menu is there).
-2. Add a test report with a PDF and a new person; edit it (the author autocomplete finds persons); delete it.
+2. Add a test report with a PDF and a new person; edit it (the author autocomplete finds persons); delete it. Type your initials (`thin`) in the supervisor field without picking from the dropdown: the next step offers you.
 3. A confidential report's PDF: opens logged in, refused logged out.
 4. `/swagger/` and `/redoc/` load; in Swagger, "Django Logout" logs you out through CAS.
 5. `/admin/` works.
-6. The menu's logout returns you to the front page, logged out.
+6. The menu's logout ends on DTU's "you are logged out" page (DTU CAS does not follow the return address `?url=<front page>`; same before the upgrade, checked 2026-11-21). Back on the site you are logged out.
 
 Tell the main session what passed; anything off is fixed on the branch before step 2.
 
@@ -67,7 +68,7 @@ bash scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_project
 cat release-out/webapp_find_artek/webapp_find_artek-2026.6.manifest.txt
 ```
 
-Expect `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 563 tests` OK, and `INFO: Django, GDAL, GEOS: 5.2.19 3.10.3 ...`.
+Expect `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 569 tests` OK, and `INFO: Django, GDAL, GEOS: 5.2.19 3.10.3 ...`.
 
 ## 5. Publish to the releases share (you)
 
