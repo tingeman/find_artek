@@ -30,6 +30,24 @@
     </div>
 </div>
 
+{% if can_merge_person and marked_link_count %}
+<div class="main-form-section person-markers" id="confirm-person">
+    <h5 class="mb-3"><span style="color:red; font-weight:bold;">(!)/(?)</span> {% blocktrans count counter=marked_link_count %}{{ counter }} link of this person is marked as a possible duplicate{% plural %}{{ counter }} links of this person are marked as possible duplicates{% endblocktrans %}</h5>
+    <p>{% trans "The person was created although persons with the same (!) or a similar (?) name existed." %}</p>
+    <ul class="person-marked-links">
+        {% for role, link in marked_links %}
+        <li>{{ role|capfirst }} of <a href="{% url 'publications:report' pk=link.publication_id %}">{{ link.publication.number }} {{ link.publication.title }}</a>: {% if link.exact_match %}{% trans "same name" %}{% else %}{% trans "similar name" %}{% endif %}{% if link.multiple_match %}, {% trans "several candidates" %}{% endif %}</li>
+        {% endfor %}
+        {% if hidden_marked_link_count %}<li>{% blocktrans count counter=hidden_marked_link_count %}{{ counter }} more on a report you can't see{% plural %}{{ counter }} more on reports you can't see{% endblocktrans %}</li>{% endif %}
+    </ul>
+    <form method="post" action="{% url 'publications:person_confirm' pk=person.pk %}" class="person-confirm-form">
+        {% csrf_token %}
+        <p>{% trans "If this person is not a duplicate of another one, confirm it: this clears the markers of all its links. Nothing else changes." %}</p>
+        <button type="submit" class="btn btn-outline-success">{% trans "Confirm person" %}</button>
+    </form>
+</div>
+{% endif %}
+
 </br>
 
 <div id="authorships">

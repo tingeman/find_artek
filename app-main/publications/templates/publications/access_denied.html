@@ -1,17 +1,11 @@
-﻿{% extends base_template %}
+{% extends base_template %}
 
-{% block title %}Delete report{% endblock %}
-{% block head %}
-{% endblock %}
+{% block title %}Access denied{% endblock %}
 
 {% block headline %}Access denied!{% endblock %}
 
-{% block body %}
+{% block main-content %}
 
-<p class='error'>{{ error }}</p>
+<p class='error access-denied-message'>{{ error }}</p>
 
 {% endblock %}
-
-
-
-

@@ -1,6 +1,7 @@
 from django.urls import include, path
 from . import views
 from .views_administration import AdministrationView
+from .views_persons import PersonConfirmView
 from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
 app_name = 'publications'
@@ -21,6 +22,8 @@ urlpatterns = [
     path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
     path('report/<int:pk>/appendix/upload/', views.UploadAppendixView.as_view(), name='upload_appendix'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
+    # POST only, merge_person (editors): clear the person's duplicate markers (FA-R66)
+    path('person/<int:pk>/confirm/', PersonConfirmView.as_view(), name='person_confirm'),
     path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
     path('feature/<int:pk>/delete/', views.DeleteFeatureView.as_view(), name='delete_feature'),
     # path('login/', views.LoginView.as_view(), name='login'),

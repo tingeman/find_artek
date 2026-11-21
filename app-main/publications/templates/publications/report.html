@@ -65,9 +65,9 @@
             <div class="d-flex mb-2">
               <div class="property-label" style="width: 150px;"><strong>{% trans "Authors" %}:</strong></div>
               <div class="property-value">
-                {% for author in publication.authors.all %}
-                  <a href="{{ URL_PREFIX }}/publications/person/{{ author.pk }}/">{{ author.first }} {{ author.last }}</a>{% if not forloop.last %}{% if forloop.counter == publication.authors.count|add:'-1' %} &amp; {% else %},{% endif %}{% endif %}
-                {% endfor %}
+                {% for link in authorships %}{% with author=link.person %}
+                  <a href="{{ URL_PREFIX }}/publications/person/{{ author.pk }}/">{{ author.first }} {{ author.last }}</a>{% if can_merge_person %}{% include "publications/shared_snippets/person_marker.html" with link=link role="author" %}{% endif %}{% if not forloop.last %}{% if forloop.revcounter == 2 %} &amp; {% else %},{% endif %}{% endif %}
+                {% endwith %}{% endfor %}
               </div>
             </div>
             
@@ -118,11 +118,14 @@
             <div class="d-flex mb-2">
               <div class="property-label" style="width: 150px;"><strong>{% trans "Supervisors" %}:</strong></div>
               <div class="property-value">
-                {% for supervisor in publication.supervisors.all %}
-                  <a href="{{ URL_PREFIX }}/publications/person/{{ supervisor.pk }}/">{{ supervisor.first }} {{ supervisor.last }}</a>{% if not forloop.last %}{% if forloop.counter == publication.supervisors.count|add:'-1' %} &amp; {% else %},{% endif %}{% endif %}
-                {% endfor %}
+                {% for link in supervisorships %}{% with supervisor=link.person %}
+                  <a href="{{ URL_PREFIX }}/publications/person/{{ supervisor.pk }}/">{{ supervisor.first }} {{ supervisor.last }}</a>{% if can_merge_person %}{% include "publications/shared_snippets/person_marker.html" with link=link role="supervisor" %}{% endif %}{% if not forloop.last %}{% if forloop.revcounter == 2 %} &amp; {% else %},{% endif %}{% endif %}
+                {% endwith %}{% endfor %}
               </div>
             </div>
+            {% if has_person_markers %}
+            {% include "publications/shared_snippets/person_marker_legend.html" %}
+            {% endif %}
           </div>
           
           <!-- Abstract takes full width and flows around the image -->

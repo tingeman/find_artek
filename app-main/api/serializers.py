@@ -3,6 +3,7 @@ from django.db.models.functions import Coalesce
 from rest_framework import serializers
 from publications.models import Authorship, Publication, Feature, Person
 from publications import person_privacy
+from publications.permissions import MERGE_PERSON, user_may
 from publications.visibility import visible_publications
 
 
@@ -69,13 +70,35 @@ class PublicationSerializer(serializers.ModelSerializer):
     def get_file(self, obj):
         return obj.file.filename() if obj.file else None
 
+    def _shows_person_markers(self):
+        """True if the request user has merge_person (FA-R66): only then do the author dicts
+        carry the duplicate markers. Decided once per serializer (and so once per list)."""
+        if not hasattr(self, '_person_markers'):
+            self._person_markers = user_may(_request_user(self), MERGE_PERSON)
+        return self._person_markers
+
     def get_authors(self, obj):
+        """``{pk, first, last}`` per author. For users with merge_person only, a marked link
+        (person_links) adds ``match``: ``"exact"`` (exact_match) or ``"relaxed"``
+        (relaxed_match or multiple_match alone), and ``"multiple": true`` with multiple_match;
+        for everyone else the dicts are exactly as before."""
         authorships = getattr(obj, self.AUTHORSHIPS, None)
         if authorships is None:
-            authors = obj.authors.all()
-        else:
-            authors = [authorship.person for authorship in authorships]
-        return [{'pk': author.pk, 'first': author.first, 'last': author.last} for author in authors]
+            authorships = obj.authorship_set.select_related('person').order_by('pk')
+        markers = self._shows_person_markers()
+        authors = []
+        for authorship in authorships:
+            author = authorship.person
+            item = {'pk': author.pk, 'first': author.first, 'last': author.last}
+            if markers:
+                if authorship.exact_match:
+                    item['match'] = 'exact'
+                elif authorship.relaxed_match or authorship.multiple_match:
+                    item['match'] = 'relaxed'
+                if authorship.multiple_match:
+                    item['multiple'] = True
+            authors.append(item)
+        return authors
 
     def get_link_to_pdf_associated_with_this_publication(self, obj):
         return obj.file.file.url if obj.file else None

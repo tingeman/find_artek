@@ -57,13 +57,15 @@ from publications.forms import (
 from publications.forms.publication import ImportPublicationFileForm
 from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
 from publications import person_privacy
+from publications.person_links import is_marked, marked_links
 from publications.library import get_client_ip, is_private
 from publications.models import (
     Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
     Keyword, FileObject
 )
 from publications.permissions import (
-    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, VERIFY, VIEW,
+    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, MERGE_PERSON,
+    VERIFY, VIEW,
     FeaturePermissionMixin, PermissionMixin, PublicationPermissionMixin,
     ReportFormPermissionMixin, permission_required, user_may,
 )
@@ -332,6 +334,8 @@ class ReportsView(BaseView):
 
         context = {
             'topic': topic,  # Add the topic to the context
+            # The list JS draws the duplicate markers the API sends to these users (FA-R66).
+            'can_merge_person': user_may(request.user, MERGE_PERSON),
         }
 
         # Update the context with additional data
@@ -425,7 +429,18 @@ class ReportView(PublicationPermissionMixin, BaseDetailView):
             feature.pk for feature in associated_features
             if user_may(user, DELETE_FEATURE, feature)
         }
+        # Authors and supervisors as link rows (with the duplicate markers, FA-R66), in the
+        # order of the rows: the order publication.authors.all() lists them in on MariaDB.
+        authorships = list(self.object.authorship_set.select_related('person').order_by('pk'))
+        supervisorships = list(
+            self.object.supervisorship_set.select_related('person').order_by('pk'))
+        can_merge_person = user_may(user, MERGE_PERSON)
         context.update({
+            'authorships': authorships,
+            'supervisorships': supervisorships,
+            'can_merge_person': can_merge_person,
+            'has_person_markers': can_merge_person and any(
+                is_marked(link) for link in authorships + supervisorships),
             'can_change_report_number': user_may(user, MANAGE),
             'associated_features': associated_features,
             'can_edit_publication': can_edit_publication,
@@ -1189,7 +1204,25 @@ class PersonView(BaseDetailView):
         context['person_email'] = person_privacy.visible_email(self.request.user, person)
         context['person_id_number'] = person_privacy.visible_id_number(self.request.user, person)
         context['show_id_number'] = person_privacy.can_view_id_number(self.request.user)
+        context['can_merge_person'] = user_may(self.request.user, MERGE_PERSON)
+        if context['can_merge_person']:
+            context.update(self.marker_context(person))
         return context
+
+    def marker_context(self, person):
+        """The person's marked links for the notice of the person page (FA-R66): all of them
+        are counted (confirm clears them all), the reports listed are those the viewer may
+        see."""
+        links = marked_links(person)
+        visible_ids = set(visible_publications(
+            Publication.objects.filter(pk__in={link.publication_id for _, link in links}),
+            self.request.user).values_list('pk', flat=True))
+        shown = [(role, link) for role, link in links if link.publication_id in visible_ids]
+        return {
+            'marked_link_count': len(links),
+            'marked_links': shown,
+            'hidden_marked_link_count': len(links) - len(shown),
+        }
 
 
 

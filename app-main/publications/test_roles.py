@@ -1,7 +1,9 @@
 """Role groups (registration plan, Phase 1b, roadmap FA-R54).
 
 - Migration 0003_registration_groups creates the groups dtu_user, artek_staff and
-  artek_editor with exactly the planned permissions, and its reverse removes them.
+  artek_editor with exactly the planned permissions, and its reverse removes them. After all
+  migrations artek_editor also has merge_person (0005, plan release-2026-7 T7; that migration
+  is tested in test_person_markers).
 - At every CAS login (signal cas_user_authenticated, publications/roles.py) the user is put
   into dtu_user; artek_staff / artek_editor follow AD group membership only.
 - T12: at the same login, first_name / last_name / email are set from the AD entry (givenName,
@@ -35,6 +37,9 @@ EXPECTED_PERMISSIONS = {
     },
 }
 
+# Added by later migrations (0005_person_merge_person_permission, T7).
+LATER_PERMISSIONS = {'artek_editor': {'merge_person'}}
+
 MIGRATION_BEFORE = ('publications', '0002_alter_feature_created_date_and_more')
 MIGRATION = ('publications', '0003_registration_groups')
 
@@ -43,8 +48,9 @@ def _permissions(group):
     return {(p.content_type.app_label, p.codename) for p in group.permissions.all()}
 
 
-def _expected(name):
-    return {('publications', codename) for codename in EXPECTED_PERMISSIONS[name]}
+def _expected(name, latest=False):
+    codenames = EXPECTED_PERMISSIONS[name] | (LATER_PERMISSIONS.get(name, set()) if latest else set())
+    return {('publications', codename) for codename in codenames}
 
 
 class RegistrationGroupsMigrationTests(TransactionTestCase):
@@ -61,7 +67,8 @@ class RegistrationGroupsMigrationTests(TransactionTestCase):
     def test_groups_have_exactly_the_planned_permissions(self):
         for name in EXPECTED_PERMISSIONS:
             with self.subTest(group=name):
-                self.assertEqual(_permissions(Group.objects.get(name=name)), _expected(name))
+                self.assertEqual(_permissions(Group.objects.get(name=name)),
+                                 _expected(name, latest=True))
 
     def test_migration_is_reversible(self):
         executor = MigrationExecutor(connection)

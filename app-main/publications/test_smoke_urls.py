@@ -140,6 +140,11 @@ SMOKE = {
                                         Redirect(report_page), method='post'),
     'publications:unverify_report': entry(lambda t: {'pub_id': t.pub.pk}, LOGIN, 403,
                                           Redirect(report_page), method='post'),
+    # POST only, merge_person (artek_editor); GET is 405 (test_person_markers).
+    'publications:person_confirm': entry(
+        lambda t: {'pk': t.author.pk}, LOGIN, 403,
+        Redirect(lambda t: reverse('publications:person', kwargs={'pk': t.author.pk})),
+        method='post'),
 
     # --- publications: person workflow and ajax
     # POST only; JSON 401 for anonymous users (test_write_access).

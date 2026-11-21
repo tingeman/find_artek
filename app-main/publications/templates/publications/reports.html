@@ -31,6 +31,7 @@
 {% block main-content %}
 
 <div class="total-reports"><p id="total-reports-number">Reports: xxx</p></div>
+{% if can_merge_person %}{% include "publications/shared_snippets/person_marker_legend.html" %}{% endif %}
 
 <div class="table-responsive">
     <table class="table table-striped align-middle">

@@ -10,6 +10,11 @@ Visibility (publications.visibility): anonymous users see verified, not confiden
 logged-in users see the not confidential ones (verified or not) and the confidential ones they
 are listed on; artek_editor sees everything. ``feature_count`` counts all features of a report,
 also those the user can't see otherwise (it always did).
+
+Duplicate markers (plan release-2026-7 T7, roadmap FA-R66): two authorships carry match flags.
+Only users with ``merge_person`` (artek_editor) get ``match``/``multiple`` in their author dicts;
+the JSON of everyone else is the same as before T7. The artek_editor expectations were changed
+deliberately in T7 (``EDITOR_MARKERS``).
 """
 import datetime
 import json
@@ -76,7 +81,11 @@ class ApiListSnapshotTests(TestCase):
         # Authorships created against their author_id order (ann is author 0 but her row
         # comes second): pins the order the API lists authors in.
         Authorship.objects.create(publication=cls.pubs[ODD], person=cls.ben, author_id=1)
-        Authorship.objects.create(publication=cls.pubs[ODD], person=cls.ann, author_id=0)
+        Authorship.objects.create(publication=cls.pubs[ODD], person=cls.ann, author_id=0,
+                                  exact_match=True)
+        # T7: a relaxed match with several candidates (shown to artek_editor only).
+        Authorship.objects.filter(publication=cls.pubs[PUB1], person=cls.ben).update(
+            relaxed_match=True, multiple_match=True)
 
         def feature(name, *publications, **fields):
             f = Feature.objects.create(name=name, date=datetime.date(1999, 7, 1), **fields)
@@ -112,7 +121,13 @@ class ApiListSnapshotTests(TestCase):
     def person(self, p):
         return {'pk': p.pk, 'first': p.first, 'last': p.last}
 
-    def expected_report(self, number):
+    # (report, index in its author list) -> what artek_editor's author dict adds (T7).
+    EDITOR_MARKERS = {
+        (PUB1, 1): {'match': 'relaxed', 'multiple': True},
+        (ODD, 1): {'match': 'exact'},
+    }
+
+    def expected_report(self, number, user_label='anonymous'):
         ann, ben, sue = self.person(self.ann), self.person(self.ben), self.person(self.sue)
         url = lambda n: f'{settings.MEDIA_URL}reports/{n}.pdf'   # noqa: E731
         values = {
@@ -124,6 +139,9 @@ class ApiListSnapshotTests(TestCase):
             OLD: (None, 1, 'Old report', [sue], None, False),
         }[number]
         link, count, title, authors, file, confidential = values
+        if user_label == 'artek_editor':
+            authors = [{**author, **self.EDITOR_MARKERS.get((number, i), {})}
+                       for i, author in enumerate(authors)]
         return {
             'link_to_pdf_associated_with_this_publication': link,
             'feature_count': count,
@@ -177,18 +195,18 @@ class ApiListSnapshotTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
-    def assert_reports(self, data, numbers):
+    def assert_reports(self, data, numbers, user_label):
         self.assertEqual([r['number'] for r in data], numbers)
         for item in data:
             self.assertEqual(list(item.keys()), REPORT_KEYS)
-            self.assertEqual(item, self.expected_report(item['number']))
+            self.assertEqual(item, self.expected_report(item['number'], user_label))
 
     # ----- tests -----
 
     def test_report_list(self):
         for label, numbers in VISIBLE.items():
             with self.subTest(user=label):
-                self.assert_reports(self.get(label, api_path('report-list')), numbers)
+                self.assert_reports(self.get(label, api_path('report-list')), numbers, label)
 
     def test_report_list_filtered(self):
         filters = {
@@ -202,7 +220,7 @@ class ApiListSnapshotTests(TestCase):
             for name, (params, matching) in filters.items():
                 with self.subTest(user=label, filter=name):
                     self.assert_reports(self.get(label, api_path('report-list'), params),
-                                        [n for n in numbers if n in matching])
+                                        [n for n in numbers if n in matching], label)
 
     def test_report_detail(self):
         for label, numbers in VISIBLE.items():
@@ -210,7 +228,7 @@ class ApiListSnapshotTests(TestCase):
                 with self.subTest(user=label, report=number):
                     item = self.get(label, api_path('report-detail', pk=self.pubs[number].pk))
                     self.assertEqual(list(item.keys()), REPORT_KEYS)
-                    self.assertEqual(item, self.expected_report(number))
+                    self.assertEqual(item, self.expected_report(number, label))
 
     def test_feature_list(self):
         for label in VISIBLE:

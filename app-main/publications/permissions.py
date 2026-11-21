@@ -28,6 +28,8 @@ Without an object (a plain Django permission):
                    Excel import)
 - ``bulk_delete``: ``publications.delete_publication``
 - ``add_person``:  ``publications.add_person``
+- ``merge_person``: ``publications.merge_person`` (see the duplicate markers of person links,
+                   confirm and merge persons; granted to artek_editor, plan release-2026-7 T7)
 
 Active superusers pass every check (Django's has_perm; for ``view`` the visibility rule).
 
@@ -60,6 +62,7 @@ DELETE_FEATURE = 'delete_feature'
 MANAGE = 'manage'
 BULK_DELETE = 'bulk_delete'
 ADD_PERSON = 'add_person'
+MERGE_PERSON = 'merge_person'
 
 # Actions that are a plain Django permission, without an object.
 GLOBAL_PERMISSIONS = {
@@ -67,6 +70,7 @@ GLOBAL_PERMISSIONS = {
     MANAGE: 'publications.change_publication',
     BULK_DELETE: 'publications.delete_publication',
     ADD_PERSON: 'publications.add_person',
+    MERGE_PERSON: 'publications.merge_person',
 }
 PUBLICATION_ACTIONS = (EDIT, DELETE, VERIFY, ADD_FEATURE)
 FEATURE_ACTIONS = (DELETE_FEATURE,)
@@ -86,6 +90,7 @@ DENIED_MESSAGES = {
     MANAGE: "Only ARTEK editors may use this function.",
     BULK_DELETE: "Only ARTEK editors may delete publications in bulk.",
     ADD_PERSON: "You do not have permissions to add persons!",
+    MERGE_PERSON: "Only ARTEK editors may confirm or merge persons.",
 }
 
 

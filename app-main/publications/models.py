@@ -109,6 +109,9 @@ class Person(BaseModel):
         permissions = (
             ("edit_own_person", "Can edit own person"),
             ("delete_own_person", "Can delete own person"),
+            # Editors: see the duplicate markers of person links, confirm and merge persons
+            # (plan release-2026-7 T7/T8, roadmap FA-R66, FA-R58).
+            ("merge_person", "Can confirm and merge persons"),
         )
 
     def __init__(self, *args, **kwargs):
