@@ -104,7 +104,7 @@ class PersonMarkerTestCase(TestCase):
 
     def marker(self, person, sign, title):
         cls = 'person-marker-exact' if sign == '!' else 'person-marker-relaxed'
-        return (f' (<a class="person-marker {cls}" href="{self.person_url(person)}#confirm-person" '
+        return (f' (<a class="person-marker {cls}" href="{self.person_url(person)}merge/" '
                 f'title="{title}" style="color:red; font-weight:bold;">{sign}</a>)')
 
 
@@ -348,8 +348,8 @@ class ConfirmPersonTests(PersonMarkerTestCase):
         self.assertContains(page, 'Person Ann Alpha confirmed')
         self.assertNotContains(page, 'confirm-person')
         report = self.client.get(page_path('report', pk=self.pub.pk))
-        self.assertNotContains(report, f'person/{self.ann.pk}/#confirm-person')
-        self.assertContains(report, f'person/{self.bob.pk}/#confirm-person')
+        self.assertNotContains(report, f'person/{self.ann.pk}/merge/')
+        self.assertContains(report, f'person/{self.bob.pk}/merge/')
 
     def test_superuser_may_confirm(self):
         self.login('superuser')

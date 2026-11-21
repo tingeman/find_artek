@@ -1,0 +1,13 @@
+{# One person on the merge page (FA-R58): include with summary=<views_persons.person_summaries item>; show_id_number from the view. #}{% load i18n %}
+<div class="person-merge-summary" data-person="{{ summary.person.pk }}">
+    <strong><a href="{% url 'publications:person' pk=summary.person.pk %}" target="_blank">{{ summary.person }}</a></strong>
+    <div>{% trans "Position" %}: {{ summary.person.position|default:"-" }} &middot; {% trans "Initials" %}: {{ summary.person.initials|default:"-" }} &middot; {% trans "E-mail" %}: {{ summary.email|default:"-" }}{% if show_id_number %} &middot; {% trans "ID" %}: {{ summary.id_number|default:"-" }}{% endif %}</div>
+    <ul class="mb-0">
+    {% for role in summary.roles %}{% if role.count %}
+        <li>{{ role.role|capfirst }} ({{ role.count }}):
+            {% for link in role.links %}<a href="{% url 'publications:report' pk=link.publication_id %}" target="_blank">{{ link.publication.number }} {{ link.publication.title }}</a>{% if not forloop.last %}; {% endif %}{% endfor %}{% if role.hidden %}{% if role.links %}; {% endif %}<span class="person-merge-hidden">{% blocktrans count counter=role.hidden %}{{ counter }} report you can't see{% plural %}{{ counter }} reports you can't see{% endblocktrans %}</span>{% endif %}
+        </li>
+    {% endif %}{% empty %}{% endfor %}
+    {% if not summary.roles.0.count and not summary.roles.1.count and not summary.roles.2.count %}<li>{% trans "No reports" %}</li>{% endif %}
+    </ul>
+</div>

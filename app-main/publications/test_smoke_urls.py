@@ -145,6 +145,17 @@ SMOKE = {
         lambda t: {'pk': t.author.pk}, LOGIN, 403,
         Redirect(lambda t: reverse('publications:person', kwargs={'pk': t.author.pk})),
         method='post'),
+    # merge_person (artek_editor); full behaviour in test_person_merge. The two POST URLs
+    # get no persons here, so they send the editor back to the merge page with a message.
+    'publications:person_merge': entry(lambda t: {'pk': t.author.pk}, LOGIN, 403, 200),
+    'publications:person_merge_confirm': entry(
+        lambda t: {'pk': t.author.pk}, LOGIN, 403,
+        Redirect(lambda t: reverse('publications:person_merge', kwargs={'pk': t.author.pk})),
+        method='post'),
+    'publications:person_merge_do': entry(
+        lambda t: {'pk': t.author.pk}, LOGIN, 403,
+        Redirect(lambda t: reverse('publications:person_merge', kwargs={'pk': t.author.pk})),
+        method='post'),
 
     # --- publications: person workflow and ajax
     # POST only; JSON 401 for anonymous users (test_write_access).

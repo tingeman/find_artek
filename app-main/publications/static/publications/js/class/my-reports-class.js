@@ -291,14 +291,13 @@ class MyReportsClass {
 // Duplicate marker after a person's name (FA-R66), the same as the template
 // shared_snippets/person_marker.html. The API sends `match` ("exact" or "relaxed") and
 // `multiple` only to users with merge_person; without them this returns ''.
-// The link goes to the person page's confirm section; T8 changes it to the merge page
-// (here and in person_marker.html).
+// The link goes to the person's merge page (T8; the same in person_marker.html).
 function personMarkerHtml(person, role) {
     if (!person.match) {
         return '';
     }
     const marker = document.createElement('a');
-    marker.href = URL_PREFIX + `/publications/person/${person.pk}/#confirm-person`;
+    marker.href = URL_PREFIX + `/publications/person/${person.pk}/merge/`;
     marker.style.color = 'red';
     marker.style.fontWeight = 'bold';
     marker.classList.add('person-marker');

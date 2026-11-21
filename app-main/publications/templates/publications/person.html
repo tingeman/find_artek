@@ -45,7 +45,10 @@
         <p>{% trans "If this person is not a duplicate of another one, confirm it: this clears the markers of all its links. Nothing else changes." %}</p>
         <button type="submit" class="btn btn-outline-success">{% trans "Confirm person" %}</button>
     </form>
+    <p class="mt-3 mb-0 person-merge-link">{% trans "If it is a duplicate, merge the other persons into it:" %} <a href="{% url 'publications:person_merge' pk=person.pk %}">{% trans "Merge duplicates…" %}</a></p>
 </div>
+{% elif can_merge_person %}
+<p class="person-merge-link"><a href="{% url 'publications:person_merge' pk=person.pk %}">{% trans "Merge duplicates…" %}</a></p>
 {% endif %}
 
 </br>

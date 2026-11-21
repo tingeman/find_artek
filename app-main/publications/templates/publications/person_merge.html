@@ -1,0 +1,52 @@
+{% extends 'publications/person_workflow_base.html' %}
+{# Merge page (FA-R58, plan release-2026-7 T8; views_persons.PersonMergeView), merge_person only. Reports the viewer may not see are only counted. #}
+{% load i18n static %}
+
+{% block person_title %}{% trans "Merge persons" %}{% endblock %}
+
+{% block person_headline %}{% trans "Merge duplicates into this person" %}{% endblock %}
+
+{% block person_scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+{{ form.media }}
+{% endblock %}
+
+{% block workflow_content %}
+<div class="main-form-section person-merge-kept">
+    <h4 class="mb-3">{% trans "Person to keep" %}</h4>
+    {% include 'publications/shared_snippets/person_merge_summary.html' with summary=kept %}
+    <p class="mt-2"><a href="{% url 'publications:person' pk=person.pk %}">{% trans "Back to the person page" %}</a></p>
+</div>
+
+<form method="post" action="{% url 'publications:person_merge_confirm' pk=person.pk %}" class="person-merge-form">
+    {% csrf_token %}
+    <div class="main-form-section person-merge-candidates">
+        <h4 class="mb-3">{% trans "Candidates" %}</h4>
+        <p>{% blocktrans %}Tick the persons that are the same person as the one above. They will be merged into it: their reports move to it, and they are deleted. You will see all changes before anything happens. To keep one of the others instead, start from that person's page.{% endblocktrans %}</p>
+        {% if candidates %}
+        <table class="table">
+            <tbody>
+            {% for summary in candidates %}
+            <tr class="person-merge-candidate">
+                <td style="width: 3em;"><input type="checkbox" name="merge" value="{{ summary.person.pk }}" id="merge-{{ summary.person.pk }}"></td>
+                <td><label for="merge-{{ summary.person.pk }}" class="mb-0">{% trans "Match" %} {% widthratio summary.confidence 1 100 %}%</label>
+                    {% include 'publications/shared_snippets/person_merge_summary.html' with summary=summary %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="person-merge-no-candidates">{% trans "No persons with the same or a similar name were found." %}</p>
+        {% endif %}
+    </div>
+
+    <div class="main-form-section">
+        <h4 class="mb-3">{% trans "Add any other person" %}</h4>
+        <p>{{ form.others }}</p>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Show what the merge changes" %}</button>
+    </div>
+</form>
+{% endblock %}

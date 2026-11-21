@@ -257,5 +257,12 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        # Person merges (publications.person_merge, FA-R58): one INFO line per merge, the way
+        # back together with the DB dumps. On the console, so it lands in the container log.
+        'publications.persons': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
