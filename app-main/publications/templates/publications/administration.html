@@ -1,0 +1,49 @@
+{% extends base_template %}
+{% load i18n static %}
+
+{% comment %}
+    Administration page (FA-R100, views_administration.py): the add/import tools as picture
+    tiles, laid out like the classic version's administration page. A tile with a url is a
+    link; one without is greyed out (aria-disabled) and shows the reason.
+{% endcomment %}
+
+{% block title %}Administration{% endblock %}
+
+{% block dynamic_head_content %}
+<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/frontpage.css' %}" />
+<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/administration.css' %}" />
+{% endblock %}
+
+{% block headline %}{% trans "Administration" %}{% endblock %}
+
+{% block main-content %}
+
+<div class="grid-container admin-tiles">
+    {% for tile in tiles %}
+    <div class="fmitem admin-tile admin-tile-{{ tile.key }}{% if not tile.enabled %} admin-tile-disabled{% endif %}">
+        {% if tile.enabled %}
+        <a class="fmtile" href="{{ tile.url }}">
+        {% else %}
+        <div class="fmtile fmtile-disabled" aria-disabled="true">
+        {% endif %}
+            <div class="fmimage">
+                {% if tile.image %}
+                <img src="{% static tile.image %}" alt="">
+                {% else %}
+                <span class="fmimage-placeholder">{{ tile.title }}</span>
+                {% endif %}
+            </div>
+            <div class="fmtext">
+                <h3 class="topic">{{ tile.title }}</h3>
+                {% if tile.reason %}<p class="text fmtile-reason">{{ tile.reason }}</p>{% endif %}
+            </div>
+        {% if tile.enabled %}
+        </a>
+        {% else %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

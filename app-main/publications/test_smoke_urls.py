@@ -110,6 +110,8 @@ SMOKE = {
     'publications:person-autocomplete': entry(None, 403, 200, 200, query='?term=Smoke'),
 
     # --- publications: write views (permissions.py)
+    # Tile page; logged in with add_publication or change_publication (FA-R100).
+    'publications:administration': entry(None, LOGIN, 403, 200),
     'publications:add_reports_from_file_upload': entry(None, LOGIN, 403, 200),
     'publications:bulk_delete_publications': entry(None, LOGIN, 403, 200),
     'publications:add_report': entry(None, LOGIN, 403, 200),

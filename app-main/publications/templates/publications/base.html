@@ -23,7 +23,7 @@
         sessionStorage (reportData*, featureData*) is dropped, so data loaded while logged in
         doesn't survive a logout and anonymous data doesn't stay stale after a login.
         Inline here and not in base.js: base.js is deferred, and page scripts can run before it
-        (inline ones such as the cache invalidation in report.html, or any non-deferred script).
+        (any inline or other non-deferred script on a page).
         This must run before anything reads the cache.
     {% endcomment %}
     <meta name="auth-marker" content="{{ AUTH_MARKER|default:'anon' }}">
@@ -88,22 +88,12 @@
                 <a class="nav-link header-nav-persons" href="{% url 'publications:persons' %}">{% trans "Persons" %}</a>
                 <a class="nav-link header-nav-api" href="{% url 'schema-swagger-ui' %}">{% trans "API" %}</a>
 
-                <!-- "Add" menu (FA-R56). Same permissions as the view guards (publications/permissions.py):
-                     add report = publications.add_publication (ADD), Excel import = publications.change_publication (MANAGE).
-                     perms is False for anonymous users and True for active superusers, as user_may. -->
+                <!-- "Administration" page (FA-R100, replaces the "Add" drop-down of FA-R56). Same guard as the
+                     page (views_administration.may_open_administration): publications.add_publication (ADD) or
+                     publications.change_publication (MANAGE). perms is False for anonymous users and True for
+                     active superusers, as user_may. -->
                 {% if perms.publications.add_publication or perms.publications.change_publication %}
-                <div class="dropdown header-nav-add">
-                    <a class="nav-link dropdown-toggle" href="#" id="header-nav-add-toggle" role="button"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{% trans "Add" %}</a>
-                    <div class="dropdown-menu" aria-labelledby="header-nav-add-toggle">
-                        {% if perms.publications.add_publication %}
-                        <a class="dropdown-item header-nav-add-report" href="{% url 'publications:add_report' %}">{% trans "Add report" %}</a>
-                        {% endif %}
-                        {% if perms.publications.change_publication %}
-                        <a class="dropdown-item header-nav-import-excel" href="{% url 'publications:add_reports_from_file_upload' %}">{% trans "Import from Excel" %}</a>
-                        {% endif %}
-                    </div>
-                </div>
+                <a class="nav-link header-nav-administration" href="{% url 'publications:administration' %}">{% trans "Administration" %}</a>
                 {% endif %}
 
             </nav>
@@ -199,12 +189,9 @@
                     <li><a class="nav-link header-nav-map" href="{% url 'publications:map' %}">{% trans "Map" %}</a></li>
                     <li><a class="nav-link header-nav-reports" href="{% url 'publications:reports' %}">{% trans "Reports" %}</a></li>
                     <li><a class="nav-link header-nav-persons" href="{% url 'publications:persons' %}">{% trans "Persons" %}</a></li>
-                    <!-- "Add" entries (FA-R56), same permissions as the desktop menu above -->
-                    {% if perms.publications.add_publication %}
-                    <li><a class="nav-link header-nav-add-report" href="{% url 'publications:add_report' %}">{% trans "Add report" %}</a></li>
-                    {% endif %}
-                    {% if perms.publications.change_publication %}
-                    <li><a class="nav-link header-nav-import-excel" href="{% url 'publications:add_reports_from_file_upload' %}">{% trans "Import from Excel" %}</a></li>
+                    <!-- "Administration" (FA-R100), same condition as the desktop link above -->
+                    {% if perms.publications.add_publication or perms.publications.change_publication %}
+                    <li><a class="nav-link header-nav-administration" href="{% url 'publications:administration' %}">{% trans "Administration" %}</a></li>
                     {% endif %}
                 </ul>
             </div>

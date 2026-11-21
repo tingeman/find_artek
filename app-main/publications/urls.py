@@ -1,5 +1,6 @@
 from django.urls import include, path
 from . import views
+from .views_administration import AdministrationView
 from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
 app_name = 'publications'
@@ -10,6 +11,9 @@ urlpatterns = [
     path('map/', views.MapView.as_view(), name='map'),
     path('reports/', views.ReportsView.as_view(), name='reports'),
     path('persons/', views.PersonsView.as_view(), name='persons'),
+
+    # Tile page with the add/import tools (FA-R100), linked from the header
+    path('administration/', AdministrationView.as_view(), name='administration'),
 
     # Excel file upload for adding publications
     path('add/reports_from_file/', views.AddReportsFromFileUploadView.as_view(), name='add_reports_from_file_upload'),

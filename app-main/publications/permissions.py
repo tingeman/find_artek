@@ -123,9 +123,12 @@ def user_may(user, action, obj=None):
 
 
 def access_denied_response(request, action, base_template='publications/base.html',
-                           template_name='publications/access_denied.html'):
-    """The 403 page shown when a logged-in user may not do ``action``."""
-    context = {'base_template': base_template, 'error': DENIED_MESSAGES[action]}
+                           template_name='publications/access_denied.html', error=None):
+    """The 403 page shown when a logged-in user may not do ``action``.
+
+    ``error`` replaces the action's message in DENIED_MESSAGES (a page with a guard of
+    several actions, e.g. the administration page)."""
+    context = {'base_template': base_template, 'error': error or DENIED_MESSAGES[action]}
     return render(request, template_name, context, status=403)
 
 

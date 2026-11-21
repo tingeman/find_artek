@@ -1,0 +1,78 @@
+/* Administration page tiles (FA-R100, templates/publications/administration.html).
+   Loaded after frontpage.css, which gives the grid (.grid-container, 4/2/1 columns) and the
+   main width. The front page's tiles are form buttons (.fmitem form button ...); these are
+   plain links (a.fmtile) or, when greyed out, a div (.fmtile-disabled), with the same look. */
+
+.fmitem .fmtile {
+    background-color: var(--primary-background-color);
+    color: inherit;
+    text-decoration: none;
+    height: 230px;
+    width: 202px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 1px;
+}
+
+.fmitem a.fmtile:hover,
+.fmitem a.fmtile:focus {
+    color: #777777;
+    text-decoration: none;
+}
+
+.fmitem .fmtile .fmimage img {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    object-position: bottom;
+}
+
+.fmitem .fmtile .fmimage-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 200px;
+    height: 150px;
+    background-color: #ffffff;
+    color: #333333;
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+.fmitem .fmtile .fmtext {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    width: 200px;
+    padding: 5px 10px;
+}
+
+.fmitem .fmtile .fmtext .topic {
+    font-size: medium;
+    font-weight: bold;
+    margin: 0;
+}
+
+.fmitem .fmtile .fmtext .text {
+    font-size: 0.7em;
+    font-weight: normal;
+    margin: 0;
+}
+
+/* Greyed out: not built yet, or the user lacks the permission. Not a link. */
+.fmitem .fmtile-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.fmitem .fmtile-disabled .fmimage img {
+    filter: grayscale(100%);
+}
+
+.fmitem .fmtile-disabled .fmtext .fmtile-reason {
+    font-style: italic;
+}
