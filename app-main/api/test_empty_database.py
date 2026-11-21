@@ -7,6 +7,7 @@ the Swagger schema is generated.
 """
 import importlib
 import json
+import warnings
 
 from django.conf import settings
 from django.core.management import call_command
@@ -63,3 +64,27 @@ class SwaggerSchemaTests(TestCase):
     def test_schema_renders_without_topics(self):
         description = self.topic_description(self.get_schema())
         self.assertIn('Filter publications by topic name', description)
+
+    def test_redoc_serves_the_same_schema(self):
+        response = self.client.get(app_path(reverse('schema-redoc')), {'format': 'openapi'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('paths', json.loads(response.content))
+
+
+class SwaggerCompatRenderersTests(SimpleTestCase):
+    """SWAGGER_USE_COMPAT_RENDERERS = False (plan "django-5" T1): building the schema view
+    raises no drf-yasg DeprecationWarning, and only the dot-less spec formats exist."""
+
+    def test_schema_view_without_deprecation_warning(self):
+        from drf_yasg import openapi
+        from drf_yasg.views import get_schema_view
+
+        self.assertIs(settings.SWAGGER_USE_COMPAT_RENDERERS, False)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            view = get_schema_view(openapi.Info(title='t', default_version='v1'), public=True)
+        self.assertEqual([str(w.message) for w in caught
+                          if issubclass(w.category, DeprecationWarning)], [])
+        formats = {renderer.format for renderer in view.renderer_classes}
+        self.assertIn('openapi', formats)
+        self.assertFalse([f for f in formats if f.startswith('.')], formats)

@@ -15,7 +15,7 @@ import traceback
 # === Django imports ===
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core import serializers
 from django.core.exceptions import ValidationError
@@ -1437,10 +1437,6 @@ class FeatureView(FeaturePermissionMixin, BaseDetailView):
 
 
 
-class LogoutView(BaseView):
-    def get(self, request, **kwargs):
-        logout(request)
-        return redirect('publications:frontpage')
 
 
 

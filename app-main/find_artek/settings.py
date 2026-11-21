@@ -77,6 +77,10 @@ INSTALLED_APPS = [
     'django_select2',
 ]
 
+# drf-yasg: no extra '.json'/'.yaml' spec renderers (the old format names with a dot, for
+# format-suffix URLs we don't have). The schema stays at /swagger/?format=openapi.
+SWAGGER_USE_COMPAT_RENDERERS = False
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

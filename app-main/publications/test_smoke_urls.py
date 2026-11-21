@@ -148,9 +148,6 @@ SMOKE = {
                                                    Redirect('publications:add_report')),
     'publications:complete_person_workflow': entry(
         None, LOGIN, Redirect('publications:add_report'), Redirect('publications:add_report')),
-    'publications:logout': entry(None, Redirect('publications:frontpage'),
-                                 Redirect('publications:frontpage'),
-                                 Redirect('publications:frontpage')),
 
     # --- api (read only; confidential/unvalidated entries are filtered in the serializer,
     #     api/test_*.py)

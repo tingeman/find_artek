@@ -14,10 +14,10 @@ from django.contrib.auth.models import User
 from django.http import QueryDict
 from django.shortcuts import resolve_url
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from publications.models import Publication
-from publications.test_factories import app_path, report_type
+from publications.test_factories import app_path, make_user, report_type
 
 
 def _expected_login_redirect(next_path):
@@ -86,3 +86,35 @@ class CasLoginViewTests(TestCase):
         response = self.client.get(app_path(reverse('cas_ng_login')))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], reverse('publications:frontpage'))
+
+
+class LogoutTests(TestCase):
+    """CAS logout is the only logout (plan "django-5" T1). The Django auth logout route
+    publications/accounts/logout/ (name publications:logout) was removed: it was unlinked, and
+    Django 5.0 drops logout by GET."""
+
+    def test_logout_route_name_is_gone(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse('publications:logout')
+
+    def test_old_logout_paths_are_404(self):
+        user = make_user('s990003')
+        for path in ('/publications/accounts/logout/', '/accounts/logout/'):
+            for logged_in in (False, True):
+                with self.subTest(path=path, logged_in=logged_in):
+                    if logged_in:
+                        self.client.force_login(user)
+                    else:
+                        self.client.logout()
+                    self.assertEqual(self.client.get(path).status_code, 404)
+                    self.assertEqual(self.client.post(path).status_code, 404)
+                    # A 404 doesn't log the user out.
+                    self.assertEqual('_auth_user_id' in self.client.session, logged_in)
+
+    def test_cas_logout_logs_out_and_redirects_to_cas_server(self):
+        self.client.force_login(make_user('s990004'))
+        response = self.client.get(app_path(reverse('cas_ng_logout')))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response['Location'].startswith(settings.CAS_SERVER_URL),
+                        response['Location'])
+        self.assertNotIn('_auth_user_id', self.client.session)

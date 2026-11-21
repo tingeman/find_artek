@@ -1,5 +1,4 @@
-from django.urls import include, path, reverse_lazy
-from django.contrib.auth import views as auth_views
+from django.urls import include, path
 from . import views
 from publications.workflows.person import disambiguate_person_step, complete_person_workflow
 
@@ -21,8 +20,6 @@ urlpatterns = [
     path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
     path('feature/<int:pk>/delete/', views.DeleteFeatureView.as_view(), name='delete_feature'),
     # path('login/', views.LoginView.as_view(), name='login'),
-    # path('logout/', views.LogoutView.as_view(), name='logout'),
-    path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('publications:frontpage')), name='logout'),
 
     # Add report workflows
     path('report/add/', views.ReportFormView.as_view(), name='add_report'),
