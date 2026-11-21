@@ -3,9 +3,10 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-T2b (option A: no browser cache) next, implementer. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
+T4 (thumbnail exit code) running, implementer. Then T5, T6, T7, T8. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
 
 ## Done
+- T2b 2026-11-21: option A, no browser cache for the report list and map; `invalidate_feature_cache` flag removed; 603 tests (`e135e46`). Stale sentence in `base.html` comment (mentions the removed report.html cache script): fix in T6.
 - T3 2026-11-21: person autocomplete for logged-in users only, anonymous JSON 403; 599 tests (`732b7fc`)
 - T2a 2026-11-21: API lists in a fixed number of queries: /api/report/ 1911 -> 4 queries, ~2 s -> ~0.1 s; /api/feature/ 1747 -> 2, ~2.4 s -> ~0.25 s; JSON byte-identical; 595 tests (`3654000`)
 - T1 2026-11-21: one 300 MB limit (setting `MAX_UPLOAD_SIZE_MB`), browser check reads it, appendix page shows refusal reasons; 586 tests, gate 22/22 (`c1714c3`)
