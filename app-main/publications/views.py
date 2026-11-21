@@ -476,7 +476,15 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
             return self._object_cache
 
         return None
-    
+
+    def get_context_data(self, **kwargs):
+        """The template's title, report summary and JS (isEditMode) need the mode and the
+        report, as on the review page (ReportReviewView)."""
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'edit' if self.is_edit_mode() else 'add'
+        context['publication'] = self.get_object()   # None in add mode
+        return context
+
     def get_initial(self):
         if self.is_edit_mode():
             return self._get_edit_initial()

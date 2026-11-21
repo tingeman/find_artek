@@ -1,6 +1,6 @@
 {% extends 'publications/person_workflow_base.html' %}
 
-{% load i18n static %}
+{% load i18n static static_version %}
 
 {% block person_title %}
     {% trans "Person" %}
@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block person_scripts %}
-<script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
+<script src="{% versioned_static 'publications/js/class/my-reports-class.js' %}" defer></script>
 <script src="{% static 'publications/js/person.js' %}" defer></script>
 {% endblock %}
 
@@ -32,7 +32,7 @@
 
 {% if can_merge_person and marked_link_count %}
 <div class="main-form-section person-markers" id="confirm-person">
-    <h5 class="mb-3"><span style="color:red; font-weight:bold;">(!)/(?)</span> {% blocktrans count counter=marked_link_count %}{{ counter }} link of this person is marked as a possible duplicate{% plural %}{{ counter }} links of this person are marked as possible duplicates{% endblocktrans %}</h5>
+    <h5 class="mb-3">(<span style="color:red; font-weight:bold;">!</span>)/(<span style="color:red; font-weight:bold;">?</span>) {% blocktrans count counter=marked_link_count %}{{ counter }} link of this person is marked as a possible duplicate{% plural %}{{ counter }} links of this person are marked as possible duplicates{% endblocktrans %}</h5>
     <p>{% trans "The person was created although persons with the same (!) or a similar (?) name existed." %}</p>
     <ul class="person-marked-links">
         {% for role, link in marked_links %}

@@ -123,6 +123,12 @@ MEDIA_ACCEL_REDIRECT_PREFIX = '/find/_protected_media/'
 # refuses the upload with 413 before Django can show a message. Change both together.
 MAX_UPLOAD_SIZE_MB = 300
 
+# Appended as '?v=<version>' to the <script src> of page scripts that change between releases
+# ({% versioned_static %}, publications/templatetags/static_version.py), so browsers load the
+# new file after a release instead of a cached old one. A constant, not an env variable: raise
+# it with each release that changes one of these scripts.
+STATIC_ASSET_VERSION = '2026.7'
+
 
 TEMPLATES = [
     {

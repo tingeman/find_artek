@@ -33,6 +33,11 @@ def is_marked(link):
     return bool(link.exact_match or link.relaxed_match or link.multiple_match)
 
 
+def has_marked_links(person):
+    """Whether any link of ``person`` (any role, any report) is marked."""
+    return any(model.objects.filter(MARKED, person=person).exists() for _, model in LINK_MODELS)
+
+
 def marked_links(person):
     """(role, link) for every marked link of ``person``, with the link's publication loaded,
     authors first, then supervisors, then editors, each by report number. One query per role."""

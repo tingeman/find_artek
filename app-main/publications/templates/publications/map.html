@@ -2,7 +2,7 @@
 
 <!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
-{% load i18n static %}
+{% load i18n static static_version %}
 
 {# title #}
 {% block title %}Front page{% endblock %}
@@ -16,8 +16,8 @@
     
     <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js" defer></script>
     
-    <script src="{% static 'publications/js/class/my-reports-class.js' %}" defer></script>
-    <script src="{% static 'publications/js/class/my-map-class.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/class/my-reports-class.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/class/my-map-class.js' %}" defer></script>
     <script src="{% static 'publications/js/map.js' %}" defer></script>
 {% endblock %}
 

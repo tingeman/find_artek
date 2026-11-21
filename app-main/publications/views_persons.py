@@ -7,7 +7,8 @@ login, other users get 403, a wrong method is 405.
   links of the person (person_links.clear_markers) and goes back to the person page.
 - ``PersonMergeView``: GET ``person/<pk>/merge/``: the person to keep, the candidates from the
   person matcher (workflows.person.get_person_matches, confidence >= 0.6) with a checkbox each,
-  and an autocomplete field to add any other person. Submits to the confirmation.
+  and an autocomplete field to add any other person. Submits to the confirmation. A person
+  with marked links also gets a "Confirm person" button (to PersonConfirmView).
 - ``PersonMergeConfirmView``: POST ``person/<pk>/merge/confirm/``: what the merge would change
   (person_merge.plan_merge); writes nothing. Its "Merge" button posts the plan's fingerprint.
 - ``PersonMergeDoView``: POST ``person/<pk>/merge/do/``: person_merge.merge_persons with that
@@ -24,7 +25,7 @@ from django_select2.forms import HeavySelect2MultipleWidget
 from publications import person_privacy
 from publications.models import Person, Publication
 from publications.permissions import MERGE_PERSON, PermissionMixin
-from publications.person_links import LINK_MODELS, clear_markers
+from publications.person_links import LINK_MODELS, clear_markers, has_marked_links
 from publications.person_merge import MergeError, plan_merge, merge_persons
 from publications.views import BaseView
 from publications.visibility import visible_publications
@@ -154,6 +155,7 @@ class PersonMergeView(_MergeBase):
             'candidates': summaries[1:],
             'show_id_number': person_privacy.can_view_id_number(request.user),
             'form': AddPersonsForm(),
+            'has_markers': has_marked_links(kept),
         })
         return render(request, self.template_name, context)
 

@@ -1,6 +1,6 @@
 {% extends base_template %}
 
-{% load i18n static %}
+{% load i18n static static_version %}
 
 {% block title %}
     {% if publication %}
@@ -151,9 +151,9 @@
     }
 </style>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+{# Bootstrap: only base.html's 4.6 (a second Bootstrap 5 stylesheet changed the header and menu on this page). Full jQuery: base.html loads the slim build, without $.ajax, which the year handler below and select2 (form.media) need. #}
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="{% static 'publications/js/file-upload.js' %}" defer></script>
+<script src="{% versioned_static 'publications/js/file-upload.js' %}" defer></script>
 {{ form.media }}
 <script>
 $(document).ready(function() {
