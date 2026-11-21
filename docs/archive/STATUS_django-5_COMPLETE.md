@@ -1,9 +1,9 @@
 # Status: Django 5.2 LTS upgrade (Phase 3)
 
-Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
+Plan: [PLAN_django-5.md](PLAN_django-5_COMPLETE.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
-T9: you deploy with ansible and run the production checks ([USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) steps 7-8); then the main session closes the plan.
+Done 2026-11-21: release `2026.6` deployed and checked. Plan closed; follow-ups in the roadmap (FA-R94 to FA-R96, additions to FA-R2, FA-R5, FA-R31, FA-R33).
 
 ## Done
 - T1 2026-11-21: no RemovedInDjango50/51 warnings from our code; drf-yasg `SWAGGER_USE_COMPAT_RENDERERS = False`; `accounts/logout/` and custom `LogoutView` removed; 543 tests; gate 22/22; `check --deploy` allowed warnings today: `security.W004 security.W008` (`bc4cd51`)
@@ -15,6 +15,9 @@ T9: you deploy with ansible and run the production checks ([USER_STEPS_2026.6.md
 - T7 2026-11-21: CLAUDE.md (Django 5.2; `/find/media/` goes to Django since 2026.4), readme (Django bound, release notes 2026.6) (`1105aeb`)
 - T8 fix 2026-11-21: dev test found that a typed "thin" (initials) got no match in the disambiguation step: `get_person_matches` only compared a single word with `id_number`. Now also `initials` (iexact, from 2 characters, confidence 0.9 like id_number). Never on develop/main before (only on the disambiguation branches); 569 tests, gate 22/22 (`2315198`)
 - T8 2026-11-21: your dev checks pass. CAS logout ends on DTU's logout page; the redirect (`https://auth2.dtu.dk/dtu/logout?url=<front page>`) is identical with django-cas-ng 5.0.1/python-cas 1.6 and 5.1.2/1.7.2, so not an upgrade change; DTU's CAS ignores `url` (CAS v2). Roadmap candidate with FA-R33 (CAS 3 would send `service`, and adds single logout).
+
+## Done (release)
+- T9 2026-11-21: `develop/main` fast-forwarded to `d7aef5d`, tag `2026.6`, built by `build_image.sh` (22/22, 569 tests), published, web_server `releases.yml` (`0b4d515`); deployed by you, production checks pass (thumbnail cron check pending).
 
 ## Open questions
 - `DeleteFeatureView.delete()` (`views.py:~2012`) has been dead for form POSTs since Django 4.0 (`DeleteViewCustomDeleteWarning`): its file cleanup (delete each `FileObject` file + row) never runs. Moving it to `form_valid()` would start deleting media files and rows shared through `Feature.files` (M2M): a data decision. Left as is; proposed for the roadmap at Finish.

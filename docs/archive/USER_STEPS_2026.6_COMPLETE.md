@@ -1,6 +1,6 @@
 # User steps: release 2026.6 (Django 5.2 LTS, PLAN_django-5 T8 and T9)
 
-Branch `agent-django-5` holds T1-T7 of [PLAN_django-5.md](PLAN_django-5.md), with `develop/main` merged in. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
+Branch `agent-django-5` holds T1-T7 of [PLAN_django-5.md](PLAN_django-5_COMPLETE.md), with `develop/main` merged in. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
 
 What changes for users:
 
@@ -90,7 +90,7 @@ In `C:\thin\02_Code\docker_projects\dtu_sus_web_server\ansible\vars\releases.yml
 
 ## 7. Deploy the app (you)
 
-- [ ] Done
+- [x] Done (2026-11-21): `webapp_find_artek:2026.6` healthy, frontpage 200, Django 5.2.19 on Python 3.13.18, migrations unchanged (`0004`), no traceback or error in the log.
 
 ```bash
 # WSL
@@ -113,7 +113,7 @@ Rollback: put the `2026.5` entry back in `releases.yml` and rerun the playbook. 
 
 ## 8. Functional checks in production (you)
 
-- [ ] Done
+- [x] Done (2026-11-21): checks 1-4 pass (confidential report 12-05 / pk 382: login redirect and 404 for the PDF logged out, opens as editor). Check 5 (thumbnail cron next morning) not yet run when the plan was closed.
 
 Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 
