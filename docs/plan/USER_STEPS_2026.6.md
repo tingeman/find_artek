@@ -18,7 +18,7 @@ Deployment impact (web_server):
 
 ## 1. Dev checks (T8, you)
 
-- [ ] Done
+- [x] Done (2026-11-21): all checks pass, after the initials fix (`2315198`). Logout stops on DTU's logout page: expected, see item 6.
 
 The dev stack already runs the branch (project `find_artek_develop`, started from the worktree). To rebuild it yourself:
 
@@ -35,7 +35,7 @@ At http://localhost:8098/ (Ctrl+F5 first):
 3. A confidential report's PDF: opens logged in, refused logged out.
 4. `/swagger/` and `/redoc/` load; in Swagger, "Django Logout" logs you out through CAS.
 5. `/admin/` works.
-6. The menu's logout returns you to the front page, logged out.
+6. The menu's logout ends on DTU's "you are logged out" page (DTU CAS does not follow the return address `?url=<front page>`; same before the upgrade, checked 2026-11-21). Back on the site you are logged out.
 
 Tell the main session what passed; anything off is fixed on the branch before step 2.
 
