@@ -3,7 +3,9 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-T9: dev checks by the owner, step 1 of [USER_STEPS_2026.7.md](USER_STEPS_2026.7.md). Branch tip `5528305` (develop/main merged in): 685 tests, gate 22/22. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
+T11 (implementer): fixes from the owner's dev checks; then T12 (implementer): directory lookup in the person step; then the owner reruns the dev checks (T9, USER_STEPS_2026.7 step 1, incl. 7 and 8 not yet done). Branch tip `5528305`.
+
+Dev checks 2026-11-21 (owner), round 1: Administration page OK; appendix 100+ MB OK; report PDF > 50 MB refused by the browser's cached old `file-upload.js` (server sends the new one; T11 versioned URLs); legend parentheses red/bold, table black/normal (T11); add/edit report page header spacing differs (Bootstrap 5.3 loaded on top of 4.6, T11); edit page titled "New report" (`publication`/`action` missing in the context, T11); marker opens the merge page, which has no Confirm (T11); `asska` not found: no directory lookup in the new step page (T12, owner wants it in 2026.7). Checks 7 and 8 not yet run.
 
 ## Done
 - T8 2026-11-21: merge persons (`person/<pk>/merge/`, confirmation page, one transaction, fingerprint against stale confirmations, empty fields filled, INFO log on `publications.persons`); markers link to the merge page; 685 tests, gate 22/22 (`13d253d`). Not filled on merge: hidden contact fields (FA-R72). A report form in progress holding a merged person's pk would fail on save (session data, not handled).
