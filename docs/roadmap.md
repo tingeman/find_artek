@@ -10,7 +10,7 @@ Context: find_artek is a Django 4.2 student-report database (apps `publications`
 
 | Plan | Phase | Branch | Status |
 |---|---|---|---|
-| [PLAN](plan/PLAN_release-2026-7.md), [STATUS](plan/STATUS_release-2026-7.md) (release 2026.7: FA-R88, FA-R89, FA-R97, FA-R82, FA-R69 code, FA-R98 step 1, FA-R100) | later | `agent-release-2026-7` | approved 2026-11-21, T1 next |
+| [PLAN](plan/PLAN_release-2026-7.md), [STATUS](plan/STATUS_release-2026-7.md) (release 2026.7: FA-R88, FA-R89, FA-R97, FA-R82, FA-R69 code, FA-R98 step 1, FA-R100, FA-R66 markers, FA-R58 merge) | later | `agent-release-2026-7` | approved 2026-11-21, T1 next |
 
 ## Finished plans
 
