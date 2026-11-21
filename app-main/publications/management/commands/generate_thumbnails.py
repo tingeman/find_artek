@@ -121,7 +121,12 @@ class Command(BaseCommand):
                     f"There were {error_count} errors. Check the logs for details."
                 )
             )
-    
+            # Exit 1 (Django prints the message on stderr), so the cron wrapper logs the run
+            # as failed. The summary above is already written.
+            raise CommandError(
+                f"{error_count} publication(s) failed; see the lines above"
+            )
+
     def process_publication(self, publication):
         """Process a single publication and return 'success', 'skipped', or 'error'"""
         

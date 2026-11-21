@@ -14,7 +14,7 @@ from datetime import timedelta
 from io import StringIO
 from unittest import mock
 
-from django.core.management import CommandError, call_command
+from django.core.management import CommandError, call_command, load_command_class
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from PIL import Image
@@ -60,6 +60,13 @@ class _MediaRootCase(TestCase):
         out = StringIO()
         call_command(*args, stdout=out, **kwargs)
         return out.getvalue()
+
+    def run_failing_command(self, *args):
+        """Run a command that must raise CommandError; return (stdout, error message)."""
+        out = StringIO()
+        with self.assertRaises(CommandError) as raised:
+            call_command(*args, stdout=out)
+        return out.getvalue(), str(raised.exception)
 
 
 class GenerateThumbnailsTests(_MediaRootCase):
@@ -112,16 +119,44 @@ class GenerateThumbnailsTests(_MediaRootCase):
         self.assertIn('Would generate', out)
 
     def test_missing_pdf_is_an_error_and_creates_nothing(self):
+        # Errors make the command fail (exit 1, FA-R69) after the summary is written.
         os.remove(self.media('reports', '1999', '1999-01.pdf'))
-        out = self.run_command('generate_thumbnails')
+        out, error = self.run_failing_command('generate_thumbnails')
         self.assertEqual(self.files(), self.before - {'reports/1999/1999-01.pdf'})
+        self.assertIn('PDF file not found', out)
+        self.assertIn('SUMMARY:', out)
         self.assertIn('Errors: 1', out)
+        self.assertIn('There were 1 errors', out)
+        self.assertEqual(error, '1 publication(s) failed; see the lines above')
+
+    def test_missing_pdf_fails_with_exit_code_1_and_message_on_stderr(self):
+        # What the cron wrapper sees: run_from_argv, as manage.py runs the command, exits 1 and
+        # writes the CommandError message on stderr. Its connections.close_all() is patched
+        # out so the test's transaction stays intact.
+        os.remove(self.media('reports', '1999', '1999-01.pdf'))
+        out, err = StringIO(), StringIO()
+        with mock.patch('sys.stdout', out), mock.patch('sys.stderr', err), \
+                mock.patch('django.core.management.base.connections'):
+            # Created inside the patch: the command binds sys.stdout/stderr when created.
+            command = load_command_class('publications', 'generate_thumbnails')
+            with self.assertRaises(SystemExit) as raised:
+                command.run_from_argv(['manage.py', 'generate_thumbnails'])
+        self.assertEqual(raised.exception.code, 1)
+        self.assertIn('Errors: 1', out.getvalue())
+        self.assertIn('1 publication(s) failed; see the lines above', err.getvalue())
 
     def test_unreadable_pdf_is_an_error_and_leaves_no_thumbnail(self):
         write_file(self.media('reports', '1999', '1999-01.pdf'), b'not a pdf')
-        out = self.run_command('generate_thumbnails')
+        out, error = self.run_failing_command('generate_thumbnails')
         self.assertEqual(self.files(), self.before)
         self.assertIn('Errors: 1', out)
+        self.assertIn('1 publication(s) failed', error)
+
+    def test_no_errors_does_not_fail(self):
+        # The valid PDF and the publication without a file: no CommandError.
+        out = self.run_command('generate_thumbnails')
+        self.assertIn('Errors: 0', out)
+        self.assertNotIn('There were', out)
 
     def test_single_publication(self):
         self.run_command('generate_thumbnails', '--publication-id', str(self.pub.pk))
