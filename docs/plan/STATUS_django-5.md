@@ -3,12 +3,13 @@
 Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
-T4 (implementer): Django 5.2.
+T5 (implementer): Python 3.13 on trixie.
 
 ## Done
 - T1 2026-11-21: no RemovedInDjango50/51 warnings from our code; drf-yasg `SWAGGER_USE_COMPAT_RENDERERS = False`; `accounts/logout/` and custom `LogoutView` removed; 543 tests; gate 22/22; `check --deploy` allowed warnings today: `security.W004 security.W008` (`bc4cd51`)
 - T2 2026-11-21: django-taggit, psycopg, PyPDF2, python-dotenv, ping3 (+ typing-extensions) removed from the lock, 37 pins, nothing else changed; 543 tests, gate 22/22 (`e9f5f77`)
 - T3 2026-11-21: DRF 3.16.1, drf-yasg 1.21.18 (+ swagger-spec-validator/jsonschema stack), django-cas-ng 5.1.2, python-cas 1.7.2, django-select2 8.4.8; `find_artek/cas_views.py`: off-site `?next=` at CAS login gives 400 (cas-ng 5.1 now checks it; was an open redirect in 5.0.1); 561 tests, gate 22/22 (`0feb880`)
+- T4 2026-11-21: Django 5.2.19, DRF 3.18.3, no code breakage; `SWAGGER_SETTINGS['LOGOUT_URL'] = 'cas_ng_logout'`; no RemovedInDjango60/61 warnings; no migrations; DB, tables and columns all utf8mb4_general_ci; 563 tests, coverage 71.1 %, gate 22/22; new `check --deploy` warning `gis.W001` (GDAL 3.6 < 3.9) -> T5 moves to trixie (`189a7c1`)
 
 ## Open questions
 - `DeleteFeatureView.delete()` (`views.py:~2012`) has been dead for form POSTs since Django 4.0 (`DeleteViewCustomDeleteWarning`): its file cleanup (delete each `FileObject` file + row) never runs. Moving it to `form_valid()` would start deleting media files and rows shared through `Feature.files` (M2M): a data decision. Left as is; proposed for the roadmap at Finish.

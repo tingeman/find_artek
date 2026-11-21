@@ -34,7 +34,7 @@ Status: **approved (2026-11-21)**. Roadmap: FA-R1 step 2, FA-R3 (Python 3.13), d
 ## Assumptions
 
 - Target Django 5.2 LTS, not 6.x: the roadmap's choice; 6.2 LTS (April 2027) is FA-R5.
-- Python 3.13 on Debian 12 bookworm (`3.13.x-slim-bookworm`, latest patch at T6, by digest), not trixie: same system libraries as today (GDAL, poppler, libmariadb). Python 3.14 is not chosen because drf-yasg and python-cas declare up to 3.13. A move to trixie is a later item.
+- Python 3.13 on Debian 13 trixie (`3.13.x-slim-trixie`, latest patch at T5, by digest). **Changed 2026-11-21 (T4 finding):** the first draft kept bookworm, but Django 5.2.19's new check `gis.W001` warns for GDAL < 3.9 (bookworm 3.6.2; trixie 3.10), and the owner decided "no new `check --deploy` warnings". Fallback if trixie breaks something that can't be fixed in T5: bookworm and `gis.W001` added to the allowed set in T6 (exposure small: the add-feature form casts the SRID to `int` before GDAL). Python 3.14 is not chosen because drf-yasg and python-cas declare up to 3.13.
 - `setuptools` stays (removing it is its own question, FA-R2 cleanup list).
 - `django-taggit` is removed without a migration: it is not in `INSTALLED_APPS` and no migration refers to it.
 - The login stack (CAS + LDAP) stays as it is; only the packages move. The FA-R33 review is not part of this plan.
@@ -79,7 +79,7 @@ Status: **approved (2026-11-21)**. Roadmap: FA-R1 step 2, FA-R3 (Python 3.13), d
 
 ### T5. Python 3.13
 - Files: `compose.pins.env` (`FA_PYTHON_IMAGE`), `Dockerfile` (`ARG PYTHON_IMAGE`), `docker-compose.develop.yml` if it carries the copy, locks recompiled under 3.13, readme (base-image section).
-- Acceptance: `python:3.13.<latest>-slim-bookworm@sha256:...` in all copies (checked by `tests/run.sh`); locks resolve for 3.13; image builds; image size reported against today's.
+- Acceptance: `python:3.13.<latest>-slim-trixie@sha256:...` in all copies; system packages (GDAL 3.10, poppler, libmariadb) install under trixie; `check --deploy` no longer reports `gis.W001` (checked by `tests/run.sh`); locks resolve for 3.13; image builds; image size reported against today's.
 - Validation: image tests (all); `validate` after rebuilding the dev stack.
 - Agent: implementer.
 - Deployment impact: none to the contract (the image is self-contained).
@@ -109,7 +109,7 @@ Main session: merge `develop/main` into `agent-django-5`, rerun checks, write `d
 
 ## Out of scope
 
-- Django 6.x (FA-R5); Python 3.14; Debian trixie base.
+- Django 6.x (FA-R5); Python 3.14.
 - FA-R31 (`check --deploy` warnings, HSTS, `CSRF_TRUSTED_ORIGINS`, `SECRET_KEY` fail-fast).
 - FA-R33 (login stack review), FA-R4 (PostgreSQL), MariaDB 11.2 upgrade (web_server).
 - Replacing drf-yasg with drf-spectacular (only if T3/T4 show drf-yasg doesn't work on 5.2: then stop and ask).
