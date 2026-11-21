@@ -1,6 +1,6 @@
-# Plan: Fixes after 2026.6 (upload limit, report list speed and cache, autocomplete access, thumbnail errors, PDF metadata)
+# Plan: Release 2026.7 (upload limit, report list speed and cache, autocomplete access, thumbnail errors, PDF metadata, Administration page, person markers and merge)
 
-Status: **draft (2026-11-21)**. Roadmap: FA-R88, FA-R97, FA-R89, FA-R82, FA-R69 (code part), FA-R98 (step 1). Branch: `agent-post-2026-6` (from `develop/main`). Release: `2026.7`.
+Status: **approved (2026-11-21)**. Roadmap: FA-R88, FA-R97, FA-R89, FA-R82, FA-R69 (code part), FA-R98 (step 1), FA-R100, FA-R66 (markers), FA-R58 (merge part). Branch: `agent-release-2026-7` (from `develop/main`). Release: `2026.7`.
 
 Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They come later as a separate plan: a read-only admin page first, actions after the review (discussed 2026-11-21). T5's command is input for that plan.
 
@@ -12,7 +12,9 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 4. Anonymous users can't call the person autocomplete any more (FA-R82).
 5. When the nightly thumbnail job has errors, it ends with a non-zero exit and the cron wrapper logs a failure (FA-R69, code part).
 6. A read-only command reads the first pages of a report PDF's text layer and suggests year, study numbers (with the matching persons) and title. Its accuracy is measured on reports that are in the DB (FA-R98 step 1).
-7. Released as `2026.7`.
+7. The header's "Add" drop-down (partly hidden under the blue bar) is replaced by a link "Administration" to a page with picture tiles, laid out like the classic version's administration page (FA-R100).
+8. Editors see a red (!) or (?) next to authors, supervisors and editors whose person was created although similar persons existed. They can confirm the person (clear the markers) or merge duplicates into it (FA-R66, FA-R58 merge part).
+9. Released as `2026.7`.
 
 ## Current state
 
@@ -42,13 +44,33 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
   - A management command `extract_pdf_metadata` (read-only): `PATH…` (relative to `MEDIA_ROOT`), or `--unowned` (the orphan files of `check_media_access`), or `--evaluate N`. `--evaluate N` takes N reports that are in the DB and have a PDF and compares title, year and study numbers with the DB. It prints a hit rate per field and lists the misses. That shows whether the text layer is good enough before FA-R86 builds on it.
   - The output contains personal data (names, study numbers). It goes only to the terminal of whoever runs the command; nothing is stored. You run it, on the dev stack's media copy or in production (`docker exec`, read-only). The agents may not read media files (CLAUDE.md), so tests use small PDFs generated in the test.
   - Not exposed on the web in this plan. The prefill of the add-report form and the admin page come later (FA-R98, FA-R86).
-- **No migration, no new env variable**, no change to port, paths, user, entrypoint, cron schedule or the `tests/run.sh` interface.
+- **T6, Administration page (FA-R100, added 2026-11-21).** The header's "Add" drop-down (`base.html:91-109`, mobile entries `:202-208`) is cut off below the blue bar. The classic version (`old: app-classic/find_artek/publications/templates/publications/add_menu_2.html`, view `add_menu` at `old: publications/views.py:1395`, URL `/pubs/add/`) had a page "Administration" with picture tiles in the front page's style (`fmitem`/`fmimage`/`fmtext` from `frontpage.css`). The current app already has those CSS classes (`publications/static/publications/css/frontpage.css`, used by `frontpage.html:38-60`) and the classic tile images (`publications/static/publications/img/reports_190x150.jpg`, `add_person_190x150.png`, `add_feature_190x150.png`, `add_feature_file_190x150.png`).
+  - New page `publications/administration/` (name `publications:administration`, inside `/find/`), template `administration.html`, extending `base.html`, with the classic tiles, in the classic order: **Add report** (→ `publications:add_report`, shown as working to users with `add_publication`), **Add person** (FA-R58), **Add feature** (a feature is added from a report's page; the tile says so), **Import reports from Excel** (→ `publications:add_reports_from_file_upload`, working for `change_publication`), **Import features from Excel** (FA-R63). As you decided 2026-11-21, tiles that aren't built yet, or that the user lacks the permission for, are shown **greyed out with "not available yet"** (or "needs the editor role"), not as links. The classic "Backup" tile is dropped (backups are done by web_server). A "Django admin" tile for staff users (`user.is_staff`) is added.
+  - Access: the same guard as the old menu. Logged-out users are sent to the login, and logged-in users without `add_publication` or `change_publication` get 403 (as `publications/permissions.py`). No new data is shown, only links.
+  - Header: the drop-down is replaced by one plain link "Administration" (desktop and mobile), shown under the same `{% if perms… %}` condition as today. The CSS classes `header-nav-add-report`/`header-nav-import-excel` that tests may look for move to the tiles; tests that pin the drop-down change deliberately.
+  - The page is meant to grow: FA-R58 (persons), FA-R63, FA-R86 (orphan files) and FA-R98 (PDF prefill) get tiles here when they are built.
+- **T7/T8, person markers, confirm and merge (FA-R66 markers, FA-R58 merge part; added 2026-11-21, decisions by the owner the same day).** The classic version (`origin/hotfix-1.3.17`, paths under `find_artek/`):
+  - **Markers:** `snippets/authorlist_short.html` showed a red `(!)` when `exact_match` was set and `(?)` when `relaxed_match` was set, to any logged-in user, linking to `/pubs/person/<id>/merge/`. They appeared on the report page and in the report list. The supervisor snippet had a typo (`user.is_supventicated`), so supervisor markers never showed.
+  - **Merge page:** `person_merge`, `views.py:2023-2134`, superusers only; it gave a 500 for anyone else. It listed the person's reports and the relaxed matches with their reports. "Clear flags" cleared all link flags of the person. Ticking candidates and "Accept choices" re-created their link rows on this person and deleted the ticked persons, with no transaction, no duplicate check and no fields copied.
+  - **Flags mean** "a new person was created for this name although matching persons existed". They are set on the three link models (`Personship` subclasses `Authorship`, `Supervisorship`, `Editorship`, `models.py:705-736`, with `clear_match_indicators()`). The Excel import (`register_from_file.py:319-397`) and the report form's "create new person" (`workflows/person.py:408-440`, confidence matcher: ≥0.95 exact, ≥0.6 relaxed) set them. The edit save keeps them (`views.py:998-1021`). Nothing shows them today: `report.html:73-74, 126-127` loop over persons, not links; the list and the person page are built from the API, which has no flags; `shared_snippets/supervisorlist_short.html` is unused, with dead `/pubs/` links.
+  - **Permission (decided: `artek_editor`).** A custom permission `publications.merge_person` (`Person.Meta.permissions`) and an action `MERGE_PERSON` in `publications/permissions.py`. A data migration grants it to the `artek_editor` group, in the style of `0003_registration_groups.py`; superusers have it implicitly. **Effect on live data:** one `auth_permission` row and one group-permission link; no change to existing publication or person rows. It's reversible (the reverse removes both).
+  - **Markers (decided: editors only = holders of `merge_person`).** On the report page next to authors, supervisors and editors: loop over `sorted_authorships`/`sorted_supervisorships`/editorships (link rows) instead of persons. `(!)` for `exact_match`, `(?)` for `relaxed_match` (and "several candidates" in the tooltip when `multiple_match`), linking to the person's merge page. In the report list: the API adds a per-author field `match` (`"exact"`, `"relaxed"` or absent) **only for users with `merge_person`**, so the JSON for everyone else stays byte-identical (T2a's snapshot test for anonymous and `dtu_user` stays unchanged; its editor case changes deliberately), and the list JS draws the marker. On the person page, for these users: a notice "N links of this person are marked" with the reports. A short legend where markers appear. The unused `supervisorlist_short.html` is removed or fixed.
+  - **Confirm (T7).** POST `person/<pk>/confirm/` (`merge_person`): clears the three flags on all link rows of the person (`.update()` per link model, in one transaction), with a success message, and goes back. It updates existing link rows, as decided.
+  - **Merge (T8; decided: fill empty fields, keep a log).** `person/<pk>/merge/` (`merge_person`):
+    - GET lists candidates: `get_person_matches` for this person's name, plus a field to pick any other person (the autocomplete). Each candidate shows its reports, roles and identifiers, as visible to the editor.
+    - After the editor ticks persons to merge into this one, a confirmation page lists what will happen: links moved per role; links dropped because the kept person already has the same report in the same role; empty fields of the kept person (`id_number`, `initials`, `email`, `position` and any other identity field the implementer finds, never the name fields) filled from the merged person, with a conflict shown when both hold different values (kept value wins); persons deleted.
+    - POST in one transaction: `.update(person=kept)` per link model, duplicates deleted, fields filled, flags cleared on the kept person's links, merged persons deleted. Logged at INFO (`publications.persons`): user, kept id, deleted ids, links moved/dropped, fields filled. A success message.
+    - The implementer lists every relation to `Person` (FKs, M2M, e.g. a user link, `created_by`, workflow tables). They're moved too, or the merge is refused with a message when one can't be moved safely.
+    - The kept person is the one whose page you start from. To keep the other one, start from its page.
+    - **Effect on live data:** moves and deletes link rows and deletes Person rows, which can't be undone in the app; the log and the regular DB dumps are the way back. Nothing runs automatically.
+  - Out of these tasks: the DTU-directory (LDAP) choice in the report form's disambiguation step, FA-R96 (match confidence of exact identifiers), add/edit/delete person (rest of FA-R58), bulk merge.
+- **No schema migration and no new env variable**, except T7: one migration that adds the permission `merge_person` and grants it to `artek_editor` (see T7). No change to port, paths, user, entrypoint, cron schedule or the `tests/run.sh` interface.
 
 ## Assumptions
 
-- One release `2026.7` at the end, with the usual user steps (`docs/plan/USER_STEPS_2026.7.md`, written at T6).
+- One release `2026.7` at the end, with the usual user steps (`docs/plan/USER_STEPS_2026.7.md`, written at T9).
 - The 300 MB limit applies to every user who is allowed to upload, per file. An appendix upload with several files can exceed 300 MB in one request; nginx then refuses it with 413, and the page says "per file".
-- The JS changes (T1, T2b) are checked by hand in the dev stack (T6). There's no JS test framework (FA-R40).
+- The JS changes (T1, T2b) are checked by hand in the dev stack (T9). There's no JS test framework (FA-R40).
 - T2b defaults to option A unless T2a's numbers say otherwise; the main session states the choice in the status file before T2b starts.
 - T5's study-number pattern is `s` + 6 digits (current DTU format). Older formats (e.g. `c`-numbers, 1990s) are listed as misses by `--evaluate` and added if they show up.
 - T5's test PDFs are built in the test: a minimal hand-written PDF with a text layer (a few lines in two font sizes), and an image-only PDF from Pillow for the "no text layer" case. Tests that need `pdftotext` are skipped with a clear reason only if the binary is missing (it's in every image, so they run in the dev stack and in `tests/run.sh`).
@@ -82,7 +104,7 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 
 ### T3. Person autocomplete for logged-in users only (FA-R82)
 - Files: `app-main/publications/views.py` (`PersonAutocompleteView`), `test_smoke_urls.py:109`, `test_person_privacy.py`, `test_select2_widgets.py` if it calls anonymously.
-- Acceptance: anonymous GET gives 403 with a JSON body and no person data, with or without a term. Logged-in users get results as before, including the study-number lookup. The report form's author/supervisor fields still work (T6 by hand).
+- Acceptance: anonymous GET gives 403 with a JSON body and no person data, with or without a term. Logged-in users get results as before, including the study-number lookup. The report form's author/supervisor fields still work (T9 by hand).
 - Tests: anonymous 403 (empty term, name term, study number); `dtu_user` and `artek_editor` get 200 with results. Existing tests changed deliberately, as in the design notes.
 - Validation: skill `validate`: `publications` tests, `check`.
 - Agent: implementer.
@@ -104,12 +126,36 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 - Agent: implementer.
 - Deployment impact: none (poppler is in the image; nothing new reachable).
 
-### T6. Dev checks and USER_STEPS_2026.7 (main session writes, you check)
+### T6. Administration page instead of the "Add" drop-down (FA-R100)
+- Files: `app-main/publications/urls.py`, `app-main/publications/views.py` (or a small new view module), new `templates/publications/administration.html`, `templates/publications/base.html` (desktop and mobile nav), `static/publications/css/frontpage.css` or a small new CSS file (greyed tile style); tests in a new `app-main/publications/test_administration.py`, `test_smoke_urls.py` (new URL), and existing menu tests (they change deliberately).
+- Acceptance: logged in with `add_publication` and/or `change_publication`, the header shows "Administration" (no drop-down), and the page shows the five classic tiles in the classic order plus "Django admin" for staff. Working tiles are links; unbuilt or not-permitted tiles are greyed, with the reason, and aren't links. Anonymous → login redirect; plain `dtu_user` without these permissions → 403 and no header link. Looks right on desktop and phone widths (T9 by hand).
+- Tests: header link present/absent per role (anonymous, `dtu_user`, `artek_editor`, a user with only `add_publication`, a superuser); page status per role; which tiles are links and which are greyed per role; the Django admin tile only for staff; smoke-test entry for `publications:administration`.
+- Validation: skill `validate`: `publications` tests, `check`.
+- Agent: implementer.
+- Deployment impact: none (a new page inside `/find/`, behind login and permissions).
+
+### T7. Person markers and "confirm person" for editors (FA-R66 markers)
+- Files: `app-main/publications/models.py` (`Person.Meta.permissions`), new migration (permission + grant to `artek_editor`), `publications/permissions.py` (`MERGE_PERSON`), `publications/urls.py`, `publications/views.py` (or a new `views_persons.py`), `templates/publications/report.html`, the person page template, a new marker snippet, `shared_snippets/supervisorlist_short.html` (remove or fix), `api/serializers.py` (`match` per author for `merge_person` only), the report list JS (`my-reports-class.js`) and the person page JS if it lists reports; tests in a new `app-main/publications/test_person_markers.py`, plus `api/test_api_list_snapshot.py` (editor case, deliberately).
+- Acceptance: a user with `merge_person` sees `(!)`/`(?)` with tooltip next to marked authors, supervisors and editors on the report page and in the report list, and a notice on the person page; everyone else sees exactly what they see today (HTML without markers, API JSON unchanged). "Confirm person" clears the flags of all the person's links, then the markers are gone. Without `merge_person`, `confirm` gives 403 (anonymous: login redirect). The migration applies and reverses cleanly; `artek_editor` has the permission, `dtu_user` doesn't.
+- Tests: markers per role (anonymous, `dtu_user`, `artek_editor`, superuser) on the report page, the person page and the API (field present only for `merge_person`); exact vs relaxed vs multiple; a report with a marked supervisor and editor; confirm clears flags for all three link models and only of that person; confirm by GET is refused (405); confirm permission per role; migration grant (`artek_editor` has `merge_person`); the T2a snapshot and query-count tests stay green (editor snapshot updated deliberately; query count still fixed).
+- Validation: skill `validate`: `check`, `makemigrations --check`, full suite (model and migration change), `docker build` + `bash tests/run.sh find_artek:local` (migrate on an empty DB is in the gate).
+- Agent: implementer.
+- Deployment impact: one migration (permission and group grant). No env or contract change. `migrate` runs at deploy as usual.
+
+### T8. Merge persons (FA-R58 merge part)
+- Files: `publications/urls.py`, the person views module from T7, new templates `person_merge.html` and `person_merge_confirm.html`, a merge service function (e.g. `publications/person_merge.py`, so it can be tested and reused by FA-R86/FA-R98 later), the marker links from T7 (point to the merge page); tests in a new `app-main/publications/test_person_merge.py`.
+- Acceptance: as in the design notes. From a marked person an editor reaches the merge page, sees candidates with their reports, can add any person by name, ticks one or more, sees the confirmation with all changes, and confirms. Afterwards the merged persons are gone, all their author/supervisor/editor links point to the kept person (no duplicate links), the kept person's empty identity fields are filled, its markers are cleared, and the log has one INFO line per merge. Without `merge_person`: 403 (anonymous: login redirect). Merging a person into itself, a person that no longer exists or a stale confirmation (a link changed in between) is refused with a message and changes nothing.
+- Tests: the service: links moved for all three roles; duplicate same report and role dropped; order of authors kept on each report; fields filled only when empty; a conflict keeps the kept value and is reported; flags cleared on the kept person; persons deleted; everything rolled back when one step fails (patched error mid-merge); other relations to `Person` handled or refused. The views: permission per role; GET lists candidates; confirmation lists the changes and changes nothing; POST does the merge; GET on the POST URL changes nothing; self-merge refused. The report and person pages after a merge (smoke).
+- Validation: skill `validate`: `publications` and `api` tests, `check`, `makemigrations --check`.
+- Agent: implementer.
+- Deployment impact: none beyond T7.
+
+### T9. Dev checks and USER_STEPS_2026.7 (main session writes, you check)
 - Main session: merge `develop/main` into the branch, rerun the checks, write `docs/plan/USER_STEPS_2026.7.md` in the format of `USER_STEPS_2026.6.md` (dev checks, fast-forward, tag, `build_image.sh`, publish, `releases.yml`, deploy, production checks, after closing).
-- You, at http://localhost:8098/ (Ctrl+F5): upload a report PDF and an appendix over 50 MB; the report list and map load fast; delete, add and edit a report and see the change at once without logging out; author autocomplete works logged in; `/publications/test/autocomplete/person/?term=a` logged out gives 403. In the dev container: `python manage.py extract_pdf_metadata --evaluate 50 --settings find_artek.development_settings` and `--unowned`; tell the main session the hit rates (not the personal data).
+- You, at http://localhost:8098/ (Ctrl+F5): upload a report PDF and an appendix over 50 MB; the report list and map load fast; delete, add and edit a report and see the change at once without logging out; author autocomplete works logged in; `/publications/test/autocomplete/person/?term=a` logged out gives 403; "Administration" in the header opens the tile page (desktop and a narrow window), its working tiles open the add-report form and the Excel import; as `artek_editor`, add a report with a typed new author similar to an existing person, see `(?)` or `(!)` on the report page and in the list, confirm one person, and merge a test duplicate into its original (check the report page and the person page afterwards; use test persons, not real ones). In the dev container: `python manage.py extract_pdf_metadata --evaluate 50 --settings find_artek.development_settings` and `--unowned`; tell the main session the hit rates (not the personal data).
 - Agent: you.
 
-### T7. Release 2026.7 (you)
+### T10. Release 2026.7 (you)
 - Per `USER_STEPS_2026.7.md`: fast-forward `develop/main` (main session, with your OK), tag `2026.7`, `build_image.sh`, publish, `releases.yml`, deploy, production checks. The next morning's thumbnail log shows `exit code 1` with the 2 known errors, as expected until FA-R69's data part is done.
 - Agent: you.
 
@@ -121,3 +167,4 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 - Removing the `invalidate_feature_cache` session flag (harmless; may go with T2b option A if it becomes dead code, otherwise later).
 - Uploads above 300 MB or resumable uploads (nginx changes in web_server).
 - Pagination of the API lists (not needed at ~500 reports).
+- Person workflow parts not in T7/T8: the DTU-directory (LDAP) choice in the report form's disambiguation step, FA-R96 (match confidence for exact identifiers), add/edit/delete person (rest of FA-R58), bulk merge.
