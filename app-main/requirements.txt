@@ -1,5 +1,5 @@
 # GENERATED FILE, DO NOT EDIT BY HAND.
-# Hash-locked from app-main/requirements.in by scripts/compile_lock.py (uv 0.8.22 in python:3.12.11-slim-bookworm).
+# Hash-locked from app-main/requirements.in by scripts/compile_lock.py (uv 0.8.22 in python:3.13.18-slim-trixie).
 # To change a dependency, edit requirements.in and rerun the script (see its docstring).
 asgiref==3.9.1 \
     --hash=sha256:a5ab6582236218e5ef1648f242fd9f10626cfd4de8dc377db215d5d5098e3142 \
@@ -703,9 +703,7 @@ swagger-spec-validator==3.0.4 \
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5
-    # via
-    #   referencing
-    #   swagger-spec-validator
+    # via swagger-spec-validator
 unidecode==1.4.0 \
     --hash=sha256:c3c7606c27503ad8d501270406e345ddb480a7b5f38827eafe4fa82a137f0021 \
     --hash=sha256:ce35985008338b676573023acc382d62c264f307c8f7963733405add37ea2b23

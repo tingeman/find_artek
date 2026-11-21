@@ -39,8 +39,19 @@ last stage, `prod`, which is what a release ships: `prod` must stay last.
 | `FA_UV_VERSION` | `scripts/compile_lock.py` (not part of the image) |
 | `FA_MARIADB_IMAGE`, `FA_PHPMYADMIN_IMAGE` | `docker-compose.develop.yml` (written out there) and the test database of `tests/run.sh`; same values as web_server's `pins.env` |
 
-To move the base image: `docker buildx imagetools inspect python:3.12-slim-bookworm`, change
-both places, recompile the locks, rerun `tests/run.sh`.
+Current base image: `python:3.13.18-slim-trixie` (Debian 13; GDAL 3.10, which Django 5.2's
+check `gis.W001` needs, GDAL >= 3.9), by its multi-arch index digest. To move it:
+
+1. `docker buildx imagetools inspect python:3.13-slim-trixie`: take the exact patch tag
+   (`org.opencontainers.image.version`) and the index `Digest` (the top one, not a
+   per-platform manifest). Prefer an image at least two weeks old
+   (`org.opencontainers.image.created`).
+2. Write `python:<patch>-slim-trixie@sha256:<digest>` into both `FA_PYTHON_IMAGE`
+   (`compose.pins.env`) and `ARG PYTHON_IMAGE` (`Dockerfile`).
+3. Recompile the locks (`python scripts/compile_lock.py`; it reads the Python version from the
+   tag, so a minor-version change needs no extra flags).
+4. `docker build -t find_artek:local . && bash tests/run.sh find_artek:local`. For a new
+   Debian release, check the apt package names of the `build`, `runtime` and `dev` stages too.
 
 ## Dependencies
 

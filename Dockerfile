@@ -1,7 +1,8 @@
-# Base image: python 3.12.11-slim-bookworm (Debian 12), pinned by the index digest: the Python
-# version production runs (host baseline 2026-11-16). A release build (build_image.sh) builds
-# without --build-arg, so this default is what releases use. It must equal FA_PYTHON_IMAGE in
-# compose.pins.env (tests/run.sh checks it): change both together and recompile the locks.
+# Base image: python 3.13.18-slim-trixie (Debian 13), pinned by the index digest. Trixie for
+# GDAL >= 3.9 (Django 5.2's check gis.W001; bookworm has GDAL 3.6). A release build
+# (build_image.sh) builds without --build-arg, so this default is what releases use. It must
+# equal FA_PYTHON_IMAGE in compose.pins.env (tests/run.sh checks it): change both together and
+# recompile the locks.
 #
 # Python packages: app-main/requirements.txt is hash-locked (generated from requirements.in by
 # scripts/compile_lock.py, never edited by hand) and installed with --require-hashes --no-deps,
@@ -18,7 +19,7 @@
 #   prod     runtime + HEALTHCHECK + the gunicorn CMD. Must stay the LAST stage: a plain
 #            `docker build .` (build_image.sh) builds the last stage, so a release never
 #            contains the dev tools.
-ARG PYTHON_IMAGE=python:3.12.11-slim-bookworm@sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7
+ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
 
 
 # ---- build: compile the venv ---------------------------------------------------------------

@@ -102,7 +102,7 @@ def main(argv=None):
         sys.exit('FA_PYTHON_IMAGE not set and not found in compose.pins.env')
     if not uv_version:
         sys.exit('FA_UV_VERSION not set and not found in compose.pins.env')
-    # Markers and wheels are resolved for the Python of the image (python:3.12.11-... -> 3.12)
+    # Markers and wheels are resolved for the Python of the image (python:3.13.18-... -> 3.13)
     m = re.match(r'(?:[^/]+/)*python:(\d+\.\d+)', image)
     if not m:
         sys.exit(f'cannot read the Python version from FA_PYTHON_IMAGE={image!r}')
