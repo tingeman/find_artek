@@ -3,10 +3,11 @@
 Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
-T2 (simple-task): remove unused packages.
+T3 (implementer): dependency upgrades still on Django 4.2.
 
 ## Done
 - T1 2026-11-21: no RemovedInDjango50/51 warnings from our code; drf-yasg `SWAGGER_USE_COMPAT_RENDERERS = False`; `accounts/logout/` and custom `LogoutView` removed; 543 tests; gate 22/22; `check --deploy` allowed warnings today: `security.W004 security.W008` (`bc4cd51`)
+- T2 2026-11-21: django-taggit, psycopg, PyPDF2, python-dotenv, ping3 (+ typing-extensions) removed from the lock, 37 pins, nothing else changed; 543 tests, gate 22/22 (`e9f5f77`)
 
 ## Open questions
 - `DeleteFeatureView.delete()` (`views.py:~2012`) has been dead for form POSTs since Django 4.0 (`DeleteViewCustomDeleteWarning`): its file cleanup (delete each `FileObject` file + row) never runs. Moving it to `form_valid()` would start deleting media files and rows shared through `Feature.files` (M2M): a data decision. Left as is; proposed for the roadmap at Finish.
