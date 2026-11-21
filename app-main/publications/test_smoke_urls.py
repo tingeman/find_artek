@@ -106,7 +106,8 @@ SMOKE = {
     'publications:report': entry(pub, 200, 200, 200),
     'publications:person': entry(lambda t: {'pk': t.author.pk}, 200, 200, 200),
     'publications:feature': entry(lambda t: {'pk': t.feature.pk}, 200, 200, 200),
-    'publications:person-autocomplete': entry(None, 200, 200, 200, query='?term=Smoke'),
+    # Logged-in users only; anonymous gets a JSON 403, not a login redirect (FA-R82).
+    'publications:person-autocomplete': entry(None, 403, 200, 200, query='?term=Smoke'),
 
     # --- publications: write views (permissions.py)
     'publications:add_reports_from_file_upload': entry(None, LOGIN, 403, 200),

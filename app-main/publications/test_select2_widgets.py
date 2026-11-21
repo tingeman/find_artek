@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from publications.forms.publication import AddEditReportForm
 from publications.models import Keyword, Person, Topic
-from publications.test_factories import page_path
+from publications.test_factories import make_user, page_path
 
 
 class ReportFormSelect2Tests(TestCase):
@@ -56,6 +56,8 @@ class PersonAutocompleteShapeTests(TestCase):
 
     def test_results_are_id_and_text(self):
         person = Person.objects.create(first='Selecta', last='Twoington')
+        # The autocomplete is for logged-in users only (FA-R82).
+        self.client.force_login(make_user('select2user'))
         response = self.client.get(page_path('person-autocomplete'), {'term': 'Twoington'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'results': [{'id': person.pk, 'text': str(person)}]})

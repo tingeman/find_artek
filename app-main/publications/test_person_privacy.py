@@ -175,14 +175,29 @@ class PersonAutocompletePrivacyTests(PersonPrivacyTestBase):
         self.assertEqual(response.status_code, 200)
         return [item['id'] for item in response.json()['results']]
 
+    def anonymous_response(self, term):
+        response = self.client.get(page_path('person-autocomplete'), {'term': term})
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['results'], [])
+        return response.content.decode()
+
+    # Changed for FA-R82: anonymous users get no autocomplete at all (403), so the study
+    # number lookup is refused instead of falling back to the name search.
     def test_anonymous_cannot_look_up_by_study_number(self):
-        self.assertNotIn(self.student_num.pk, self.results('s654321'))
+        raw = self.anonymous_response('s654321')
+        self.assertNotIn(self.student_num.last, raw)
+        self.assertNotIn(self.student_num.id_number, raw)
 
     def test_logged_in_can_look_up_by_study_number(self):
         self.client.force_login(self.user)
         self.assertIn(self.student_num.pk, self.results('s654321'))
 
-    def test_anonymous_name_search_still_works(self):
+    # Was test_anonymous_name_search_still_works; FA-R82 deliberately ends anonymous access.
+    def test_anonymous_name_search_is_refused(self):
+        self.assertNotIn(self.staff.last, self.anonymous_response('Member'))
+
+    def test_logged_in_name_search_works(self):
+        self.client.force_login(self.user)
         self.assertIn(self.staff.pk, self.results('Member'))
 
 

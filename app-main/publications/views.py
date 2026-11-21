@@ -1123,10 +1123,18 @@ class UnverifyReportView(_SetVerifiedView):
 
 
 class PersonAutocompleteView(View):
-    
+    """Person lookup for the select2 author/supervisor widgets of the report form.
+
+    Logged-in users only (FA-R82): anonymous requests get a JSON 403 without person data,
+    not a login redirect, because select2 calls this view with XHR.
+    """
+
     re_studynumber = re.compile(r'^s\d{1,6}$')
 
     def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'results': [], 'error': 'Login required'}, status=403)
+
         term = request.GET.get("term", "")
         
         if term:
