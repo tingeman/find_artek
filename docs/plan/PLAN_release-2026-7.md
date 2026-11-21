@@ -1,6 +1,6 @@
-# Plan: Fixes after 2026.6 (upload limit, report list speed and cache, autocomplete access, thumbnail errors, PDF metadata)
+# Plan: Release 2026.7 (upload limit, report list speed and cache, autocomplete access, thumbnail errors, PDF metadata)
 
-Status: **draft (2026-11-21)**. Roadmap: FA-R88, FA-R97, FA-R89, FA-R82, FA-R69 (code part), FA-R98 (step 1). Branch: `agent-post-2026-6` (from `develop/main`). Release: `2026.7`.
+Status: **approved (2026-11-21)**. Roadmap: FA-R88, FA-R97, FA-R89, FA-R82, FA-R69 (code part), FA-R98 (step 1). Branch: `agent-release-2026-7` (from `develop/main`). Release: `2026.7`.
 
 Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They come later as a separate plan: a read-only admin page first, actions after the review (discussed 2026-11-21). T5's command is input for that plan.
 
