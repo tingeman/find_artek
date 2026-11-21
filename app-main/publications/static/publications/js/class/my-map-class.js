@@ -223,7 +223,8 @@ class MyMapClass {
 
 
     async getFeatureData(url = URL_PREFIX + '/api/feature/', filters={}) {
-        // Construct new query parameters
+        // Always fetch from the API: features are not cached in the browser, so added or
+        // deleted features show on the next page load (FA-R89).
         const queryParams = new URLSearchParams();
 
         console.log(url)
@@ -233,57 +234,34 @@ class MyMapClass {
             Object.entries(filters).filter(([key, value]) => value != null)
         );
 
-        // Create a unique session pointer based on the filters
-        let sessionPointer = Object.keys(filters).map(key => `${key}_${filters[key]}`.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')).join('_');
-
-        if (sessionPointer === '') {
-            sessionPointer = 'featureData';
-        } else {
-            sessionPointer = `featureData_${sessionPointer}`;
+        // Construct query parameters
+        if (filters.report) {
+            queryParams.append('publication_id', filters.report);
         }
 
-        console.log('sessionPointer:', sessionPointer);
+        console.log('queryParams:', queryParams.toString());
 
-        // Get the data from session storage
-        let featureData = sessionStorage.getItem(sessionPointer);
+        // Construct the full URL
+        const fullUrl = `${url}?${queryParams.toString()}`;
 
-        // If data is not in storage, fetch it from the endpoint
+        console.log('fullUrl:', fullUrl);
 
-        if (!featureData) {
-            // Construct query parameters
-            if (filters.report) {
-                queryParams.append('publication_id', filters.report);
-            }
+        // Fetch data from the constructed URL
+        const response = await fetch(fullUrl);
 
-            console.log('queryParams:', queryParams.toString());
-
-            // Construct the full URL
-            const fullUrl = `${url}?${queryParams.toString()}`;
-
-            console.log('fullUrl:', fullUrl);
-
-            // Fetch data from the constructed URL
-            const response = await fetch(fullUrl);
-            
-            // If the response is not ok, throw an error
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Parse the response to JSON
-            try {
-                featureData = await response.json();
-            } catch (error) {
-                console.error('Error occurred while parsing response:', error);
-            }
-
-            // Store the data in session storage as a string
-            sessionStorage.setItem(sessionPointer, JSON.stringify(featureData));
-        } else {
-            // If data exists in storage, parse it from the string and return
-            featureData = JSON.parse(featureData);
+        // If the response is not ok, throw an error
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    
+
+        // Parse the response to JSON
+        let featureData;
+        try {
+            featureData = await response.json();
+        } catch (error) {
+            console.error('Error occurred while parsing response:', error);
+        }
+
         // Return the fetched data
         return featureData;
 

@@ -434,7 +434,6 @@ class ReportView(PublicationPermissionMixin, BaseDetailView):
             'can_add_feature': user_may(user, ADD_FEATURE, self.object),
             'deletable_feature_ids': deletable_feature_ids,
         })
-        context['invalidate_feature_cache'] = self.request.session.pop('invalidate_feature_cache', False)
         return context
 
 
@@ -1767,9 +1766,6 @@ class AddFeatureCoordinatesView(PublicationPermissionMixin, BaseFormView):
             feature.save()
             feature.publications.add(publication)
 
-            # Set flag to trigger session cache clearing
-            self.request.session['invalidate_feature_cache'] = True
-
             messages.success(
                 self.request,
                 f'Feature "{feature.name}" has been successfully created and associated with '
@@ -2002,10 +1998,6 @@ class DeleteFeatureView(FeaturePermissionMixin, DeleteView, BaseView):
     def get_success_url(self):
         # Redirect to the report page after deletion
         # Assumes feature is associated with at least one publication
-        
-        # Set flag to invalidate feature cache
-        self.request.session['invalidate_feature_cache'] = True
-
         pubs = self.object.publications.all()
         if pubs.exists():
             return reverse_lazy('publications:report', kwargs={'pk': pubs.first().pk})

@@ -12,11 +12,6 @@
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
-    {% if invalidate_feature_cache %}
-        <script>
-            sessionStorage.removeItem('featureData_report_{{ publication.pk }}');
-        </script>
-    {% endif %}
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js" defer></script>
     <script src="{% static 'publications/js/proj4leaflet.js' %}" defer></script>

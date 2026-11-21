@@ -238,80 +238,50 @@ class MyReportsClass {
     }
 
     async getReportsData(url = URL_PREFIX + '/api/report/', filters = {}) {
-        // Construct query parameters from filters
+        // Always fetch from the API: the list is not cached in the browser, so added,
+        // edited, deleted or verified reports show on the next page load (FA-R89).
         const queryParams = new URLSearchParams();
-        
-
-
-        // Try to get the data from session storage first - handle special characters
-        
-        // Victors original sessionPointer, slightly modified here to handle the filters mapping only for topic (as in original, where only topic was given)
-        // included here for reference and comparison (when uncommented)
-        // const filter = filters.topic;
-        // const sessionPointerVictor =  (null == filter) ? 'reportData' : `reportData_${filter.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')}`;
 
         // Drop the filter keys that are not set
         filters = Object.fromEntries(
             Object.entries(filters).filter(([key, value]) => value != null)
         );
 
-        // Create a unique session pointer based on the filters
-        let sessionPointer = Object.keys(filters).map(key => `${key}_${filters[key]}`.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')).join('_');
-
-        if (sessionPointer === '') {
-            sessionPointer = 'reportData';
-        } else {
-            sessionPointer = `reportData_${sessionPointer}`;
+        // Construct query parameters from filters
+        if (filters.topic) {
+            queryParams.append('topic', filters.topic);
+        }
+        if (filters.author) {
+            queryParams.append('author_id', filters.author);
+        }
+        if (filters.supervisor) {
+            queryParams.append('supervisor_id', filters.supervisor);
+        }
+        if (filters.q) {
+            queryParams.append('q', filters.q);
         }
 
-        console.log('mySessionPointer: ', sessionPointer);
-        // console.log('victorsSessionPointer: ', sessionPointerVictor);
+        console.log('queryParams:', queryParams.toString());
 
-        // Get the data from session storage
-        let reportData = sessionStorage.getItem(sessionPointer);
+        // Construct the full URL
+        const fullUrl = `${url}?${queryParams.toString()}`;
 
-        // If data is not in session storage, fetch it from the endpoint
-        if (!reportData) {
-            // Construct query parameters from filters
-            if (filters.topic) {
-                queryParams.append('topic', filters.topic);
-            }
-            if (filters.author) {
-                queryParams.append('author_id', filters.author);
-            }
-            if (filters.supervisor) {
-                queryParams.append('supervisor_id', filters.supervisor);
-            }
-            if (filters.q) {
-                queryParams.append('q', filters.q);
-            }
-            
-            console.log('queryParams:', queryParams.toString());
+        // Fetch data from the constructed URL
+        const response = await fetch(fullUrl);
 
-            // Construct the full URL
-            const fullUrl = `${url}?${queryParams.toString()}`;
-
-            // Fetch data from the constructed URL
-            const response = await fetch(fullUrl);
-
-            // If the response is not ok, throw an error
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Parse the response to JSON
-            try {
-                reportData = await response.json();
-            } catch (error) {
-                console.error('Error occurred while parsing response:', error);
-            }
-            // Store the data in session storage as a string
-            sessionStorage.setItem(sessionPointer, JSON.stringify(reportData));
-        } else {
-            // Parse the data from the string
-            reportData = JSON.parse(reportData);
+        // If the response is not ok, throw an error
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
+        // Parse the response to JSON
+        let reportData;
+        try {
+            reportData = await response.json();
+        } catch (error) {
+            console.error('Error occurred while parsing response:', error);
+        }
+
         return reportData;
     };
 

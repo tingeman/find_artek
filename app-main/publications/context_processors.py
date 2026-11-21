@@ -14,10 +14,11 @@ ANONYMOUS_AUTH_MARKER = 'anon'
 def AUTH_MARKER(request):
     """A marker for the login state, rendered by base.html (FA-R75, PLAN_confidential T6).
 
-    The page JS clears its sessionStorage caches of API data (``reportData*``,
+    The page JS clears sessionStorage entries of API data (``reportData*``,
     ``featureData*``) when the marker differs from the one stored on the previous page, so
     data loaded while logged in doesn't survive a logout and anonymous data doesn't stay
-    stale after a login.
+    stale after a login. Since FA-R89 the report list and the map no longer write these
+    entries (they always fetch); the clearing stays for entries left by earlier releases.
 
     ``anon`` for anonymous users. For logged-in users the first 16 hex characters of the
     SHA-256 of the session key: Django rotates the key at login and flushes the session at
