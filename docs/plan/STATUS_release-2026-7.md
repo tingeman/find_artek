@@ -3,7 +3,7 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-Plan approved 2026-11-21. Branch and worktree created. Next: T1 (implementer) in the worktree.
+T1 (upload limit) running, implementer, in the worktree. Then T2a.
 
 ## Done
 
