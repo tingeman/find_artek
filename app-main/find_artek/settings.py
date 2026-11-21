@@ -116,6 +116,13 @@ MEDIA_URL = '/find/media/'
 # to Django, nginx serves media itself and the view isn't reached. Empty: Django streams the file.
 MEDIA_ACCEL_REDIRECT_PREFIX = '/find/_protected_media/'
 
+# Largest file a user may upload, per file: the report PDF (AddEditReportForm) and each appendix
+# (UploadAppendixForm). The forms check it and the pages pass it to the browser's check
+# (data-max-size-mb, file-upload.js). A constant, not an env variable: it must not exceed
+# nginx's 'client_max_body_size 300M' on the /find/ location (dtu_sus_web_server), or nginx
+# refuses the upload with 413 before Django can show a message. Change both together.
+MAX_UPLOAD_SIZE_MB = 300
+
 
 TEMPLATES = [
     {

@@ -1,6 +1,7 @@
 """Forms related to publications."""
 
 from django import forms
+from django.conf import settings
 from django.forms import ModelForm
 from django.contrib.admin.widgets import AdminFileWidget
 from django_select2 import forms as s2forms
@@ -16,6 +17,17 @@ import re
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+def max_upload_size_mb():
+    """The upload limit per file in MB (settings.MAX_UPLOAD_SIZE_MB), read at call time so
+    that override_settings applies."""
+    return settings.MAX_UPLOAD_SIZE_MB
+
+
+def max_upload_size_bytes():
+    """The upload limit per file in bytes. A file of exactly this size is allowed."""
+    return max_upload_size_mb() * 1024 * 1024
 
 
 class TopicChoiceField(forms.ModelMultipleChoiceField):
@@ -79,9 +91,6 @@ class AddEditReportForm(ModelForm):
     - When instance provided: Editing mode (number field readonly, delete_pdf option available)
     """
     
-    # Class variable for file size limit (in MB)
-    MAX_FILE_SIZE_MB = 300
-
     year = forms.IntegerField(
         required=True,  # Required in forms for proper report numbering
         initial=datetime.datetime.now().year,
@@ -215,8 +224,11 @@ class AddEditReportForm(ModelForm):
         instance = kwargs.get('instance')
         super().__init__(*args, **kwargs)
 
-        # Set dynamic help text using class variable
-        self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {self.MAX_FILE_SIZE_MB}MB)'
+        # The upload limit (settings.MAX_UPLOAD_SIZE_MB) in the help text, and on the input
+        # for the browser's check in file-upload.js.
+        limit_mb = max_upload_size_mb()
+        self.fields['pdffile'].widget.attrs['data-max-size-mb'] = str(limit_mb)
+        self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {limit_mb} MB)'
 
         logger.debug(f'AddEditReportForm:__init__: delete_pdf field before configuration: widget={type(self.fields["delete_pdf"].widget).__name__}')
 
@@ -232,7 +244,7 @@ class AddEditReportForm(ModelForm):
             # Configure PDF-related fields based on whether there's an existing file
             if instance.file:
                 current_file_name = instance.file.file.name.split('/')[-1] if instance.file.file else "Unknown file"
-                self.fields['pdffile'].help_text = f'Current file: {current_file_name}. Upload a new PDF to replace it (max {self.MAX_FILE_SIZE_MB}MB)'
+                self.fields['pdffile'].help_text = f'Current file: {current_file_name}. Upload a new PDF to replace it (max {limit_mb} MB)'
                 
                 # Show the delete_pdf option since there's an existing file
                 # Explicitly set widget to ensure it's visible
@@ -243,7 +255,7 @@ class AddEditReportForm(ModelForm):
             else:
                 # No existing file, hide the delete option
                 self.fields['delete_pdf'].widget = forms.HiddenInput()
-                self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {self.MAX_FILE_SIZE_MB}MB)'
+                self.fields['pdffile'].help_text = f'Upload PDF file for this report (max {limit_mb} MB)'
                 
                 logger.debug('AddEditReportForm:__init__:EDIT MODE - No existing file, hiding delete_pdf field')
             
@@ -373,10 +385,9 @@ class AddEditReportForm(ModelForm):
             if not uploaded_file.name.lower().endswith('.pdf'):
                 raise ValidationError('Only PDF files are allowed.')
             
-            # Check file size using class variable
-            max_size = self.MAX_FILE_SIZE_MB * 1024 * 1024  # Convert MB to bytes
-            if uploaded_file.size > max_size:
-                raise ValidationError(f'File size cannot exceed {self.MAX_FILE_SIZE_MB}MB.')
+            # Check file size (settings.MAX_UPLOAD_SIZE_MB)
+            if uploaded_file.size > max_upload_size_bytes():
+                raise ValidationError(f'File size cannot exceed {max_upload_size_mb()} MB.')
         
         return uploaded_file
     
@@ -536,9 +547,9 @@ class UploadAppendixForm(forms.Form):
     """
     Form for uploading multiple appendix files to a publication.
     Uses session-based batch management for file handling.
-    
-    Note: For very large files (>100MB), we may need to implement 
-    a secondary upload scheme with chunked uploads or direct storage.
+
+    Each file may be up to settings.MAX_UPLOAD_SIZE_MB (nginx's limit on /find/ is the
+    ceiling, and it applies to the whole request).
     """
     appendix_files = MultipleFileField(
         widget=MultipleFileInput(attrs={
@@ -548,6 +559,18 @@ class UploadAppendixForm(forms.Form):
         required=False,
         help_text="Select multiple files to upload as appendices. Supported formats: PDF, DOC, TXT, ZIP, images, Office documents."
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        limit_mb = self.max_size_mb
+        field = self.fields['appendix_files']
+        field.widget.attrs['data-max-size-mb'] = str(limit_mb)
+        field.help_text = f'{field.help_text} Maximum {limit_mb} MB per file.'
+
+    @property
+    def max_size_mb(self):
+        """The limit per file in MB, for the template."""
+        return max_upload_size_mb()
     
     def clean_appendix_files(self):
         """Validate uploaded files"""
@@ -556,13 +579,14 @@ class UploadAppendixForm(forms.Form):
         if not files:
             return files
             
-        # File size limit (50MB per file)
-        max_size = 50 * 1024 * 1024  # 50MB
-        
+        # File size limit per file (settings.MAX_UPLOAD_SIZE_MB)
+        max_size = max_upload_size_bytes()
+
         for file in files:
             if file.size > max_size:
                 raise ValidationError(
-                    f'File "{file.name}" is too large. Maximum file size is 50MB.'
+                    f'File "{file.name}" is too large. Maximum file size is '
+                    f'{max_upload_size_mb()} MB per file.'
                 )
                 
             # Basic file type validation based on extension

@@ -1482,9 +1482,8 @@ class UploadAppendixView(PublicationPermissionMixin, BaseView):
     Uses session-based batch management for file handling.
     Only users who may edit the publication can see or use the upload page (FA-R52,
     permissions.py).
-    
-    Note: For very large files (>100MB), we may need to implement 
-    a secondary upload scheme with chunked uploads or direct storage.
+
+    Each file may be up to settings.MAX_UPLOAD_SIZE_MB (UploadAppendixForm).
     """
     template_name = 'publications/upload_appendix.html'
     permission = EDIT
@@ -1580,6 +1579,10 @@ class UploadAppendixView(PublicationPermissionMixin, BaseView):
             request.session.modified = True
             
             messages.success(request, f'Successfully uploaded {len(files)} file(s)')
+        else:
+            # Refused files (too large, wrong type, empty): show why on the page we redirect to.
+            for error in form.errors.get('appendix_files', []):
+                messages.error(request, error)
         
         return redirect('publications:upload_appendix', pk=publication.id)
     

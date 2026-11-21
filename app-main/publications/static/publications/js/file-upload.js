@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = fileInput ? fileInput.closest('form') : null;
     
     if (!fileInput || !form) return;
+
+    // Upload limit per file in MB, rendered by the form from settings.MAX_UPLOAD_SIZE_MB.
+    // Without the attribute the browser doesn't check the size; the server still does.
+    const maxSizeMb = parseFloat(fileInput.dataset.maxSizeMb);
+    const maxSizeBytes = maxSizeMb > 0 ? maxSizeMb * 1024 * 1024 : null;
     
     // Create progress elements
     const progressContainer = document.createElement('div');
@@ -24,8 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const file = e.target.files[0];
         if (file) {
             // Validate file
-            if (file.size > 50 * 1024 * 1024) {
-                alert('File size cannot exceed 50MB');
+            if (maxSizeBytes !== null && file.size > maxSizeBytes) {
+                alert('File size cannot exceed ' + maxSizeMb + ' MB');
                 fileInput.value = '';
                 return;
             }
