@@ -154,8 +154,14 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
   git push origin main
   ```
 
-- [ ] b. Push web_server `develop/main` (the `releases.yml` change).
-- [ ] c. Optional cleanup, after step 9 of [USER_STEPS_2026.6.md](USER_STEPS_2026.6.md):
+- [ ] b. Push web_server `develop/main` (the `releases.yml` change). web_server's remote is `github`:
+
+  ```powershell
+  # PowerShell, in C:\thin\02_Code\docker_projects\dtu_sus_web_server
+  git push github develop/main
+  ```
+
+- [ ] c. Optional cleanup, after step 9 of [USER_STEPS_2026.6_COMPLETE.md](../archive/USER_STEPS_2026.6_COMPLETE.md):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP

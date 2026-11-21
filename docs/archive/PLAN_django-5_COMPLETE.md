@@ -105,7 +105,7 @@ docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build
 At http://localhost:8098/: log in through CAS; check your roles (Add menu visible); add a test report with a PDF and a new person, edit it, delete it; open a confidential report's PDF logged in and logged out; `/swagger/` and `/redoc/` load; the author autocomplete in the report form works; `/admin/` works; CAS logout returns to the front page. Note anything off in the STATUS file or tell the main session.
 
 ### T9. Merge and release 2026.6 (you)
-Main session: merge `develop/main` into `agent-django-5`, rerun checks, write [USER_STEPS_2026.6.md](../plan/USER_STEPS_2026.6.md) (tag, web_server `build_image.sh`, `releases.yml` bump, playbook, production checks: front page and report list under `/find/`, CAS login on `arctic.sustain.dtu.dk`, a confidential PDF logged in / out, `/find/api/` and `/find/swagger/`, thumbnail cron log), then fast-forward `develop/main` with your permission. You tag, build and deploy.
+Main session: merge `develop/main` into `agent-django-5`, rerun checks, write [USER_STEPS_2026.6.md](USER_STEPS_2026.6_COMPLETE.md) (tag, web_server `build_image.sh`, `releases.yml` bump, playbook, production checks: front page and report list under `/find/`, CAS login on `arctic.sustain.dtu.dk`, a confidential PDF logged in / out, `/find/api/` and `/find/swagger/`, thumbnail cron log), then fast-forward `develop/main` with your permission. You tag, build and deploy.
 
 ## Out of scope
 

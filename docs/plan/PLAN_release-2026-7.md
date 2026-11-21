@@ -151,7 +151,7 @@ Not in this plan: FA-R86 (orphan media files) and the data part of FA-R69. They 
 - Deployment impact: none beyond T7.
 
 ### T9. Dev checks and USER_STEPS_2026.7 (main session writes, you check)
-- Main session: merge `develop/main` into the branch, rerun the checks, write `docs/plan/USER_STEPS_2026.7.md` in the format of `USER_STEPS_2026.6.md` (dev checks, fast-forward, tag, `build_image.sh`, publish, `releases.yml`, deploy, production checks, after closing).
+- Main session: merge `develop/main` into the branch, rerun the checks, write `docs/plan/USER_STEPS_2026.7.md` in the format of `docs/archive/USER_STEPS_2026.6_COMPLETE.md` (dev checks, fast-forward, tag, `build_image.sh`, publish, `releases.yml`, deploy, production checks, after closing).
 - You, at http://localhost:8098/ (Ctrl+F5): upload a report PDF and an appendix over 50 MB; the report list and map load fast; delete, add and edit a report and see the change at once without logging out; author autocomplete works logged in; `/publications/test/autocomplete/person/?term=a` logged out gives 403; "Administration" in the header opens the tile page (desktop and a narrow window), its working tiles open the add-report form and the Excel import; as `artek_editor`, add a report with a typed new author similar to an existing person, see `(?)` or `(!)` on the report page and in the list, confirm one person, and merge a test duplicate into its original (check the report page and the person page afterwards; use test persons, not real ones). In the dev container: `python manage.py extract_pdf_metadata --evaluate 50 --settings find_artek.development_settings` and `--unowned`; tell the main session the hit rates (not the personal data).
 - Agent: you.
 
