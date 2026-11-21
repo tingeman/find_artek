@@ -1,0 +1,125 @@
+# User steps: release 2026.6 (Django 5.2 LTS, PLAN_django-5 T8 and T9)
+
+Branch `agent-django-5` holds T1-T7 of [PLAN_django-5.md](PLAN_django-5.md), with `develop/main` merged in. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
+
+What changes for users:
+
+- Nothing visible on purpose: the same pages, forms, API and login.
+- `/find/publications/accounts/logout/` is gone (nothing linked it; the menu's logout is the CAS logout `/find/logout`, unchanged).
+- A login link with `?next=` pointing to another site gives 400 (before: the user was sent to that site after the CAS login).
+- The Swagger UI (`/find/swagger/`) "Django Logout" button works (it went to the removed URL).
+
+Deployment impact (web_server):
+
+- Django 4.2.30 → 5.2.19 LTS, Python 3.12.11 → 3.13.18, base image Debian 12 → 13 (trixie). The image is self-contained; the host needs nothing.
+- No migration (`migrate --plan` shows none). No new env variable. Port, paths, user, entrypoint and cron unchanged.
+- `tests/run.sh`: a `check --deploy` warning other than `security.W004`/`security.W008` now fails the build. Interface unchanged. Image ~46 MB larger (927 MB).
+
+## 1. Dev checks (T8, you)
+
+- [ ] Done
+
+The dev stack already runs the branch (project `find_artek_develop`, started from the worktree). To rebuild it yourself:
+
+```powershell
+# PowerShell, in C:\thin\02_Code\docker_projects\find_artek_agent-django-5
+docker compose -p find_artek_develop -f docker-compose.yml -f docker-compose.develop.yml up -d --build
+docker compose -p find_artek_develop -f docker-compose.yml -f docker-compose.develop.yml exec -T webapp-find-artek python -c "import django, sys; print(django.get_version(), sys.version.split()[0])"   # 5.2.19 3.13.18
+```
+
+At http://localhost:8098/ (Ctrl+F5 first):
+
+1. Log in through CAS. Your roles show (the "Add" menu is there).
+2. Add a test report with a PDF and a new person; edit it (the author autocomplete finds persons); delete it.
+3. A confidential report's PDF: opens logged in, refused logged out.
+4. `/swagger/` and `/redoc/` load; in Swagger, "Django Logout" logs you out through CAS.
+5. `/admin/` works.
+6. The menu's logout returns you to the front page, logged out.
+
+Tell the main session what passed; anything off is fixed on the branch before step 2.
+
+## 2. Fast-forward `develop/main` (main session, with your OK)
+
+- [ ] Done
+
+The main session reruns the checks on the branch tip and fast-forwards `develop/main` to it (`git merge --ff-only agent-django-5`).
+
+## 3. Tag `2026.6` locally (you)
+
+- [ ] Done
+
+```powershell
+# PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
+git switch develop/main
+git log --oneline -1                                     # the T7 commit or the merge, = agent-django-5
+git tag -a 2026.6 -m "2026.6: Django 5.2 LTS, Python 3.13 (Phase 3)"
+git push origin develop/main 2026.6
+```
+
+## 4. Build and test the bundle (you)
+
+- [ ] Done
+
+```bash
+# WSL
+cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server
+bash scripts/build_image.sh webapp_find_artek /mnt/c/thin/02_Code/docker_projects/find_artek_DEVELOP 2026.6
+cat release-out/webapp_find_artek/webapp_find_artek-2026.6.manifest.txt
+```
+
+Expect `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 563 tests` OK, and `INFO: Django, GDAL, GEOS: 5.2.19 3.10.3 ...`.
+
+## 5. Publish to the releases share (you)
+
+- [ ] Done
+
+```powershell
+# PowerShell
+$dst = '\\ait-pdfs\Qdrev\SUS\Groups\Arctic_backup\SUS-PArcWeb01\releases\webapp_find_artek'
+Get-ChildItem $dst                                   # must not contain webapp_find_artek-2026.6.* yet
+Copy-Item 'C:\thin\02_Code\docker_projects\dtu_sus_web_server\release-out\webapp_find_artek\webapp_find_artek-2026.6.*' $dst
+Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.6.tar.gz"   # = tarball_sha256 in the manifest
+```
+
+## 6. releases.yml (web_server, you)
+
+- [ ] Done
+
+In `C:\thin\02_Code\docker_projects\dtu_sus_web_server\ansible\vars\releases.yml`: `version: "2026.6"`, `tarball_sha256` from the manifest; keep the 2026.5 entry commented out for rollback. Commit on web_server's `develop/main`.
+
+## 7. Deploy the app (you)
+
+- [ ] Done
+
+```bash
+# WSL
+cd /mnt/c/thin/02_Code/docker_projects/dtu_sus_web_server/ansible
+ansible-playbook -kK -i hosts playbook_install_webapp_find_artek.yml -v --ask-vault-pass
+```
+
+Server checks:
+
+```bash
+# SSH on sus-parcweb01
+sudo docker ps --filter name=webapp-find-artek --format '{{.Names}}  {{.Image}}  {{.Status}}'      # webapp_find_artek:2026.6, healthy
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1/find/publications/frontpage/          # 200
+sudo docker exec webapp-find-artek python -c "import django, sys; print(django.get_version(), sys.version.split()[0])"   # 5.2.19 3.13.18
+sudo docker exec webapp-find-artek python manage.py showmigrations publications | tail -1          # [X] 0004_publication_confidential (unchanged)
+sudo docker logs --since 10m webapp-find-artek 2>&1 | grep -iE 'traceback|error' | head            # nothing
+```
+
+Rollback: put the `2026.5` entry back in `releases.yml` and rerun the playbook. No migration to reverse.
+
+## 8. Functional checks in production (you)
+
+- [ ] Done
+
+Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
+
+1. Front page and report list load logged out.
+2. Log in through CAS (the service URL carries `/find`): you land back on the page you came from, with your roles.
+3. A confidential report's PDF: opens logged in, refused logged out; a public report's PDF opens logged out.
+4. `/find/api/report/` returns JSON; `/find/swagger/` loads.
+5. Next morning: the thumbnail cron ran (`sudo docker logs --since 24h webapp-find-artek 2>&1 | grep -i thumbnail | tail -3` on the server).
+
+Report back which steps passed; the main session then closes the plan (roadmap, archive).
