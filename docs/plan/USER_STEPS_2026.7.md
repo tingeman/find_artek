@@ -1,8 +1,8 @@
 # User steps: release 2026.7 (PLAN_release-2026-7 T9 and T10)
 
-Branch `agent-release-2026-7` holds T1-T8 of [PLAN_release-2026-7.md](PLAN_release-2026-7.md), with `develop/main` merged in (`5528305`). It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
+Branch `agent-release-2026-7` holds T1-T8, T11 and T12 of [PLAN_release-2026-7.md](PLAN_release-2026-7.md), with `develop/main` merged in (`5528305`); tip `61c330c`. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
 
-Checks on the branch tip (2026-11-21, main session): `check` clean, `makemigrations --check` no changes, 685 Django tests OK, `tests/run.sh` ALL 22 TESTS PASSED.
+Checks on the branch tip (2026-11-21, main session): `check` clean, `makemigrations --check` no changes, 718 Django tests OK; `tests/run.sh` ALL 22 TESTS PASSED (implementer, on `61c330c`).
 
 What changes for users:
 
@@ -10,6 +10,7 @@ What changes for users:
 - **Report list and map:** load in well under a second (before: 2-3 s) and always show the current data; a deleted report no longer stays in the list.
 - **Administration:** the header's "Add" drop-down is replaced by a link "Administration" to a page with picture tiles, as in the classic version. Working: Add report, Import reports from Excel; greyed with the reason: Add feature (open a report), Add person, Import features from Excel; Django admin for staff.
 - **Person markers (ARTEK editors only):** a red (!) or (?) next to authors and supervisors whose person was created although similar persons existed, on the report page and in the report list; the person page lists the marked links. "Confirm person" clears the markers. "Merge duplicates…" merges other persons into this one (confirmation page first; can't be undone in the app).
+- **Report form:** typed initials or a study number are also looked up in the DTU directory; a hit not yet in the database is offered as "[DTU directory]" and added (name, initials/study number, position, department; no email) when the report is saved. The edit page is titled "Edit report" and shows the report summary; changing the year no longer replaces the report number in edit mode.
 - **Person autocomplete** (`/find/publications/test/autocomplete/person/`): logged-in users only; anonymous users get 403.
 - **403 pages** show their explanation again.
 
@@ -18,6 +19,8 @@ Deployment impact (web_server):
 - **Migration `0005_person_merge_person_permission`:** adds the permission `publications.merge_person` (one `auth_permission` row) and grants it to the group `artek_editor` (one group-permission link). No report, person or user row changes. Reversible (`migrate publications 0004`). The playbook's `migrate --plan`/`migrate` applies it.
 - **Thumbnail cron:** `generate_thumbnails` now exits 1 when publications fail. Production logs `ERROR: thumbnail generation failed with exit code 1` every night until the PDFs of 01-06 and 14-28 are fixed (FA-R69). web_server's cron post-check (`ansible/tasks/find_artek_checks.yml`) only checks the daemon and the cron file, so the deploy is unaffected.
 - **Logging:** new logger `publications.persons` (INFO, console and file): one line per person merge, with pks and counts, no names.
+- **Static scripts:** the three scripts changed in this release load as `...js?v=2026.7` (`STATIC_ASSET_VERSION` in settings.py), so browsers don't keep the old cached copies. File names unchanged.
+- **LDAP:** the report form now asks the directory (existing bind settings, 5 s timeout); unreachable means no directory choice, one WARNING in the log.
 - No new env variable. Port, paths, user, entrypoint, cron schedule and the `tests/run.sh` interface unchanged. nginx already allows 300 MB on `/find/`.
 - Open question for web_server: does nginx gzip `application/json` on `/find/`? The feature list is 660 KB uncompressed.
 
@@ -36,14 +39,18 @@ Invoke-Expression "$DC exec -T webapp-find-artek python manage.py migrate --sett
 Invoke-Expression "$DC exec -T webapp-find-artek python manage.py showmigrations publications --settings find_artek.development_settings"   # [X] 0005_person_merge_person_permission
 ```
 
-At http://localhost:8098/ (Ctrl+F5 first), logged in through CAS:
+Round 1 (2026-11-21): 1 passed; 2 passed after a hard reload (old cached script, fixed by T11); 4 passed; 3 not reported; 5 and 6 and the rest are rechecked below after T11/T12; 7 and 8 not yet run.
+
+Round 2: rebuild first (`up -d --build` above, the migration is already applied). At http://localhost:8098/, logged in through CAS, once with DevTools open: right-click reload, "Empty cache and hard reload":
 
 1. **Header:** "Administration" instead of "Add". The page shows the tiles; Add report and Import reports from Excel open their forms; the greyed tiles show their reason. Narrow the window to phone width: the tiles wrap, the mobile menu has "Administration".
 2. **Upload:** add a test report with a PDF over 50 MB (and below 300 MB); upload an appendix over 50 MB on its page. Both are accepted.
 3. **Report list and map:** load fast. Delete the test report: it is gone from the list on the next load, without logging out. Edit a report's title: the list shows the new title at once.
-4. **Markers** (you are `artek_editor`): add a test report and type a new author similar to an existing person (e.g. an existing last name with a different first name), choose "create new person". The report page and the list show (?) or (!) next to that author, with a tooltip and a legend.
-5. **Confirm:** open the marker; on the person page "Confirm person" clears it; the report page shows no marker afterwards.
+4. **Markers** (you are `artek_editor`): add a test report and type a new author similar to an existing person (e.g. an existing last name with a different first name), choose "create new person". The report page and the list show (?) or (!) next to that author, with a tooltip and a legend; in the legend only the ! and ? are red and bold, the parentheses black.
+4a. **Report form (T11):** the header menu has the same spacing as on the other pages. "Edit report" on an existing report: titled "Edit report", the report summary above the form; changing the year keeps the report number.
+5. **Confirm:** click the marker: the merge page has "Not a duplicate: Confirm person"; it goes to the person page and clears the markers; the report page shows no marker afterwards. (The person page's own "Confirm person" box does the same.)
 6. **Merge:** repeat step 4 to make a test duplicate of a test person, open "Merge duplicates…" on the original, tick the duplicate, check the confirmation page (links moved, fields filled), and merge. The report now links to the original; the duplicate's person page gives 404. Use test persons, not real ones. Delete the test reports afterwards.
+6a. **DTU directory (T12):** add a test report, type `asska` as supervisor: the person step offers "<Name> (asska) [DTU directory]" with position and department; choose it; the review shows "(asska, from the DTU directory)"; save: the person page has the initials, position and department, and no marker. Type `asska` again in another report: now the database person with the badge "In DTU directory", no directory choice. A full name (with a space) shows no directory section. Optional: a student's study number. Delete the test reports afterwards (the person `asska` from round 1 can be merged into the new one, or deleted in the Django admin).
 7. **Autocomplete:** the author field in the report form still suggests persons. Logged out, http://localhost:8098/publications/test/autocomplete/person/?term=a gives 403.
 8. **PDF metadata** (read-only; the output contains names and study numbers, keep it in your terminal):
 
