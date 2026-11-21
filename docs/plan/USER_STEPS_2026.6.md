@@ -41,13 +41,13 @@ Tell the main session what passed; anything off is fixed on the branch before st
 
 ## 2. Fast-forward `develop/main` (main session, with your OK)
 
-- [ ] Done
+- [x] Done (2026-11-21, main session): `develop/main` fast-forwarded to `d7aef5d`.
 
 The main session reruns the checks on the branch tip and fast-forwards `develop/main` to it (`git merge --ff-only agent-django-5`).
 
 ## 3. Tag `2026.6` locally (you)
 
-- [ ] Done
+- [x] Done (2026-11-21, main session, with your OK): annotated tag on `d7aef5d`, local only. Push it with `git push origin develop/main 2026.6`.
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -59,7 +59,7 @@ git push origin develop/main 2026.6
 
 ## 4. Build and test the bundle (you)
 
-- [ ] Done
+- [x] Done (2026-11-21, main session, with your OK): `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 569 tests` OK; tarball_sha256 `97d42250f222a92391f91dc7d00d90f349c21ad00e4f30c2567f65313db52724` (221 MB), image_id `sha256:0853cf1a5c26...`, built 2026-11-21T08:40:51Z, git_sha `d7aef5dcee73`.
 
 ```bash
 # WSL
@@ -72,7 +72,7 @@ Expect `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 569 tests` OK, an
 
 ## 5. Publish to the releases share (you)
 
-- [ ] Done
+- [x] Done (2026-11-21, main session): tarball, `.sha256` and manifest copied; hash on the share matches the manifest.
 
 ```powershell
 # PowerShell
@@ -84,7 +84,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.6.tar.gz"   # = tarb
 
 ## 6. releases.yml (web_server, you)
 
-- [ ] Done
+- [x] Done (2026-11-21, main session, with your OK): `version: "2026.6"`, tarball_sha256 from the manifest, 2026.5 kept commented out for rollback; committed on web_server `develop/main` (`0b4d515`, not pushed).
 
 In `C:\thin\02_Code\docker_projects\dtu_sus_web_server\ansible\vars\releases.yml`: `version: "2026.6"`, `tarball_sha256` from the manifest; keep the 2026.5 entry commented out for rollback. Commit on web_server's `develop/main`.
 

@@ -3,7 +3,7 @@
 Plan: [PLAN_django-5.md](PLAN_django-5.md). Branch: `agent-django-5` (from `develop/main`; worktree `..\find_artek_agent-django-5`).
 
 ## Now
-T9: fast-forward `develop/main` (main session, with your OK), then you tag, build, deploy ([USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) steps 2-8).
+T9: you deploy with ansible and run the production checks ([USER_STEPS_2026.6.md](USER_STEPS_2026.6.md) steps 7-8); then the main session closes the plan.
 
 ## Done
 - T1 2026-11-21: no RemovedInDjango50/51 warnings from our code; drf-yasg `SWAGGER_USE_COMPAT_RENDERERS = False`; `accounts/logout/` and custom `LogoutView` removed; 543 tests; gate 22/22; `check --deploy` allowed warnings today: `security.W004 security.W008` (`bc4cd51`)
