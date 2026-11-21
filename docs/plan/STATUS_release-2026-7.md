@@ -3,9 +3,10 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-T7 (person markers + confirm) running, implementer; includes the access_denied.html block fix (403 message never shown: template fills `body`, base.html has `main-content`). Then T8. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
+T8 (merge persons) running, implementer. Then T9 (dev checks, owner). Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
 
 ## Done
+- T7 2026-11-21: permission `merge_person` (migration 0005, granted to artek_editor); (!)/(?) markers for holders on the report page (authors, supervisors), report list (API `match` only for holders) and person page notice; `person/<pk>/confirm/` clears the flags; 403 page shows its message again; 661 tests, gate 22/22 (`79cc318`). The report page has no Editors row (never had); marked editor links show only in the person page notice. Marker link URL in two places (`person_marker.html`, `my-reports-class.js`), T8 changes both.
 - T6 2026-11-21: Administration page (`publications/administration/`), classic tile order without Backup, greyed tiles with reasons, Django admin tile for staff; header link replaces the drop-down; test_menu.py replaced by test_administration.py; 640 tests (`ec776aa`)
 - T5 2026-11-21: `extract_pdf_metadata` (PATH, `--unowned`, `--evaluate N`), pdftotext text layer: title = largest text on page 1, year from report number or front page, study numbers `s` + 6 digits matched to persons; 628 tests (`61616b4`). The agent's final run was killed (low memory); the main session reran all checks.
 - T4 2026-11-21: generate_thumbnails exits 1 on errors (CommandError after the summary); gate 22/22 with job.rc 0; 605 tests (`e385e40`). For web_server (report at release): exit code changes; its cron post-check (`ansible/tasks/find_artek_checks.yml:26`) only checks daemon and cron file, unaffected; production logs `exit code 1` nightly until 01-06 and 14-28 are fixed.
