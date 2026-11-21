@@ -1,5 +1,7 @@
+from django.db.models import Count, OuterRef, Prefetch, Subquery
+from django.db.models.functions import Coalesce
 from rest_framework import serializers
-from publications.models import Publication, Feature, Person
+from publications.models import Authorship, Publication, Feature, Person
 from publications import person_privacy
 from publications.visibility import visible_publications
 
@@ -34,14 +36,46 @@ class PublicationSerializer(serializers.ModelSerializer):
         # tells the client which of them are confidential (FA-R75).
         read_only_fields = ['confidential']
 
+    # Attributes set by prepare_queryset (roadmap FA-R97: one query per relation instead of
+    # one per report). Without them (a Publication from elsewhere) the fields query as before.
+    FEATURE_COUNT = 'api_feature_count'
+    AUTHORSHIPS = 'api_authorships'
+
+    @classmethod
+    def prepare_queryset(cls, queryset):
+        """``queryset`` (Publications) with what the fields need loaded in a fixed number of
+        queries: type and file prefetched, the number of features as an annotation (a
+        subquery), the authorships (with their persons) prefetched in the order of their rows,
+        which is the order ``authors.all()`` returns them in on MariaDB.
+
+        Doesn't change which rows or their order. Type and file are prefetched, not joined
+        (``select_related``): a join changes MariaDB's plan, and with it the order of reports
+        with the same number, which the ordering doesn't decide (seen on the dev copy)."""
+        feature_links = (Feature.publications.through.objects
+                         .filter(publication_id=OuterRef('pk'))
+                         .order_by().values('publication_id')
+                         .annotate(n=Count('pk')).values('n'))
+        return (queryset
+                .annotate(**{cls.FEATURE_COUNT: Coalesce(Subquery(feature_links), 0)})
+                .prefetch_related('type', 'file', Prefetch(
+                    'authorship_set',
+                    queryset=Authorship.objects.select_related('person').order_by('pk'),
+                    to_attr=cls.AUTHORSHIPS)))
+
     def get_feature_count(self, obj):
-        return obj.feature_set.count()
+        count = getattr(obj, self.FEATURE_COUNT, None)
+        return obj.feature_set.count() if count is None else count
 
     def get_file(self, obj):
         return obj.file.filename() if obj.file else None
 
     def get_authors(self, obj):
-        return [{'pk': author.pk, 'first': author.first, 'last': author.last} for author in obj.authors.all()]
+        authorships = getattr(obj, self.AUTHORSHIPS, None)
+        if authorships is None:
+            authors = obj.authors.all()
+        else:
+            authors = [authorship.person for authorship in authorships]
+        return [{'pk': author.pk, 'first': author.first, 'last': author.last} for author in authors]
 
     def get_link_to_pdf_associated_with_this_publication(self, obj):
         return obj.file.file.url if obj.file else None
@@ -87,8 +121,24 @@ class FeatureSerializer(serializers.ModelSerializer):
     def get_feature_pk(self, obj):
         return obj.pk
     
+    # Set by prepare_queryset: the publications of the feature the user may see.
+    VISIBLE_PUBLICATIONS = 'api_visible_publications'
+
+    @classmethod
+    def prepare_queryset(cls, queryset, user):
+        """``queryset`` (Features) with the publications ``user`` may see prefetched in one
+        query (roadmap FA-R97), filtered by publications.visibility as the field does without
+        it, and ordered by id, the order the database returns them in for one feature.
+        Doesn't change which features are listed or their order."""
+        publications = visible_publications(
+            Publication.objects.only('pk', 'number', 'title').order_by('pk'), user)
+        return queryset.prefetch_related(Prefetch(
+            'publications', queryset=publications, to_attr=cls.VISIBLE_PUBLICATIONS))
+
     def get_related_publications(self, obj):
-        publications = _visible_for_request(self, obj.publications.all())
+        publications = getattr(obj, self.VISIBLE_PUBLICATIONS, None)
+        if publications is None:
+            publications = _visible_for_request(self, obj.publications.all())
         return [{'id': publication.pk, 'number': publication.number, 'title': publication.title} for publication in publications]
     
 

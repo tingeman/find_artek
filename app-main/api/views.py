@@ -145,7 +145,10 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
 
         # ============ Only the reports the user may see ============
         # One rule for all publications in the API: publications.visibility.
-        return visible_publications(queryset, self.request.user)
+        queryset = visible_publications(queryset, self.request.user)
+
+        # Authors, file, type and feature count in a fixed number of queries (FA-R97).
+        return PublicationSerializer.prepare_queryset(queryset)
 
 
 
@@ -197,7 +200,10 @@ class GetFeatureViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericView
         # Only features the user may see (publications.visibility, same rule as the report
         # API): no publication, or at least one visible one. Distinct rows; the detail of a
         # hidden feature is 404.
-        return visible_features(queryset, self.request.user).distinct()
+        queryset = visible_features(queryset, self.request.user).distinct()
+
+        # The visible publications of all features in one query (FA-R97).
+        return FeatureSerializer.prepare_queryset(queryset, self.request.user)
 
 
 
