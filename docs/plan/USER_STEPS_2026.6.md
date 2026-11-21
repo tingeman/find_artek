@@ -1,6 +1,6 @@
 # User steps: release 2026.6 (Django 5.2 LTS, PLAN_django-5 T8 and T9)
 
-Branch `agent-django-5` holds T1-T7 of [PLAN_django-5.md](PLAN_django-5_COMPLETE.md), with `develop/main` merged in. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
+Branch `agent-django-5` holds T1-T7 of [PLAN_django-5_COMPLETE.md](../archive/PLAN_django-5_COMPLETE.md), with `develop/main` merged in. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
 
 What changes for users:
 
@@ -123,4 +123,45 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 4. `/find/api/report/` returns JSON; `/find/swagger/` loads.
 5. Next morning: the thumbnail cron ran (`sudo docker logs --since 24h webapp-find-artek 2>&1 | grep -i thumbnail | tail -3` on the server).
 
-Report back which steps passed; the main session then closes the plan (roadmap, archive).
+The plan was closed 2026-11-21 ([STATUS](../archive/STATUS_django-5_COMPLETE.md)); this file stays in `docs/plan/` until step 9 is done, then the main session archives it.
+
+## 9. After closing (you)
+
+- [ ] a. Thumbnail cron: check 5 of step 8 (the morning after the deploy).
+- [ ] b. Push find_artek `develop/main` and the tag:
+
+  ```powershell
+  # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
+  git push origin develop/main 2026.6
+  ```
+
+- [ ] c. Fast-forward `main` to the deployed tag (FA5) and push it:
+
+  ```powershell
+  # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
+  git switch main
+  git merge --ff-only 2026.6
+  git push origin main
+  git switch develop/main
+  ```
+
+- [ ] d. Push web_server `develop/main` (`0b4d515`, the `releases.yml` change):
+
+  ```powershell
+  # PowerShell, in C:\thin\02_Code\docker_projects\dtu_sus_web_server
+  git log --oneline -1 develop/main      # 0b4d515 find_artek: release 2026.6 in releases.yml
+  git push origin develop/main
+  ```
+
+- [ ] e. Optional cleanup. The dev stack runs from the `agent-django-5` worktree; start it from your checkout first (same project name, so it replaces those containers; the database volume stays).
+
+  ```powershell
+  # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
+  docker compose -p find_artek_develop -f docker-compose.yml -f docker-compose.develop.yml up -d --build
+  git worktree remove ..\find_artek_agent-django-5         # if it refuses because of the copied .dev.env: add --force
+  git branch -d agent-django-5                              # merged into develop/main
+  git worktree remove ..\find_artek_agent-test-coverage    # old Phase 2 worktree, same
+  docker rmi find_artek:t5-before                           # image from the T5 size comparison
+  ```
+
+Tell the main session when step 9 is done; it then archives this file.
