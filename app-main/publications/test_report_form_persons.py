@@ -128,6 +128,23 @@ class AddReportNewPersonsTests(ReportFormPersonTestBase):
         self.assertEqual(self.supervisors_of(pub), [self.supervisor])
         self.assertEqual(Person.objects.count(), persons_before)
 
+    def test_typed_initials_offer_the_person_in_both_fields(self):
+        # A DTU username/initials typed instead of picking from the dropdown (found in the
+        # 2026.6 dev test: the step offered only "create new").
+        self.supervisor.initials = 'thin'
+        self.supervisor.save()
+        persons_before = Person.objects.count()
+        response = self.client.post(page_path('add_report'), self.form_data(
+            authors=['THIN', str(self.author2.pk)], supervisors=['thin']))
+        response, steps = self.walk_workflow(
+            response, {'THIN': self.supervisor, 'thin': self.supervisor})
+        self.assertEqual(steps, [('authors', 'THIN'), ('supervisors', 'thin')])
+        self.finalize(page_path('add_report_finalize'))
+        pub = Publication.objects.get(title='New report')
+        self.assertEqual(self.authors_of(pub), [self.supervisor, self.author2])
+        self.assertEqual(self.supervisors_of(pub), [self.supervisor])
+        self.assertEqual(Person.objects.count(), persons_before)
+
     def test_same_new_name_as_author_and_supervisor_is_one_person(self):
         persons_before = Person.objects.count()
         response = self.client.post(page_path('add_report'), self.form_data(
@@ -281,6 +298,43 @@ class EditReportNewPersonsTests(ReportFormPersonTestBase):
         self.finalize(page_path('edit_report_finalize', pk=report.pk))
         self.assertEqual(self.supervisors_of(report), [self.supervisor])
         self.assertEqual(Person.objects.count(), persons_before)
+
+
+class SingleWordMatchTests(ReportFormPersonTestBase):
+    """A single typed word is matched against Person.initials (from two characters, any case)
+    and Person.id_number (study number, from three characters)."""
+
+    def test_initials_match_any_case(self):
+        self.author1.initials = 'thin'
+        self.author1.save()
+        for typed in ('thin', 'THIN', ' Thin '):
+            with self.subTest(typed=typed):
+                matches = get_person_matches(typed)
+                self.assertEqual(matches['relaxed'], [self.author1])
+                self.assertEqual(matches['all_matches'][0]['match_type'], 'initials')
+
+    def test_two_letter_initials_match(self):
+        self.author1.initials = 'ab'
+        self.author1.save()
+        self.assertEqual(get_person_matches('ab')['relaxed'], [self.author1])
+
+    def test_study_number_still_matches(self):
+        self.author1.id_number = 's123456'
+        self.author1.save()
+        self.assertEqual(get_person_matches('S123456')['relaxed'], [self.author1])
+
+    def test_other_initials_and_empty_initials_do_not_match(self):
+        self.author1.initials = 'thin'
+        self.author1.save()
+        self.assertNotIn(self.author1, get_person_matches('thi')['relaxed'])
+        self.assertNotIn(self.author1, get_person_matches('thinx')['relaxed'])
+        # Persons without initials ('' in the database) never match a typed word
+        self.assertEqual(get_person_matches('zq')['all_matches'], [])
+
+    def test_a_full_name_is_not_matched_as_initials(self):
+        Person.objects.create(first='Bo', last='Zqroe', initials='Jane Zqroe')
+        self.assertNotIn('initials', [m['match_type']
+                                      for m in get_person_matches('Jane Zqroe')['all_matches']])
 
 
 class MatchFlagsTests(ReportFormPersonTestBase):

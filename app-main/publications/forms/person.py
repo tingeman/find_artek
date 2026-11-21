@@ -338,11 +338,17 @@ class PersonSelectForm(forms.Form):
                 if middle_is_exact:
                     add_match(person, 'initial_middle', 0.75, f'First initial "{first_initial}" + exact middle name "{last}" match')
         
-        # Strategy 6: ID number matching (if name_string could be an ID)
-        if re.match(r'^[a-zA-Z0-9]+$', name_string.strip()) and len(name_string.strip()) >= 3:
-            id_matches = Person.objects.filter(id_number__iexact=name_string.strip())
-            for person in id_matches:
-                add_match(person, 'id_number', 0.9, f'ID number match: {person.id_number}')
+        # Strategy 6: ID number or initials matching (if name_string is a single word: a study
+        # number such as s123456, or DTU initials/username such as "thin"). Staff initials can
+        # be two letters, so initials match from two characters on.
+        word = name_string.strip()
+        if re.match(r'^[a-zA-Z0-9]+$', word):
+            if len(word) >= 3:
+                for person in Person.objects.filter(id_number__iexact=word):
+                    add_match(person, 'id_number', 0.9, f'ID number match: {person.id_number}')
+            if len(word) >= 2:
+                for person in Person.objects.filter(initials__iexact=word):
+                    add_match(person, 'initials', 0.9, f'Initials match: {person.initials}')
         
         # Strategy 7: Special character normalization matching (for remaining cases)
         if first and last:
