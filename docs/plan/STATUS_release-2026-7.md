@@ -3,9 +3,10 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-T4 (thumbnail exit code) running, implementer. Then T5, T6, T7, T8. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
+T5 (PDF metadata command) running, implementer. Then T6, T7, T8. Added 2026-11-21: T6 Administration page, T7 person markers + confirm, T8 merge; dev checks and release are now T9 and T10.
 
 ## Done
+- T4 2026-11-21: generate_thumbnails exits 1 on errors (CommandError after the summary); gate 22/22 with job.rc 0; 605 tests (`e385e40`). For web_server (report at release): exit code changes; its cron post-check (`ansible/tasks/find_artek_checks.yml:26`) only checks daemon and cron file, unaffected; production logs `exit code 1` nightly until 01-06 and 14-28 are fixed.
 - T2b 2026-11-21: option A, no browser cache for the report list and map; `invalidate_feature_cache` flag removed; 603 tests (`e135e46`). Stale sentence in `base.html` comment (mentions the removed report.html cache script): fix in T6.
 - T3 2026-11-21: person autocomplete for logged-in users only, anonymous JSON 403; 599 tests (`732b7fc`)
 - T2a 2026-11-21: API lists in a fixed number of queries: /api/report/ 1911 -> 4 queries, ~2 s -> ~0.1 s; /api/feature/ 1747 -> 2, ~2.4 s -> ~0.25 s; JSON byte-identical; 595 tests (`3654000`)
