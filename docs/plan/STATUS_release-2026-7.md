@@ -3,9 +3,10 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-T1 (upload limit) running, implementer, in the worktree. Then T2a. T6 (Administration page, FA-R100) added to the plan 2026-11-21; old T6/T7 are now T7/T8.
+T2a (API queries) running, implementer, in the worktree. Then T2b (main session picks A or B first). T6 (Administration page, FA-R100) added to the plan 2026-11-21; old T6/T7 are now T7/T8.
 
 ## Done
+- T1 2026-11-21: one 300 MB limit (setting `MAX_UPLOAD_SIZE_MB`), browser check reads it, appendix page shows refusal reasons; 586 tests, gate 22/22 (`c1714c3`)
 
 ## Open questions
 - T2b: option A (no cache) or B (one cache, stale-while-revalidate): main session decides from T2a's numbers.
