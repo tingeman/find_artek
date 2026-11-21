@@ -1,4 +1,4 @@
-from django_cas_ng.views import LoginView as CasLoginView
+from find_artek.cas_views import LoginView as CasLoginView
 from django.urls import reverse
 from django.http import HttpResponse
 

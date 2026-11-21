@@ -20,6 +20,7 @@ from django.conf import settings
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import RedirectView
 import django_cas_ng.views
+from find_artek.cas_views import LoginView as CasLoginView
 from publications_meta.views import AdminCasLoginView
 from publications.views_media import serve_media
 
@@ -65,7 +66,7 @@ urlpatterns = [
     path("publications/", include("publications.urls", namespace="publications")),
         
     # cas login and logout
-    path("login", django_cas_ng.views.LoginView.as_view(), name="cas_ng_login"),
+    path("login", CasLoginView.as_view(), name="cas_ng_login"),
     path("logout", django_cas_ng.views.LogoutView.as_view(), name="cas_ng_logout"),
 
 

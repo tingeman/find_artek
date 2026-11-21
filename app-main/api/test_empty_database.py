@@ -65,6 +65,18 @@ class SwaggerSchemaTests(TestCase):
         description = self.topic_description(self.get_schema())
         self.assertIn('Filter publications by topic name', description)
 
+    def test_schema_is_valid_swagger_2(self):
+        # swagger-spec-validator is a dependency of drf-yasg since 1.21.11 (plan "django-5" T3)
+        from swagger_spec_validator.validator20 import validate_spec
+
+        Topic.objects.create(topic='Made-up test topic')
+        schema = self.get_schema()
+        self.assertEqual(schema['swagger'], '2.0')
+        validate_spec(schema)  # raises SwaggerValidationError
+        for suffix in ('/report/', '/feature/', '/person/'):
+            with self.subTest(path=suffix):
+                self.assertTrue([p for p in schema['paths'] if p.endswith(suffix)])
+
     def test_redoc_serves_the_same_schema(self):
         response = self.client.get(app_path(reverse('schema-redoc')), {'format': 'openapi'})
         self.assertEqual(response.status_code, 200)

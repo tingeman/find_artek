@@ -9,13 +9,13 @@
 # psycopg, PyPDF2, python-dotenv, ping3).
 
 Django>=4.2,<4.3
-# 3.14 does not list Django 4.2 as supported; 3.15 is the first that does (release 2026.2).
-# Held below 3.16 until the Django 5.2 upgrade (Phase 3).
-djangorestframework>=3.14.0,<3.16
-drf-yasg>=1.21.10,<2
-django-cas-ng>=5.0.1,<6
+# 3.16 is the last line that supports Django 4.2 (Phase 3, T3); T4 raises it with Django 5.2.
+djangorestframework>=3.16.1,<3.17
+drf-yasg>=1.21.18,<2
+django-cas-ng>=5.1.2,<6
 django-extensions>=4.1,<5
-django-select2>=8.4.1,<9
+# 8.5+ requires Python 3.14.
+django-select2>=8.4.8,<8.5
 ldap3>=2.9.1,<3
 
 # Database drivers: mysqlclient for the MariaDB (GIS) backend
