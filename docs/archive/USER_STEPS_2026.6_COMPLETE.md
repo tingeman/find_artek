@@ -123,19 +123,19 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 4. `/find/api/report/` returns JSON; `/find/swagger/` loads.
 5. Next morning: the thumbnail cron ran (`sudo docker logs --since 24h webapp-find-artek 2>&1 | grep -i thumbnail | tail -3` on the server).
 
-The plan was closed 2026-11-21 ([STATUS](../archive/STATUS_django-5_COMPLETE.md)); this file stays in `docs/plan/` until step 9 is done, then the main session archives it.
+The plan was closed 2026-11-21 ([STATUS](../archive/STATUS_django-5_COMPLETE.md)); step 9 was done 2026-11-21 and this file was archived.
 
 ## 9. After closing (you)
 
-- [ ] a. Thumbnail cron: check 5 of step 8 (the morning after the deploy).
-- [ ] b. Push find_artek `develop/main` and the tag:
+- [x] a. Thumbnail cron: check 5 of step 8 (the morning after the deploy). Done 2026-11-21.
+- [x] b. Push find_artek `develop/main` and the tag (done 2026-11-21):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
   git push origin develop/main 2026.6
   ```
 
-- [ ] c. Fast-forward `main` to the deployed tag (FA5) and push it:
+- [x] c. Fast-forward `main` to the deployed tag (FA5) and push it (done 2026-11-21, `main` = `d7aef5d`):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -145,15 +145,15 @@ The plan was closed 2026-11-21 ([STATUS](../archive/STATUS_django-5_COMPLETE.md)
   git switch develop/main
   ```
 
-- [ ] d. Push web_server `develop/main` (`0b4d515`, the `releases.yml` change):
+- [x] d. Push web_server `develop/main` (`0b4d515`, the `releases.yml` change; done 2026-11-21. web_server's remote is `github`, not `origin`):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\dtu_sus_web_server
   git log --oneline -1 develop/main      # 0b4d515 find_artek: release 2026.6 in releases.yml
-  git push origin develop/main
+  git push github develop/main
   ```
 
-- [ ] e. Optional cleanup. The dev stack runs from the `agent-django-5` worktree; start it from your checkout first (same project name, so it replaces those containers; the database volume stays).
+- [x] e. Optional cleanup (done 2026-11-21: `agent-django-5` worktree and branch and `find_artek:t5-before` removed; the dev stack stayed on the `agent-release-2026-7` worktree, `agent-test-coverage` was already gone).
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
