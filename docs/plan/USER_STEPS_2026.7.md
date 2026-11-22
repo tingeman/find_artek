@@ -79,13 +79,13 @@ Tell the main session what passed; anything off is fixed on the branch before st
 
 ## 2. Fast-forward `develop/main` (main session, with your OK)
 
-- [ ] Done.
+- [x] Done (2026-11-22, main session: `develop/main` = `3e64122`, only docs merged in after the checks).
 
 The main session reruns the checks on the branch tip and fast-forwards `develop/main` to it (`git merge --ff-only agent-release-2026-7`).
 
 ## 3. Tag `2026.7` (you, or the main session with your OK)
 
-- [ ] Done.
+- [x] Done (2026-11-22, main session with your OK: annotated tag `2026.7` on `3e64122`, local only; **not pushed**: run `git push origin develop/main 2026.7` yourself).
 
 ```powershell
 # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -97,7 +97,7 @@ git push origin develop/main 2026.7
 
 ## 4. Build and test the bundle (you)
 
-- [ ] Done.
+- [x] Done (2026-11-22, main session: `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 742 tests` OK; tarball_sha256 `9d7764dfdf85615b86c34989629b1861d4a8c75a7a0aa26bfe8168094cf41b74`, image_id `sha256:4a72c413c54a...`).
 
 ```bash
 # WSL
@@ -110,7 +110,7 @@ Expect `RESULT: OK, bundle written, tests passed`, 22/22, `Ran 685 tests` OK.
 
 ## 5. Publish to the releases share (you)
 
-- [ ] Done.
+- [x] Done (2026-11-22, main session: the three files copied, hash on the share = manifest).
 
 ```powershell
 # PowerShell
@@ -122,7 +122,7 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.7.tar.gz"   # = tarb
 
 ## 6. releases.yml (web_server, you)
 
-- [ ] Done.
+- [x] Done (2026-11-22, main session: web_server `develop/main` commit `2d00822`, 2026.6 kept commented out; not pushed, see 9b).
 
 In `C:\thin\02_Code\docker_projects\dtu_sus_web_server\ansible\vars\releases.yml`: `version: "2026.7"`, `tarball_sha256` from the manifest; keep the 2026.6 entry commented out for rollback. Commit on web_server's `develop/main`.
 
