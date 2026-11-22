@@ -10,6 +10,7 @@ Context: find_artek is a Django 4.2 student-report database (apps `publications`
 
 | Plan | Phase | Branch | Status |
 |---|---|---|---|
+| [PLAN](plan/PLAN_features.md), [STATUS](plan/STATUS_features.md) (feature registration: FA-R61, FA-R62, FA-R63, FA-R64, FA-R65 part, FA-R104, FA-R107; needs FA-R101) | 4 | `agent-features` (from `develop/main`) | draft 2026-11-22, waiting for approval |
 
 ## Finished plans
 
