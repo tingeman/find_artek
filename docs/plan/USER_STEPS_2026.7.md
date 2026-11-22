@@ -26,7 +26,7 @@ Deployment impact (web_server):
 
 ## 1. Dev checks (T9, you)
 
-- [ ] Done.
+- [x] Done (2026-11-22: rounds 1-3, checks 1-12 pass).
 
 The dev stack already runs the branch (project `find_artek_develop`, started from the worktree). Apply the new migration to your dev database first (it only adds the permission and the group grant):
 
@@ -72,6 +72,8 @@ Round 3 (after T13): the dev stack already runs T13 (rebuilt by the main session
 12. **Confirm button:** on a marked person's merge page and person page "Confirm person" is a solid green button.
 
 Delete the test reports afterwards.
+
+Round 3 (2026-11-22): 1-12 all pass (owner).
 
 Tell the main session what passed; anything off is fixed on the branch before step 2.
 
