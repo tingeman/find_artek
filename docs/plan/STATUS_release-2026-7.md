@@ -3,7 +3,9 @@
 Plan: [PLAN_release-2026-7.md](PLAN_release-2026-7.md). Branch: `agent-release-2026-7` (from `develop/main`, worktree `..\find_artek_agent-release-2026-7`).
 
 ## Now
-Owner reruns the dev checks (T9, USER_STEPS_2026.7 step 1, incl. 7 and 8 not yet done). Branch tip `61c330c` (T11, T12 on top of `5528305`).
+T13 (implementer): fixes from dev checks round 2; then the owner's round 3 (after restarting Docker Desktop on VPN, so the container resolves `win.dtu.dk`). Branch tip `61c330c`.
+
+Dev checks round 2 (2026-11-22, owner): 4/4a markers and report form OK; merge OK (2 persons merged, PDF moved; a merged pk gives 404, the technical 404 page in dev with DEBUG); confirm on the merge page works, button styling (T13); 7 autocomplete OK, anonymous 403; list/map load times reasonable, not fast: leave, FA-R102. Not OK: new report and 6a hang on the person step (container can't resolve `win.dtu.dk` on VPN; lookup unbounded, T13); repeated submit during a large upload, slow edit submit (T13); phone menu (T13). Appendices can't be deleted: no such function, FA-R104 (owner: later). 8 (main session ran it): `--evaluate 50`: no text layer 11; of 39 with text: title equal 22 (56 %), one contains the other 29 (74 %), year 39 (100 %, from the text only 0, T13 f), study numbers 12/12 reports, 23/23 numbers. `--unowned`: 39 orphan PDFs, 18 without text layer, 21 with title, year and study-number suggestions (titles of plausible length ~13, 5 too short, 3 too long; years mostly from the file name; study numbers found in 16).
 
 Dev checks 2026-11-21 (owner), round 1: Administration page OK; appendix 100+ MB OK; report PDF > 50 MB refused by the browser's cached old `file-upload.js` (server sends the new one; T11 versioned URLs); legend parentheses red/bold, table black/normal (T11); add/edit report page header spacing differs (Bootstrap 5.3 loaded on top of 4.6, T11); edit page titled "New report" (`publication`/`action` missing in the context, T11); marker opens the merge page, which has no Confirm (T11); `asska` not found: no directory lookup in the new step page (T12, owner wants it in 2026.7). Checks 7 and 8 not yet run.
 
