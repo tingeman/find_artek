@@ -555,7 +555,19 @@ class ReportFormView(ReportFormPermissionMixin, BaseFormView):
         return form
 
     def form_valid(self, form):
-        """Unified form processing for both Add and Edit with workflow support"""
+        """Unified form processing for both Add and Edit with workflow support.
+
+        A form sent by file-upload.js (XMLHttpRequest, a PDF chosen) gets the next page's URL
+        as JSON ({"success": true, "redirect": url}) instead of a redirect: the browser would
+        follow a redirect inside the request, fetch the next page (the person step asks the DTU
+        directory) and then load it a second time when the script goes there."""
+        response = self._form_valid(form)
+        if (isinstance(response, HttpResponseRedirect)
+                and self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'):
+            return JsonResponse({'success': True, 'redirect': response.url})
+        return response
+
+    def _form_valid(self, form):
         # FIRST: Always store form data in session
         session_data = self._convert_form_to_session_data(form)
         

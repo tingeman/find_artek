@@ -217,6 +217,23 @@ class ExtractTests(MediaRootMixin, TestCase):
         result = extract_pdf_metadata(path)
         self.assertEqual((result.year, result.year_source), (2014, 'file name'))
         self.assertEqual(result.year_candidates[1], (2013, 'month'))
+        self.assertEqual(result.text_year, 2013)  # the text alone
+
+    def test_text_year_equal_to_the_file_name_year(self):
+        # year_candidates lists 2013 once, as 'file name'; text_year still is the text's year.
+        path = self.write('reports/13-05.pdf', text_pdf(REPORT_PAGES))
+        result = extract_pdf_metadata(path)
+        self.assertEqual(result.year_candidates[0], (2013, 'file name'))
+        self.assertNotIn((2013, 'month'), result.year_candidates)
+        self.assertEqual(result.text_year, 2013)
+
+    def test_text_year_without_a_year_in_the_text(self):
+        pages = [[line for line in REPORT_PAGES[0] if not any(c.isdigit() for c in line[2])
+                  or 's123456' in line[2]], REPORT_PAGES[1]]
+        path = self.write('reports/14-28.pdf', text_pdf(pages))
+        result = extract_pdf_metadata(path)
+        self.assertEqual(result.year, 2014)
+        self.assertIsNone(result.text_year)
 
     def test_image_only_pdf_has_no_text_layer(self):
         path = self.write('reports/scan.pdf', image_pdf())
@@ -362,3 +379,16 @@ class EvaluateTests(MediaRootMixin, TestCase):
     def test_evaluate_takes_n_reports(self):
         output = self.run_command('--evaluate', '1')
         self.assertIn('Evaluated 1 report(s)', output)
+
+    def test_year_from_the_text_equal_to_the_file_name_year_is_a_hit(self):
+        # T13: the text year (June 2013) equal to the file name year (13-05) counted as a
+        # miss: year_candidates lists each year once, so it was listed as 'file name' only
+        # and the "text only" year became the next one (2001, 'frequent').
+        self.write('reports/2013/13-05.pdf', text_pdf(REPORT_PAGES))
+        make_report(report_type(), '13-05', verified=True, confidential=False, year=2013,
+                    file=FileObject.objects.create(file='reports/2013/13-05.pdf'))
+        output = self.run_command('--evaluate', '10')
+        self.assertIn('Evaluated 3 report(s)', output)
+        self.assertIn('year (from the text only):        1/3 (33 %)', output)
+        misses = output.split('Misses (report numbers):', 1)[1]
+        self.assertIn('  year from the text: 14-28, 96-02\n', misses)

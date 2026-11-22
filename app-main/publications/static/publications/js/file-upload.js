@@ -59,6 +59,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // submit-guard.js (loaded before this script) disables Submit at the first submit; the
+    // progress goes into its notice, and an error unlocks the form for another try.
+    function setGuardText(text) {
+        if (window.submitGuard) window.submitGuard.setText(form, text);
+    }
+    function unlockGuard() {
+        if (window.submitGuard) window.submitGuard.unlock(form);
+    }
+
     // Form submission with progress
     form.addEventListener('submit', function(e) {
         const file = fileInput.files[0];
@@ -80,6 +89,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 progressFill.style.width = percentComplete + '%';
                 progressText.textContent = Math.round(percentComplete) + '%';
+                setGuardText(percentComplete < 100
+                    ? 'Uploading… ' + Math.round(percentComplete) + ' %'
+                    : 'Uploaded, processing…');
             }
         });
         
@@ -110,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Upload failed. Please try again.');
                 progressContainer.style.display = 'none';
+                unlockGuard();
             }
         });
         
@@ -117,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         xhr.addEventListener('error', function() {
             alert('Upload failed. Please try again.');
             progressContainer.style.display = 'none';
+            unlockGuard();
         });
         
         xhr.open('POST', form.action);

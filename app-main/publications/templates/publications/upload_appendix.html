@@ -1,11 +1,13 @@
 {% extends base_template %}
 
-{% load i18n static humanize %}
+{% load i18n static humanize static_version %}
 
 {# title #}
 {% block title %}Upload Appendices{% endblock %}
 
 {% block dynamic_head_content %}
+    {# Upload and attach forms: one submit only, with a "busy" notice #}
+    <script src="{% versioned_static 'publications/js/submit-guard.js' %}" defer></script>
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
     <style>
         .upload-form {
@@ -234,7 +236,7 @@
         <strong>Note:</strong> Each file can be up to {{ form.max_size_mb }} MB.
     </p>
 
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" data-submit-guard="Uploading…">
         {% csrf_token %}
         <input type="hidden" name="action" value="upload">
         
@@ -291,7 +293,7 @@
 <!-- Submit/Cancel buttons -->
 {% if session_files %}
 <div class="form-actions" style="margin: 20px 0;">
-    <form method="post" style="display: inline;">
+    <form method="post" style="display: inline;" data-submit-guard="Attaching the files…">
         {% csrf_token %}
         <input type="hidden" name="action" value="submit">
         <button type="submit" class="btn btn-success">

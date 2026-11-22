@@ -1,6 +1,6 @@
 <!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
-{% load i18n static %}
+{% load i18n static static_version %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -50,7 +50,7 @@
     </script>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/base.css' %}" />
     <link rel="icon" href="{% static 'publications/img/artek_logo_absract_transparent_resized_favicon.ico' %}" type="image/x-icon" />
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -166,7 +166,7 @@
             <!-- frontpage logo -->
             <div class="outer-frontpage-logo">
 
-                <a class="nav-link frontpage" href="{% url 'publications:frontpage' %}">>
+                <a class="nav-link frontpage" href="{% url 'publications:frontpage' %}">
                     <img class="frontpage-icon"
                         src="{% static 'publications/img/artek_logo_absract_transparent_resized.png' %}"
                         alt="ArtTek Logo">
@@ -185,10 +185,13 @@
 
             <!-- hidden expanded menu -->
             <div class="mobile-menu-expanded" id="mobile-menu-expanded">
+                {# The same items, in the same order, as the desktop header #}
                 <ul>
+                    <li><a class="nav-link header-nav-frontpage" href="{% url 'publications:frontpage' %}">{% trans "Frontpage" %}</a></li>
                     <li><a class="nav-link header-nav-map" href="{% url 'publications:map' %}">{% trans "Map" %}</a></li>
                     <li><a class="nav-link header-nav-reports" href="{% url 'publications:reports' %}">{% trans "Reports" %}</a></li>
                     <li><a class="nav-link header-nav-persons" href="{% url 'publications:persons' %}">{% trans "Persons" %}</a></li>
+                    <li><a class="nav-link header-nav-api" href="{% url 'schema-swagger-ui' %}">{% trans "API" %}</a></li>
                     <!-- "Administration" (FA-R100), same condition as the desktop link above -->
                     {% if perms.publications.add_publication or perms.publications.change_publication %}
                     <li><a class="nav-link header-nav-administration" href="{% url 'publications:administration' %}">{% trans "Administration" %}</a></li>

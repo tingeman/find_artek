@@ -20,13 +20,7 @@ from publications.visibility import visible_features, visible_publications
 from .serializers import PublicationSerializer, FeatureSerializer, PersonSerializer
 
 
-# Get a logger instance for your app
 logger = logging.getLogger('api')
-logger.warning("views.py is loaded")
-
-# Get a logger instance for your app
-logger = logging.getLogger('api')
-logger.warning("views.py is loaded")
 
 def _topic_parameter_description():
     """Description of the ``topic`` query parameter, with the topics in the database.
@@ -71,7 +65,7 @@ class GetReportViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericViewS
         }
     )
     def list(self, request, *args, **kwargs):
-        logger.warning("GetReportViewSet.list was called")
+        logger.debug("GetReportViewSet.list was called")
         queryset = self.get_queryset()
 
         serializer = self.get_serializer(queryset, many=True)

@@ -21,10 +21,12 @@ from django.conf import settings
 from publications import models
 
 from publications.utils_basic import get_tag, remove_tags
+from publications.directory_time_limit import call_with_time_limit
 
 logger = logging.getLogger(__name__)
 
-# Seconds for connecting to and waiting for the directory (find_ldap_person), as roles.py.
+# Seconds for connecting to and waiting for the directory (find_ldap_person), as roles.py;
+# the whole lookup is limited by directory_time_limit.
 LDAP_TIMEOUT = 5
 
 re_name_sep_words = re.compile(r'\s*[;&\n]+\s*|\s+and\s+|\s+AND\s+|\s+og\s+|\s+OG\s+')
@@ -636,11 +638,18 @@ def find_ldap_person(**kwargs):
 
     attributes = ['sn', 'givenName', 'department', 'company', 'title', 'employeeID', 'initials', 'name']
 
-    # 3) Open connection, bind, and search for user
-    # Timeouts, so an unreachable directory doesn't hang the request (the report form's person
-    # step asks the directory while the user waits). A failed connection or bind raises.
-    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, get_info='ALL',
-                          connect_timeout=LDAP_TIMEOUT)
+    # 3) Open connection, bind, and search for user, within a total time limit (name
+    # resolution included), so an unreachable directory doesn't hang the request (the report
+    # form's person step asks the directory while the user waits). A failed connection or
+    # bind raises, and so does a lookup over the limit (DirectoryTimeout).
+    return call_with_time_limit(_search_directory, searchstr, attributes, sorted(kwargs))
+
+
+def _search_directory(searchstr, attributes, attribute_names):
+    """The entries for ``searchstr`` (find_ldap_person). Runs in a worker thread
+    (call_with_time_limit): only ldap3 here, no database."""
+    # No get_info: the schema download on every bind is slow and not needed (as roles.py).
+    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, connect_timeout=LDAP_TIMEOUT)
     with ldap3.Connection(
         server,
         user=settings.AUTH_LDAP_BIND_DN,
@@ -654,7 +663,7 @@ def find_ldap_person(**kwargs):
         except Exception as exc:
             result = []
             # No search string: it holds the study number or initials.
-            logger.warning('ldap search by %s failed (%s)', sorted(kwargs), type(exc).__name__)
+            logger.warning('ldap search by %s failed (%s)', attribute_names, type(exc).__name__)
 
     # 6) Return list of users matching the search criteria
     return result

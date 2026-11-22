@@ -38,7 +38,7 @@
             {% endif %}
             
             <div class="main-form-section">
-                <form enctype="multipart/form-data" action="{{ request.path }}" method="post" id="add-report-form" class="w-100">
+                <form enctype="multipart/form-data" action="{{ request.path }}" method="post" id="add-report-form" class="w-100" data-submit-guard="Saving and processing…">
                     {% csrf_token %}
                     <div id="data_container"></div>
                     <div class="table-responsive">
@@ -153,6 +153,8 @@
 
 {# Bootstrap: only base.html's 4.6 (a second Bootstrap 5 stylesheet changed the header and menu on this page). Full jQuery: base.html loads the slim build, without $.ajax, which the year handler below and select2 (form.media) need. #}
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+{# Submit guard first: file-upload.js uses window.submitGuard #}
+<script src="{% versioned_static 'publications/js/submit-guard.js' %}" defer></script>
 <script src="{% versioned_static 'publications/js/file-upload.js' %}" defer></script>
 {{ form.media }}
 <script>

@@ -98,6 +98,9 @@ class PdfSuggestions:
     year: int | None = None
     year_source: str = ''  # 'file name', 'month', 'institution', 'frequent'
     year_candidates: list = field(default_factory=list)  # [(year, source), ...], best first
+    # The best year from the text alone (the file name ignored); year_candidates can't give it:
+    # each year is listed once, so a text year equal to the file name's is listed as 'file name'.
+    text_year: int | None = None
     study_numbers: list = field(default_factory=list)  # [StudyNumber, ...]
     error: str = ''  # what went wrong with this file ('' if nothing)
 
@@ -281,6 +284,8 @@ def extract_pdf_metadata(path, pages=DEFAULT_PAGES, file_name=None, timeout=DEFA
     result.year_candidates = year_candidates(front_page, path if file_name is None else file_name)
     if result.year_candidates:
         result.year, result.year_source = result.year_candidates[0]
+    text_candidates = year_candidates(front_page)
+    result.text_year = text_candidates[0][0] if text_candidates else None
 
     try:
         xhtml = run_pdftotext(path, ['-f', '1', '-l', '1', '-bbox-layout'], timeout)

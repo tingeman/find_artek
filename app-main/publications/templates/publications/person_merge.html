@@ -24,7 +24,7 @@
     <form method="post" action="{% url 'publications:person_confirm' pk=person.pk %}" class="person-confirm-form">
         {% csrf_token %}
         <p>{% trans "If this person is not a duplicate of another one, confirm it: this clears the markers of all its links. Nothing else changes." %}</p>
-        <button type="submit" class="btn btn-outline-success">{% trans "Confirm person" %}</button>
+        <button type="submit" class="btn btn-success">{% trans "Confirm person" %}</button>
     </form>
 </div>
 {% endif %}

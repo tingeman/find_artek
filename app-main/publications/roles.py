@@ -8,7 +8,8 @@ FA-R54, tasks T1 and T12).
   - setting empty: nobody has the role, the user is removed from the Django group (a hand-made
     assignment in the admin does not survive a login);
   - lookup succeeded: the user is added if a member and removed if not;
-  - lookup failed or ``USE_LDAP`` is False: the current membership of both groups is kept and
+  - lookup failed (also: no answer within the time limit of ``directory_time_limit``) or
+    ``USE_LDAP`` is False: the current membership of both groups is kept and
     nothing new is granted.
 - ``is_superuser`` and ``is_staff`` are never touched.
 - ``first_name``, ``last_name`` and ``email`` are set from the user's AD entry (``givenName``,
@@ -29,6 +30,8 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from ldap3.utils.conv import escape_filter_chars
 
+from publications.directory_time_limit import call_with_time_limit
+
 logger = logging.getLogger(__name__)
 
 DTU_USER = 'dtu_user'
@@ -41,7 +44,8 @@ AD_ROLE_SETTINGS = {
     ARTEK_EDITOR: 'LDAP_GROUP_ARTEK_EDITOR',
 }
 
-# Seconds; a slow or unreachable LDAP server must not hang a login.
+# Seconds; a slow or unreachable LDAP server must not hang a login (and the whole lookup is
+# limited by directory_time_limit, name resolution included).
 LDAP_TIMEOUT = 5
 
 # LDAP_MATCHING_RULE_IN_CHAIN: memberOf also matches through nested groups (AD only).
@@ -96,33 +100,41 @@ def ad_user_info(username, group_dns):
     """
     if not getattr(settings, 'USE_LDAP', False):
         raise LdapLookupError('LDAP is disabled (USE_LDAP is False)')
-    user = escape_filter_chars(username)
-    memberships = {}
     try:
-        server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, connect_timeout=LDAP_TIMEOUT)
-        with ldap3.Connection(
-            server,
-            user=settings.AUTH_LDAP_BIND_DN,
-            password=settings.AUTH_LDAP_BIND_PASSWORD,
-            auto_bind=True,
-            receive_timeout=LDAP_TIMEOUT,
-            raise_exceptions=True,
-        ) as conn:
-            conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, f'(sAMAccountName={user})',
-                        attributes=list(USER_ATTRIBUTES.values()), size_limit=1)
-            attributes = conn.entries[0].entry_attributes_as_dict if conn.entries else {}
-            values = {field: _first_value(attributes, attr)
-                      for field, attr in USER_ATTRIBUTES.items()}
-
-            for dn in group_dns:
-                search_filter = '(&(sAMAccountName={0})(memberOf:{1}:={2}))'.format(
-                    user, _IN_CHAIN, escape_filter_chars(dn))
-                conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, search_filter,
-                            attributes=['sAMAccountName'], size_limit=1)
-                memberships[dn] = len(conn.entries) > 0
+        # Within a total time limit, name resolution included (directory_time_limit): a
+        # DirectoryTimeout is a failed lookup like any other.
+        return call_with_time_limit(_ad_lookup, username, group_dns)
     except Exception as exc:
         # Only the exception type: messages may contain the bind DN or server details.
         raise LdapLookupError(f'LDAP lookup failed ({type(exc).__name__})') from exc
+
+
+def _ad_lookup(username, group_dns):
+    """ad_user_info's lookup. Runs in a worker thread (call_with_time_limit): only ldap3
+    here, no database."""
+    user = escape_filter_chars(username)
+    memberships = {}
+    server = ldap3.Server(settings.AUTH_LDAP_SERVER_URI, connect_timeout=LDAP_TIMEOUT)
+    with ldap3.Connection(
+        server,
+        user=settings.AUTH_LDAP_BIND_DN,
+        password=settings.AUTH_LDAP_BIND_PASSWORD,
+        auto_bind=True,
+        receive_timeout=LDAP_TIMEOUT,
+        raise_exceptions=True,
+    ) as conn:
+        conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, f'(sAMAccountName={user})',
+                    attributes=list(USER_ATTRIBUTES.values()), size_limit=1)
+        attributes = conn.entries[0].entry_attributes_as_dict if conn.entries else {}
+        values = {field: _first_value(attributes, attr)
+                  for field, attr in USER_ATTRIBUTES.items()}
+
+        for dn in group_dns:
+            search_filter = '(&(sAMAccountName={0})(memberOf:{1}:={2}))'.format(
+                user, _IN_CHAIN, escape_filter_chars(dn))
+            conn.search(settings.AUTH_LDAP_USER_SEARCH_BASE, search_filter,
+                        attributes=['sAMAccountName'], size_limit=1)
+            memberships[dn] = len(conn.entries) > 0
     return AdUserInfo(memberships=memberships, **values)
 
 

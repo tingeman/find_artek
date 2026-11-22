@@ -176,8 +176,7 @@ class Command(BaseCommand):
             count('title_contained', bool(db_title) and bool(pdf_title)
                   and (db_title in pdf_title or pdf_title in db_title))
             count('year', result.year == pub.year, 'year')
-            text_year = next((y for y, s in result.year_candidates if s != 'file name'), None)
-            count('year_text', text_year == pub.year, 'year_text')
+            count('year_text', result.text_year == pub.year, 'year_text')
 
             db_numbers = {(a.person.id_number or '').strip().lower()
                           for a in pub.authorship_set.all()
