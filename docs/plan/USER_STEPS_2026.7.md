@@ -62,6 +62,17 @@ Round 2: rebuild first (`up -d --build` above, the migration is already applied)
 
    Tell the main session only the hit rates of `--evaluate` (title, year, study numbers, no text layer) and roughly how many orphan PDFs got a usable title.
 
+Round 2 (2026-11-22): 1, 4, 4a, 5, 6, 7 passed; 8 run by the main session; 2, 6a, the phone menu and the Confirm button fixed in T13 and rechecked in round 3; 3 acceptable (FA-R102).
+
+Round 3 (after T13): the dev stack already runs T13 (rebuilt by the main session 2026-11-22; Docker Desktop must have been started while on VPN, otherwise the directory lookups give up after 8 s and show no directory choice). Again "Empty cache and hard reload" once:
+
+9. **Directory (6a again):** add a test report, type `asska` as supervisor: the person step appears within a few seconds (about 2 s per typed person) and offers the DTU directory entry; finish as in 6a. "New report" without a PDF goes through the person step too.
+10. **Upload (2 again):** add a test report with a PDF over 50 MB: after Submit the button is disabled, the text below it shows "Uploading… n %", then "Uploaded, processing…"; clicking again does nothing; the person step follows without a long second wait. Upload an appendix over 50 MB: "Upload Files" is disabled with "Uploading…" until the page reloads; "Submit and Attach Files to Publication" likewise. Edit a report and submit with a new PDF: same behaviour, and tell the main session roughly how long the wait after 100 % was.
+11. **Phone width:** narrow the window: the menu has Frontpage, Map, Reports, Persons, API, Administration, and the blue box covers all of them.
+12. **Confirm button:** on a marked person's merge page and person page "Confirm person" is a solid green button.
+
+Delete the test reports afterwards.
+
 Tell the main session what passed; anything off is fixed on the branch before step 2.
 
 ## 2. Fast-forward `develop/main` (main session, with your OK)
