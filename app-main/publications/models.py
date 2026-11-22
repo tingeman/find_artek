@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models as geo_models
 
+from publications.fields import MultiPointField
 from publications import utils_basic as utils
 from pybtex.database import Person as pybtexPerson
 from pybtex.bibtex import utils as pybtex_utils
@@ -623,7 +624,7 @@ class Feature(BaseModel):
     files         = models.ManyToManyField(FileObject, blank=True)
     images        = models.ManyToManyField(ImageObject, through='ImageObjectship', blank=True)
 
-    points        = geo_models.MultiPointField(srid=4326, blank=True, null=True)
+    points        = MultiPointField(srid=4326, blank=True, null=True)   # FA-R101: MariaDB WKT
     lines         = geo_models.MultiLineStringField(srid=4326, blank=True, null=True)
     polys         = geo_models.MultiPolygonField(srid=4326, blank=True, null=True)
 
