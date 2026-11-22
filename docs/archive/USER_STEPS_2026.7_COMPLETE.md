@@ -1,6 +1,6 @@
 # User steps: release 2026.7 (PLAN_release-2026-7 T9 and T10)
 
-Branch `agent-release-2026-7` holds T1-T8, T11 and T12 of [PLAN_release-2026-7.md](PLAN_release-2026-7.md), with `develop/main` merged in (`5528305`); tip `61c330c`. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
+Branch `agent-release-2026-7` holds T1-T8, T11 and T12 of [PLAN_release-2026-7.md](PLAN_release-2026-7_COMPLETE.md), with `develop/main` merged in (`5528305`); tip `61c330c`. It is not on `develop/main` yet: step 1 checks it in the dev stack, step 2 fast-forwards it.
 
 Checks on the branch tip (2026-11-21, main session): `check` clean, `makemigrations --check` no changes, 718 Django tests OK; `tests/run.sh` ALL 22 TESTS PASSED (implementer, on `61c330c`).
 
@@ -128,7 +128,7 @@ In `C:\thin\02_Code\docker_projects\dtu_sus_web_server\ansible\vars\releases.yml
 
 ## 7. Deploy the app (you)
 
-- [ ] Done.
+- [x] Done (2026-11-22, owner).
 
 ```bash
 # WSL
@@ -152,7 +152,7 @@ Rollback: put the `2026.6` entry back in `releases.yml`, then `sudo docker exec 
 
 ## 8. Functional checks in production (you)
 
-- [ ] Done.
+- [x] Done (2026-11-22, owner: all checks pass).
 
 Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 
@@ -166,7 +166,7 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 
 ## 9. After closing (you)
 
-- [ ] a. Fast-forward `main` to the deployed tag (FA5) and push it:
+- [x] a. Fast-forward `main` to the deployed tag (FA5) and push it:
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -174,14 +174,14 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
   git push origin main
   ```
 
-- [ ] b. Push web_server `develop/main` (the `releases.yml` change). web_server's remote is `github`:
+- [x] b. Push web_server `develop/main` (the `releases.yml` change). web_server's remote is `github`:
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\dtu_sus_web_server
   git push github develop/main
   ```
 
-- [ ] c. Optional cleanup, after step 9 of [USER_STEPS_2026.6_COMPLETE.md](../archive/USER_STEPS_2026.6_COMPLETE.md):
+- [x] c. Optional cleanup, after step 9 of [USER_STEPS_2026.6_COMPLETE.md](../archive/USER_STEPS_2026.6_COMPLETE.md):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -189,4 +189,4 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
   git branch -d agent-release-2026-7                         # merged into develop/main
   ```
 
-Tell the main session when step 9 is done; it then archives this file.
+Step 9 done 2026-11-22 (owner); archived by the main session.
