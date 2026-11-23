@@ -230,6 +230,17 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 - At the all-Greenland view the overview lists 24 reports, although the API returns 1749 features on 161 public reports to anonymous users. Find and fix the cause (`js/map.js` `reportsInView`, `find-artek-map.js` `recordsInView`/`viewBounds`/`projectedBounds`).
 - Tests where testable; browser check by the main session. Agent: implementer. Deployment impact: none.
 
+### T19. Marker style and topographic layer (owner recheck 2026-11-23)
+- Feature colours back to the old scheme (before T16: Other white, Borehole yellow, Lab measurement pink, the rest unchanged); every point marker gets a **black border** and is **smaller** than now. Legend swatches and filter follow `map_styles.py`. T16's contrast tests change deliberately.
+- The topographic Dataforsyningen layer has a wide white border around Greenland that hides the Arctic SDI underlay. Make white show the underlay (e.g. request transparency if the service supports it, else CSS `mix-blend-mode: multiply` on that layer's pane, so white is see-through over the underlay); satellite stays as is.
+- Agent: implementer. Deployment impact: none (STATIC_ASSET_VERSION).
+
+### T20. Delete flow polish (owner recheck 2026-11-23)
+- No browser confirm dialog on the buttons that only open a delete confirm page (e.g. "Delete report" on the report page); the dialog only on the button that really deletes: report delete page (exists), "Delete all features" confirm, single feature delete, feature file/image delete, appendix delete, bulk delete.
+- The numbered list in the T13 alert on the report delete page is cut off on the left (list numbers outside the box): fix the CSS.
+- Administration page: a link to the bulk delete of reports (`reports/bulk-delete/`), shown to superusers only.
+- Agent: implementer. Deployment impact: none.
+
 ## Out of scope
 
 - PostgreSQL/PostGIS (FA-R4 long-term goal).

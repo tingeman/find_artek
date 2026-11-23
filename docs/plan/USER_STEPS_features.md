@@ -231,25 +231,27 @@ The dev stack already runs the fixed code from the worktree. In both windows, re
 
 http://localhost:8098/publications/map/
 
-- [ ] **T18:** at the all-Greenland view, **Reports in view** lists about 140–160 reports, not 24.
-- [ ] **T18:** zoom into Ilulissat: the list shrinks to the reports there (mostly point features). Tick only **Borehole**: only reports with boreholes in view remain.
-- [ ] **T16:** the map has a thin grey **border** and a light blue-grey background where there are no tiles.
-- [ ] **T16:** choose **Topographic**, then zoom out until Canada/Iceland show. Outside Greenland you see the **Arctic basemap**, not white. Same with **Satellite**.
-- [ ] **T16:** the colours: **Other** is teal, **Borehole** dark gold, **Lab measurement** deep pink. All are easy to see. Do you like them? ______
+- [x] **T18:** at the all-Greenland view, **Reports in view** lists about 140–160 reports, not 24.
+- [x] **T18:** zoom into Ilulissat: the list shrinks to the reports there (mostly point features). Tick only **Borehole**: only reports with boreholes in view remain.
+- [x] **T16:** the map has a thin grey **border** and a light blue-grey background where there are no tiles.
+- [x] **T16:** choose **Topographic**, then zoom out until Canada/Iceland show. Outside Greenland you see the **Arctic basemap**, not white. Same with **Satellite**.
+    - ***Arctic basemap shows in both situations. It works well with sattelite, but not so well with topographic. The topographic basemap seems to have a wide white border. Is it possible to make that white area transparent, so the Arctic basemap below shows?***
+- [ ] **T16:** the colours: **Other** is teal, **Borehole** dark gold, **Lab measurement** deep pink. All are easy to see. Do you like them? 
+    - ***They are all easy to see now, but I don't like especially the gold. Let us stick with the old colorscheme, but give each marker a black border. Also make the markers smaller, they are currently quite big.***
 
 ### R2. Signed in (Window A): two test reports
 
-- [ ] Create two reports with the normal "Add report" form: **`ZZ recheck A (delete me)`** and **`ZZ recheck B (delete me)`**, unvalidated. Note the pks: A ______, B ______
+- [x] Create two reports with the normal "Add report" form: **`ZZ recheck A (delete me)`** and **`ZZ recheck B (delete me)`**, unvalidated. Note the pks: A ***569***, B ***570***
 
 ### R3. Report A: draw, coordinates, feature page (T15, T17)
 
-- [ ] On report A, **Draw on map**: a **polygon**, a **line inside the polygon**, and a **line outside it**. Name `R drawn`, Save.
-- [ ] Open `R drawn`, click **Edit on map**. Bin tool, click the **inner line**: only that line disappears. Toolbar **Save**, then **Save changes**. You land on the **feature page** (T15), which shows the polygon and the outer line.
-- [ ] **Edit on map** again. Bin tool, click the **polygon**: only the polygon goes. Save, Save changes: the outer line remains.
-- [ ] **Edit on map** again. Pencil tool: drag a vertex of the line. It moves. Save.
-- [ ] On report A, **Enter coordinates**: the EPSG list is in a **light blue box** (T15). Enter EPSG `32622`, x `465000`, y `7120000`, name **`R shared`**, Save.
-- [ ] Open `R shared`. The feature page lists **Report: <A number> …** (T15). Click **Edit coordinates**, change x to `466000`, Save: you are back on the **feature page**, not the report.
-- [ ] On `R shared`, **Add files or images**: upload `test.jpg`. Back on the feature page.
+- [x] On report A, **Draw on map**: a **polygon**, a **line inside the polygon**, and a **line outside it**. Name `R drawn`, Save.
+- [x] Open `R drawn`, click **Edit on map**. Bin tool, click the **inner line**: only that line disappears. Toolbar **Save**, then **Save changes**. You land on the **feature page** (T15), which shows the polygon and the outer line.
+- [x] **Edit on map** again. Bin tool, click the **polygon**: only the polygon goes. Save, Save changes: the outer line remains.
+- [x] **Edit on map** again. Pencil tool: drag a vertex of the line. It moves. Save.
+- [x] On report A, **Enter coordinates**: the EPSG list is in a **light blue box** (T15). Enter EPSG `32622`, x `465000`, y `7120000`, name **`R shared`**, Save.
+- [x] Open `R shared`. The feature page lists **Report: <A number> …** (T15). Click **Edit coordinates**, change x to `466000`, Save: you are back on the **feature page**, not the report.
+- [x] On `R shared`, **Add files or images**: upload `test.jpg`. Back on the feature page.
 
 ### R4. Make `R shared` belong to both reports (PowerShell)
 
@@ -260,20 +262,24 @@ cd C:\thin\02_Code\docker_projects\find_artek_agent-features
 docker compose -f docker-compose.yml -f docker-compose.develop.yml exec -T webapp-find-artek python manage.py shell --settings find_artek.development_settings -c "from publications.models import Feature, Publication; f=Feature.objects.get(name='R shared'); f.publications.add(Publication.objects.get(title='ZZ recheck B (delete me)')); print(list(f.publications.values_list('title', flat=True)))"
 ```
 
-- [ ] It prints both report titles A and B.
+- [x] It prints both report titles A and B.
 
 ### R5. Delete pages (T13, T14, T15)
 
-- [ ] **T13:** open report A's delete function. The page says the report **cannot be deleted yet**, shows **2 features**, offers **Delete all features** (link) and "one by one", lists `R drawn` and `R shared` with links, and has **no delete button**. Click Cancel.
-- [ ] **T14:** on report **B**, click Delete next to `R shared`. The page says it belongs to more than one report and cannot be deleted, and offers **Remove from report <B number>**. Click it. You are back on report B with "removed from report …; it stays on the other report(s)". `R shared` is gone from B.
-- [ ] Open `R shared` from report A: it still has its image, and the page lists only report A.
-- [ ] **T15:** on report A, **Delete all features**: each feature is a **link** and shows its files and images (`R shared`: "0 files, 1 image"). Confirm.
-- [ ] **T13:** report A's delete function now shows the normal delete page with the button. Delete report A, then report B.
-- [ ] Optional, **T13 bulk delete:** http://localhost:8098/publications/reports/bulk-delete/ — only if you know this page; a report with features is listed apart as "not deleted".
+- [x] **T13:** open report A's delete function. The page says the report **cannot be deleted yet**, shows **2 features**, offers **Delete all features** (link) and "one by one", lists `R drawn` and `R shared` with links, and has **no delete button**. Click Cancel.
+    - ***When clicking delete report on the report page, a dialogue first appears asking if I am absolutely sure. This seems unnecessary, as there is a second page to review before the actual delete action. On the Delete Publication page, yes, it says the report cannot be deleted and explains why, but some of the text in the box is cropped (extends too far left, outside the box, but is cropped by the box). It is the two item numbers of the numbered list.***
+- [x] **T14:** on report **B**, click Delete next to `R shared`. The page says it belongs to more than one report and cannot be deleted, and offers **Remove from report <B number>**. Click it. You are back on report B with "removed from report …; it stays on the other report(s)". `R shared` is gone from B.
+- [x] Open `R shared` from report A: it still has its image, and the page lists only report A.
+- [x] **T15:** on report A, **Delete all features**: each feature is a **link** and shows its files and images (`R shared`: "0 files, 1 image"). Confirm.
+- [x] **T13:** report A's delete function now shows the normal delete page with the button. Delete report A, then report B.
+    - ***The final delete action (pressing the button of the delete page) also shows the dialogue (are you absolutely sure?). This is fine, because this is the step where deleting actually happens. Could have the dialogue also when deleting all features etc. But only just before the actual delete action.***
+- [x] Optional, **T13 bulk delete:** http://localhost:8098/publications/reports/bulk-delete/ — only if you know this page; a report with features is listed apart as "not deleted".
+    - ***This page works well. Could be linked from the administration page, only for superusers.***
+
 
 ### R6. Findings of the recheck
 
--
+-  See above, my comments are all enclosed in ***<comment>***
 
 ---
 
