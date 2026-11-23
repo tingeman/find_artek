@@ -41,7 +41,7 @@ from django.shortcuts import resolve_url
 from django.test import TestCase, override_settings
 from django.urls import URLPattern, URLResolver, get_resolver, get_script_prefix, reverse
 
-from publications.models import Feature, Person
+from publications.models import Appendenciesship, Feature, FileObject, Person
 from publications.roles import ARTEK_EDITOR
 from publications.test_factories import app_path, make_report, make_user, report_type
 
@@ -130,6 +130,9 @@ SMOKE = {
     'publications:delete_report': entry(pub, LOGIN, 403, 200),
     'publications:change_report_number': entry(pub, LOGIN, 403, 200),
     'publications:upload_appendix': entry(pub, LOGIN, 403, 200),
+    # GET is the confirmation page; POST deletes (test_appendix_delete).
+    'publications:delete_appendix': entry(lambda t: {'pk': t.pub.pk, 'file_pk': t.appendix.pk},
+                                          LOGIN, 403, 200),
     'publications:add_feature_coordinates': entry(lambda t: {'report_pk': t.pub.pk},
                                                   LOGIN, 403, 200),
     'publications:add_feature_by_map': entry(lambda t: {'report_pk': t.pub.pk},
@@ -262,6 +265,9 @@ class SmokeUrlTests(TestCase):
         cls.feature = Feature.objects.create(name='Smoke feature',
                                              date=datetime.date(1999, 7, 1))
         cls.feature.publications.add(cls.pub)
+        # An appendix record without a file on disk (the delete confirmation page only).
+        cls.appendix = FileObject.objects.create(file='reports/1999/appendices/smoke.txt')
+        Appendenciesship.objects.create(publication=cls.pub, fileobject=cls.appendix)
         cls.users = {
             'anonymous': None,
             'dtu_user': make_user('s990950'),

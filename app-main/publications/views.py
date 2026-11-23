@@ -22,7 +22,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 from django.db import transaction, IntegrityError
 from django.db.models import QuerySet
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.template import RequestContext
 from django.template.loader import render_to_string
@@ -61,7 +61,7 @@ from publications.person_links import is_marked, marked_links
 from publications.library import get_client_ip, is_private
 from publications.models import (
     Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
-    Keyword, FileObject
+    Keyword, FileObject, Appendenciesship
 )
 from publications.permissions import (
     ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, MERGE_PERSON,
@@ -1724,6 +1724,73 @@ class UploadAppendixView(PublicationPermissionMixin, BaseView):
         
         # Redirect to publication detail page
         return redirect('publications:report', pk=publication.id)
+
+
+def _remove_appendix_file(path, file_object_pk):
+    """After the commit: remove a deleted appendix's file. A missing file is not an error."""
+    if not os.path.exists(path):
+        logger.warning("File of the deleted appendix FileObject %s was already missing: %s",
+                       file_object_pk, path)
+        return
+    _remove_file(path)
+
+
+def _file_object_is_used(file_object):
+    """True if anything still points to ``file_object``: an appendix of any report, a
+    report's PDF (Publication.file) or a feature (Feature.files)."""
+    return (Appendenciesship.objects.filter(fileobject=file_object).exists()
+            or Publication.objects.filter(file=file_object).exists()
+            or Feature.objects.filter(files=file_object).exists())
+
+
+class DeleteAppendixView(PublicationPermissionMixin, BaseView):
+    """Delete one appendix of a report (roadmap FA-R104, plan features T9).
+
+    Same rule as the upload (``edit``: Publication.is_editable_by; permissions.py). GET shows
+    the confirmation page, POST deletes. 404 if the file is not an appendix of this report.
+
+    The link between the report and the file is always removed. The FileObject is deleted
+    only when nothing else uses it (an appendix of another report, a report's PDF, a
+    feature's files); its file on disk is removed after the commit, unless another FileObject
+    names the same file. A file that is already missing is only logged.
+    """
+    template_name = 'publications/appendix_confirm_delete.html'
+    permission = EDIT
+    http_method_names = ['get', 'post']
+
+    def get_appendix(self):
+        file_pk = self.kwargs['file_pk']
+        if not Appendenciesship.objects.filter(
+                publication=self.publication, fileobject_id=file_pk).exists():
+            raise Http404("No such appendix of this report.")
+        return get_object_or_404(FileObject, pk=file_pk)
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data()
+        context.update({'publication': self.publication, 'appendix': self.get_appendix()})
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        publication = self.publication
+        appendix = self.get_appendix()
+        filename = appendix.filename() if appendix.file else f'file {appendix.pk}'
+        with transaction.atomic():
+            Appendenciesship.objects.filter(publication=publication, fileobject=appendix).delete()
+            if not _file_object_is_used(appendix):
+                file_object_pk = appendix.pk
+                path = _file_object_path(appendix)
+                name_shared = bool(appendix.file) and FileObject.objects.filter(
+                    file=appendix.file.name).exclude(pk=file_object_pk).exists()
+                appendix.delete()
+                if path is None:
+                    logger.warning("Deleted appendix FileObject %s had no file under MEDIA_ROOT",
+                                   file_object_pk)
+                elif not name_shared:
+                    transaction.on_commit(functools.partial(
+                        _remove_appendix_file, path, file_object_pk))
+        messages.success(request, f'Appendix "{filename}" was deleted from report '
+                                  f'{publication.number or publication.pk}.')
+        return redirect('publications:report', pk=publication.pk)
 
 
 class ChangeReportNumberView(PublicationPermissionMixin, BaseFormView):

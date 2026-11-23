@@ -201,7 +201,12 @@
         </div>
         <div class="card-body">
           {% for appendix in publication.appendices.all %}
-            <a href="{{ appendix.file.url }}" download>{{ appendix.filename }}</a><br>
+            <div class="d-flex align-items-center mb-1">
+              <a href="{{ appendix.file.url }}" download>{{ appendix.filename }}</a>
+              {% if can_edit_publication %}
+              <a href="{% url 'publications:delete_appendix' pk=publication.id file_pk=appendix.pk %}" class="btn btn-outline-danger btn-sm ml-2 py-0" title="{% trans 'Delete this appendix' %}">Delete</a>
+              {% endif %}
+            </div>
           {% empty %}
             <p>No appendices available.</p>
           {% endfor %}
