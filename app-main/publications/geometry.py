@@ -34,6 +34,17 @@ API
   ``transform_note``, ``warnings`` (tuple of str); ``apply_to(feature)`` sets the three
   geometry columns (None clears a column) and ``source_srid``, ``source_geometry``,
   ``transform_note``; it does not save.
+- ``MAP_DIGITIZED = 'digitized on the map (WGS84)'``, ``map_transform_note(result)``: the
+  ``transform_note`` of a geometry drawn on the map (T5), e.g.
+  ``'EPSG:4326 (no transformation); digitized on the map (WGS84)'``.
+- ``source_origin(feature) -> 'map' | 'entered' | 'unknown'``: where the feature's geometry
+  came from (map drawing; coordinates entered or imported; features registered before the
+  source fields existed).
+- ``feature_geojson(feature) -> dict``: the feature's stored geometry as a GeoJSON
+  FeatureCollection (one Feature per non-empty column, exact coordinates), as the map editor
+  loads it.
+- ``same_geometry(result, feature, tolerance=1e-9) -> bool``: the result has the same
+  geometry as the feature's stored columns (a kind missing on one side counts as different).
 
 Rules
 -----
@@ -150,6 +161,69 @@ class GeometryResult:
         feature.source_geometry = self.source_geometry
         feature.transform_note = self.transform_note
         return feature
+
+
+# --- Map drawings and stored geometry (plan "features" T5) -----------------------------------
+
+MAP_DIGITIZED = 'digitized on the map (WGS84)'
+FEATURE_COLUMNS = ('points', 'lines', 'polys')
+
+
+def map_transform_note(result):
+    """``transform_note`` for a geometry drawn on the map (marks it as digitized there)."""
+    return f'{result.transform_note}; {MAP_DIGITIZED}'
+
+
+def source_origin(feature):
+    """'map' (drawn on the map), 'entered' (coordinates entered or imported) or 'unknown'
+    (no source fields: registered before plan "features" T4)."""
+    if feature.source_srid is None and not feature.source_geometry:
+        return 'unknown'
+    if MAP_DIGITIZED in (feature.transform_note or ''):
+        return 'map'
+    return 'entered'
+
+
+def _as_lists(coords):
+    if isinstance(coords, (tuple, list)):
+        return [_as_lists(part) for part in coords]
+    return coords
+
+
+def feature_geojson(feature):
+    """The stored geometry of ``feature`` as a GeoJSON FeatureCollection dict. Coordinates
+    are the stored floats (not rounded), so the unchanged collection compares equal."""
+    types = {'points': 'MultiPoint', 'lines': 'MultiLineString', 'polys': 'MultiPolygon'}
+    features = []
+    for column in FEATURE_COLUMNS:
+        geom = getattr(feature, column)
+        if geom is None or geom.empty:
+            continue
+        features.append({
+            'type': 'Feature',
+            'properties': {'column': column},
+            'geometry': {'type': types[column], 'coordinates': _as_lists(geom.coords)},
+        })
+    return {'type': 'FeatureCollection', 'features': features}
+
+
+def same_geometry(result, feature, tolerance=1e-9):
+    """True if ``result`` (GeometryResult) has the geometry stored on ``feature``: per
+    column both empty, or equal vertex by vertex within ``tolerance`` degrees."""
+    for column in FEATURE_COLUMNS:
+        new, old = getattr(result, column), getattr(feature, column)
+        if old is not None and old.empty:
+            old = None
+        if (new is None) != (old is None):
+            return False
+        if new is None:
+            continue
+        try:
+            if not new.equals_exact(old, tolerance):
+                return False
+        except Exception:   # GEOSException for geometries of different kinds
+            return False
+    return True
 
 
 # --- Building --------------------------------------------------------------------------------

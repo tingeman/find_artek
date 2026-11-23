@@ -64,12 +64,13 @@ from publications.models import (
     Keyword, FileObject, Appendenciesship
 )
 from publications.permissions import (
-    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, MANAGE, MERGE_PERSON,
-    VERIFY, VIEW,
+    ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, EDIT_FEATURE, MANAGE,
+    MERGE_PERSON, VERIFY, VIEW,
     FeaturePermissionMixin, PermissionMixin, PublicationPermissionMixin,
     ReportFormPermissionMixin, permission_required, user_may,
 )
 from publications.utils_basic import CaseInsensitively
+from publications.geometry import source_origin
 from publications.visibility import visible_features, visible_publications
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
@@ -430,6 +431,10 @@ class ReportView(PublicationPermissionMixin, BaseDetailView):
             feature.pk for feature in associated_features
             if user_may(user, DELETE_FEATURE, feature)
         }
+        editable_feature_ids = {
+            feature.pk for feature in associated_features
+            if user_may(user, EDIT_FEATURE, feature)
+        }
         # Authors and supervisors as link rows (with the duplicate markers, FA-R66), in the
         # order of the rows: the order publication.authors.all() lists them in on MariaDB.
         authorships = list(self.object.authorship_set.select_related('person').order_by('pk'))
@@ -449,6 +454,7 @@ class ReportView(PublicationPermissionMixin, BaseDetailView):
             'can_verify_publication': can_verify_publication,
             'can_add_feature': user_may(user, ADD_FEATURE, self.object),
             'deletable_feature_ids': deletable_feature_ids,
+            'editable_feature_ids': editable_feature_ids,
         })
         return context
 
@@ -1323,11 +1329,21 @@ class FeatureView(FeaturePermissionMixin, BaseDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        geometry = self.object.points or self.object.lines or self.object.polys
+        feature = self.object
+        user = self.request.user
+        # The WGS84 copy per kind (points, lines, polygons), as stored.
+        geometries = [geom for geom in (feature.points, feature.lines, feature.polys)
+                      if geom is not None and not geom.empty]
         context.update({
-            'geometry': geometry,
+            'geometries': geometries,
+            # Where the geometry came from (plan "features" T5, design note 8): 'map',
+            # 'entered' or 'unknown' (registered before the source fields existed).
+            'source_origin': source_origin(feature),
             'visible_reports': visible_publications(
-                self.object.publications.all(), self.request.user).order_by('number', 'pk'),
+                feature.publications.all(), user).order_by('number', 'pk'),
+            # Same rules as the edit and delete views (permissions.py).
+            'can_edit_feature': user_may(user, EDIT_FEATURE, feature),
+            'can_delete_feature': user_may(user, DELETE_FEATURE, feature),
         })
         return context
 
@@ -1933,94 +1949,116 @@ class AddFeatureCoordinatesView(PublicationPermissionMixin, BaseFormView):
         return reverse('publications:report', kwargs={'pk': self.kwargs['report_pk']})
 
 
-class AddFeatureByMapView(PublicationPermissionMixin, FormView):
-    """View for adding a feature by clicking on a map.
-
-    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py).
-    The mixin sets ``self.publication``."""
+class FeatureMapFormMixin:
+    """Add or edit a feature by drawing on the map (plan "features" T5): the shared map
+    component in edit mode (find-artek-map-edit.js) fills the form's ``geojson_data``;
+    ``AddFeatureByMap`` checks it with publications.geometry and decides whether the geometry
+    changed. Warnings of the geometry check (e.g. outside Greenland) become messages."""
     template_name = 'publications/add_feature_by_map.html'
     form_class = AddFeatureByMap
-    permission = ADD_FEATURE
-    publication_url_kwarg = 'report_pk'
 
-    def get_publication(self):
-        """Get the publication object"""
-        report_pk = self.kwargs.get('report_pk')
-        return get_object_or_404(Publication, pk=report_pk)
-
-    def get_context_data(self, **kwargs):
-        """Add publication to context"""
-        context = super().get_context_data(**kwargs)
-        context['publication'] = self.publication
-        # Add any MapBox or other API keys if needed
-        if hasattr(settings, 'MAPBOX_ACCESS_TOKEN'):
-            context['mapbox_access_token'] = settings.MAPBOX_ACCESS_TOKEN
-        return context
-
-    def form_valid(self, form):
-        """Create and save the feature with geometry from the map"""
-        try:
-            # Create feature object but don't save yet
-            feature = form.save(commit=False)
+    def save_feature(self, form, created):
+        feature = form.save(commit=False)
+        if created:
             feature.created_by = self.request.user
-            feature.modified_by = self.request.user
+        feature.modified_by = self.request.user
+        feature.save()
+        form.save_m2m()
+        return feature
 
-            # Process geometry from the correct hidden field
-            geojson_data = self.request.POST.get('geojson_data', '')
-            if geojson_data:
-                # Parse the GeoJSON data
-                geojson = json.loads(geojson_data)
-
-                # Create a MultiPoint geometry from the coordinates
-                coordinates = []
-                if geojson.get('type') == 'FeatureCollection':
-                    for f in geojson.get('features', []):
-                        if f.get('geometry', {}).get('type') == 'Point':
-                            coords = f['geometry']['coordinates']
-                            coordinates.append(coords)
-
-                if coordinates:
-                    points = []
-                    for pair in coordinates:
-                        try:
-                            lon, lat = pair
-                            points.append(Point(lon, lat))
-                        except Exception:
-                            logger.debug("AddFeatureByMapView: skipped an invalid coordinate pair")
-                    feature.points = MultiPoint(points, srid=4326)
-                else:
-                    raise ValueError("No valid coordinates found in map data")
-
-            # Save the feature
-            feature.save()
-            publication = self.get_publication()
-            feature.publications.add(publication)
-
-            messages.success(
-                self.request,
-                'Feature added successfully!'
-            )
-
-            return redirect('publications:report', pk=publication.pk)
-
-        except Exception as e:
-            logger.exception("Adding a feature by map to publication %s failed",
-                             self.kwargs.get('report_pk'))
-            messages.error(
-                self.request,
-                f'An error occurred while creating the feature: {str(e)}. '
-                'Please try again or contact support.'
-            )
-            return self.form_invalid(form)
+    def add_geometry_messages(self, form):
+        for warning in form.geometry_warnings:
+            messages.warning(self.request, warning)
 
     def form_invalid(self, form):
-        """Handle invalid form data"""
         messages.error(
             self.request,
             'There was a problem with your feature data. '
             'Please correct the errors below and try again.'
         )
         return super().form_invalid(form)
+
+
+class AddFeatureByMapView(PublicationPermissionMixin, FeatureMapFormMixin, FormView):
+    """Add a feature to a report by drawing it on the map.
+
+    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py).
+    The mixin sets ``self.publication``. Back to the report after saving or cancelling."""
+    permission = ADD_FEATURE
+    publication_url_kwarg = 'report_pk'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault('pos_quality', 'Approximate')   # drawn on the map
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'publication': self.publication,
+            'editing': False,
+            'map_publication': self.publication,
+            'cancel_url': reverse('publications:report', kwargs={'pk': self.publication.pk}),
+        })
+        return context
+
+    def form_valid(self, form):
+        feature = self.save_feature(form, created=True)
+        feature.publications.add(self.publication)
+        messages.success(self.request, f'Feature "{feature.name}" added to report '
+                                       f'{self.publication.number}.')
+        self.add_geometry_messages(form)
+        return redirect('publications:report', pk=self.publication.pk)
+
+
+class EditFeatureByMapView(FeaturePermissionMixin, FeatureMapFormMixin, FormView):
+    """Edit a feature's attributes and geometry on the map.
+
+    Needs ``edit_feature`` (Feature.is_editable_by; permissions.py). ``report`` (query string
+    on GET, hidden field on POST) names the report to return to; it counts only if it is a
+    report of this feature the user may see. Otherwise the feature's first visible report,
+    else the feature page."""
+    permission = EDIT_FEATURE
+
+    def return_report(self):
+        if not hasattr(self, '_return_report'):
+            reports = visible_publications(
+                self.feature.publications.all(), self.request.user).order_by('number', 'pk')
+            wanted = self.request.POST.get('report') or self.request.GET.get('report')
+            report = None
+            if wanted and str(wanted).isdigit():
+                report = reports.filter(pk=int(wanted)).first()
+            self._return_report = report or reports.first()
+        return self._return_report
+
+    def return_url(self):
+        report = self.return_report()
+        if report is not None:
+            return reverse('publications:report', kwargs={'pk': report.pk})
+        return reverse('publications:feature', kwargs={'pk': self.feature.pk})
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.feature
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        report = self.return_report()
+        context.update({
+            'feature': self.feature,
+            'editing': True,
+            'return_report': report,
+            'map_publication': report,
+            'cancel_url': self.return_url(),
+        })
+        return context
+
+    def form_valid(self, form):
+        feature = self.save_feature(form, created=False)
+        messages.success(self.request, f'Feature "{feature.name}" saved.')
+        self.add_geometry_messages(form)
+        return HttpResponseRedirect(self.return_url())
 
 
 class DeleteReportView(PublicationPermissionMixin, BaseView):

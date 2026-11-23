@@ -1,495 +1,117 @@
 {% extends 'publications/base.html' %}
-{% load static %}
+{% load static static_version %}
+{# Add a feature by drawing it on the map, or edit a feature (plan "features" T5). #}
 
-{% block headline %}Add Feature by Map{% endblock %}
+{% block title %}{% if editing %}Edit feature{% else %}Add feature{% endif %}{% endblock %}
+
+{% block headline %}{% if editing %}Edit feature on the map{% else %}Add feature by drawing on the map{% endif %}{% endblock %}
 
 {% block dynamic_head_content %}
-<!-- Leaflet CSS and JavaScript -->
 <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
-<script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}"></script>
-
-<!-- Leaflet Draw Plugin for drawing points -->
 <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-draw-1.0.4/leaflet.draw.css' %}" />
-<script src="{% static 'publications/vendor/leaflet-draw-1.0.4/leaflet.draw.js' %}"></script>
-
 <style>
-/* Map container styles */
-#map-container {
-    position: relative;
-    width: 100%;
-    height: 500px;
-    margin-bottom: 20px;
-}
 #feature-map {
     width: 100%;
-    height: 100%;
+    height: 520px;
 }
-.map-info-box {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-    max-width: 300px;
+.feature-map-help li {
+    margin-bottom: 0.25rem;
 }
-.point-info {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-.point-list {
-    max-height: 200px;
-    overflow-y: auto;
-}
-.point-item {
-    border-bottom: 1px solid #eee;
-    padding: 5px 0;
-}
-.point-item:last-child {
-    border-bottom: none;
-}
-.point-actions {
-    margin-top: 10px;
-}
-
-/* Horizontal form layout and field styles (copied from add_feature_coordinates.html) */
-.form-control.is-invalid {
-    border-color: #dc3545;
-}
-.text-danger {
-    font-size: 0.875em;
-}
-/* Required field asterisks */
 .required-field label:after {
     content: " *";
     color: red;
     font-weight: bold;
 }
-.publication-info {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    margin: 20px 0;
-}
-.coordinate-section, .additional-info-section {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    margin: 20px 0;
-    border-left: 4px solid #007bff;
-}
-.form-actions {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #dee2e6;
-}
-.card {
-    position: sticky;
-    top: 20px;
-}
-.srid-examples {
-    font-size: 0.9em;
-    line-height: 1.4;
-}
-code {
-    background-color: #f1f3f4;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-size: 0.9em;
-}
-.form-group label {
-    font-weight: 600;
-    color: #495057;
-}
-.form-control, .form-select {
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    padding: 0.375rem 0.75rem;
-}
-.form-control:focus, .form-select:focus {
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
-}
-/* Force horizontal form layout */
-.form-group.row {
-    display: flex !important;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-.form-group.row .col-sm-3 {
-    flex: 0 0 auto;
-    padding-right: 15px;
-    width: 25%;
-}
-.form-group.row .col-sm-9 {
-    flex: 1;
-}
-.col-form-label {
-    padding-top: calc(0.375rem + 1px);
-    padding-bottom: calc(0.375rem + 1px);
-    margin-bottom: 0;
-    font-size: inherit;
-    line-height: 1.5;
-}
-.srid-examples-detail {
-    background-color: #f8f9fa;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border-left: 3px solid #007bff;
-    font-size: 0.85em;
-    line-height: 1.3;
-}
-.srid-examples-detail code {
-    background-color: #e9ecef;
-    padding: 1px 3px;
-    border-radius: 2px;
-    font-size: 0.9em;
-}
 </style>
 {% endblock %}
 
 {% block main-content %}
-    
-    <div class="alert alert-info">
-        <p><strong>Instructions:</strong></p>
-        <ul>
-            <li>Use the map controls to add points that make up your feature.</li>
-            <li>Click the marker button <i class="fa fa-map-marker"></i> in the top-left, then click on the map to place points.</li>
-            <li>You can add multiple points to create a multipoint feature.</li>
-            <li>Use the delete button to remove unwanted points.</li>
-            <li>Fill in the rest of the form details below the map.</li>
-        </ul>
-    </div>
-    
-    <form method="post" id="feature-form">
-        {% csrf_token %}
-        
-        <!-- Map container -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Feature Location</h5>
-            </div>
-            <div class="card-body">
-                <div id="map-container">
-                    <div id="feature-map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %}></div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="point-info">
-                            <h6>Selected Points</h6>
-                            <div id="points-count">No points selected</div>
-                            <div class="point-list" id="points-list"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="point-actions text-right">
-                            <button type="button" class="btn btn-outline-danger btn-sm" id="clear-points">
-                                <i class="fa fa-trash"></i> Clear All Points
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Hidden fields for the map data -->
-                {{ form.geojson_data }}
-                {{ form.map_srid }}
-                
-                {% if form.geojson_data.errors %}
-                <div class="alert alert-danger mt-2">
-                    {{ form.geojson_data.errors }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Feature details -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Feature Details</h5>
-            </div>
-            <div class="card-body">
-                <div class="form-group mb-3 row required-field">
-                    <label for="{{ form.name.id_for_label }}" class="col-sm-3 col-form-label">{{ form.name.label }}</label>
-                    <div class="col-sm-9">
-                        {{ form.name }}
-                        {% if form.name.help_text %}
-                            <small class="form-text text-muted">{{ form.name.help_text }}</small>
-                        {% endif %}
-                        {% if form.name.errors %}
-                            <div class="text-danger">
-                                {% for error in form.name.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="form-group mb-3 row required-field">
-                    <label for="{{ form.type.id_for_label }}" class="col-sm-3 col-form-label">{{ form.type.label }}</label>
-                    <div class="col-sm-9">
-                        {{ form.type }}
-                        {% if form.type.help_text %}
-                            <small class="form-text text-muted">{{ form.type.help_text }}</small>
-                        {% endif %}
-                        {% if form.type.errors %}
-                            <div class="text-danger">
-                                {% for error in form.type.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="additional-info-section">
-                    <h5>Additional Information</h5>
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.area.id_for_label }}" class="col-sm-3 col-form-label">{{ form.area.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.area }}
-                            {% if form.area.help_text %}
-                                <small class="form-text text-muted">{{ form.area.help_text }}</small>
-                            {% endif %}
-                            {% if form.area.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.area.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.pos_quality.id_for_label }}" class="col-sm-3 col-form-label">{{ form.pos_quality.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.pos_quality }}
-                            {% if form.pos_quality.help_text %}
-                                <small class="form-text text-muted">{{ form.pos_quality.help_text }}</small>
-                            {% endif %}
-                            {% if form.pos_quality.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.pos_quality.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="form-group mb-3 row required-field">
-                        <label for="{{ form.date.id_for_label }}" class="col-sm-3 col-form-label">{{ form.date.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.date }}
-                            {% if form.date.help_text %}
-                                <small class="form-text text-muted">{{ form.date.help_text }}</small>
-                            {% endif %}
-                            {% if form.date.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.date.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.direction.id_for_label }}" class="col-sm-3 col-form-label">{{ form.direction.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.direction }}
-                            {% if form.direction.help_text %}
-                                <small class="form-text text-muted">{{ form.direction.help_text }}</small>
-                            {% endif %}
-                            {% if form.direction.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.direction.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.description.id_for_label }}" class="col-sm-3 col-form-label">{{ form.description.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.description }}
-                            {% if form.description.help_text %}
-                                <small class="form-text text-muted">{{ form.description.help_text }}</small>
-                            {% endif %}
-                            {% if form.description.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.description.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="form-group mb-3 row">
-                        <label for="{{ form.comment.id_for_label }}" class="col-sm-3 col-form-label">{{ form.comment.label }}</label>
-                        <div class="col-sm-9">
-                            {{ form.comment }}
-                            {% if form.comment.help_text %}
-                                <small class="form-text text-muted">{{ form.comment.help_text }}</small>
-                            {% endif %}
-                            {% if form.comment.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.comment.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Form actions -->
-        <div class="form-group mt-4">
-            <button type="submit" class="btn btn-primary">
-                <i class="fa fa-save"></i> Save Feature
-            </button>
-            <a href="{% url 'publications:map' %}" class="btn btn-outline-secondary">
-                <i class="fa fa-times"></i> Cancel
-            </a>
-        </div>
-    </form>
+
+<p>
+  {% if editing %}
+    Feature <a href="{% url 'publications:feature' pk=feature.pk %}">{{ feature.name|default:feature.pk }}</a>{% if return_report %}, report <a href="{% url 'publications:report' pk=return_report.pk %}">{{ return_report.number }}</a>{% endif %}
+  {% else %}
+    Report <a href="{% url 'publications:report' pk=publication.pk %}">{{ publication.number }}</a>: {{ publication.title }}
+  {% endif %}
+</p>
+
+<div class="alert alert-info feature-map-help">
+  <strong>How to draw</strong>
+  <ul class="mb-0">
+    <li>Use the tools in the top left corner of the map: <strong>marker</strong> for a point,
+      <strong>line</strong> (click each vertex; click the last vertex again or press "Finish"),
+      <strong>polygon</strong> (click each corner; click the first corner to close it).
+      A feature may hold several points, lines and polygons, in any mix.</li>
+    <li><strong>Edit layers</strong> (pencil): drag markers and vertices, then press "Save" in the toolbar.
+      <strong>Delete layers</strong> (bin): click the shapes to remove, then "Save" ("Clear all" removes everything).</li>
+    <li>Polygons must not cross themselves, and polygons of one feature must not overlap.</li>
+    <li>The map is in the polar projection EPSG:3574: north is up for Greenland (elsewhere north
+      points towards the North Pole, so the map looks turned). The drawing is stored in WGS84
+      (longitude/latitude) as "digitized on the map". To enter exact coordinates, use
+      "Enter coordinates" on the report page.</li>
+    {% if editing %}
+    <li>If you change only the text fields, the geometry and its original coordinates stay as they are.</li>
+    {% endif %}
+  </ul>
 </div>
 
-{% block scripts %}
-<script>
-// Prepopulate position quality with 'approximate' if not already set
-document.addEventListener('DOMContentLoaded', function() {
-    var posQuality = document.getElementById('id_pos_quality');
-    if (posQuality && !posQuality.value) {
-        for (var i = 0; i < posQuality.options.length; i++) {
-            if (posQuality.options[i].value.toLowerCase() === 'approximate') {
-                posQuality.selectedIndex = i;
-                break;
-            }
-        }
-    }
-});
-</script>
-<script>
-    // Initialize the map
-    document.addEventListener('DOMContentLoaded', function() {
-        // Create map centered on Greenland
-        const map = L.map('feature-map').setView([71.706, -42.604], 5);
-        
-        // Add base layers
-        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
-        
-        const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri',
-            maxZoom: 19
-        });
-        
-        const baseLayers = {
-            "OpenStreetMap": osm,
-            "Satellite": esriSatellite
-        };
-        
-        L.control.layers(baseLayers).addTo(map);
-        
-        // Initialize feature group to store drawn items
-        const drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
-        
-        // Configure draw control options (point only)
-        const drawControl = new L.Control.Draw({
-            draw: {
-                polyline: false,
-                polygon: false,
-                circle: false,
-                rectangle: false,
-                circlemarker: false,
-                marker: {
-                    icon: L.icon({
-                        iconUrl: '{% static "publications/images/marker-icon.png" %}',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowUrl: '{% static "publications/images/marker-shadow.png" %}',
-                        shadowSize: [41, 41]
-                    })
-                }
-            },
-            edit: {
-                featureGroup: drawnItems,
-                remove: true
-            }
-        });
-        map.addControl(drawControl);
-        
-        // Handle drawing events
-        map.on('draw:created', function(e) {
-            const layer = e.layer;
-            drawnItems.addLayer(layer);
-            updateGeoJsonData();
-        });
-        
-        map.on('draw:edited', function(e) {
-            updateGeoJsonData();
-        });
-        
-        map.on('draw:deleted', function(e) {
-            updateGeoJsonData();
-        });
-        
-        // Function to update the GeoJSON hidden field
-        function updateGeoJsonData() {
-            const geojson = drawnItems.toGeoJSON();
-            document.getElementById('id_geojson_data').value = JSON.stringify(geojson);
-            
-            // Update points list and count
-            const pointsList = document.getElementById('points-list');
-            const pointsCount = document.getElementById('points-count');
-            const points = geojson.features.filter(f => f.geometry.type === 'Point');
-            
-            pointsCount.textContent = points.length === 1 
-                ? '1 point selected' 
-                : `${points.length} points selected`;
-            
-            // Clear and rebuild points list
-            pointsList.innerHTML = '';
-            points.forEach((point, index) => {
-                const coords = point.geometry.coordinates;
-                const lon = coords[0].toFixed(5);
-                const lat = coords[1].toFixed(5);
-                
-                const pointItem = document.createElement('div');
-                pointItem.className = 'point-item';
-                pointItem.innerHTML = `
-                    <small>Point ${index + 1}: [${lat}, ${lon}]</small>
-                `;
-                pointsList.appendChild(pointItem);
-            });
-        }
-        
-        // Clear points button
-        document.getElementById('clear-points').addEventListener('click', function() {
-            drawnItems.clearLayers();
-            updateGeoJsonData();
-        });
-        
-        // Set default SRID (WGS84 for Leaflet)
-        document.getElementById('id_map_srid').value = '4326';
-        
-        // Handle form submission
-        document.getElementById('feature-form').addEventListener('submit', function(e) {
-            // Check if points are drawn
-            const geojson = document.getElementById('id_geojson_data').value;
-            if (!geojson) {
-                e.preventDefault();
-                alert('Please add at least one point on the map');
-            }
-        });
-    });
-</script>
+<form method="post" id="feature-form" novalidate>
+  {% csrf_token %}
+  {% if editing and return_report %}
+  <input type="hidden" name="report" value="{{ return_report.pk }}">
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Geometry</h5></div>
+    <div class="card-body">
+      <div id="feature-map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-geojson-input="{{ form.geojson_data.auto_id }}" data-leaflet-images="{% static 'publications/vendor/leaflet-1.9.4/images/' %}"{% if map_publication %} data-publication-id="{{ map_publication.pk }}"{% endif %}{% if editing %} data-feature-id="{{ feature.pk }}"{% endif %}></div>
+      <p class="mt-2 mb-0 text-muted" id="geometry-summary"></p>
+      {{ form.geojson_data }}
+      {% if form.geojson_data.errors %}
+      <div class="alert alert-danger mt-2 mb-0">
+        {% for error in form.geojson_data.errors %}<div>{{ error }}</div>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Feature details</h5></div>
+    <div class="card-body">
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form.visible_fields %}
+      <div class="form-group row{% if field.field.required %} required-field{% endif %}">
+        <label for="{{ field.id_for_label }}" class="col-sm-3 col-form-label">{{ field.label }}</label>
+        <div class="col-sm-9">
+          {{ field }}
+          {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+          {% for error in field.errors %}<div class="text-danger"><small>{{ error }}</small></div>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="form-group mt-4">
+    <button type="submit" class="btn btn-primary">
+      <i class="fa fa-save"></i> {% if editing %}Save changes{% else %}Save feature{% endif %}
+    </button>
+    <a href="{{ cancel_url }}" class="btn btn-outline-secondary" id="feature-cancel">
+      <i class="fa fa-times"></i> Cancel
+    </a>
+  </div>
+</form>
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}"></script>
+<script src="{% static 'publications/vendor/leaflet-draw-1.0.4/leaflet.draw.js' %}"></script>
+<script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}"></script>
+<script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}"></script>
+<script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}"></script>
+<script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}"></script>
+<script src="{% versioned_static 'publications/js/map/find-artek-map-edit.js' %}"></script>
+<script src="{% versioned_static 'publications/js/feature-map-form.js' %}"></script>
 {% endblock %}

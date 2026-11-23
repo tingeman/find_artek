@@ -119,7 +119,9 @@ class AddFeatureByMapSaveTests(ReportAccessTestBase):
         feature = Feature.objects.get(pk=feature.pk)
         self.assertEqual(feature.points.coords, ((-50.5, 67.0), (-51.5, 68.0)))
         self.assertEqual(feature.source_srid, 4326)
-        self.assertEqual(feature.transform_note, 'EPSG:4326 (no transformation)')
+        # features T5: a map drawing is marked as such (feature page: "digitized on the map").
+        self.assertEqual(feature.transform_note,
+                         'EPSG:4326 (no transformation); digitized on the map (WGS84)')
 
     def test_form_rejects_invalid_coordinates(self):
         data = self.form_data()

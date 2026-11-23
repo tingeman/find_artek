@@ -46,9 +46,11 @@ MAP_TEMPLATES = {
                     'proj4-2.22.0/proj4.js', 'proj4leaflet-1.0.2/proj4leaflet.js'],
     'feature.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js',
                      'proj4-2.22.0/proj4.js', 'proj4leaflet-1.0.2/proj4leaflet.js'],
+    # features T5: the shared component in edit mode (polar map, Leaflet.draw).
     'add_feature_by_map.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js',
                                 'leaflet-draw-1.0.4/leaflet.draw.css',
-                                'leaflet-draw-1.0.4/leaflet.draw.js'],
+                                'leaflet-draw-1.0.4/leaflet.draw.js', 'proj4-2.22.0/proj4.js',
+                                'proj4leaflet-1.0.2/proj4leaflet.js'],
 }
 
 DUMMY_TOKEN = 'dummy-token-t2'

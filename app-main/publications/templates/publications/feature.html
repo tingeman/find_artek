@@ -9,7 +9,7 @@
 
 
 {% block dynamic_head_content %}
-<link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/feature.css' %}" />
+<link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/feature.css' %}" />
 <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
 {% endblock %}
 
@@ -19,53 +19,102 @@
 {% block main-content %}
 
 <div class="info-box">
+    {% if can_edit_feature or can_delete_feature %}
+    <div class="feature-actions">
+        {% if can_edit_feature %}
+        <a href="{% url 'publications:edit_feature_by_map' pk=feature.pk %}" class="btn btn-primary btn-sm" id="feature-edit-link"><i class="fas fa-map"></i> Edit on map</a>
+        {% endif %}
+        {% if can_delete_feature %}
+        <a href="{% url 'publications:delete_feature' pk=feature.pk %}" class="btn btn-danger btn-sm" id="feature-delete-link">Delete</a>
+        {% endif %}
+    </div>
+    {% endif %}
     <div class="upper-box">
+        {# feature-row, not Bootstrap's .row: its negative margins clipped the first letters. #}
         <div class="details-box-left">
-            <div class="row">
-                <span class="property">Name</span>                
+            <div class="feature-row">
+                <span class="property">Name</span>
                 <span class="value">{{ feature.name }}</span>
             </div>
-            
-            <div class="row">
+
+            <div class="feature-row">
                 <span class="property">Type</span>
                 <span class="value">{{ feature.type }}</span>
             </div>
-    
-            <div class="row">
+
+            <div class="feature-row">
                 <span class="property">Date</span>
-                <span class="value">{{ feature.date|date:"Y-m-d"  }}</span>
+                <span class="value">{{ feature.date|date:"Y-m-d" }}</span>
             </div>
-    
-            <div class="row">
-                <span class="property">Report:</span>
-                <!-- TODO: fix layout -->
+
+            <div class="feature-row">
+                <span class="property">Reports</span>
                 {# Only the reports the user may see (FA-R75); FeatureView passes them. #}
+                <span class="value">
                 {% for report in visible_reports %}
-                    <span class="value"><a href="{% url 'publications:report' pk=report.pk %}">{{ report.title }}</a></span>
+                    <a href="{% url 'publications:report' pk=report.pk %}">{{ report.number }} {{ report.title }}</a>{% if not forloop.last %}<br>{% endif %}
                 {% endfor %}
+                </span>
             </div>
-    
-            <div class="row">
-                <span class="property">SRID:</span>
-                <span class="value">{{geometry.srid}}</span>
-            </div>
-    
-            <div class="row">
-                <span class="property">WKT:</span>
-                <span class="value">{{geometry.wkt|slice:":100"}}</span>
-            </div>
-    
-            <div class="row">
+
+            <div class="feature-row">
                 <span class="property">Description</span>
                 <span class="value">{{ feature.description }}</span>
             </div>
-    
-            <div class="row">
+
+            <div class="feature-row">
                 <span class="property">Comment</span>
                 <span class="value">{{ feature.comment }}</span>
             </div>
-    
-          
+
+            <div class="feature-row">
+                <span class="property">Geometry (WGS84)</span>
+                <span class="value">
+                {% for geometry in geometries %}
+                    <pre class="feature-wkt">{{ geometry.wkt|truncatechars:400 }}</pre>
+                {% empty %}
+                    none
+                {% endfor %}
+                </span>
+            </div>
+
+            {# Original coordinates (plan "features" design note 8). #}
+            <div class="feature-source" id="feature-source">
+                <h6>Original coordinates</h6>
+                {% if source_origin == 'unknown' %}
+                <div class="feature-row">
+                    <span class="property">Origin</span>
+                    <span class="value">origin unknown (registered before the original coordinates were recorded; the WGS84 geometry above is all there is)</span>
+                </div>
+                {% else %}
+                {% if source_origin == 'map' %}
+                <div class="feature-row">
+                    <span class="property">Origin</span>
+                    <span class="value">digitized on the map (WGS84)</span>
+                </div>
+                {% endif %}
+                <div class="feature-row">
+                    <span class="property">Source EPSG</span>
+                    <span class="value">{% if feature.source_srid %}EPSG:{{ feature.source_srid }}{% else %}-{% endif %}</span>
+                </div>
+                <div class="feature-row">
+                    <span class="property">Source geometry</span>
+                    <span class="value"><pre class="feature-wkt">{{ feature.source_geometry|default:"-" }}</pre></span>
+                </div>
+                <div class="feature-row">
+                    <span class="property">Transformation</span>
+                    <span class="value">{{ feature.transform_note|default:"-" }}</span>
+                </div>
+                {% endif %}
+                <div class="feature-row">
+                    <span class="property">GNSS observation date</span>
+                    <span class="value">{% if feature.observation_date %}{{ feature.observation_date|date:"Y-m-d" }}{% else %}not given{% endif %}</span>
+                </div>
+                <div class="feature-row">
+                    <span class="property">Epoch date</span>
+                    <span class="value">{{ feature.epoch_date|date:"Y-m-d" }}{% if not feature.observation_date %} (the feature date){% endif %}</span>
+                </div>
+            </div>
         </div>
 
         <div class="map-box-right">

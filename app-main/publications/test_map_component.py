@@ -134,11 +134,12 @@ class OldFilesGoneTests(SimpleTestCase):
                 self.assertNotIn('MyMapClass', read_static(path))
 
     def test_every_static_file_referenced_by_a_map_page_exists(self):
-        # The templates this task changed. Not all templates: add_feature_by_map.html
-        # (marker icons, rewritten in T5) and login.html (login.css) reference missing files
-        # already; reported, not part of T3.
+        # The map pages. Not all templates: login.html (login.css) references a missing file
+        # already; reported, not part of T3. add_feature_by_map.html added in T5 (the broken
+        # marker icon paths are gone).
         names = {f'publications/templates/publications/{name}' for name in
-                 ('base.html', 'frontpage.html', 'map.html', 'report.html', 'feature.html')}
+                 ('base.html', 'frontpage.html', 'map.html', 'report.html', 'feature.html',
+                  'add_feature_by_map.html')}
         checked = 0
         for relative, text in template_files():
             if relative not in names:

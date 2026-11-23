@@ -2,7 +2,9 @@
 
 from django import forms
 from django.forms import ModelForm
-from publications.geometry import GeometryError, from_geojson
+from publications.geometry import (
+    GeometryError, feature_geojson, from_geojson, map_transform_note, same_geometry,
+)
 from publications.models import Feature
 from django.core.exceptions import ValidationError
 from django.contrib.gis.gdal import SpatialReference
@@ -199,39 +201,47 @@ class AddFeatureByCoordinatesForm(ModelForm):
 
 
 class AddFeatureByMap(ModelForm):
+    """Add or edit a feature by drawing on the map (plan "features" T5).
+
+    ``geojson_data`` (hidden) holds what the map editor drew: a GeoJSON FeatureCollection in
+    WGS84 (lon/lat) with points, lines and polygons in any mix (find-artek-map-edit.js).
+    ``publications.geometry.from_geojson`` checks and builds it; its GeometryError becomes a
+    form error.
+
+    With an instance (edit), the field starts with the stored geometry
+    (``geometry.feature_geojson``). If the submitted geometry is the stored one (unchanged
+    text, or the same vertices within 1e-9 degrees), the geometry and the source fields
+    (``source_srid``, ``source_geometry``, ``transform_note``) are kept: an attribute-only
+    edit. Otherwise ``save()`` replaces all three geometry columns (a kind no longer drawn
+    becomes NULL) and the source fields describe the map drawing (EPSG:4326, transform note
+    ending in "digitized on the map (WGS84)"; design note 8).
+
+    After ``is_valid()``: ``geometry_changed`` (bool) and ``geometry_warnings`` (tuple of
+    str, e.g. outside Greenland) for the view's messages.
     """
-    Form for adding a multipoint feature using Leaflet map input.
-    Allows users to select multiple points on a map which will be stored as a MultiPoint geometry.
-    """
-    
-    # Hidden field to store the GeoJSON data from the map
-    geojson_data = forms.CharField(
-        widget=forms.HiddenInput(),
-        required=False,
-    )
-    
-    # Hidden field to store the SRID automatically from the map
-    map_srid = forms.CharField(
-        widget=forms.HiddenInput(),
-        required=False,
-        initial="4326"  # Default to WGS84 (used by Leaflet)
-    )
-    
-    # Date field with proper widget (same as the coordinates form)
+
+    geojson_data = forms.CharField(widget=forms.HiddenInput(), required=False)
+
     date = forms.DateField(
-        widget=forms.DateInput(
-            format='%Y-%m-%d',
-            attrs={'type': 'date', 'class': 'form-control'}
-        ),
+        widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
         input_formats=['%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'],
         required=True,
-        help_text=_("Date when the feature was observed/measured")
+        help_text=_("Date when the feature was observed/measured"),
+    )
+
+    observation_date = forms.DateField(
+        widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+        input_formats=['%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'],
+        required=False,
+        label=_('GNSS observation date'),
+        help_text=_('GNSS observation date, basis for epoch calculations; empty = the feature '
+                    'date is used.'),
     )
 
     class Meta:
         model = Feature
-        fields = ['name', 'type', 'area', 'date', 'direction', 'description', 
-                 'comment', 'pos_quality']
+        fields = ['name', 'type', 'area', 'date', 'observation_date', 'pos_quality',
+                  'direction', 'description', 'comment']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Feature name'}),
             'type': forms.Select(attrs={'class': 'form-control'}),
@@ -253,102 +263,56 @@ class AddFeatureByMap(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Make required fields obvious
-        self.fields['name'].required = True
-        self.fields['type'].required = True
-        self.fields['pos_quality'].required = True
-        self.fields['date'].required = True
-        
-        # Add help text for the map
-        self.geojson_help_text = _(
-            "Use the map to select points. Click to add points. "
-            "You can add multiple points which will be saved as a multipoint geometry."
-        )
-        
-    def clean_geojson_data(self):
-        """Validate GeoJSON data from the map"""
-        geojson_data = self.cleaned_data.get('geojson_data')
-        
-        if not geojson_data:
-            raise ValidationError(_('No points selected on the map. Please add at least one point.'))
-        
+        for name in ('name', 'type', 'pos_quality', 'date'):
+            self.fields[name].required = True
+        self.geometry_result = None
+        self.geometry_changed = False
+        self.initial_geojson = None
+        if self.instance.pk is not None:
+            self.initial_geojson = json.dumps(feature_geojson(self.instance))
+            self.initial.setdefault('geojson_data', self.initial_geojson)
+
+    @property
+    def geometry_warnings(self):
+        return self.geometry_result.warnings if self.geometry_result is not None else ()
+
+    def _is_initial_geojson(self, text):
+        if self.initial_geojson is None:
+            return False
         try:
-            data = json.loads(geojson_data)
-            
-            # Verify that we have a valid GeoJSON with points
-            if 'type' not in data or data['type'] != 'FeatureCollection':
-                raise ValidationError(_('Invalid GeoJSON data format'))
-                
-            if 'features' not in data or not data['features']:
-                raise ValidationError(_('No points found in the GeoJSON data'))
-            
-            # Check that we have at least one point
-            points_count = len(data['features'])
-            if points_count == 0:
-                raise ValidationError(_('No points selected on the map. Please add at least one point.'))
-            
-            # Validate each point's coordinates
-            for feature in data['features']:
-                if feature['geometry']['type'] != 'Point':
-                    raise ValidationError(_('Only point features are supported'))
-                    
-                coords = feature['geometry']['coordinates']
-                if len(coords) < 2:
-                    raise ValidationError(_('Invalid coordinates in GeoJSON'))
-                
-                # Basic validation for WGS84 coordinates
-                lon, lat = coords[0], coords[1]
-                if not (-180 <= lon <= 180):
-                    raise ValidationError(_('Longitude value out of range (-180 to 180)'))
-                if not (-90 <= lat <= 90):
-                    raise ValidationError(_('Latitude value out of range (-90 to 90)'))
+            return json.loads(text) == json.loads(self.initial_geojson)
+        except ValueError:
+            return False
 
-            # The geometry save() builds (publications.geometry; e.g. non-numeric values).
-            try:
-                from_geojson(data)
-            except GeometryError as error:
-                raise ValidationError(str(error))
+    def clean_geojson_data(self):
+        text = (self.cleaned_data.get('geojson_data') or '').strip()
+        if not text:
+            raise ValidationError(_('Nothing drawn on the map: draw at least one point, line '
+                                    'or polygon.'))
+        if self._is_initial_geojson(text):
+            # Not touched in the editor: keep the stored geometry as it is (also a stored
+            # geometry that the checks of today would refuse).
+            self.geometry_changed = False
+            return text
+        try:
+            result = from_geojson(text)
+        except GeometryError as error:
+            raise ValidationError(str(error))
+        if self.instance.pk is not None and same_geometry(result, self.instance):
+            self.geometry_changed = False
+        else:
+            self.geometry_changed = True
+            self.geometry_result = result
+        return text
 
-            return geojson_data
-            
-        except json.JSONDecodeError:
-            raise ValidationError(_('Invalid GeoJSON format'))
-    
-    def clean(self):
-        """Cross-field validation"""
-        cleaned_data = super().clean()
-        geojson_data = cleaned_data.get('geojson_data')
-        date = cleaned_data.get('date')
-        name = cleaned_data.get('name')
-        pos_quality = cleaned_data.get('pos_quality')
-        
-        # Check that all required fields are provided
-        if not name:
-            self.add_error('name', _('Feature name is required'))
-        
-        if not pos_quality:
-            self.add_error('pos_quality', _('Position quality is required'))
-        
-        if not date:
-            self.add_error('date', _('Date is required'))
-        
-        if not geojson_data:
-            self.add_error('geojson_data', _('No points selected on the map'))
-                
-        return cleaned_data
-    
     def save(self, commit=True):
-        """The feature with the points of the map in ``points`` (EPSG:4326).
-
-        publications.geometry builds the geometry and sets ``source_srid``,
-        ``source_geometry`` and ``transform_note``; the form sets model fields only (plan
-        "features" T4, FA-R107: the former code set an attribute ``geometry`` that the model
-        doesn't have, so ``form.save()`` lost the points)."""
+        """The feature with the attributes, and the drawn geometry if it changed
+        (``GeometryResult.apply_to``: all three columns and the source fields). The view
+        sets ``created_by`` / ``modified_by``."""
         instance = super().save(commit=False)
-        geojson_data = self.cleaned_data.get('geojson_data')
-        if geojson_data:
-            # clean_geojson_data has accepted it, so it builds without GeometryError.
-            from_geojson(geojson_data).apply_to(instance)
+        if self.geometry_changed and self.geometry_result is not None:
+            self.geometry_result.apply_to(instance)
+            instance.transform_note = map_transform_note(self.geometry_result)
         if commit:
             instance.save()
             self.save_m2m()

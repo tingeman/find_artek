@@ -137,6 +137,8 @@ SMOKE = {
                                                   LOGIN, 403, 200),
     'publications:add_feature_by_map': entry(lambda t: {'report_pk': t.pub.pk},
                                              LOGIN, 403, 200),
+    # Edit a feature on the map (features T5): edit_feature (Feature.is_editable_by).
+    'publications:edit_feature_by_map': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),
     'publications:delete_feature': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),
     # POST only (GET is 405 for everyone, test_report_access).
     'publications:verify_report': entry(lambda t: {'pub_id': t.pub.pk}, LOGIN, 403,
