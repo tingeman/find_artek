@@ -1,6 +1,6 @@
 # Plan: Feature registration
 
-Status: **draft (2026-11-22)**. Roadmap: FA-R61 (delete all features), FA-R62 (edit feature), FA-R63 (features from Excel), FA-R64 (files and images on features), FA-R65 (map type filter, legend, reports in view), FA-R104 (delete appendices), FA-R107 (feature form leftovers), FA-R13 (edit-feature TODO); needs FA-R101 (fixed on `agent-fixes`, 348219a). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`. Ships with the next regular release; no fix release before it (owner 2026-11-22).
+Status: **approved 2026-11-23**. Roadmap: FA-R61 (delete all features), FA-R62 (edit feature), FA-R63 (features from Excel), FA-R64 (files and images on features), FA-R65 (map type filter, legend, reports in view), FA-R104 (delete appendices), FA-R107 (feature form leftovers), FA-R13 (edit-feature TODO); needs FA-R101 (fixed on `agent-fixes`, 348219a). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`. Ships with the next regular release; no fix release before it (owner 2026-11-22).
 
 ## Goal
 
@@ -32,6 +32,8 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ## Design notes
 
+**Owner decisions 2026-11-23:** keep the original coordinates, SRID and a GNSS observation date next to the WGS84 geometry (note 8); new feature uploads under the report folder (note 5); any EPSG code in coordinate entry, with a help list for Greenland; map scripts served locally, with the reasons in `readme.md`.
+
 **Owner decisions 2026-11-22:** Leaflet in the polar projection; Excel import with preview before save; scope includes FA-R64, FA-R65 (filter, legend, reports in view), the feature-page map and FA-R104; Dataforsyningen token rendered into the page from an env variable; FA-R4: stay on MariaDB, transforms in Python.
 
 1. **Shared map component** (`publications/static/publications/js/map/`, replacing `my-map-class.js` and the inline script of `add_feature_by_map.html`):
@@ -48,13 +50,22 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
    - Step 1 upload → parse in memory (openpyxl) and check everything; step 2 preview page: map with all features, table with status per feature, problems by row; step 3 "Import" saves all in one transaction. Between steps the parsed result (attributes and WGS84 geometry as GeoJSON, report pks) is kept **in the session**, keyed by a random import id, with a size limit (e.g. 2000 vertices); the confirm step re-checks permissions and that the reports still exist. No uploaded file is kept on disk.
    - `date` is NOT NULL in the DB: the Excel `Date` column is required (as classic). No migration.
    - Template `static/publications/docs/ARTEK_feature_list.xlsx` with sheets `Features` and `Help`, linked from the import page.
-5. **Files and images on features** (FA-R64): reuse the appendix upload code (`utils_models.py`, upload limit, submit guard); storage under `MEDIA_ROOT` with the same path scheme as classic (`reports/<year>/features/<year>_<id>/`) unless the appendix scheme is simpler, decided in T8; served through the existing media access view (X-Accel-Redirect), visible to whoever may view the feature. Image thumbnails as for report images. Deleting a feature also deletes its images (today only files).
-6. **Migrations**: only `Meta.permissions` or none. No migration that rewrites columns or touches existing rows. If a task finds one necessary, it stops and the main session asks the owner.
+5. **Files and images on features** (FA-R64): reuse the appendix upload code (`utils_models.py`, upload limit, submit guard); storage under `MEDIA_ROOT/reports/<year>/<number>/features/<feature id>/` (images in `img/` below it), with the report the upload starts from (owner 2026-11-23; existing feature files and images mostly sit directly in `reports/<year>/<number>/` and `.../img/`, from the original data load; classic uploads used `reports/<year>/features/<year>_<id>/` or `reports/features/<id>/`; 26 records have an empty path, for FA-R86); served through the existing media access view (X-Accel-Redirect), visible to whoever may view the feature. Image thumbnails as for report images. Deleting a feature also deletes its images (today only files).
+6. **Migrations**: one migration in T4 that **adds nullable columns** to `publications_feature` (note 8); approved by the owner 2026-11-23. It does not touch existing rows: existing features get NULL (origin unknown; all 1746 existing geometries are plausible lon/lat values, checked 2026-11-23). No other schema change; anything else stops the task and the main session asks the owner.
+8. **Original coordinates and epoch** (owner 2026-11-23): `points`/`lines`/`polys` stay the WGS84 copy for the maps and the API. New fields:
+   - `source_srid` (integer, NULL): the EPSG code the coordinates were entered in.
+   - `source_geometry` (text, NULL): WKT of all geometries of the feature in the original coordinates, exactly as entered (a GEOMETRYCOLLECTION when there are several kinds).
+   - `transform_note` (text, blank): the PROJ transformation used for the WGS84 copy and its stated accuracy (e.g. `EPSG:3182 -> EPSG:4326, ballpark, ~1 m`), from the operation PROJ/GDAL chose where available.
+   - `observation_date` (date, NULL): GNSS observation date, basis for epoch calculations. Stored NULL when not given; `Feature.epoch_date` returns `observation_date or date` (not copied, so it stays visible whether it was given).
+   - Set by coordinate entry (T6) and the Excel import (T10, optional `Observation_date` column). A map edit (T5) of the geometry clears `source_srid`/`source_geometry`/`transform_note` and the page says "digitized on the map (WGS84)"; attribute-only edits keep them.
+   - Shown on the feature page (original coordinates, SRID, observation date, transformation note). Added to the API feature detail only if T4 finds it useful; the list output and its snapshot stay unchanged.
+   - GR96 (EPSG:4747 and GR96 / UTM): PROJ's transformation to WGS84 without a time-dependent model is approximate (about 1 m today). The WGS84 copy is for display; precise work uses the original coordinates with `epoch_date`. A later time-dependent transformation can recompute the WGS84 copy from the originals.
 7. **What dtu_sus_web_server must change**: add `FA_DATAFORSYNINGEN_TOKEN` to `webapp_find_artek.env` (secret store) for the release. Nothing else: no new route outside `/find/`, no port, no path change. The functional checks for the release add: overview map with satellite layer, add a line feature, Excel preview.
 
 ## Assumptions
 
-- Coordinate form keeps one point per submission (as classic) but gets a SRID **choice list**: 4326, 32622 (default), 32618-32621, 32623-32627, 3182-3184 (GR96 UTM 22-24N), plus "other EPSG code" as free text. Out-of-range values are warnings shown on a confirm step, not errors (fixes the blocking "warning").
+- Coordinate form keeps one point per submission (as classic; owner 2026-11-23: OK for now, better solution FA-R108). SRID: **any EPSG code PROJ knows** (owner 2026-11-23), with a help list for Greenland: WGS84 lon/lat (4326), GR96 lon/lat (4747), GR96 / UTM 18N-29N, WGS84 / UTM 18N-29N (32618-32629), Web Mercator (3857); exact EPSG numbers checked against PROJ in T6. Help text: UTM zone by longitude, GR96 vs WGS84 accuracy. Fields labelled "Easting / Longitude (x)" and "Northing / Latitude (y)".
+- `observation_date` is optional in forms and the Excel sheet; no default is written (see note 8). Out-of-range values are warnings shown on a confirm step, not errors (fixes the blocking "warning").
 - Edit by coordinates is offered for features that hold exactly one point; otherwise edit goes through the map.
 - The add choice on the report page: three buttons ("Draw on map", "Enter coordinates", "Import from Excel"), no separate choice page.
 - `feature-map-selector.js` and the leftover inline map script are deleted (FA-R107).
@@ -87,7 +98,7 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ### T2. Vendor the map scripts and add the token setting
 - Files: `static/publications/vendor/...` (Leaflet 1.9.4, proj4 2.x, Proj4Leaflet, leaflet-rotate, leaflet-draw 1.0.4, licences), `readme.md` (versions), `find_artek/settings.py` (`FA_DATAFORSYNINGEN_TOKEN = os.environ.get(..., '')`), context processor or view context, `.dev.env.example`, `ENVIRONMENT_SETUP.md`, templates that load map scripts (switch to local files).
-- Acceptance: no map script from a CDN; all map pages still render; the token is available to templates and empty by default; `tests/run.sh` image checks pass (settings change).
+- Acceptance: no map script from a CDN; `readme.md` gets a section "Third-party JavaScript" with the versions and **why the scripts are served locally** (no third-party code without integrity check in editors' sessions, reproducible releases, availability, visitors' IP addresses not sent to CDNs, simpler security headers later (FA-R31); cost: versions updated by hand, about 0.5 MB in the repository; tiles stay external); all map pages still render; the token is available to templates and empty by default; `tests/run.sh` image checks pass (settings change).
 - Tests: setting default empty; the token is rendered only into map pages, only as a `data-` attribute; templates reference no `unpkg`/`cdnjs` URL (test over the template directory).
 - Validation: skill validate (check, makemigrations --check, `publications` tests); `docker build` + `tests/run.sh` (settings change).
 - Agent: implementer.
@@ -102,22 +113,22 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 - Deployment impact: none beyond T2.
 
 ### T4. Geometry module, edit permission and FA-R107
-- Files: `publications/geometry.py` (new), `permissions.py` (`EDIT_FEATURE`), `forms/feature.py` (remove dead path), views using it.
-- Acceptance: GeoJSON → geometries per kind; vertex lists → point/line/polygon; transform to 4326; validation messages; `EDIT_FEATURE` mixin action.
-- Tests: unit tests for every geometry kind, closed/unclosed rings, too few vertices, SRIDs 4326/32622/3182, out-of-range; `EDIT_FEATURE` matrix (anonymous, dtu_user listed / not listed, artek_editor, superuser).
+- Files: `publications/geometry.py` (new), `permissions.py` (`EDIT_FEATURE`), `forms/feature.py` (remove dead path), views using it, `models.py` (`Feature.source_srid`, `source_geometry`, `transform_note`, `observation_date`, `epoch_date`), migration (adds nullable columns only, design note 8), `feature.html` (show the original coordinates).
+- Acceptance: new fields and migration as design note 8 (existing rows untouched, `makemigrations --check` clean afterwards); GeoJSON → geometries per kind; vertex lists → point/line/polygon; transform to 4326; validation messages; `EDIT_FEATURE` mixin action.
+- Tests: `epoch_date` with and without `observation_date`; existing features keep their geometry and get NULL in the new fields; unit tests for every geometry kind, closed/unclosed rings, too few vertices, SRIDs 4326/32622/3182, out-of-range; `EDIT_FEATURE` matrix (anonymous, dtu_user listed / not listed, artek_editor, superuser).
 - Validation: skill validate, `publications` tests.
 - Agent: implementer.
 
 ### T5. Digitize on the map: add and edit
 - Files: `views.py` (`AddFeatureByMapView` → add/edit view pair or one view with optional pk), `forms/feature.py`, `add_feature_by_map.html` (→ `feature_map_form.html`), `feature.html` (edit/delete links), `report.html` (three add buttons).
-- Acceptance: points, lines and polygons can be drawn, edited and deleted on the polar map; an existing feature loads its geometry for editing; `created_by` on add, `modified_by` always; Cancel returns to the report; only users with `ADD_FEATURE`/`EDIT_FEATURE` reach the views.
+- Acceptance: a geometry edit on the map clears `source_srid`/`source_geometry`/`transform_note`, an attribute-only edit keeps them; points, lines and polygons can be drawn, edited and deleted on the polar map; an existing feature loads its geometry for editing; `created_by` on add, `modified_by` always; Cancel returns to the report; only users with `ADD_FEATURE`/`EDIT_FEATURE` reach the views.
 - Tests: add with each geometry kind and a mix, read back via raw `ST_AsText` (as `test_feature_geometry.py`); edit replaces geometry and attributes; access matrix for add and edit (anonymous → login, other DTU user → 403, listed user, editor); `modified_by` set.
 - Validation: skill validate, `publications` tests; browser check (draw a line and a polygon in the dev stack, then delete the test feature).
 - Agent: implementer.
 
 ### T6. Coordinate entry: SRID list, warnings, edit
 - Files: `forms/feature.py`, `views.py` (`AddFeatureCoordinatesView` + edit), `add_feature_coordinates.html`.
-- Acceptance: SRID choice list + "other"; range problems shown as warnings on a confirm step, saving after confirmation; edit by coordinates for one-point features; `modified_by` set.
+- Acceptance: any EPSG code with the Greenland help list; `source_srid`, `source_geometry`, `transform_note` and `observation_date` stored; range problems shown as warnings on a confirm step, saving after confirmation; edit by coordinates for one-point features; `modified_by` set.
 - Tests: each listed SRID transforms to the expected WGS84 point (fixed reference points); unknown EPSG is an error; out-of-range is a warning that can be confirmed; edit of a one-point feature; access matrix.
 - Validation: skill validate, `publications` tests.
 - Agent: implementer.
@@ -146,7 +157,7 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ### T10. Excel "Features" import with preview (FA-R63)
 - Files: `publications/register_features_from_file.py` (new; remove the commented-out classic port from `register_from_file.py`), `views.py` (upload, preview, confirm), templates, `static/publications/docs/ARTEK_feature_list.xlsx` (Features + Help), Administration tile enabled, report page button.
-- Acceptance: as design note 4; nothing is saved before "Import"; a second import of the same sheet is detected (same report + name + geometry) and listed as a warning per feature; import from the report page fills the report itself and ignores/validates the report column.
+- Acceptance: as design notes 4 and 8 (`source_*` per feature from the row SRID; optional `Observation_date` column); nothing is saved before "Import"; a second import of the same sheet is detected (same report + name + geometry) and listed as a warning per feature; import from the report page fills the report itself and ignores/validates the report column.
 - Tests: small `.xlsx` fixtures built in the test (openpyxl): points, a line, a polygon, mixed SRIDs, missing column, bad SRID, date missing, unknown report, report the user may not edit, preview → confirm saves, preview → cancel saves nothing, session expired, template headers match the parser.
 - Validation: skill validate, `publications` tests.
 - Agent: implementer.
