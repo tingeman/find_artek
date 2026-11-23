@@ -34,6 +34,10 @@
         <input type="hidden" name="kind" value="file">
         <input type="hidden" name="report" value="{{ return_report.pk }}">
         <h3 class="h5">Files</h3>
+        <p id="feature-file-types">Any file type can be uploaded, except these blocked types (web pages,
+           scripts and SVG, which a browser would run): <strong>{{ file_form.blocked_types }}</strong>.
+           {{ file_form.zip_hint }} Files other than PDF, plain text and common images are
+           always downloaded, not shown in the browser.</p>
         {{ file_form.non_field_errors }}
         <div class="form-group">
             {{ file_form.feature_files.label_tag }}
@@ -55,6 +59,8 @@
         <input type="hidden" name="kind" value="image">
         <input type="hidden" name="report" value="{{ return_report.pk }}">
         <h3 class="h5">Images</h3>
+        <p id="feature-image-types">Images get a thumbnail on the feature page: JPEG, PNG, GIF,
+           TIFF or WebP. Other formats can be uploaded as files.</p>
         {{ image_form.non_field_errors }}
         <div class="form-group">
             {{ image_form.feature_images.label_tag }}

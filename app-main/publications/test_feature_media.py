@@ -221,9 +221,10 @@ class UploadFeatureMediaTests(FeatureMediaTestBase):
         self.assertFalse(ImageObject.objects.exists())
 
     def test_unsupported_file_type_is_refused(self):
-        feature = self.feature('Exe', self.pub)
+        # T8a: any type except active content (test_feature_file_types has the details).
+        feature = self.feature('Web page', self.pub)
         self.login(self.editor)
-        response = self.upload(feature, 'file', [text_upload('tool.exe')], self.pub)
+        response = self.upload(feature, 'file', [text_upload('page.html')], self.pub)
         self.assertEqual(response.status_code, 400)
         self.assertFalse(FileObject.objects.exists())
 

@@ -9,8 +9,7 @@ from publications.geometry import (
     parse_srid, plausibility_warnings, same_geometry,
 )
 from publications.forms.publication import (
-    APPENDIX_EXTENSIONS, MultipleFileField, MultipleFileInput, max_upload_size_bytes,
-    max_upload_size_mb,
+    MultipleFileField, MultipleFileInput, max_upload_size_bytes, max_upload_size_mb,
 )
 from publications import feature_import
 from publications.models import Feature
@@ -308,27 +307,66 @@ class AddFeatureByMap(ModelForm):
         return instance
 
 
-# --- Files and images of a feature (plan "features" T8, roadmap FA-R64) ---------------------
+# --- Files and images of a feature (plan "features" T8, T8a; roadmap FA-R64) ---------------
 # Same limit per file as appendices (settings.MAX_UPLOAD_SIZE_MB; nginx's limit on /find/ is
-# the ceiling for the whole request) and the same file types, plus a few geodata formats.
+# the ceiling for the whole request).
+#
+# Files (T8a, owner 2026-11-23): any type except those a browser runs as active content
+# (stored XSS: media is served from the app's own origin). Only the last extension counts
+# (``x.svg.zip`` is fine, ``x.zip.svg`` is not); case does not matter. Files without an
+# extension are accepted: the media view serves every type outside its small inline list as a
+# download (attachment, application/octet-stream, nosniff), so a browser never renders them.
+# The block-list is the second line of defence, for files opened outside the app.
 
-FEATURE_FILE_EXTENSIONS = APPENDIX_EXTENSIONS | frozenset({
-    '.csv', '.kml', '.kmz', '.gpx', '.geojson', '.json',
+FEATURE_FILE_BLOCKED_EXTENSIONS = frozenset({
+    '.html', '.htm', '.xhtml', '.xht', '.shtml',   # HTML
+    '.mht', '.mhtml',                              # HTML web archives (rendered as HTML)
+    '.svg', '.svgz',                               # SVG runs scripts
+    '.js', '.mjs',                                 # JavaScript
+    '.hta',                                        # HTML application (runs as a program)
+    '.swf',                                        # Flash
 })
-FEATURE_IMAGE_EXTENSIONS = frozenset({'.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff'})
+# Raster formats Pillow checks and thumbnails (webp: Pillow in the image is built with it,
+# test_feature_media checks PIL.features.check('webp')). Other formats go in as files.
+FEATURE_IMAGE_EXTENSIONS = frozenset({
+    '.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.webp'})
+
+FEATURE_BLOCKED_TYPES_TEXT = ', '.join(sorted(FEATURE_FILE_BLOCKED_EXTENSIONS))
+FEATURE_ZIP_HINT = 'Such files (e.g. SVG figures) can be uploaded inside a .zip archive.'
 
 
-def _check_upload(uploaded_file, extensions):
-    """ValidationError if ``uploaded_file`` is over the limit or has another extension."""
+def upload_extension(name):
+    """Last extension of ``name``, lower case, with trailing dots and spaces ignored
+    (``'x.SVG. '`` -> ``'.svg'``); ``''`` for a name without extension."""
+    return os.path.splitext(os.path.basename(str(name)).rstrip('. '))[1].lower()
+
+
+def _check_size(uploaded_file):
     if uploaded_file.size > max_upload_size_bytes():
         raise ValidationError(
             f'File "{uploaded_file.name}" is too large. Maximum file size is '
             f'{max_upload_size_mb()} MB per file.')
-    ext = os.path.splitext(uploaded_file.name)[1].lower()
-    if ext not in extensions:
+
+
+def _check_upload(uploaded_file, extensions):
+    """ValidationError if ``uploaded_file`` is over the limit or has another extension than
+    ``extensions`` (allow-list; images)."""
+    _check_size(uploaded_file)
+    if upload_extension(uploaded_file.name) not in extensions:
         raise ValidationError(
             f'File "{uploaded_file.name}" has an unsupported file type. '
-            f'Allowed types: {", ".join(sorted(extensions))}')
+            f'Allowed types: {", ".join(sorted(extensions))}. '
+            f'Other formats can be uploaded as files.')
+
+
+def check_feature_file(uploaded_file):
+    """ValidationError if ``uploaded_file`` is over the limit or of a blocked type."""
+    _check_size(uploaded_file)
+    if upload_extension(uploaded_file.name) in FEATURE_FILE_BLOCKED_EXTENSIONS:
+        raise ValidationError(
+            f'File "{uploaded_file.name}" is of a blocked file type. Blocked types (web pages, '
+            f'scripts and SVG, which a browser would run): {FEATURE_BLOCKED_TYPES_TEXT}. '
+            f'{FEATURE_ZIP_HINT}')
 
 
 class MultipleImageField(forms.ImageField):
@@ -369,11 +407,13 @@ class _FeatureUploadForm(forms.Form):
 class FeatureFileUploadForm(_FeatureUploadForm):
     """Upload one or more files to a feature (plan "features" T8)."""
     files_field = 'feature_files'
+    blocked_types = FEATURE_BLOCKED_TYPES_TEXT   # shown on the upload page (T8a)
+    zip_hint = FEATURE_ZIP_HINT
     feature_files = MultipleFileField(
         label='Files',
-        widget=MultipleFileInput(attrs={
-            'accept': ','.join(sorted(FEATURE_FILE_EXTENSIONS)), 'class': 'form-control'}),
-        help_text='Documents, spreadsheets, data or archives.')
+        widget=MultipleFileInput(attrs={'class': 'form-control'}),   # any type (T8a)
+        help_text=('Any file type (documents, spreadsheets, instrument data, archives) except '
+                   'the blocked types listed above.'))
     description = forms.CharField(
         required=False, max_length=1000,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
@@ -382,7 +422,7 @@ class FeatureFileUploadForm(_FeatureUploadForm):
     def clean_feature_files(self):
         files = self.files.getlist('feature_files')
         for uploaded_file in files:
-            _check_upload(uploaded_file, FEATURE_FILE_EXTENSIONS)
+            check_feature_file(uploaded_file)
         return files
 
 
@@ -394,7 +434,7 @@ class FeatureImageUploadForm(_FeatureUploadForm):
         label='Images',
         widget=MultipleFileInput(attrs={
             'accept': ','.join(sorted(FEATURE_IMAGE_EXTENSIONS)), 'class': 'form-control'}),
-        help_text='JPEG, PNG, GIF or TIFF.')
+        help_text='JPEG, PNG, GIF, TIFF or WebP.')
     caption = forms.CharField(
         required=False, max_length=1000,
         widget=forms.TextInput(attrs={'class': 'form-control'}),

@@ -30,8 +30,8 @@ def max_upload_size_bytes():
     return max_upload_size_mb() * 1024 * 1024
 
 
-# File types accepted as report appendices (UploadAppendixForm); feature files accept these
-# and a few geodata formats (forms/feature.py, plan "features" T8).
+# File types accepted as report appendices (UploadAppendixForm). Feature files accept any type
+# except a block-list of active content (forms/feature.py, plan "features" T8a).
 APPENDIX_EXTENSIONS = frozenset({
     '.pdf', '.doc', '.docx', '.txt', '.zip',
     '.jpg', '.jpeg', '.png', '.gif',
