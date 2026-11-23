@@ -54,6 +54,7 @@ Read by the app (`app-main/find_artek/settings.py`):
 | `USE_LDAP` | LDAP lookups on or off: `true`/`false` (also `1`/`0`, `yes`/`no`, `on`/`off`, case-insensitive); unset or empty = `true`, any other value stops the app at startup (`ImproperlyConfigured`). Production `true` (default, web_server need not set it). `false`: no LDAP connection, roles and user names stay as stored at login, the Excel import only matches persons already in the database; the `LDAP_*` variables are then not needed |
 | `LDAP_BIND_USER`, `LDAP_BIND_PASSWORD` | Read-only AD account for LDAP lookups (`ldaps://win.dtu.dk`) |
 | `LDAP_GROUP_ARTEK_STAFF`, `LDAP_GROUP_ARTEK_EDITOR` | Full DN of the AD group whose members (nested groups count) get the Django group `artek_staff` / `artek_editor` at every CAS login; empty (default) = nobody has the role. Needs `LDAP_BIND_USER` / `LDAP_BIND_PASSWORD` |
+| `FA_DATAFORSYNINGEN_TOKEN` | Token for the Dataforsyningen map services (satellite and topographic layers of Greenland on the map pages); a free token from dataforsyningen.dk. Empty (default) = no Dataforsyningen layers, only the GBIF base map. Meant for web maps: the map pages render it into the page (`data-dataforsyningen-token` on the map element), so it is not a secret in the strict sense, but it is not committed either |
 
 Read by the MariaDB container only: `MYSQL_ROOT_PASSWORD`.
 

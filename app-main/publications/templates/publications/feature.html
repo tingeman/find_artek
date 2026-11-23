@@ -10,8 +10,7 @@
 
 {% block dynamic_head_content %}
 <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/feature.css' %}" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-    integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+<link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
 {% endblock %}
 
 <!-- headline for the page -->
@@ -70,7 +69,7 @@
         </div>
 
         <div class="map-box-right">
-            <div class="map-box-inner" id="map"></div>
+            <div class="map-box-inner" id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %}></div>
         </div>
     </div>
 
@@ -94,7 +93,7 @@
 </div>
 
 
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
+<script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
 <script src="{% versioned_static 'publications/js/class/my-map-class.js' %}" defer></script>
 <script src="{% static 'publications/js/feature.js' %}" defer></script>
 

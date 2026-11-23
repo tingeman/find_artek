@@ -81,12 +81,12 @@
 				code = proj.srsCode;
 				options = b || {};
 
-				this.projection = new L.Proj.Projection(proj, L.bounds(options.bounds));
+				this.projection = new L.Proj.Projection(proj, options.bounds);
 			} else {
 				code = a;
 				def = b;
 				options = c || {};
-				this.projection = new L.Proj.Projection(code, def, L.bounds(options.bounds));
+				this.projection = new L.Proj.Projection(code, def, options.bounds);
 			}
 
 			L.Util.setOptions(this, options);
@@ -110,7 +110,7 @@
 				}
 			}
 
-			this.infinite = !L.bounds(this.options.bounds);
+			this.infinite = !this.options.bounds;
 
 		},
 

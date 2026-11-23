@@ -73,6 +73,47 @@ python scripts/compile_lock.py --upgrade --exclude-newer 2026-11-01          # u
 Upgrades are deliberate commits; `--exclude-newer` keeps a cooldown against freshly published
 versions. Rebuild and run `tests/run.sh` afterwards.
 
+## Third-party JavaScript
+
+The map pages use these libraries, served from our own static files
+(`app-main/publications/static/publications/vendor/<lib>-<version>/`, each with its licence file),
+not from a CDN:
+
+| Library | Version | Files | Source (npm release tarball) | Licence |
+|---|---|---|---|---|
+| Leaflet | 1.9.4 | `leaflet.js`, `leaflet.css`, `images/` | `leaflet` | BSD-2-Clause |
+| proj4js | 2.22.0 | `proj4.js` (dist build) | `proj4` | MIT |
+| Proj4Leaflet | 1.0.2 | `proj4leaflet.js` (`src/`) | `proj4leaflet` | BSD-2-Clause |
+| leaflet-rotate | 0.2.8 | `leaflet-rotate-src.js` | `leaflet-rotate` | GPL-3.0 |
+| Leaflet.draw | 1.0.4 | `leaflet.draw.js`, `leaflet.draw.css`, `images/` | `leaflet-draw` | MIT (the tarball has no licence file; `LICENSE` written from `package.json` and the file header) |
+
+Pages: overview map, report page, feature page (Leaflet, proj4, Proj4Leaflet, leaflet-rotate),
+add feature by map (Leaflet, Leaflet.draw). Source maps (`*.map`) are not copied. The map
+tiles (GBIF, later Dataforsyningen) stay external.
+
+**Why local** (owner decision 2026-11-23): no third-party code without an integrity check runs
+in editors' logged-in sessions (several of the CDN scripts were loaded without SRI); releases
+are reproducible (everything that runs is in the tested image); no dependency on CDN
+availability; visitors' IP addresses are not sent to CDNs; simpler security headers later
+(FA-R31, Content-Security-Policy). Cost: versions are updated by hand, about 0.5 MB in the
+repository.
+
+**Updating a library** (no `npm install`, no code from the package is run):
+
+1. Read the expected hash: `curl -s https://registry.npmjs.org/<pkg>/<version>` → `dist.integrity`
+   (`sha512-...`). Prefer a version that has been out for a few weeks.
+2. Download into an empty temporary directory:
+   `curl -sO https://registry.npmjs.org/<pkg>/-/<pkg>-<version>.tgz`, then check
+   `echo "sha512-$(openssl dgst -sha512 -binary <pkg>-<version>.tgz | base64 -w0)"` equals
+   `dist.integrity`. Stop if it differs.
+3. `tar -xzf <pkg>-<version>.tgz`; copy only the files in the table above and the licence file
+   from `package/` into a new directory `vendor/<lib>-<version>/`; delete the old version's
+   directory.
+4. Change the paths in the templates (`grep -rn "publications/vendor/" app-main/publications/templates`)
+   and in the table above; `test_map_assets.py` checks that every referenced file exists.
+5. Raise `STATIC_ASSET_VERSION` in `settings.py`, check the map pages in the browser, run the
+   tests.
+
 ## Release
 
 - Releases are year-based tags on `develop/main`: `2026.1`, `2026.2`, fixes `2026.1.1`. A tag

@@ -32,3 +32,14 @@ def AUTH_MARKER(request):
     session_key = getattr(session, 'session_key', None) or ''
     digest = hashlib.sha256(session_key.encode()).hexdigest()[:16]
     return {'AUTH_MARKER': digest}
+
+
+def map_settings(request):
+    """Settings for the map pages (PLAN_features T2).
+
+    ``FA_DATAFORSYNINGEN_TOKEN``: token for the Dataforsyningen map services, empty when
+    unset. Only the map pages (map, report, feature, add feature by map) render it, as a
+    ``data-dataforsyningen-token`` attribute on the map element; it is meant to be visible
+    in the page.
+    """
+    return {'FA_DATAFORSYNINGEN_TOKEN': getattr(settings, 'FA_DATAFORSYNINGEN_TOKEN', '')}

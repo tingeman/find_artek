@@ -8,13 +8,13 @@
 {% block title %}Front page{% endblock %}
 
 {% block dynamic_head_content %}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+    <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/map.css' %}" />
-    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin="" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js" defer></script>
-    <script src="{% static 'publications/js/proj4leaflet.js' %}" defer></script>
+    <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
+    <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}" defer></script>
+    <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}" defer></script>
     
-    <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js" defer></script>
+    <script src="{% static 'publications/vendor/leaflet-rotate-0.2.8/leaflet-rotate-src.js' %}" defer></script>
     
     <script src="{% versioned_static 'publications/js/class/my-reports-class.js' %}" defer></script>
     <script src="{% versioned_static 'publications/js/class/my-map-class.js' %}" defer></script>
@@ -27,7 +27,7 @@
 {% block main-content %}
 
 <div class="map-container">
-    <div class="map" id="map"></div>
+    <div class="map" id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %}></div>
     
     <div id="loading-overlay">
         <div id="loading-icon"></div>

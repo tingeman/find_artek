@@ -5,16 +5,12 @@
 
 {% block dynamic_head_content %}
 <!-- Leaflet CSS and JavaScript -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-      crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-        crossorigin=""></script>
+<link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
+<script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}"></script>
 
 <!-- Leaflet Draw Plugin for drawing points -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<link rel="stylesheet" href="{% static 'publications/vendor/leaflet-draw-1.0.4/leaflet.draw.css' %}" />
+<script src="{% static 'publications/vendor/leaflet-draw-1.0.4/leaflet.draw.js' %}"></script>
 
 <style>
 /* Map container styles */
@@ -177,7 +173,7 @@ code {
             </div>
             <div class="card-body">
                 <div id="map-container">
-                    <div id="feature-map"></div>
+                    <div id="feature-map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %}></div>
                 </div>
                 
                 <div class="row">
