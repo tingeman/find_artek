@@ -24,6 +24,30 @@
         <strong>Warning:</strong> You are about to delete {{ count }} publication(s). This action cannot be undone.
       </div>
 
+      {% if blocked_publications %}
+      {# T13: reports that still have features are never deleted; they are skipped. #}
+      <div class="card mb-3 border-danger" id="bulk-delete-blocked">
+        <div class="card-header text-danger">Not deleted: {{ blocked_publications|length }} report{{ blocked_publications|length|pluralize }} still ha{{ blocked_publications|length|pluralize:"s,ve" }} features</div>
+        <div class="card-body pb-0">
+          <p class="mb-2">A report must have no features before it can be deleted. Delete its features first
+            ("Delete all features" or one by one on the report page), then delete the report.
+            These reports are skipped and stay as they are.</p>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for pub in blocked_publications %}
+            <li class="list-group-item" data-blocked-pk="{{ pub.pk }}">
+              <strong>{{ pub.year }}-{{ pub.number }}</strong>
+              — {{ pub.title|default:"[no title]" }}
+              <br/>
+              <span class="text-danger">has {{ pub.feature_count }} feature{{ pub.feature_count|pluralize }}, delete them first:</span>
+              <a href="{% url 'publications:delete_report' pk=pub.pk %}">what to do</a> ·
+              <a href="{% url 'publications:report' pk=pub.pk %}">report page</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
       <div class="card mb-3">
         <div class="card-header">Publications to be deleted</div>
         <ul class="list-group list-group-flush">
@@ -49,13 +73,13 @@
               </div>
             </li>
           {% empty %}
-            <li class="list-group-item">No publications selected.</li>
+            <li class="list-group-item">{% if blocked_publications %}None: every selected report still has features.{% else %}No publications selected.{% endif %}</li>
           {% endfor %}
         </ul>
       </div>
 
       <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-danger">Confirm delete</button>
+        {% if count %}<button type="submit" class="btn btn-danger">Confirm delete</button>{% endif %}
         <button type="submit" name="cancel" value="1" class="btn btn-secondary">Cancel</button>
       </div>
     </form>

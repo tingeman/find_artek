@@ -73,6 +73,7 @@ from publications.permissions import (
 from publications.utils_basic import CaseInsensitively
 from publications.geometry import entered_point, single_point, source_origin
 from publications.map_styles import selected_type_slugs
+from publications import report_delete
 from publications.visibility import visible_features, visible_publications
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number,
@@ -2211,7 +2212,14 @@ class DeleteReportView(PublicationPermissionMixin, BaseView):
 
     Needs Publication.is_deletable_by (delete_publication, or delete_own_publication and
     own; permissions.py). This replaces the old rule "superuser, creator or
-    delete_publication" (plan registration, permission matrix)."""
+    delete_publication" (plan registration, permission matrix).
+
+    A report that still has features cannot be deleted (owner 2026-11-23, plan "features"
+    T13): deleting it would leave its features in the database, without a report, still on
+    the map. GET then shows no delete button but the report's features and the two ways to
+    remove them ("Delete all features", DeleteReportFeaturesView, or one by one from the
+    report page); POST changes nothing and returns to the report with an error. Only this
+    report's own features are listed, never the other reports they may belong to."""
     template_name = 'publications/delete_report_form.html'
     permission = DELETE
     
@@ -2219,10 +2227,30 @@ class DeleteReportView(PublicationPermissionMixin, BaseView):
         """Get the publication to be deleted"""
         pk = self.kwargs.get('pk')
         return get_object_or_404(Publication, pk=pk)
+
+    @staticmethod
+    def report_features(publication):
+        """The features linked to ``publication`` (all of them: the user may see this report,
+        so they may see its features), sorted by name (report_delete.report_features)."""
+        return report_delete.report_features(publication)
+
+    @staticmethod
+    def features_block_message(publication, count):
+        number = report_delete.report_label(publication)
+        return (f'Report {number} cannot be deleted: it still has {count} feature(s). '
+                f'Delete its features first ("Delete all features" or one by one on the '
+                f'report page), then delete the report.')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['publication'] = self.get_publication()
+        publication = self.get_publication()
+        features = list(self.report_features(publication))
+        context.update({
+            'publication': publication,
+            'report_features': features,
+            'can_delete_all_features': bool(features) and user_may(
+                self.request.user, ADD_FEATURE, publication),
+        })
         return context
     
     def get(self, request, *args, **kwargs):
@@ -2241,6 +2269,11 @@ class DeleteReportView(PublicationPermissionMixin, BaseView):
             return redirect('publications:report', pk=publication.pk)
         
         elif action == 'delete':
+            count = self.report_features(publication).count()
+            if count:
+                # Blocked (T13): nothing is changed while the report has features.
+                messages.error(request, self.features_block_message(publication, count))
+                return redirect('publications:report', pk=publication.pk)
             try:
                 # Delete all associated files first
                 self._delete_publication_files(publication)
@@ -2674,7 +2707,13 @@ class AddReportsFromFileUploadView(PermissionMixin, BaseFormView):
 
 
 class BulkDeletePublicationsView(PermissionMixin, View):
-    """Bulk delete, for editors only (``bulk_delete``: delete_publication; permissions.py)."""
+    """Bulk delete, for editors only (``bulk_delete``: delete_publication; permissions.py).
+
+    Reports that still have features are never deleted (plan "features" T13,
+    publications.report_delete): the confirm page lists them apart ("has N features, delete
+    them first", with a link to the report's delete page) and does not count them; on the
+    confirmed POST they are skipped (nothing about them changes) and named in an error
+    message, the others are deleted as before."""
     template_name = 'publications/bulk_delete_publications.html'
     permission = BULK_DELETE
 
@@ -2728,20 +2767,33 @@ class BulkDeletePublicationsView(PermissionMixin, View):
             messages.warning(request, 'No publications selected.')
             return redirect('publications:bulk_delete_publications')
 
-        # If confirm flag is present, perform deletion
+        # If confirm flag is present, perform deletion (reports with features are skipped, T13)
         if request.POST.get('confirm') == 'yes':
-            qs = Publication.objects.filter(pk__in=selected_ids)
-            count = qs.count()
-            qs.delete()
-            messages.success(request, f'Deleted {count} publication(s).')
+            with transaction.atomic():
+                deletable, blocked = report_delete.split_by_features(
+                    Publication.objects.filter(pk__in=selected_ids).order_by('-year', '-number', 'pk'))
+                count = len(deletable)
+                if deletable:
+                    Publication.objects.filter(pk__in=[p.pk for p in deletable]).delete()
+            if blocked:
+                names = ', '.join(
+                    f'{report_delete.report_label(p)} ({p.feature_count} feature(s))'
+                    for p in blocked)
+                messages.error(request, f'Not deleted, {len(blocked)} report(s) still have '
+                                        f'features (delete their features first): {names}.')
+            if count:
+                messages.success(request, f'Deleted {count} publication(s).')
             return redirect('publications:bulk_delete_publications')
 
         # Otherwise, render confirmation
-        publications = Publication.objects.filter(pk__in=selected_ids).prefetch_related('authors')
+        deletable, blocked = report_delete.split_by_features(
+            Publication.objects.filter(pk__in=selected_ids)
+            .order_by('-year', '-number', 'pk').prefetch_related('authors'))
         context = {
             'confirm': True,
-            'publications_to_delete': publications,
-            'count': publications.count(),
+            'publications_to_delete': deletable,
+            'blocked_publications': blocked,
+            'count': len(deletable),
             'selected_ids': selected_ids,
         }
         return render(request, self.template_name, context)

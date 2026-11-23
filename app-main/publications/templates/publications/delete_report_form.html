@@ -56,6 +56,39 @@
 
 {% block main-content %}
 
+{% if report_features %}
+{# T13: a report with features cannot be deleted; no delete button, say what to do. #}
+<div class="delete-warning" id="delete-report-has-features" role="alert">
+    <h3>This report cannot be deleted yet</h3>
+    <p>This report still has <strong>{{ report_features|length }} feature{{ report_features|length|pluralize }}</strong>.
+       A report must have no features before it can be deleted, otherwise its features would stay
+       on the map without a report.</p>
+    <p>Remove the features first, in one of two ways:</p>
+    <ol>
+        <li>
+            {% if can_delete_all_features %}
+            <a href="{% url 'publications:delete_report_features' pk=publication.pk %}" id="delete-report-features-link"><strong>Delete all features</strong></a>
+            {% else %}
+            <strong>Delete all features</strong>
+            {% endif %}
+            of this report. Features that belong only to this report are deleted; features that
+            also belong to other reports are only removed from this report and stay on the others.
+            {% if not can_delete_all_features %}
+            You may not do this on this report; an ARTEK editor can.
+            {% endif %}
+        </li>
+        <li>Delete the features one by one on the
+            <a href="{% url 'publications:report' pk=publication.pk %}">report page</a>.</li>
+    </ol>
+    <p>Then come back here to delete the report.</p>
+    <p>Features of this report:</p>
+    <ul id="delete-report-feature-list">
+        {% for feature in report_features %}
+        <li><a href="{% url 'publications:feature' pk=feature.pk %}?report={{ publication.pk }}">{{ feature.name|default:feature.pk }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
 <div class="delete-warning">
     <h3>⚠️ Warning</h3>
     <p>You are about to delete the following publication permanently. This action cannot be undone!</p>
@@ -67,6 +100,7 @@
         <li>All associated metadata and relationships</li>
     </ul>
 </div>
+{% endif %}
 
 <div class="report-preview">
     <h4>Publication Details:</h4>
@@ -129,9 +163,11 @@
     <input type="hidden" name="publication-pk" value="{{ publication.id }}">
     
     <div class="button-group">
+        {% if not report_features %}
         <button type="submit" name="action" value="delete" class="btn-delete" onclick="return confirm('Are you absolutely sure you want to delete this publication? This cannot be undone!');">
             🗑️ Delete Publication
         </button>
+        {% endif %}
         <button type="submit" name="action" value="cancel" class="btn-cancel">
             ↩️ Cancel
         </button>
