@@ -5,7 +5,9 @@ Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `deve
 ## Now
 T2-T11, T7a, T8a done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
-**Now: T12, owner's browser checks** in the dev stack (runs the T11 code from the worktree, http://localhost:8098/), step by step in [USER_STEPS_features.md](USER_STEPS_features.md) (signed-out checks in a private window, signed-in checks grouped by page, one test report deleted at the end). Findings go into that file. Then main session: merge `develop/main` into `agent-features` (only docs commits there), full suite + `tests/run.sh` on the branch, ask the owner for the fast-forward of `develop/main`.
+**T12 browser checks done 2026-11-23**; findings summarised in [USER_STEPS_features.md](USER_STEPS_features.md) "Findings". Owner approved T13–T18 as fixes before the merge (T13: block deleting a report with features, tell the user clearly what to do); design/layout findings go to the roadmap at the end. Leftover test features 1839–1841 deleted from the dev DB with the owner's permission.
+
+**Now: T13** (implementer in the worktree), then T14–T18 one at a time. Then main session: merge `develop/main` into `agent-features`, full suite + `tests/run.sh`, short browser recheck of the fixes, ask for the fast-forward.
 
 Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-features` (owner's checkout stopped with `down`, no `-v`); built at T3, before the T4 merge, rebuilt after the T4/T9 merge; **migration 0006 applied to the dev DB 2026-11-23 with the owner's permission** (reversible with `migrate publications 0005`). To give the owner the stack back: `down` in the worktree, `up -d --build` in `find_artek_DEVELOP`.
 

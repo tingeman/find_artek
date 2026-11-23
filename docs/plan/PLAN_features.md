@@ -187,7 +187,48 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ### T12. Release checks (you)
 - **You**, in the dev stack after the main session rebuilt it (`docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`, from `C:\thin\02_Code\docker_projects\find_artek_DEVELOP` after the merge, or the worktree): draw a point, line and polygon; enter UTM coordinates; import the template sheet with your real examples; edit and delete; upload a feature image; delete an appendix; switch to the satellite layer; check the overview filter. Findings go into STATUS.
-- Main session: full suite and `tests/run.sh` on the branch, merge `develop/main` into `agent-features`, ask for the fast-forward. The release itself (tag, build, deploy, `FA_DATAFORSYNINGEN_TOKEN` in web_server) follows the release procedure in a separate release plan with its USER_STEPS, as for 2026.7.
+- Done 2026-11-23 with [USER_STEPS_features.md](USER_STEPS_features.md); the findings are summarised there. The owner approved T13–T18 below as fixes before the merge (2026-11-23); the design and layout findings go to the roadmap at the end.
+- Then main session: full suite and `tests/run.sh` on the branch, merge `develop/main` into `agent-features`, ask for the fast-forward. The release itself (tag, build, deploy, `FA_DATAFORSYNINGEN_TOKEN` in web_server) follows the release procedure in a separate release plan with its USER_STEPS, as for 2026.7.
+
+### T13. A report with features cannot be deleted (T12 finding 2.10)
+- Why: `DeleteReportView` only removes the report's links to its features, so they stay in the database with no report, still on the map (17 such orphans came with the production copy).
+- Files: `views.py` (`DeleteReportView`), its confirm template, tests.
+- Acceptance (owner 2026-11-23: block, and tell the user clearly what to do):
+  - While the report has features, the confirm page has no delete button. It says the report still has N features and must have none before it can be deleted. It names the two ways: "Delete all features" on the report (link; deletes features only on this report, removes shared ones from this report) or delete/remove them one by one. It lists the features with links to their pages.
+  - A POST while features are linked changes nothing (report, links, appendices and files unchanged) and returns to the report page with an error message saying the same.
+  - Hidden reports are never named or counted (a feature on a confidential report shows only as a feature of this report).
+  - Without features the delete works as before.
+- Tests: page text and no button with features; POST refused, nothing changed; delete works without features; the shared feature case.
+- Agent: implementer. Deployment impact: none.
+
+### T14. Remove a shared feature from one report (T12 finding 2.9)
+- Why: T7a refuses deleting a feature on more than one report and points to "Delete all features". The owner wants to remove just that one feature from one report; it is never fully deleted while another report uses it (FA-R109 stays for the long term).
+- Files: `views.py` (`DeleteFeatureView` or a new unlink view), `feature_confirm_delete.html`, report page link text if needed, tests.
+- Acceptance: on the delete page of a shared feature started from a report (`report=`), a button **"Remove from report <number>"** removes the link to that report only; files and images stay (they belong to the feature). Permission as for unlinking in "Delete all features" (`ADD_FEATURE` on that report). Without a usable `report`, the page says to open it from the report. The info box text is changed to explain this. Returns to the report with a message. Hidden reports are never named or counted.
+- Tests: unlink works and keeps the feature, its other link, files and images; permission refused; no `report` or a report the feature is not on; hidden reports not named.
+- Agent: implementer. Deployment impact: none.
+
+### T15. Small fixes from the browser checks (T12 findings 2.3, 2.4, 2.9)
+- Edit coordinates (and Edit on map, if it does the same) returns to the **feature page** when started there (keep `report=`).
+- The feature page lists the **reports** the feature belongs to, only those the user may see, with links.
+- The "Delete all features" confirm page links each feature to its page and shows its number of files and images.
+- The EPSG list on the coordinate form gets the same light blue background as the help box.
+- Deleting a feature's file or image, or the feature, removes the then empty folders under `reports/<year>/<number>/features/<id>/` (only empty folders, only inside that feature folder).
+- Tests for each. Agent: implementer. Deployment impact: none (STATIC_ASSET_VERSION if CSS/JS change).
+
+### T16. Map colours, background and border (T12 findings 1.1, 2.3)
+- "Other" gets a colour that shows on white and on the base layers (`map_styles.py`, the one colour source); legend and filter follow.
+- The Arctic SDI basemap always lies underneath the chosen base layer, so there is map coverage outside Greenland with any base layer (no duplicate when Arctic SDI itself is chosen).
+- The map element gets a visible border on the grey page.
+- Tests where testable (colour source, layer setup); browser check by the main session. Agent: implementer. Deployment impact: none (bump STATIC_ASSET_VERSION).
+
+### T17. Delete one geometry of a feature in Edit on map (T12 finding 2.5)
+- In Edit on map, each point, line and polygon of a feature can be selected and deleted on its own (a feature with a line and a polygon keeps the line). Multi-geometries are split into single editable layers and joined again on save.
+- Tests: form/JSON round trip; browser check by the main session. Agent: implementer. Deployment impact: none.
+
+### T18. Reports in view lists too few reports (T12 finding 1.1)
+- At the all-Greenland view the overview lists 24 reports, although the API returns 1749 features on 161 public reports to anonymous users. Find and fix the cause (`js/map.js` `reportsInView`, `find-artek-map.js` `recordsInView`/`viewBounds`/`projectedBounds`).
+- Tests where testable; browser check by the main session. Agent: implementer. Deployment impact: none.
 
 ## Out of scope
 
