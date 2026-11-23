@@ -316,6 +316,34 @@ Create one report **`ZZ recheck C (delete me)`** and draw one point on it, name 
 
 - See above, my comments are all enclosed in three asterix `***<comment>***`
 
+
+---
+
+## T. Third recheck: T21 and T22 (about 10 minutes)
+
+The dev stack already runs this code. Reload each page once with `Ctrl+F5`.
+
+### T1. Overview map, signed out (Window B)
+
+http://localhost:8098/publications/map/
+
+- [ ] **T21:** find a feature of type **Other** with a line or polygon: the line is **white with a thin black edge** (not all black). Untick and tick "Other": still white.
+- [ ] **T22:** choose **Topographic**. The white border around Greenland is gone; about 12 km off the coast the **Arctic basemap** takes over.
+- [ ] **T22:** zoom to level 8–10 near Nuuk, Ilulissat and Tasiilaq: **no double coastlines, no ghost place names or airport icons** inside Greenland.
+- [ ] **T22:** pan and zoom (wheel and +/-): the edge stays aligned, no white flash.
+- [ ] **T22:** look at **Scoresby Sund** (east coast): the wide fjord shows the Arctic basemap instead of the topographic map's water (known: the 12 km band can't fill fjords wider than ~24 km). Acceptable? ______
+- [ ] **T22:** **Box zoom:** under + and − there is a new button. Click it, drag a box: the map zooms to it and the button returns to normal. Click it and press `Esc`: cancelled. Shift+drag still works without the button.
+- [ ] Satellite, then Arctic SDI, then Topographic, reload: the last choice is kept.
+
+### T2. Signed in (Window A)
+
+- [ ] **T22:** open any report with features and a feature page: the box-zoom button is there. On **Draw on map** (add or edit) there is **no** box-zoom button.
+- [ ] **T21:** Administration: the **Bulk delete reports** tile shows the report picture with a **red trash can**. Don't delete anything.
+
+### T3. Findings
+
+-
+
 ---
 
 When everything is ticked, tell the session ("browser checks done"). It will then:
