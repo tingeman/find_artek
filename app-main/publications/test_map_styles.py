@@ -1,4 +1,4 @@
-"""Map readability fixes from the owner's browser checks (plan "features" T16, T19, T22).
+"""Map readability fixes from the owner's browser checks (plan "features" T16, T19, T22, T23).
 
 - Feature type colours (publications/map_styles.py): the colours from before T16 (T19, owner
   decision; white OTHER, yellow BOREHOLE, pink LAB MEASUREMENT included), #rrggbb, clearly
@@ -13,9 +13,11 @@
   internal ids, and the line got the lower one, so the casing was drawn on top (all black).
 - Topographic map (find-artek-map-layers.js): T19 blended it with `mix-blend-mode: multiply`
   so its opaque white border showed the Arctic SDI underlay, but the underlay then also showed
-  through inside Greenland. T22 (deliberate change): no blend; the layer is clipped to the
-  coverage outline (test_map_coverage.py has the details); the other base layers are not
-  clipped.
+  through inside Greenland. T22 removed the blend and clipped the layer to a coverage outline,
+  which cut off names and islands at the coast. T23 (deliberate change of T22's NoBlendTests):
+  the blend is back (class on the topographic layer only, the CSS rule), the topographic layer
+  is drawn whole, and the underlay is clipped to the outside of the outline instead
+  (test_map_coverage.py has the details).
 - The Arctic SDI basemap lies under every other base layer (find-artek-map-layers.js): its own
   layer object, not in the layer control, below the base layers, removed when Arctic SDI is
   itself chosen. The Dataforsyningen WMS layers are requested transparent, so the underlay
@@ -358,7 +360,8 @@ class UnderlayTests(SimpleTestCase):
         self.assertIn("format: 'image/png',", self.code)
 
     def test_base_layers_are_marked_as_base_layers(self):
-        for call in ("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, true)",
+        for call in ("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, "
+                     "BLEND_UNDERLAY_CLASS)",
                      "dataforsyningenWms(SATELLITE_WMS, 'ortofoto', false)",
                      "dataforsyningenWms(SATELLITE_WMS, 'sentinel2_10m_2022', false)",
                      "dataforsyningenWms(SATELLITE_WMS, 'stednavne', true)",
@@ -368,28 +371,56 @@ class UnderlayTests(SimpleTestCase):
                 self.assertIn(call, self.code)
 
 
-class NoBlendTests(SimpleTestCase):
-    """T22 (deliberate change of T19's TopographicBlendTests): the multiply blend let the
-    underlay show through inside Greenland; it is replaced by the clip (test_map_coverage.py)."""
+class TopographicBlendTests(SimpleTestCase):
+    """T23 (deliberate change of T22's NoBlendTests, back to T19's blend): the topographic layer
+    is multiplied over the underlay again; the underlay is clipped outside the coverage outline
+    instead of the topographic layer (test_map_coverage.UnderlayClipTests)."""
 
-    def test_blend_class_and_rule_are_gone(self):
-        layers = read_static(LAYERS)
-        css = read_static(MAP_CSS)
-        for needle in ('BLEND_UNDERLAY_CLASS', 'fa-blend-underlay'):
-            with self.subTest(needle=needle):
-                self.assertNotIn(needle, layers)
-                self.assertNotIn(needle, css)
-        self.assertNotIn('mix-blend-mode', css)
-        self.assertNotIn('mix-blend-mode', code_only(layers))
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.code = code_only(read_static(LAYERS))
+        cls.css = read_static(MAP_CSS)
 
-    def test_no_class_option_on_the_wms_layers(self):
-        code = code_only(read_static(LAYERS))
-        self.assertIn('function dataforsyningenWms(url, layerName, overlay, clip) {', code)
-        self.assertNotIn('className', code)
+    def test_only_the_topographic_layer_has_the_class(self):
+        self.assertIn("var BLEND_UNDERLAY_CLASS = 'fa-blend-underlay';", self.code)
+        self.assertIn("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, "
+                      "BLEND_UNDERLAY_CLASS)", self.code)
+        # var, topographic layer, export (name and value).
+        self.assertEqual(self.code.count('BLEND_UNDERLAY_CLASS'), 4)
+        for layer in ('ortofoto', 'sentinel2_10m_2022'):
+            with self.subTest(layer=layer):
+                self.assertIn(f"dataforsyningenWms(SATELLITE_WMS, '{layer}', false)}},",
+                              self.code)
+        # The underlay (Arctic SDI) has no class: it is not blended.
+        arctic = self.code[self.code.index('function arcticSdi(options, zIndex) {'):]
+        arctic = arctic[:arctic.index('\n    }\n')]
+        self.assertNotIn('className', arctic)
 
-    def test_tile_layers_stay_in_the_tile_pane(self):
-        # Every tile layer stays in Leaflet's tile pane (no `pane` option), below the features.
-        self.assertNotRegex(code_only(read_static(LAYERS)), r'\bpane:')
+    def test_class_goes_to_the_layer_not_the_wms_request(self):
+        # className is a GridLayer option (default ''), so Leaflet puts it on the layer's
+        # container and doesn't send it as a WMS parameter.
+        self.assertIn('function dataforsyningenWms(url, layerName, overlay, className) {',
+                      self.code)
+        self.assertIn("className: className || '',", self.code)
+        leaflet = read_static('publications/vendor/leaflet-1.9.4/leaflet.js')
+        self.assertIn('pane:"tilePane",className:""', leaflet)
+        self.assertIn('"leaflet-layer "+(this.options.className||"")', leaflet)
+
+    def test_css_multiplies_the_topographic_layer(self):
+        self.assertEqual(css_rule(self.css, '.leaflet-layer.fa-blend-underlay').strip(),
+                         'mix-blend-mode: multiply;')
+        self.assertEqual(self.css.count('mix-blend-mode:'), 1)
+
+    def test_blend_stays_inside_the_tile_pane(self):
+        # Every tile layer stays in Leaflet's tile pane (no `pane` option), and the tile pane is
+        # positioned with a z-index, i.e. a stacking context and an isolated blending group:
+        # the topographic layer blends only with the underlay below it, not with the map
+        # background or the page.
+        self.assertNotRegex(self.code, r'\bpane:')
+        leaflet_css = read_static(LEAFLET_CSS)
+        self.assertRegex(leaflet_css, r'\.leaflet-tile-pane\s*\{\s*z-index: 200;')
+        self.assertRegex(leaflet_css, r'\.leaflet-pane,[^{]*\{\s*position: absolute;')
 
 
 class MapCssTests(MapPagesTestBase):

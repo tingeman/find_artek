@@ -121,10 +121,11 @@
     var UNKNOWN_TYPE_COLOR = '#808080';   // gray, as in map_styles.py
     var typeColors = null;
 
-    // Box zoom without Shift (T22): a button under the +/- buttons; after a click the next
-    // left-button drag on the map draws a box and the map zooms to it (Leaflet's own box zoom
-    // needs Shift, which few users know; Shift+drag keeps working). Not on edit maps, where a
-    // drag draws or moves geometry.
+    // Box zoom without Shift (T22): a button under the +/- buttons; after a click every
+    // left-button drag on the map draws a box and the map zooms to it, until the button is
+    // clicked again, Escape is pressed or the mouse wheel is used over the map (T23). Leaflet's
+    // own box zoom needs Shift, which few users know; Shift+drag keeps working. Not on edit
+    // maps, where a drag draws or moves geometry.
     var BOX_ZOOM_MODES = ['overview', 'report', 'feature'];
     var BOX_ZOOM_LABEL = 'Zoom to a rectangle: drag a box';
     var BOX_ZOOM_ICON =
@@ -354,7 +355,8 @@
     // Leaflet's box zoom (L.Map.BoxZoom: box drawing, Escape, fitBounds, 'boxzoomend'), but it
     // starts on a left-button drag without Shift, and only while `armed` (BoxZoomControl).
     // _onMouseDown is Leaflet 1.9.4's without the Shift check; _finish (end of the drag,
-    // Escape, or a click without a drag) also disarms the button.
+    // Escape, or a click without a drag) also calls onFinish (T23: the button stays armed and
+    // only puts its crosshair cursor back, which Leaflet's _finish removes after a drag).
     var ArmedBoxZoom = L.Map.BoxZoom.extend({
         _onMouseDown: function (e) {
             if (!this.armed || ((e.which !== 1) && (e.button !== 1))) {
@@ -382,9 +384,12 @@
 
     // The button under +/- (topleft, added after the zoom control). Click (or Enter on the
     // focused button) arms it: map dragging and Leaflet's Shift box zoom are paused, the cursor
-    // is a crosshair, and the next drag draws the box. A second click or Escape cancels; the
-    // end of the drag disarms it. Only mousedown/mousemove/mouseup listeners while armed;
-    // nothing runs on pan or zoom.
+    // is a crosshair, and every drag draws a box and zooms to it. It stays armed after a zoom
+    // (and after a click without a drag; T23), so several box zooms follow one another. It is
+    // disarmed by a second click on the button, by Escape (which also cancels a box being
+    // drawn), or by the mouse wheel over the map (the user zooms the usual way again). Only
+    // keydown and wheel listeners while armed (and Leaflet's mousemove/mouseup while a box is
+    // drawn); nothing runs on pan or zoom.
     var BoxZoomControl = L.Control.extend({
         options: {position: 'topleft'},
 
@@ -408,7 +413,7 @@
             }, this);
             this._button = button;
             this._handler = new ArmedBoxZoom(map);
-            this._handler.onFinish = L.Util.bind(this.disarm, this);
+            this._handler.onFinish = L.Util.bind(this._onFinish, this);
             this._handler.enable();
             return container;
         },
@@ -434,6 +439,7 @@
             L.DomUtil.addClass(map.getContainer(), 'leaflet-crosshair');
             this._button.setAttribute('aria-pressed', 'true');
             L.DomEvent.on(document, 'keydown', this._onKeyDown, this);
+            L.DomEvent.on(map.getContainer(), 'wheel', this._onWheel, this);
         },
 
         disarm: function () {
@@ -451,14 +457,30 @@
             L.DomUtil.removeClass(map.getContainer(), 'leaflet-crosshair');
             this._button.setAttribute('aria-pressed', 'false');
             L.DomEvent.off(document, 'keydown', this._onKeyDown, this);
+            L.DomEvent.off(map.getContainer(), 'wheel', this._onWheel, this);
+        },
+
+        // End of a box (zoomed, cancelled, or a click without a drag): stay armed; Leaflet's
+        // _finish took the crosshair away after a drag, so put it back.
+        _onFinish: function () {
+            if (this.isArmed()) {
+                L.DomUtil.addClass(this._map.getContainer(), 'leaflet-crosshair');
+            }
         },
 
         _onKeyDown: function (e) {
-            // Leaflet's Escape handling: ends a box being drawn (or a pressed button that has
-            // not moved yet), and its _finish disarms the button.
+            // Leaflet's Escape handling ends a box being drawn (or a pressed button that has
+            // not moved yet) without zooming; then the button is disarmed.
             if (e.keyCode === ESCAPE_KEY) {
                 this._handler._onKeyDown(e);
+                this.disarm();
             }
+        },
+
+        // The mouse wheel over the map disarms the button; the wheel zooms as usual (the event
+        // is not stopped).
+        _onWheel: function () {
+            this.disarm();
         },
     });
 

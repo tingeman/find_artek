@@ -15,8 +15,22 @@
 }
 
 /*
+ * T19, again since T23: the topographic base layer (find-artek-map-layers.js, class
+ * fa-blend-underlay) is multiplied with the Arctic SDI underlay below it, so its opaque white
+ * border around Greenland shows the underlay (white x colour = colour). The tile pane is a
+ * stacking context (positioned, z-index in leaflet.css), so the blend only sees the tile layers
+ * below it in that pane, never the map's background colour or the page. Inside the coverage
+ * outline the underlay is clipped away while the topographic map is chosen (T23), so no Arctic
+ * basemap coastline or name shows through there. Satellite, Sentinel-2 and the overlays are
+ * drawn normally.
+ */
+.leaflet-layer.fa-blend-underlay {
+    mix-blend-mode: multiply;
+}
+
+/*
  * Box-zoom button (T22, find-artek-map.js): under the +/- buttons, same size; a dashed
- * rectangle icon; highlighted while it waits for the box to be dragged.
+ * rectangle icon; highlighted while it is armed (T23: it stays armed after a zoom).
  */
 .leaflet-bar a.fa-box-zoom-button {
     display: flex;
