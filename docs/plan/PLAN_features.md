@@ -32,6 +32,8 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ## Design notes
 
+**Owner decision 2026-11-23 (later): EPSG:3574 (North Pole LAEA Atlantic, lon_0 -40) without rotation** instead of EPSG:3575 rotated by -54 deg: Greenland is upright without rotating the map, no GPL-3.0 leaflet-rotate served with our client code, no leaflet-draw/rotation risk. GBIF tiles (3575 only) are dropped; base layers: Dataforsyningen topographic (default), satellite, Sentinel-2; Arctic SDI basemap (EPSG:3574 WMTS, no token, levels 0-10) for areas outside Greenland and without a token. The owner's rotated 3575 code is kept, not served, in `docs/archive/map_epsg3575_rotate/`. This supersedes the EPSG:3575 parts of design note 1. Recorded in `readme.md` "Map projection".
+
 **Owner decisions 2026-11-23:** keep the original coordinates, SRID and a GNSS observation date next to the WGS84 geometry (note 8); new feature uploads under the report folder (note 5); any EPSG code in coordinate entry, with a help list for Greenland; map scripts served locally, with the reasons in `readme.md`.
 
 **Owner decisions 2026-11-22:** Leaflet in the polar projection; Excel import with preview before save; scope includes FA-R64, FA-R65 (filter, legend, reports in view), the feature-page map and FA-R104; Dataforsyningen token rendered into the page from an env variable; FA-R4: stay on MariaDB, transforms in Python.
