@@ -1,11 +1,13 @@
 # Status: Feature registration
 
-Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`.
+Plan: [PLAN_features_COMPLETE.md](PLAN_features_COMPLETE.md). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`.
 
 ## Now
+**Finished 2026-11-24:** `develop/main` fast-forwarded to `agent-features` (`d393f17`) with the owner's OK; open points moved to the roadmap (FA-R111 to FA-R118, addition to FA-R109); release in [USER_STEPS_2026.8.md](../plan/USER_STEPS_2026.8.md).
+
 T2-T11, T7a, T8a done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
-**T12 browser checks done 2026-11-23**; findings summarised in [USER_STEPS_features.md](USER_STEPS_features.md) "Findings". Owner approved T13–T18 as fixes before the merge (T13: block deleting a report with features, tell the user clearly what to do); design/layout findings go to the roadmap at the end. Leftover test features 1839–1841 deleted from the dev DB with the owner's permission.
+**T12 browser checks done 2026-11-23**; findings summarised in [USER_STEPS_features_COMPLETE.md](USER_STEPS_features_COMPLETE.md) "Findings". Owner approved T13–T18 as fixes before the merge (T13: block deleting a report with features, tell the user clearly what to do); design/layout findings go to the roadmap at the end. Leftover test features 1839–1841 deleted from the dev DB with the owner's permission.
 
 **Recheck of T13–T18 done 2026-11-23** (USER_STEPS section R): all ticked; findings → T19 (old colours with black marker border, smaller markers; topographic white border shows the underlay) and T20 (confirm dialog only on the real delete, cropped list in the T13 alert, superuser link to bulk delete on Administration). **Second recheck done 2026-11-23** (USER_STEPS section S): findings -> T21 (done) and T22. **Third recheck done 2026-11-24** (USER_STEPS section T): clipping the topographic map cuts names and islands, Scoresby Sund not OK, box zoom should stay on -> T23 done. **Fourth recheck done 2026-11-24** (section U): accepted as good enough; leftovers for the roadmap: minor coastline cutting at the outline, white band north-west of Hans Ø (Nares Strait, outline beyond the topographic blue band there). **Now:** merge `develop/main`, `tests/run.sh`, ask the owner for the fast-forward. Open: topographic layer without place names (owner checks GetCapabilities).
 

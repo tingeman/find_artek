@@ -1,6 +1,6 @@
 # Plan: Feature registration
 
-Status: **approved 2026-11-23**. Roadmap: FA-R61 (delete all features), FA-R62 (edit feature), FA-R63 (features from Excel), FA-R64 (files and images on features), FA-R65 (map type filter, legend, reports in view), FA-R104 (delete appendices), FA-R107 (feature form leftovers), FA-R13 (edit-feature TODO); needs FA-R101 (fixed on `agent-fixes`, 348219a). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`. Ships with the next regular release; no fix release before it (owner 2026-11-22).
+Status: **complete 2026-11-24** (approved 2026-11-23). Roadmap: FA-R61 (delete all features), FA-R62 (edit feature), FA-R63 (features from Excel), FA-R64 (files and images on features), FA-R65 (map type filter, legend, reports in view), FA-R104 (delete appendices), FA-R107 (feature form leftovers), FA-R13 (edit-feature TODO); needs FA-R101 (fixed on `agent-fixes`, 348219a). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`. Ships with the next regular release; no fix release before it (owner 2026-11-22).
 
 ## Goal
 
@@ -187,7 +187,7 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ### T12. Release checks (you)
 - **You**, in the dev stack after the main session rebuilt it (`docker compose -f docker-compose.yml -f docker-compose.develop.yml up -d --build`, from `C:\thin\02_Code\docker_projects\find_artek_DEVELOP` after the merge, or the worktree): draw a point, line and polygon; enter UTM coordinates; import the template sheet with your real examples; edit and delete; upload a feature image; delete an appendix; switch to the satellite layer; check the overview filter. Findings go into STATUS.
-- Done 2026-11-23 with [USER_STEPS_features.md](USER_STEPS_features.md); the findings are summarised there. The owner approved T13–T18 below as fixes before the merge (2026-11-23); the design and layout findings go to the roadmap at the end.
+- Done 2026-11-23 with [USER_STEPS_features_COMPLETE.md](USER_STEPS_features_COMPLETE.md); the findings are summarised there. The owner approved T13–T18 below as fixes before the merge (2026-11-23); the design and layout findings go to the roadmap at the end.
 - Then main session: full suite and `tests/run.sh` on the branch, merge `develop/main` into `agent-features`, ask for the fast-forward. The release itself (tag, build, deploy, `FA_DATAFORSYNINGEN_TOKEN` in web_server) follows the release procedure in a separate release plan with its USER_STEPS, as for 2026.7.
 
 ### T13. A report with features cannot be deleted (T12 finding 2.10)

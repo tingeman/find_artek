@@ -1,6 +1,6 @@
 # User steps: Feature registration (browser checks, T12)
 
-Plan: [PLAN_features.md](PLAN_features.md). Status: [STATUS_features.md](STATUS_features.md). Branch: `agent-features`.
+Plan: [PLAN_features_COMPLETE.md](PLAN_features_COMPLETE.md). Status: [STATUS_features_COMPLETE.md](STATUS_features_COMPLETE.md). Branch: `agent-features`.
 
 This list checks T5–T11 in the dev stack. It is grouped by page, so related checks happen together:
 
