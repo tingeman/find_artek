@@ -5,7 +5,7 @@ Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `deve
 ## Now
 T2-T7, T9 done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
-**Next: T8** (files and images on features, implementer in the worktree). Then T10, T11, one at a time in the worktree (they share views.py/urls.py/templates). Browser check of T6 (add by UTM, confirm step, edit coordinates) and T7 (delete one, delete all) still to do, with T11 or T12.
+**T8 running 2026-11-23** (implementer in the worktree). **Then T7a** (owner decision 2026-11-23, small, main session or implementer after T8 because T8 also edits views.py): single delete of a feature linked to more than one report is refused (confirm page explains, no delete button, POST refused without changes; hint to "Delete all features" of the report, which only unlinks it); tests; update design note 3 in the PLAN. Long term: FA-R109. Then T10, T11, one at a time in the worktree (they share views.py/urls.py/templates). Browser check of T6 (add by UTM, confirm step, edit coordinates) and T7 (delete one, delete all) still to do, with T11 or T12.
 
 Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-features` (owner's checkout stopped with `down`, no `-v`); built at T3, before the T4 merge, rebuilt after the T4/T9 merge; **migration 0006 applied to the dev DB 2026-11-23 with the owner's permission** (reversible with `migrate publications 0005`). To give the owner the stack back: `down` in the worktree, `up -d --build` in `find_artek_DEVELOP`.
 
@@ -24,7 +24,6 @@ Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-featu
 - 2026-11-22: exploration (new and classic feature code), owner decisions (Leaflet polar, preview before save, scope incl. FA-R64, FA-R65 part, feature-page map, FA-R104; token in the page).
 
 ## Open questions
-- T7 (owner): single delete of a feature that is also on reports the user cannot see deletes it there too, without the user knowing (the confirm page no longer hints at hidden reports). Alternative: for users without `change_feature`, unlink from the visible reports only and keep the feature when hidden reports use it. Design note 3 says delete-all needs `DELETE_FEATURE` on every feature; T7 implements the per-feature rule (unlink shared, keep undeletable) - update note 3 if the owner agrees.
 
 ## Notes for the next session
 - T6 open points: UTM plausibility check uses a fixed easting range (no per-zone check); unchanged coordinates on edit keep `transform_note` unrefreshed; no 'Edit coordinates' link in the report page's feature table (feature page only).
