@@ -1,14 +1,53 @@
 {% extends base_template %}
 {% load i18n static %}
 
-{% block title %}Confirm Delete Feature{% endblock %}
+{% block title %}Delete Feature{% endblock %}
+
+{% block headline %}Delete Feature{% endblock %}
 
 {% block main-content %}
 <div class="info-box">
     <h2>Confirm Feature Deletion</h2>
-    <p>Are you sure you want to delete the feature <strong>{{ feature.name }}</strong> (ID: {{ feature.id }})? This will also delete all associated files from the database and disk. This action cannot be undone.</p>
-    <form method="post">
+    <p>Delete the feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }}{% if feature.type %}, {{ feature.get_type_display }}{% endif %})?
+       This cannot be undone.</p>
+
+    <h3 class="h5">Reports</h3>
+    {% if reports %}
+    <p>The feature is removed from these reports:</p>
+    <ul id="delete-feature-reports">
+        {% for report in reports %}
+        <li>{{ report.number|default:report.pk }}{% if report.title %}, <em>{{ report.title }}</em>{% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>The feature belongs to no report.</p>
+    {% endif %}
+
+    <h3 class="h5">Files</h3>
+    {% if files %}
+    <ul id="delete-feature-files">
+        {% for file, kept in files %}
+        <li>{{ file.filename }}{% if kept %} (kept: also used by another feature or report){% else %} (deleted from the server){% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No files.</p>
+    {% endif %}
+
+    <h3 class="h5">Images</h3>
+    {% if images %}
+    <ul id="delete-feature-images">
+        {% for image, kept in images %}
+        <li>{{ image.filename }}{% if image.caption %}, {{ image.caption }}{% endif %}{% if kept %} (kept: also used by another feature){% else %} (deleted from the server){% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No images.</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'publications:delete_feature' pk=feature.pk %}">
         {% csrf_token %}
+        {% if return_report %}<input type="hidden" name="report" value="{{ return_report.pk }}">{% endif %}
         <button type="submit" class="btn btn-danger">Yes, delete feature</button>
         <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
     </form>

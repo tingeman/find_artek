@@ -1,0 +1,57 @@
+{% extends base_template %}
+{% load i18n static %}
+
+{% block title %}Delete All Features{% endblock %}
+
+{% block headline %}Delete All Features{% endblock %}
+
+{% block main-content %}
+<div class="info-box">
+    <h2>Delete all features of report {{ publication.number|default:publication.pk }}</h2>
+    {% if publication.title %}<p><em>{{ publication.title }}</em></p>{% endif %}
+
+    {% if not to_delete and not to_unlink and not kept %}
+    <p>This report has no features.</p>
+    <a href="{% url 'publications:report' pk=publication.pk %}" class="btn btn-secondary">Back to the report</a>
+    {% else %}
+
+    {% if to_delete %}
+    <h3 class="h5">Deleted, with their files and images</h3>
+    <ul id="features-to-delete">
+        {% for feature in to_delete %}
+        <li>{{ feature.name|default:feature.pk }} (ID {{ feature.pk }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if to_unlink %}
+    <h3 class="h5">Removed from this report only (they belong to other reports too and stay there)</h3>
+    <ul id="features-to-unlink">
+        {% for feature in to_unlink %}
+        <li>{{ feature.name|default:feature.pk }} (ID {{ feature.pk }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if kept %}
+    <h3 class="h5">Kept: you may not delete these features</h3>
+    <ul id="features-kept">
+        {% for feature in kept %}
+        <li>{{ feature.name|default:feature.pk }} (ID {{ feature.pk }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form method="post" action="{% url 'publications:delete_report_features' pk=publication.pk %}">
+        {% csrf_token %}
+        {% for feature in to_delete %}<input type="hidden" name="delete" value="{{ feature.pk }}">{% endfor %}
+        {% for feature in to_unlink %}<input type="hidden" name="unlink" value="{{ feature.pk }}">{% endfor %}
+        {% if to_delete or to_unlink %}
+        <p>This cannot be undone.</p>
+        <button type="submit" class="btn btn-danger">Yes, delete and remove the features listed</button>
+        {% endif %}
+        <a href="{% url 'publications:report' pk=publication.pk %}" class="btn btn-secondary">Cancel</a>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

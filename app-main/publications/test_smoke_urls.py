@@ -146,6 +146,9 @@ SMOKE = {
         Redirect(lambda t: reverse('publications:edit_feature_by_map',
                                    kwargs={'pk': t.feature.pk}))),
     'publications:delete_feature': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),
+    # Delete all features of a report (features T7): add_feature on the report; GET is the
+    # confirmation page (test_feature_delete).
+    'publications:delete_report_features': entry(pub, LOGIN, 403, 200),
     # POST only (GET is 405 for everyone, test_report_access).
     'publications:verify_report': entry(lambda t: {'pub_id': t.pub.pk}, LOGIN, 403,
                                         Redirect(report_page), method='post'),

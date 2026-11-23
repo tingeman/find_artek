@@ -62,7 +62,7 @@ from publications.person_links import is_marked, marked_links
 from publications.library import get_client_ip, is_private
 from publications.models import (
     Publication, Topic, Feature, Person, PubType, Authorship, Supervisorship,
-    Keyword, FileObject, Appendenciesship
+    Keyword, FileObject, Appendenciesship, ImageObject, ImageObjectship
 )
 from publications.permissions import (
     ADD_FEATURE, ADD_PERSON, BULK_DELETE, DELETE, DELETE_FEATURE, EDIT, EDIT_FEATURE, MANAGE,
@@ -1745,21 +1745,92 @@ class UploadAppendixView(PublicationPermissionMixin, BaseView):
         return redirect('publications:report', pk=publication.id)
 
 
-def _remove_appendix_file(path, file_object_pk):
-    """After the commit: remove a deleted appendix's file. A missing file is not an error."""
+# --- Deleting file and image records (appendix delete T9, feature delete T7) -------------
+# The record (FileObject, ImageObject) is deleted inside the caller's transaction only when
+# nothing uses it any more; its file is removed after the commit (transaction.on_commit),
+# and only when no other record names the same file. A missing file is only logged.
+
+def _remove_deleted_media_file(path, kind, pk):
+    """After the commit: remove the file of a deleted record. A missing file is not an error."""
     if not os.path.exists(path):
-        logger.warning("File of the deleted appendix FileObject %s was already missing: %s",
-                       file_object_pk, path)
+        logger.warning("File of the deleted %s %s was already missing: %s", kind, pk, path)
         return
     _remove_file(path)
 
 
-def _file_object_is_used(file_object):
+def _file_object_is_used(file_object, exclude_feature=None):
     """True if anything still points to ``file_object``: an appendix of any report, a
-    report's PDF (Publication.file) or a feature (Feature.files)."""
+    report's PDF (Publication.file) or a feature (Feature.files; ``exclude_feature`` not
+    counted)."""
+    features = Feature.objects.filter(files=file_object)
+    if exclude_feature is not None:
+        features = features.exclude(pk=exclude_feature.pk)
     return (Appendenciesship.objects.filter(fileobject=file_object).exists()
             or Publication.objects.filter(file=file_object).exists()
-            or Feature.objects.filter(files=file_object).exists())
+            or features.exists())
+
+
+def _image_object_is_used(image_object, exclude_feature=None):
+    """True if a feature (other than ``exclude_feature``) still shows ``image_object``."""
+    links = ImageObjectship.objects.filter(imageobject=image_object)
+    if exclude_feature is not None:
+        links = links.exclude(feature=exclude_feature)
+    return links.exists()
+
+
+def _media_field(record):
+    return record.image if isinstance(record, ImageObject) else record.file
+
+
+def _media_name_shared(record):
+    """True if another FileObject or ImageObject names the same file as ``record``."""
+    name = _media_field(record).name
+    if not name:
+        return False
+    files = FileObject.objects.filter(file=name)
+    images = ImageObject.objects.filter(image=name)
+    if isinstance(record, ImageObject):
+        images = images.exclude(pk=record.pk)
+    else:
+        files = files.exclude(pk=record.pk)
+    return files.exists() or images.exists()
+
+
+def _delete_media_record(record, kind):
+    """Delete ``record`` (a FileObject or ImageObject nothing uses any more; the caller
+    checks) inside the current transaction, and remove its file after the commit unless
+    another record names the same file. ``kind`` names the record in the log."""
+    pk = record.pk
+    field = _media_field(record)
+    path = None
+    if field:
+        try:
+            path = field.path
+        except Exception:  # SuspiciousFileOperation for legacy names outside MEDIA_ROOT
+            logger.warning("%s %s has a file name outside MEDIA_ROOT", kind, pk)
+    shared = _media_name_shared(record)
+    record.delete()
+    if path is None:
+        logger.warning("Deleted %s %s had no file under MEDIA_ROOT", kind, pk)
+    elif not shared:
+        transaction.on_commit(functools.partial(_remove_deleted_media_file, path, kind, pk))
+
+
+def _delete_feature(feature):
+    """Delete ``feature`` with its files and images (plan "features" T7, design note 5).
+
+    Call inside transaction.atomic(). Files and images that another feature, a report's PDF
+    or an appendix still uses keep their record and file; the others are deleted, and their
+    files are removed after the commit (_delete_media_record)."""
+    files = list(feature.files.all())
+    images = list(feature.images.all())
+    feature.delete()   # also its rows in the M2M tables (files, ImageObjectship, reports)
+    for file_object in files:
+        if not _file_object_is_used(file_object):
+            _delete_media_record(file_object, 'feature FileObject')
+    for image_object in images:
+        if not _image_object_is_used(image_object):
+            _delete_media_record(image_object, 'feature ImageObject')
 
 
 class DeleteAppendixView(PublicationPermissionMixin, BaseView):
@@ -1796,17 +1867,7 @@ class DeleteAppendixView(PublicationPermissionMixin, BaseView):
         with transaction.atomic():
             Appendenciesship.objects.filter(publication=publication, fileobject=appendix).delete()
             if not _file_object_is_used(appendix):
-                file_object_pk = appendix.pk
-                path = _file_object_path(appendix)
-                name_shared = bool(appendix.file) and FileObject.objects.filter(
-                    file=appendix.file.name).exclude(pk=file_object_pk).exists()
-                appendix.delete()
-                if path is None:
-                    logger.warning("Deleted appendix FileObject %s had no file under MEDIA_ROOT",
-                                   file_object_pk)
-                elif not name_shared:
-                    transaction.on_commit(functools.partial(
-                        _remove_appendix_file, path, file_object_pk))
+                _delete_media_record(appendix, 'appendix FileObject')
         messages.success(request, f'Appendix "{filename}" was deleted from report '
                                   f'{publication.number or publication.pk}.')
         return redirect('publications:report', pk=publication.pk)
@@ -2220,46 +2281,137 @@ class DeleteReportView(PublicationPermissionMixin, BaseView):
         return f"{base_path}_thumb.png"
 
 
-class DeleteFeatureView(FeaturePermissionMixin, DeleteView, BaseView):
-    """Needs ``delete_feature`` on the feature (delete_feature, or delete_own_feature and
-    listed on a report the feature belongs to; permissions.py)."""
-    model = Feature
+class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseView):
+    """Delete one feature with its files and images (plan "features" T7).
+
+    Needs ``delete_feature`` on the feature (delete_feature, or delete_own_feature and
+    listed on a report the feature belongs to; permissions.py). GET shows the confirmation
+    page (the feature, its files and images, the reports it is linked to) and changes
+    nothing; POST deletes in one transaction (_delete_feature; files are removed after the
+    commit). Returns to the report named by ``report`` (FeatureReturnReportMixin), else the
+    feature's first visible report, else the report list.
+    """
     template_name = 'publications/feature_confirm_delete.html'
-    context_object_name = 'feature'
     permission = DELETE_FEATURE
+    http_method_names = ['get', 'post']
 
-    def get_success_url(self):
-        # Redirect to the report page after deletion
-        # Assumes feature is associated with at least one publication
-        pubs = self.object.publications.all()
-        if pubs.exists():
-            return reverse_lazy('publications:report', kwargs={'pk': pubs.first().pk})
-        return reverse_lazy('publications:reports')
+    def success_url(self):
+        report = self.return_report()
+        if report is not None:
+            return reverse('publications:report', kwargs={'pk': report.pk})
+        return reverse('publications:reports')
 
-    def get_context_data(self, **kwargs):
-        # Ensure self.object is set before using it
-        if not hasattr(self, 'object') or self.object is None:
-            self.object = self.get_object()
-        context = super().get_context_data(**kwargs)
-        # Ensure base_template is always present
-        context['base_template'] = getattr(self, 'base_template', 'publications/base.html')
-        pubs = self.object.publications.all()
-        if pubs.exists():
-            context['cancel_url'] = reverse_lazy('publications:report', kwargs={'pk': pubs.first().pk})
+    def get(self, request, *args, **kwargs):
+        feature = self.feature
+        # Only reports the user may see; hidden (confidential/unvalidated) reports are not
+        # named or counted (CLAUDE.md: confidential reports stay protected).
+        visible = list(visible_publications(
+            feature.publications.all(), request.user).order_by('number', 'pk'))
+        context = self.get_context_data()
+        context.update({
+            'feature': feature,
+            # (record, kept): kept when another feature, report PDF or appendix uses it.
+            'files': [(f, _file_object_is_used(f, exclude_feature=feature))
+                      for f in feature.files.all().order_by('pk')],
+            'images': [(i, _image_object_is_used(i, exclude_feature=feature))
+                       for i in feature.images.all().order_by('pk')],
+            'reports': visible,
+            'return_report': self.return_report(),
+            'cancel_url': self.return_url(),
+        })
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        feature = self.feature
+        name = feature.name or f'feature {feature.pk}'
+        success_url = self.success_url()   # before the links to the reports are gone
+        with transaction.atomic():
+            _delete_feature(feature)
+        messages.success(request, f'Feature "{name}" was deleted.')
+        return HttpResponseRedirect(success_url)
+
+
+class DeleteReportFeaturesView(PublicationPermissionMixin, BaseView):
+    """Delete all features of a report (plan "features" T7, design note 3).
+
+    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py). Per
+    feature of the report:
+
+    - linked to other reports too: only unlinked from this report. That needs no more than
+      ``add_feature`` here, since the feature stays as it is on the other reports;
+    - linked only to this report: deleted with its files and images (_delete_feature) if the
+      user has ``delete_feature`` on it, else kept (named on the page and in the message).
+
+    GET shows the three lists and changes nothing. POST acts in one transaction on the
+    features the confirmation page listed (hidden fields ``delete`` and ``unlink``) that are
+    still in the same group, so a feature added or changed meanwhile is left alone. Files
+    are removed after the commit. Returns to the report.
+    """
+    template_name = 'publications/report_features_confirm_delete.html'
+    permission = ADD_FEATURE
+    http_method_names = ['get', 'post']
+
+    def classify(self):
+        """(to_delete, to_unlink, kept): the report's features, each sorted by name."""
+        report = self.publication
+        user = self.request.user
+        features = (Feature.objects.filter(publications=report).distinct()
+                    .order_by('name', 'pk')
+                    .prefetch_related('publications__authors', 'publications__supervisors',
+                                      'publications__editors'))
+        to_delete, to_unlink, kept = [], [], []
+        for feature in features:
+            if any(p.pk != report.pk for p in feature.publications.all()):
+                to_unlink.append(feature)
+            elif user_may(user, DELETE_FEATURE, feature):
+                to_delete.append(feature)
+            else:
+                kept.append(feature)
+        return to_delete, to_unlink, kept
+
+    def get(self, request, *args, **kwargs):
+        to_delete, to_unlink, kept = self.classify()
+        context = self.get_context_data()
+        context.update({
+            'publication': self.publication,
+            'to_delete': to_delete,
+            'to_unlink': to_unlink,
+            'kept': kept,
+        })
+        return render(request, self.template_name, context)
+
+    @staticmethod
+    def _posted_ids(request, name):
+        return {int(v) for v in request.POST.getlist(name) if str(v).isdigit()}
+
+    def post(self, request, *args, **kwargs):
+        report = self.publication
+        confirmed_delete = self._posted_ids(request, 'delete')
+        confirmed_unlink = self._posted_ids(request, 'unlink')
+        with transaction.atomic():
+            to_delete, to_unlink, kept = self.classify()
+            deleted = [f for f in to_delete if f.pk in confirmed_delete]
+            unlinked = [f for f in to_unlink if f.pk in confirmed_unlink]
+            for feature in unlinked:
+                feature.publications.remove(report)
+            for feature in deleted:
+                _delete_feature(feature)
+        number = report.number or report.pk
+        if deleted or unlinked:
+            parts = []
+            if deleted:
+                parts.append(f'{len(deleted)} feature(s) deleted')
+            if unlinked:
+                parts.append(f'{len(unlinked)} feature(s) that belong to other reports too '
+                             f'removed from this report')
+            messages.success(request, f'Report {number}: ' + '; '.join(parts) + '.')
         else:
-            context['cancel_url'] = reverse_lazy('publications:reports')
-        return context
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Delete associated files from DB and disk
-        for fileobj in self.object.files.all():
-            if fileobj.file:
-                fileobj.file.delete(save=False)  # Delete from disk
-            fileobj.delete()  # Delete FileObject from DB
-        # Optionally, handle images or other related objects here
-
-        return super().delete(request, *args, **kwargs)
+            messages.info(request, f'Report {number}: no feature was deleted or removed.')
+        if kept:
+            names = ', '.join(f'"{f.name or f.pk}"' for f in kept)
+            messages.warning(request, f'{len(kept)} feature(s) kept, you may not delete them: '
+                                      f'{names}.')
+        return redirect('publications:report', pk=report.pk)
 
 
 # AJAX: add a person from the report form

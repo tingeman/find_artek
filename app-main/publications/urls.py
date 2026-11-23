@@ -57,6 +57,9 @@ urlpatterns = [
     # path('report/<int:pk>/edit/review/', views.AddEditReportReviewView.as_view(), name='review_edit_report'),
     path('report/<int:pk>/delete/', views.DeleteReportView.as_view(), name='delete_report'),
     path('report/<int:pk>/change-number/', views.ChangeReportNumberView.as_view(), name='change_report_number'),
+    # add_feature on the report: delete its features, unlink shared ones (features T7)
+    path('report/<int:pk>/features/delete/', views.DeleteReportFeaturesView.as_view(),
+         name='delete_report_features'),
     path('report/<int:report_pk>/add-feature-by-coordinates/', views.AddFeatureCoordinatesView.as_view(), name='add_feature_coordinates'),
     path('report/<int:report_pk>/add-feature-by-map/', views.AddFeatureByMapView.as_view(), name='add_feature_by_map'),
     path('report/<int:pub_id>/verify/', views.VerifyReportView.as_view(), name='verify_report'),
