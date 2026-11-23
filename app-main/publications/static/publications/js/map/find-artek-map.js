@@ -5,8 +5,9 @@
  * the digitize page). Polar projection EPSG:3574 (North Pole LAEA Atlantic, Proj4Leaflet):
  * Greenland is upright without rotating the map (owner decision 2026-11-23; the earlier
  * EPSG:3575 map rotated with leaflet-rotate is kept in docs/archive/map_epsg3575_rotate/).
- * Background: Dataforsyningen WMS layers in a layer switcher when the page has a token
- * (find-artek-map-layers.js, load it before this file); without a token a plain background.
+ * Background: Dataforsyningen WMS layers in a layer switcher when the page has a token, over
+ * the Arctic SDI basemap (find-artek-map-layers.js, load it before this file); without a token
+ * the Arctic SDI basemap only. The page loads css/find-artek-map.css (border, background).
  *
  * Scripts, in this order: leaflet.js, proj4.js, proj4leaflet.js, find-artek-map-layers.js,
  * find-artek-map.js.
@@ -48,7 +49,7 @@
  *                         #find-artek-type-colors ({% feature_type_colors_script %}, built
  *                         from publications/map_styles.py, the single source shared with the
  *                         legend); every page with this map must include it (T11)
- *   FindArtekMap.colorForType(type)  the colour of one type ('gray' when unknown)
+ *   FindArtekMap.colorForType(type)  the colour of one type (gray '#808080' when unknown)
  *   FindArtekMap.reportUrl(id)  the report page URL of a report id
  *   FindArtekMap.addInitHook(fn)  fn(instance) runs for every new map, after the map and its
  *                         layers exist and before any feature is loaded
@@ -70,12 +71,14 @@
     var MAX_ZOOM = 18;
     var DEFAULT_VIEW = {lat: 70.0, lng: -44.0, zoom: 4};
     var DEFAULT_FIT_MAX_ZOOM = 12;
-    var NO_BACKGROUND_COLOR = '#eef2f5';
+    // Class of the map element: border and background colour where no tile is drawn
+    // (css/find-artek-map.css, loaded by every map page; T16).
+    var MAP_CLASS = 'fa-map';
 
     // Feature type colours: the JSON block rendered by {% feature_type_colors_script %}
     // (publications/map_styles.py). Not repeated here, so map and legend can't disagree.
     var TYPE_COLORS_ID = 'find-artek-type-colors';
-    var UNKNOWN_TYPE_COLOR = 'gray';
+    var UNKNOWN_TYPE_COLOR = '#808080';   // gray, as in map_styles.py
     var typeColors = null;
 
     var initHooks = [];
@@ -258,13 +261,11 @@
             wheelZoomOnFocus(this.map, element);
         }
 
+        // Without any base layer the background colour of css/find-artek-map.css shows.
+        L.DomUtil.addClass(element, MAP_CLASS);
         this.layers = window.FindArtekMapLayers.addTo(this.map, {
             token: this.token, tileSize: TILE_SIZE, maxZoom: MAX_ZOOM,
         });
-        if (!this.layers.active) {
-            // No background layer (no token): a plain background behind the features.
-            element.style.background = NO_BACKGROUND_COLOR;
-        }
         this.featureLayer = L.featureGroup().addTo(this.map);
 
         if (this.syncUrl) {

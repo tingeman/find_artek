@@ -1,0 +1,15 @@
+/*
+ * The map element of every map page (plan "features" T16): the overview map, the report and
+ * feature pages, the digitize page and the import preview. Loaded after leaflet.css;
+ * find-artek-map.js gives the map element the class `fa-map`.
+ *
+ * A thin grey border with rounded corners like a Bootstrap 4 card, so the map stands out
+ * on the grey page, and a neutral blue-grey background (not white) where no tile is drawn
+ * (outside the layers' coverage, while tiles load, no base layer). Replaces leaflet.css's
+ * #ddd and the inline background the component set before T16.
+ */
+.leaflet-container.fa-map {
+    background: #dde3e8;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.25rem;
+}

@@ -12,20 +12,26 @@ lat/lng/zoom. No ``types`` parameter = every type shown; ``types=`` (empty) = no
 from publications.models import Feature
 
 # Colour per Feature.type value. Every type in Feature.feature_types needs an entry
-# (test_map_overview.py checks it).
+# (test_map_overview.py checks it). Hex values (#rrggbb), so the tests can check them: every
+# colour must stand out on white and on the light map layers (contrast ratio against white at
+# least 3:1, test_map_styles.py) and differ clearly from the others. Points get a black outline
+# on the map, lines are drawn in the colour itself.
+# T16 (owner's browser check): 'white' (OTHER) was invisible on white, 'yellow' (BOREHOLE) and
+# 'pink' (LAB MEASUREMENT) nearly so; they became teal, dark goldenrod and deep pink. The other
+# colours are the old CSS names written as hex.
 FEATURE_TYPE_COLORS = {
-    Feature.PHOTO: 'red',
-    Feature.SAMPLE: 'green',
-    Feature.BOREHOLE: 'yellow',
-    Feature.GEOPHYSICAL_DATA: 'blue',
-    Feature.FIELD_MEASUREMENT: 'purple',
-    Feature.LAB_MEASUREMENT: 'pink',
-    Feature.RESOURCE: 'brown',
-    Feature.OTHER: 'white',
+    Feature.PHOTO: '#ff0000',               # red
+    Feature.SAMPLE: '#008000',              # green
+    Feature.BOREHOLE: '#b8860b',            # dark goldenrod (was yellow)
+    Feature.GEOPHYSICAL_DATA: '#0000ff',    # blue
+    Feature.FIELD_MEASUREMENT: '#800080',   # purple
+    Feature.LAB_MEASUREMENT: '#d6337f',     # deep pink (was pink)
+    Feature.RESOURCE: '#a52a2a',            # brown
+    Feature.OTHER: '#00838f',               # teal (was white)
 }
 
 # Colour of a type that has no entry (shouldn't happen; the same value is in the JS).
-UNKNOWN_TYPE_COLOR = 'gray'
+UNKNOWN_TYPE_COLOR = '#808080'   # gray
 
 # Query parameter of the overview map's type filter.
 TYPE_FILTER_PARAM = 'types'

@@ -9,6 +9,7 @@
 
 {% block dynamic_head_content %}
     <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
+    <link rel="stylesheet" href="{% versioned_static 'publications/css/find-artek-map.css' %}" />
     <link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/map.css' %}" />
     <link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/map-legend.css' %}" />
     {% feature_type_colors_script %}
