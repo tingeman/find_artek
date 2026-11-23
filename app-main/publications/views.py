@@ -1822,7 +1822,11 @@ class AddFeatureCoordinatesView(PublicationPermissionMixin, BaseFormView):
             # Create the geometry and convert it to MultiPoint for storage (following the
             # old system pattern)
             point = Point(float(x_coord), float(y_coord), srid=srid)
-            feature.points = MultiPoint(point, srid=srid)
+            # The field is WGS84. Transform here (GDAL): MariaDB has no ST_Transform, so
+            # Django's transform in SQL fails for any other SRID (FA-R101).
+            if srid != 4326:
+                point.transform(4326)
+            feature.points = MultiPoint(point, srid=4326)
 
             feature.save()
             feature.publications.add(publication)
