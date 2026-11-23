@@ -18,6 +18,14 @@
 
 {% block main-content %}
 
+{% if messages %}
+<div class="feature-messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <div class="info-box">
     {% if can_edit_feature or can_delete_feature %}
     <div class="feature-actions">
@@ -125,20 +133,54 @@
         </div>
     </div>
 
+    {# Files and images (plan "features" T8). Links go through the checked media view. #}
     <div class="under-box">
-        <div class="links-to-associated-files-box">
-            <div class="row">
-                <span class="property">Registered Files:</span>
-                {% for file in feature.files.all %}
-                    <span class="value"><a href="{{ file.file.url }}" download>{{ file.filename }}</a></span>
+        <div class="links-to-associated-files-box" id="feature-media">
+            {% if can_edit_feature %}
+            <div class="feature-media-actions">
+                <a href="{% url 'publications:upload_feature_media' pk=feature.pk %}{{ report_query }}" class="btn btn-primary btn-sm" id="feature-upload-link"><i class="fas fa-upload"></i> Add files or images</a>
+            </div>
+            {% endif %}
+            <h6>Files</h6>
+            {% if files %}
+            <ul class="feature-file-list" id="feature-files">
+                {% for file in files %}
+                <li>
+                    <a href="{{ file.file.url }}" download>{{ file.filename }}</a>
+                    {% if file.description %}<span class="feature-media-text">{{ file.description }}</span>{% endif %}
+                    {% if can_edit_feature %}
+                    <a href="{% url 'publications:delete_feature_file' pk=feature.pk record_pk=file.pk %}{{ report_query }}" class="btn btn-outline-danger btn-sm feature-media-delete">Delete</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="feature-media-none">No files.</p>
+            {% endif %}
+
+            <h6>Images</h6>
+            {% if images %}
+            <div class="feature-image-list" id="feature-images">
+                {% for image, thumbnail_url in images %}
+                <figure class="feature-image">
+                    {% if thumbnail_url %}
+                    <a href="{{ image.image.url }}" target="_blank" rel="noopener"><img src="{{ thumbnail_url }}" alt="{{ image.caption|default:image.filename }}" loading="lazy"></a>
+                    {% else %}
+                    {# Images from before T8 have no thumbnail: a link with the file name. #}
+                    <a href="{{ image.image.url }}" target="_blank" rel="noopener" class="feature-image-nothumb">{{ image.filename }}</a>
+                    {% endif %}
+                    <figcaption>
+                        {{ image.caption|default:image.filename }}
+                        {% if can_edit_feature %}
+                        <a href="{% url 'publications:delete_feature_image' pk=feature.pk record_pk=image.pk %}{{ report_query }}" class="btn btn-outline-danger btn-sm feature-media-delete">Delete</a>
+                        {% endif %}
+                    </figcaption>
+                </figure>
                 {% endfor %}
             </div>
-            <div class="row">
-                <span class="property">Registered Images:</span>
-                {% for image in feature.images.all %}
-                    <span class="value"><a href="{{ image.image.url }}" download>{{ image.filename }}</a></span>
-                {% endfor %}
-            </div>
+            {% else %}
+            <p class="feature-media-none">No images.</p>
+            {% endif %}
         </div>
     </div>
     

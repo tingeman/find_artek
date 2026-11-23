@@ -5,6 +5,7 @@ These functions depend on Django models or database/database access.
 
 
 import os
+import posixpath
 import re
 import shutil
 import tempfile
@@ -16,8 +17,14 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField
+from PIL import Image, ImageOps
 
-from publications.models import Publication, FileObject, Appendenciesship, Keyword
+from publications.media_access import image_thumbnail_name
+from publications.models import (
+    Publication, FileObject, Appendenciesship, Keyword, ImageObject, ImageObjectship,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def get_or_create_keywords(items):
@@ -324,3 +331,134 @@ def handle_publication_file_upload(uploaded_file, user, publication=None):
     file_obj.save()
     print(f"🔍 DEBUG: File saved successfully: {file_obj.file.name}")
     return file_obj
+
+
+# --- Files and images of a feature (plan "features" T8, roadmap FA-R64, design note 5) -----
+# New uploads go to MEDIA_ROOT/reports/<year>/<number>/features/<feature id>/ (images in img/
+# below it), with the report the upload starts from. The names come from FileObject /
+# ImageObject.upload_to (models.get_file_path / get_image_path); the storage makes a name
+# unique (a suffix), so an existing file is never overwritten. Thumbnails of images are made
+# with Pillow right after the upload, as <img dir>/thumbs/<file name>_thumb.jpg
+# (media_access.image_thumbnail_name; served with the image's visibility).
+
+FEATURE_THUMBNAIL_SIZE = (400, 400)   # box; report thumbnails are 400 px high
+
+# A report number usable as one folder name (e.g. '25-07').
+_SAFE_FOLDER = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]*$')
+
+FEATURE_FILE = 'file'
+FEATURE_IMAGE = 'image'
+
+
+class FeatureUploadError(Exception):
+    """The upload cannot be stored (no usable report folder); the message is for the user."""
+
+
+def feature_media_dir(feature, report):
+    """``reports/<year>/<number>/features/<feature id>`` for uploads to ``feature`` started
+    from ``report``. FeatureUploadError without a report, or when the report has no year or
+    no number usable as a folder name."""
+    if report is None:
+        raise FeatureUploadError(
+            'Files and images can only be added to a feature that belongs to a report.')
+    year = str(report.year or '')
+    number = str(report.number or '')
+    if not year.isdigit() or not _SAFE_FOLDER.match(number) or '..' in number:
+        raise FeatureUploadError(
+            f'Report {report.number or report.pk} has no year or report number usable as a '
+            f'folder name; files cannot be stored for it.')
+    return posixpath.join('reports', year, number, 'features', str(feature.pk))
+
+
+def _save_feature_record(feature, directory, uploaded_file, user, kind, text, saved_paths):
+    if kind == FEATURE_IMAGE:
+        record = ImageObject(caption=text, created_by=user, modified_by=user)
+        record.upload_to = posixpath.join(directory, 'img')   # models.get_image_path
+        field = record.image
+    else:
+        record = FileObject(description=text, created_by=user, modified_by=user)
+        record.upload_to = directory                          # models.get_file_path
+        field = record.file
+    field.save(os.path.basename(uploaded_file.name), uploaded_file, save=False)
+    saved_paths.append(field.path)
+    record.save()
+    if kind == FEATURE_IMAGE:
+        ImageObjectship.objects.create(imageobject=record, feature=feature)
+    else:
+        feature.files.add(record)
+    return record
+
+
+def handle_feature_uploads(feature, report, uploaded_files, user, kind, text=''):
+    """Store ``uploaded_files`` (validated by FeatureFileUploadForm / FeatureImageUploadForm)
+    as files (``kind`` FEATURE_FILE) or images (FEATURE_IMAGE) of ``feature`` in the folder of
+    ``report`` (feature_media_dir) and return the new records. ``text`` is the description
+    (files) or caption (images). All records are created in one transaction; if it fails,
+    the files written so far are removed and the error is raised. Thumbnails of images are
+    made afterwards; a failed thumbnail is only logged."""
+    directory = feature_media_dir(feature, report)
+    saved_paths = []
+    try:
+        with transaction.atomic():
+            records = [
+                _save_feature_record(feature, directory, uploaded_file, user, kind, text,
+                                     saved_paths)
+                for uploaded_file in uploaded_files]
+    except Exception:
+        for path in saved_paths:
+            try:
+                os.remove(path)
+            except OSError:
+                logger.warning("Could not remove %s after a failed feature upload", path)
+        raise
+    if kind == FEATURE_IMAGE:
+        for record in records:
+            make_image_thumbnail(record)
+    return records
+
+
+def image_thumbnail_path(image_object):
+    """Absolute path of the thumbnail of ``image_object`` (whether it exists or not), or None
+    without an image name."""
+    if not image_object.image or not image_object.image.name:
+        return None
+    name = image_thumbnail_name(image_object.image.name)
+    return os.path.join(settings.MEDIA_ROOT, *name.split('/'))
+
+
+def image_thumbnail_url(image_object):
+    """MEDIA_URL of the thumbnail of ``image_object`` if the thumbnail exists, else None."""
+    path = image_thumbnail_path(image_object)
+    if path is None or not os.path.isfile(path):
+        return None
+    return settings.MEDIA_URL + image_thumbnail_name(image_object.image.name)
+
+
+def make_image_thumbnail(image_object):
+    """Write the JPEG thumbnail (at most FEATURE_THUMBNAIL_SIZE, EXIF orientation applied) of
+    ``image_object`` and return its path, or None (logged) if the image cannot be read."""
+    target = image_thumbnail_path(image_object)
+    if target is None:
+        return None
+    try:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with Image.open(image_object.image.path) as source:
+            image = ImageOps.exif_transpose(source)
+            image.thumbnail(FEATURE_THUMBNAIL_SIZE)
+            if image.mode in ('RGBA', 'LA', 'P'):
+                image = image.convert('RGBA')
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                background.paste(image, mask=image.getchannel('A'))
+                image = background
+            elif image.mode != 'RGB':
+                image = image.convert('RGB')
+            image.save(target, 'JPEG', quality=85, optimize=True)
+        return target
+    except Exception:
+        logger.exception("Could not make the thumbnail of ImageObject %s", image_object.pk)
+        try:
+            if os.path.exists(target):
+                os.remove(target)
+        except OSError:
+            pass
+        return None

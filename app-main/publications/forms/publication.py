@@ -30,6 +30,15 @@ def max_upload_size_bytes():
     return max_upload_size_mb() * 1024 * 1024
 
 
+# File types accepted as report appendices (UploadAppendixForm); feature files accept these
+# and a few geodata formats (forms/feature.py, plan "features" T8).
+APPENDIX_EXTENSIONS = frozenset({
+    '.pdf', '.doc', '.docx', '.txt', '.zip',
+    '.jpg', '.jpeg', '.png', '.gif',
+    '.xls', '.xlsx', '.ppt', '.pptx',
+})
+
+
 class TopicChoiceField(forms.ModelMultipleChoiceField):
     """Topics are chosen from the list only: an unknown value is a form error."""
     default_error_messages = {
@@ -590,12 +599,8 @@ class UploadAppendixForm(forms.Form):
                 )
                 
             # Basic file type validation based on extension
-            allowed_extensions = {
-                '.pdf', '.doc', '.docx', '.txt', '.zip', 
-                '.jpg', '.jpeg', '.png', '.gif', 
-                '.xls', '.xlsx', '.ppt', '.pptx'
-            }
-            
+            allowed_extensions = APPENDIX_EXTENSIONS
+
             file_ext = file.name.lower().split('.')[-1] if '.' in file.name else ''
             if f'.{file_ext}' not in allowed_extensions:
                 raise ValidationError(

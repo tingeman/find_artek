@@ -1,10 +1,16 @@
 """Forms for working with features."""
 
+import os
+
 from django import forms
 from django.forms import ModelForm
 from publications.geometry import (
     GeometryError, feature_geojson, from_geojson, from_vertices, map_transform_note,
     parse_srid, plausibility_warnings, same_geometry,
+)
+from publications.forms.publication import (
+    APPENDIX_EXTENSIONS, MultipleFileField, MultipleFileInput, max_upload_size_bytes,
+    max_upload_size_mb,
 )
 from publications.models import Feature
 from django.core.exceptions import ValidationError
@@ -299,3 +305,96 @@ class AddFeatureByMap(ModelForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+# --- Files and images of a feature (plan "features" T8, roadmap FA-R64) ---------------------
+# Same limit per file as appendices (settings.MAX_UPLOAD_SIZE_MB; nginx's limit on /find/ is
+# the ceiling for the whole request) and the same file types, plus a few geodata formats.
+
+FEATURE_FILE_EXTENSIONS = APPENDIX_EXTENSIONS | frozenset({
+    '.csv', '.kml', '.kmz', '.gpx', '.geojson', '.json',
+})
+FEATURE_IMAGE_EXTENSIONS = frozenset({'.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff'})
+
+
+def _check_upload(uploaded_file, extensions):
+    """ValidationError if ``uploaded_file`` is over the limit or has another extension."""
+    if uploaded_file.size > max_upload_size_bytes():
+        raise ValidationError(
+            f'File "{uploaded_file.name}" is too large. Maximum file size is '
+            f'{max_upload_size_mb()} MB per file.')
+    ext = os.path.splitext(uploaded_file.name)[1].lower()
+    if ext not in extensions:
+        raise ValidationError(
+            f'File "{uploaded_file.name}" has an unsupported file type. '
+            f'Allowed types: {", ".join(sorted(extensions))}')
+
+
+class MultipleImageField(forms.ImageField):
+    """ImageField for several files (Pillow checks each one). Size and type are checked
+    before Pillow opens the file."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('widget', MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        files = data if isinstance(data, (list, tuple)) else ([data] if data else [])
+        if not files:
+            return single_file_clean(None, initial)   # required / empty handling
+        cleaned = []
+        for uploaded_file in files:
+            _check_upload(uploaded_file, FEATURE_IMAGE_EXTENSIONS)
+            cleaned.append(single_file_clean(uploaded_file, initial))
+        return cleaned
+
+
+class _FeatureUploadForm(forms.Form):
+    """Common part: the limit per file in the help text and as ``data-max-size-mb``."""
+    files_field = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields[self.files_field]
+        field.widget.attrs['data-max-size-mb'] = str(self.max_size_mb)
+        field.help_text = f'{field.help_text} Maximum {self.max_size_mb} MB per file.'
+
+    @property
+    def max_size_mb(self):
+        return max_upload_size_mb()
+
+
+class FeatureFileUploadForm(_FeatureUploadForm):
+    """Upload one or more files to a feature (plan "features" T8)."""
+    files_field = 'feature_files'
+    feature_files = MultipleFileField(
+        label='Files',
+        widget=MultipleFileInput(attrs={
+            'accept': ','.join(sorted(FEATURE_FILE_EXTENSIONS)), 'class': 'form-control'}),
+        help_text='Documents, spreadsheets, data or archives.')
+    description = forms.CharField(
+        required=False, max_length=1000,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        help_text='Optional; the same description is stored for every file of this upload.')
+
+    def clean_feature_files(self):
+        files = self.files.getlist('feature_files')
+        for uploaded_file in files:
+            _check_upload(uploaded_file, FEATURE_FILE_EXTENSIONS)
+        return files
+
+
+class FeatureImageUploadForm(_FeatureUploadForm):
+    """Upload one or more images to a feature (plan "features" T8). Each image is checked
+    with Pillow; a thumbnail is made after the upload (utils_models)."""
+    files_field = 'feature_images'
+    feature_images = MultipleImageField(
+        label='Images',
+        widget=MultipleFileInput(attrs={
+            'accept': ','.join(sorted(FEATURE_IMAGE_EXTENSIONS)), 'class': 'form-control'}),
+        help_text='JPEG, PNG, GIF or TIFF.')
+    caption = forms.CharField(
+        required=False, max_length=1000,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        help_text='Optional; the same caption is stored for every image of this upload.')

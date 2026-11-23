@@ -15,6 +15,9 @@ which uses the functions here:
      the one whose PDF is ``<dir>/<stem>.<ext>`` (the template tag ``thumb_file``), or, for
      ``<dir>`` = ``reports/<year>``, the one with ``number`` = ``<stem>`` and that ``year``
      (the ``generate_thumbnails`` command);
+   - ``('feature', feature)`` for a feature image's thumbnail ``<dir>/thumbs/<file name>_thumb.jpg``
+     (``image_thumbnail_name``, made at upload; plan "features" T8): the features showing the
+     ImageObject ``<dir>/<file name>``. The thumbnail has the image's visibility;
    - ``('temp', fileobject)``: a ``FileObject`` under ``temp/`` (an upload not yet moved into
      a report).
 
@@ -103,6 +106,30 @@ def thumbnail_key(relpath):
     return (parent, stem) if stem else None
 
 
+def image_thumbnail_name(image_name):
+    """The stored name of the thumbnail of a feature image (plan "features" T8):
+    ``<dir>/thumbs/<file name>_thumb.jpg``. The whole file name (with its extension) is the
+    stem, so ``a.jpg`` and ``a.png`` in one folder get different thumbnails; its
+    ``thumbnail_key`` is ``(<dir>, <file name>)``."""
+    head, name = posixpath.split(image_name)
+    return posixpath.join(head, THUMB_DIR, name + THUMB_SUFFIX)
+
+
+def _image_thumbnail_key(image_name):
+    """The thumbnail key of a feature image's stored name (``image_thumbnail_name``)."""
+    if not image_name:
+        return None
+    head, name = posixpath.split(image_name)
+    return (head, name) if name else None
+
+
+def _thumbnail_features(key):
+    """The features showing the image whose thumbnail has ``key``."""
+    directory, stem = key
+    name = posixpath.join(directory, stem) if directory else stem
+    return list(Feature.objects.filter(images__image=name).distinct())
+
+
 def _pdf_thumbnail_key(file_name):
     """The thumbnail key of a report PDF's stored name (template tag ``thumb_file``)."""
     if not file_name:
@@ -154,6 +181,7 @@ def media_owners(relpath):
     key = thumbnail_key(relpath)
     if key:
         owners.extend((THUMBNAIL, pub) for pub in _thumbnail_publications(key))
+        owners.extend((FEATURE, feature) for feature in _thumbnail_features(key))
     return owners
 
 
@@ -253,7 +281,12 @@ class MediaIndex:
         image_names = dict(ImageObject.objects.values_list('pk', 'image'))
         for image_id, feature_id in ImageObjectship.objects.values_list(
                 'imageobject_id', 'feature_id'):
-            add(image_names.get(image_id), FEATURE_IMAGE, feature_level[feature_id])
+            name = image_names.get(image_id)
+            add(name, FEATURE_IMAGE, feature_level[feature_id])
+            # The image's thumbnail (image_thumbnail_name) has the image's visibility.
+            key = _image_thumbnail_key(name)
+            if key:
+                self._thumbs.setdefault(key, []).append(feature_level[feature_id])
 
         for pk, name in file_names.items():
             if name and _is_temp(name):

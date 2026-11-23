@@ -52,8 +52,8 @@ from find_artek.search import get_query
 from publications.forms import (
     LoginForm, AddEditReportForm, AddEditReportFinalSaveForm,
     PublicationForm, DeleteReportForm,
-    AddFeatureByCoordinatesForm, AddFeatureByMap, PersonWorkflowMixin, 
-    UploadAppendixForm, ChangeReportNumberForm
+    AddFeatureByCoordinatesForm, AddFeatureByMap, PersonWorkflowMixin,
+    UploadAppendixForm, ChangeReportNumberForm, FeatureFileUploadForm, FeatureImageUploadForm,
 )
 from publications.forms.publication import ImportPublicationFileForm
 from publications.forms.mixins import WorkflowAddEditReportForm, WorkflowAddEditReportFinalSaveForm
@@ -74,8 +74,10 @@ from publications.utils_basic import CaseInsensitively
 from publications.geometry import entered_point, single_point, source_origin
 from publications.visibility import visible_features, visible_publications
 from publications.utils_models import (
-    handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
-    handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords
+    handle_publication_file_upload, create_ordered_queryset, generate_next_report_number,
+    handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords,
+    FEATURE_FILE, FEATURE_IMAGE, FeatureUploadError, feature_media_dir, handle_feature_uploads,
+    image_thumbnail_path, image_thumbnail_url,
 )
 from publications.workflows.person import (
     DirectoryPersonError, disambiguate_person_step, complete_person_workflow,
@@ -1335,7 +1337,19 @@ class FeatureView(FeaturePermissionMixin, BaseDetailView):
         # The WGS84 copy per kind (points, lines, polygons), as stored.
         geometries = [geom for geom in (feature.points, feature.lines, feature.polys)
                       if geom is not None and not geom.empty]
+        # The report the page was opened from (``?report=``, a report of this feature the
+        # user may see), passed on to the upload and delete links of files and images (T8).
+        wanted = self.request.GET.get('report', '')
+        request_report = None
+        if wanted.isdigit():
+            request_report = visible_publications(
+                feature.publications.filter(pk=int(wanted)), user).first()
         context.update({
+            'files': feature.files.all().order_by('pk'),
+            # (image, thumbnail URL or None): thumbnails exist for images uploaded since T8.
+            'images': [(image, image_thumbnail_url(image))
+                       for image in feature.images.all().order_by('pk')],
+            'report_query': f'?report={request_report.pk}' if request_report else '',
             'geometries': geometries,
             # Where the geometry came from (plan "features" T5, design note 8): 'map',
             # 'entered' or 'unknown' (registered before the source fields existed).
@@ -1799,7 +1813,8 @@ def _media_name_shared(record):
 def _delete_media_record(record, kind):
     """Delete ``record`` (a FileObject or ImageObject nothing uses any more; the caller
     checks) inside the current transaction, and remove its file after the commit unless
-    another record names the same file. ``kind`` names the record in the log."""
+    another record names the same file. ``kind`` names the record in the log. An image's
+    thumbnail (features T8, utils_models.make_image_thumbnail) goes with its file."""
     pk = record.pk
     field = _media_field(record)
     path = None
@@ -1809,11 +1824,15 @@ def _delete_media_record(record, kind):
         except Exception:  # SuspiciousFileOperation for legacy names outside MEDIA_ROOT
             logger.warning("%s %s has a file name outside MEDIA_ROOT", kind, pk)
     shared = _media_name_shared(record)
+    thumbnail = image_thumbnail_path(record) if isinstance(record, ImageObject) else None
     record.delete()
     if path is None:
         logger.warning("Deleted %s %s had no file under MEDIA_ROOT", kind, pk)
     elif not shared:
         transaction.on_commit(functools.partial(_remove_deleted_media_file, path, kind, pk))
+        if thumbnail:
+            # Most images (all from before T8) have no thumbnail: no warning when missing.
+            transaction.on_commit(functools.partial(_remove_file, thumbnail))
 
 
 def _delete_feature(feature):
@@ -2329,6 +2348,147 @@ class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseVi
             _delete_feature(feature)
         messages.success(request, f'Feature "{name}" was deleted.')
         return HttpResponseRedirect(success_url)
+
+
+class FeatureMediaReturnMixin(FeatureReturnReportMixin):
+    """Upload and delete of a feature's files and images (plan "features" T8) return to the
+    feature page, which lists them, with ``?report=`` of the report the action started from
+    (FeatureReturnReportMixin: a report of the feature the user may see, else the feature's
+    first visible report), so the next upload uses the same report folder."""
+
+    def feature_url(self):
+        url = reverse('publications:feature', kwargs={'pk': self.feature.pk})
+        report = self.return_report()
+        return f'{url}?report={report.pk}' if report is not None else url
+
+
+class UploadFeatureMediaView(FeaturePermissionMixin, FeatureMediaReturnMixin, BaseView):
+    """Upload files or images to a feature (plan "features" T8, roadmap FA-R64).
+
+    Needs ``edit_feature`` (Feature.is_editable_by; permissions.py). GET shows the page with
+    one form for files and one for images; POST with ``kind`` = ``file`` or ``image`` stores
+    the uploaded files (utils_models.handle_feature_uploads) under
+    ``reports/<year>/<number>/features/<feature id>/`` (images in ``img/``) of the report named
+    by ``report`` (query string / hidden field; else the feature's first visible report) and
+    returns to the feature page. A feature without such a report gets no uploads (message).
+    Same limit per file as appendices (settings.MAX_UPLOAD_SIZE_MB) and the submit guard.
+    """
+    template_name = 'publications/feature_upload.html'
+    permission = EDIT_FEATURE
+    http_method_names = ['get', 'post']
+
+    def render_page(self, file_form=None, image_form=None, status=200):
+        report = self.return_report()
+        try:
+            folder = feature_media_dir(self.feature, report)
+            folder_error = None
+        except FeatureUploadError as error:
+            folder, folder_error = None, str(error)
+        context = self.get_context_data()
+        context.update({
+            'feature': self.feature,
+            'return_report': report,
+            'folder': folder,
+            'folder_error': folder_error,
+            'file_form': file_form or FeatureFileUploadForm(),
+            'image_form': image_form or FeatureImageUploadForm(),
+            'cancel_url': self.feature_url(),
+        })
+        return render(self.request, self.template_name, context, status=status)
+
+    def get(self, request, *args, **kwargs):
+        return self.render_page()
+
+    def post(self, request, *args, **kwargs):
+        kind = request.POST.get('kind')
+        if kind == FEATURE_IMAGE:
+            form = FeatureImageUploadForm(request.POST, request.FILES)
+            files_field, text_field, form_kwargs = 'feature_images', 'caption', {'image_form': form}
+        elif kind == FEATURE_FILE:
+            form = FeatureFileUploadForm(request.POST, request.FILES)
+            files_field, text_field, form_kwargs = 'feature_files', 'description', {'file_form': form}
+        else:
+            messages.error(request, 'Choose files or images to upload.')
+            return self.render_page(status=400)
+        if not form.is_valid():
+            return self.render_page(status=400, **form_kwargs)
+        try:
+            records = handle_feature_uploads(
+                self.feature, self.return_report(), form.cleaned_data[files_field],
+                request.user, kind, form.cleaned_data.get(text_field, ''))
+        except FeatureUploadError as error:
+            messages.error(request, str(error))
+            return self.render_page(status=400, **form_kwargs)
+        label = 'image' if kind == FEATURE_IMAGE else 'file'
+        messages.success(request, f'{len(records)} {label}(s) added to feature '
+                                  f'"{self.feature.name or self.feature.pk}".')
+        return HttpResponseRedirect(self.feature_url())
+
+
+class DeleteFeatureMediaView(FeaturePermissionMixin, FeatureMediaReturnMixin, BaseView):
+    """Delete one file or image of a feature (plan "features" T8; ``kind`` set in urls.py).
+
+    Needs ``edit_feature`` (as the upload). GET shows the confirmation page, POST deletes.
+    404 if the record is not linked to this feature. The link to the feature is always
+    removed; the record is deleted only when nothing else uses it (another feature, a
+    report's PDF or appendix; _file_object_is_used / _image_object_is_used), and its file
+    (and an image's thumbnail) is removed after the commit unless another record names the
+    same file (_delete_media_record, as the feature delete T7 and the appendix delete T9).
+    Returns to the feature page.
+    """
+    template_name = 'publications/feature_media_confirm_delete.html'
+    permission = EDIT_FEATURE
+    http_method_names = ['get', 'post']
+    kind = FEATURE_FILE
+
+    def get_record(self):
+        record_pk = self.kwargs['record_pk']
+        if self.kind == FEATURE_IMAGE:
+            if not ImageObjectship.objects.filter(
+                    feature=self.feature, imageobject_id=record_pk).exists():
+                raise Http404("No such image of this feature.")
+            return get_object_or_404(ImageObject, pk=record_pk)
+        if not self.feature.files.filter(pk=record_pk).exists():
+            raise Http404("No such file of this feature.")
+        return get_object_or_404(FileObject, pk=record_pk)
+
+    def is_used_elsewhere(self, record):
+        if self.kind == FEATURE_IMAGE:
+            return _image_object_is_used(record, exclude_feature=self.feature)
+        return _file_object_is_used(record, exclude_feature=self.feature)
+
+    def get(self, request, *args, **kwargs):
+        record = self.get_record()
+        context = self.get_context_data()
+        context.update({
+            'feature': self.feature,
+            'record': record,
+            'kind': self.kind,
+            'kept': self.is_used_elsewhere(record),
+            'thumbnail_url': (image_thumbnail_url(record) if self.kind == FEATURE_IMAGE
+                              else None),
+            'return_report': self.return_report(),
+            'cancel_url': self.feature_url(),
+        })
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        feature = self.feature
+        record = self.get_record()
+        name = record.filename() if _media_field(record) else f'{self.kind} {record.pk}'
+        with transaction.atomic():
+            if self.kind == FEATURE_IMAGE:
+                ImageObjectship.objects.filter(feature=feature, imageobject=record).delete()
+                if not _image_object_is_used(record):
+                    _delete_media_record(record, 'feature ImageObject')
+            else:
+                feature.files.remove(record)
+                if not _file_object_is_used(record):
+                    _delete_media_record(record, 'feature FileObject')
+        label = 'Image' if self.kind == FEATURE_IMAGE else 'File'
+        messages.success(request, f'{label} "{name}" was removed from feature '
+                                  f'"{feature.name or feature.pk}".')
+        return HttpResponseRedirect(self.feature_url())
 
 
 class DeleteReportFeaturesView(PublicationPermissionMixin, BaseView):

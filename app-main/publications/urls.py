@@ -39,6 +39,14 @@ urlpatterns = [
     path('feature/<int:pk>/edit/', views.EditFeatureByMapView.as_view(), name='edit_feature_by_map'),
     path('feature/<int:pk>/edit-coordinates/', views.EditFeatureCoordinatesView.as_view(), name='edit_feature_coordinates'),
     path('feature/<int:pk>/delete/', views.DeleteFeatureView.as_view(), name='delete_feature'),
+    # edit_feature: upload files and images to a feature; GET confirmation page and POST
+    # delete of one file or image (features T8, FA-R64)
+    path('feature/<int:pk>/upload/', views.UploadFeatureMediaView.as_view(),
+         name='upload_feature_media'),
+    path('feature/<int:pk>/file/<int:record_pk>/delete/',
+         views.DeleteFeatureMediaView.as_view(kind='file'), name='delete_feature_file'),
+    path('feature/<int:pk>/image/<int:record_pk>/delete/',
+         views.DeleteFeatureMediaView.as_view(kind='image'), name='delete_feature_image'),
     # path('login/', views.LoginView.as_view(), name='login'),
 
     # Add report workflows

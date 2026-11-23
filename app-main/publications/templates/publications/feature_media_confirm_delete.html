@@ -1,0 +1,27 @@
+{% extends base_template %}
+{% load i18n static %}
+
+{% block title %}Delete {% if kind == 'image' %}Image{% else %}File{% endif %}{% endblock %}
+
+{% block headline %}Delete {% if kind == 'image' %}Image{% else %}File{% endif %} of a Feature{% endblock %}
+
+{% block main-content %}
+<div class="info-box">
+    <h2>Confirm Deletion</h2>
+    <p>Remove the {% if kind == 'image' %}image{% else %}file{% endif %}
+       <strong>{{ record.filename }}</strong>{% if kind == 'image' and record.caption %} ({{ record.caption }}){% endif %}
+       from the feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }})?</p>
+    {% if thumbnail_url %}<p><img src="{{ thumbnail_url }}" alt="{{ record.filename }}" style="max-width: 220px; max-height: 220px;"></p>{% endif %}
+    {% if kept %}
+    <p id="feature-media-kept">It is also used by another feature or report: only its link to this feature is removed; the file stays on the server.</p>
+    {% else %}
+    <p id="feature-media-deleted">The file is removed from the server. This cannot be undone.</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {% if return_report %}<input type="hidden" name="report" value="{{ return_report.pk }}">{% endif %}
+        <button type="submit" class="btn btn-danger">Yes, delete</button>
+        <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

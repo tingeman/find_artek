@@ -126,3 +126,67 @@
     flex-shrink: 0;
     text-align: left;
 }
+/* Files and images of a feature (plan "features" T8). */
+.links-to-associated-files-box {
+    width: 100%;
+    padding: 10px 15px 20px 15px;
+}
+
+.links-to-associated-files-box h6 {
+    margin-top: 15px;
+    font-weight: 600;
+}
+
+.feature-media-actions {
+    margin-top: 5px;
+}
+
+.feature-file-list {
+    padding-left: 1.2em;
+    margin-bottom: 0;
+}
+
+.feature-file-list li {
+    margin: 4px 0;
+    overflow-wrap: anywhere;
+}
+
+.feature-media-text {
+    color: #555;
+    margin-left: 0.5em;
+}
+
+.feature-media-delete {
+    margin-left: 0.5em;
+    padding: 0 6px;
+}
+
+.feature-image-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.feature-image {
+    margin: 0;
+    max-width: 220px;
+}
+
+.feature-image img {
+    display: block;
+    max-width: 220px;
+    max-height: 220px;
+    border: 1px solid #ddd;
+}
+
+.feature-image figcaption {
+    font-size: 0.85em;
+    overflow-wrap: anywhere;
+}
+
+.feature-image-nothumb {
+    display: block;
+    padding: 30px 10px;
+    border: 1px dashed #bbb;
+    overflow-wrap: anywhere;
+}

@@ -41,7 +41,9 @@ from django.shortcuts import resolve_url
 from django.test import TestCase, override_settings
 from django.urls import URLPattern, URLResolver, get_resolver, get_script_prefix, reverse
 
-from publications.models import Appendenciesship, Feature, FileObject, Person
+from publications.models import (
+    Appendenciesship, Feature, FileObject, ImageObject, ImageObjectship, Person,
+)
 from publications.roles import ARTEK_EDITOR
 from publications.test_factories import app_path, make_report, make_user, report_type
 
@@ -149,6 +151,13 @@ SMOKE = {
     # Delete all features of a report (features T7): add_feature on the report; GET is the
     # confirmation page (test_feature_delete).
     'publications:delete_report_features': entry(pub, LOGIN, 403, 200),
+    # Files and images of a feature (features T8): edit_feature; GET is the upload page and
+    # the delete confirmation pages (test_feature_media).
+    'publications:upload_feature_media': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),
+    'publications:delete_feature_file': entry(
+        lambda t: {'pk': t.feature.pk, 'record_pk': t.feature_file.pk}, LOGIN, 403, 200),
+    'publications:delete_feature_image': entry(
+        lambda t: {'pk': t.feature.pk, 'record_pk': t.feature_image.pk}, LOGIN, 403, 200),
     # POST only (GET is 405 for everyone, test_report_access).
     'publications:verify_report': entry(lambda t: {'pub_id': t.pub.pk}, LOGIN, 403,
                                         Redirect(report_page), method='post'),
@@ -276,6 +285,14 @@ class SmokeUrlTests(TestCase):
         cls.feature = Feature.objects.create(name='Smoke feature',
                                              date=datetime.date(1999, 7, 1))
         cls.feature.publications.add(cls.pub)
+        # A file and an image of the feature, records without a file on disk (the delete
+        # confirmation pages only; features T8).
+        cls.feature_file = FileObject.objects.create(
+            file='reports/1999/99-50/features/smoke/data.txt')
+        cls.feature.files.add(cls.feature_file)
+        cls.feature_image = ImageObject.objects.create(
+            image='reports/1999/99-50/features/smoke/img/photo.jpg', caption='Smoke photo')
+        ImageObjectship.objects.create(imageobject=cls.feature_image, feature=cls.feature)
         # An appendix record without a file on disk (the delete confirmation page only).
         cls.appendix = FileObject.objects.create(file='reports/1999/appendices/smoke.txt')
         Appendenciesship.objects.create(publication=cls.pub, fileobject=cls.appendix)

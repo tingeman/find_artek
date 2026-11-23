@@ -16,7 +16,9 @@ from .publication import (
 )
 from .feature import (
     AddFeatureByCoordinatesForm,
-    AddFeatureByMap
+    AddFeatureByMap,
+    FeatureFileUploadForm,
+    FeatureImageUploadForm,
 )
 from .mixins import (
     PersonWorkflowMixin, 

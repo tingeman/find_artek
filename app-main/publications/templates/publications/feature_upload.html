@@ -1,0 +1,77 @@
+{% extends base_template %}
+{% load i18n static static_version %}
+
+{% block title %}Add Files to Feature{% endblock %}
+
+{% block dynamic_head_content %}
+{# Upload forms: one submit only, with a "busy" notice #}
+<script src="{% versioned_static 'publications/js/submit-guard.js' %}" defer></script>
+{% endblock %}
+
+{% block headline %}Add Files and Images to a Feature{% endblock %}
+
+{% block main-content %}
+{% if messages %}
+<div class="feature-messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="info-box">
+    <p>Feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }}{% if feature.type %}, {{ feature.get_type_display }}{% endif %})
+       {% if return_report %}of report <strong>{{ return_report.number|default:return_report.pk }}</strong>{% if return_report.title %}, <em>{{ return_report.title }}</em>{% endif %}{% endif %}.</p>
+
+    {% if folder_error %}
+    <div class="alert alert-warning" id="feature-upload-refused">{{ folder_error }}</div>
+    {% else %}
+    <p class="text-muted">The files are stored with report {{ return_report.number }} and have the
+       feature's visibility. Each file can be up to {{ file_form.max_size_mb }} MB.</p>
+
+    <form method="post" enctype="multipart/form-data" data-submit-guard="Uploading…" id="feature-file-upload-form" class="mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="file">
+        <input type="hidden" name="report" value="{{ return_report.pk }}">
+        <h3 class="h5">Files</h3>
+        {{ file_form.non_field_errors }}
+        <div class="form-group">
+            {{ file_form.feature_files.label_tag }}
+            {{ file_form.feature_files }}
+            <small class="form-text text-muted">{{ file_form.feature_files.help_text }}</small>
+            {% for error in file_form.feature_files.errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+            {{ file_form.description.label_tag }}
+            {{ file_form.description }}
+            <small class="form-text text-muted">{{ file_form.description.help_text }}</small>
+            {% for error in file_form.description.errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">Upload files</button>
+    </form>
+
+    <form method="post" enctype="multipart/form-data" data-submit-guard="Uploading…" id="feature-image-upload-form" class="mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="image">
+        <input type="hidden" name="report" value="{{ return_report.pk }}">
+        <h3 class="h5">Images</h3>
+        {{ image_form.non_field_errors }}
+        <div class="form-group">
+            {{ image_form.feature_images.label_tag }}
+            {{ image_form.feature_images }}
+            <small class="form-text text-muted">{{ image_form.feature_images.help_text }}</small>
+            {% for error in image_form.feature_images.errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+            {{ image_form.caption.label_tag }}
+            {{ image_form.caption }}
+            <small class="form-text text-muted">{{ image_form.caption.help_text }}</small>
+            {% for error in image_form.caption.errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">Upload images</button>
+    </form>
+    {% endif %}
+
+    <a href="{{ cancel_url }}" class="btn btn-secondary">Back to the feature</a>
+</div>
+{% endblock %}
