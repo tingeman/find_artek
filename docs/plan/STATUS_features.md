@@ -3,7 +3,7 @@
 Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`.
 
 ## Now
-T2, T3, T4, T9 done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: see Done). Worktrees `..\find_artek_agent-features-t4` and `-t9` and their branches can be removed (`git worktree remove`, `git branch -d`).
+T2, T3, T4, T9 done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
 **Next: T5** (digitize on the map: add/edit points, lines, polygons with leaflet-draw on the component's `editable` hook; feature page shows original coordinates; fix the clipped left text column on `feature.html`, seen 2026-11-23). Then T6, T7, T8, T10, T11 one at a time in `..\find_artek_agent-features` (they share views.py/urls.py/templates).
 
