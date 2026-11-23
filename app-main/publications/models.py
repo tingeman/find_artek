@@ -628,7 +628,23 @@ class Feature(BaseModel):
     lines         = geo_models.MultiLineStringField(srid=4326, blank=True, null=True)
     polys         = geo_models.MultiPolygonField(srid=4326, blank=True, null=True)
 
-    pos_quality   = models.CharField(max_length=30, choices=pos_qualities, default='Unknown', blank=True)
+    # Where the geometry came from (plan "features" T4; publications/geometry.py): the EPSG
+    # code and WKT of the coordinates as entered, and how they were transformed to 4326.
+    # Empty for features registered before.
+    source_srid   = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name='source EPSG code',
+        help_text='EPSG code of the coordinates as entered (before the transformation to WGS84).')
+    source_geometry = models.TextField(
+        null=True, blank=True,
+        help_text='WKT of the geometry in the coordinates as entered.')
+    transform_note = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text='How the coordinates were transformed to WGS84 (EPSG:4326).')
+    observation_date = models.DateField(
+        null=True, blank=True, verbose_name='GNSS observation date',
+        help_text='Basis for epoch calculations; defaults to the feature date when empty.')
+
+    pos_quality  = models.CharField(max_length=30, choices=pos_qualities, default='Unknown', blank=True)
     quality       = models.SmallIntegerField(choices=quality_flags, default=CREATED)
     publications  = models.ManyToManyField(Publication, blank=True)
 
@@ -640,6 +656,11 @@ class Feature(BaseModel):
 
     def __str__(self):
         return '%s %s' % (self.name, 'Geometry')
+
+    @property
+    def epoch_date(self):
+        """The date for epoch calculations: the GNSS observation date, else the feature date."""
+        return self.observation_date or self.date
 
     @classmethod
     def feature_type_list(self):

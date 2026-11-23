@@ -1,8 +1,8 @@
 """Access control of the write views (plan "registration" T4/T5, roadmap FA-R53 S2/S3).
 
 One rule per action, taken from the model methods (Publication.is_editable_by,
-is_deletable_by, is_verifiable_by, Feature.is_deletable_by) and Django permissions, so views,
-templates and tests share it.
+is_deletable_by, is_verifiable_by, Feature.is_editable_by, Feature.is_deletable_by) and Django
+permissions, so views, templates and tests share it.
 
 On a publication or a feature:
 
@@ -18,6 +18,8 @@ On a publication:
 
 On a feature:
 
+- ``edit_feature``:   ``Feature.is_editable_by`` (change_feature, or edit_own_feature and
+                      listed on a report the feature belongs to; plan "features" T4)
 - ``delete_feature``: ``Feature.is_deletable_by`` (delete_feature, or delete_own_feature and
                       listed on a report the feature belongs to)
 
@@ -58,6 +60,7 @@ EDIT = 'edit'
 DELETE = 'delete'
 VERIFY = 'verify'
 ADD_FEATURE = 'add_feature'
+EDIT_FEATURE = 'edit_feature'
 DELETE_FEATURE = 'delete_feature'
 MANAGE = 'manage'
 BULK_DELETE = 'bulk_delete'
@@ -73,7 +76,7 @@ GLOBAL_PERMISSIONS = {
     MERGE_PERSON: 'publications.merge_person',
 }
 PUBLICATION_ACTIONS = (EDIT, DELETE, VERIFY, ADD_FEATURE)
-FEATURE_ACTIONS = (DELETE_FEATURE,)
+FEATURE_ACTIONS = (EDIT_FEATURE, DELETE_FEATURE)
 # Actions on a publication or a feature (decided by the object's type).
 OBJECT_ACTIONS = (VIEW,)
 
@@ -86,6 +89,7 @@ DENIED_MESSAGES = {
     DELETE: "You do not have permission to delete this publication.",
     VERIFY: "You do not have permissions to verify or unverify this report!",
     ADD_FEATURE: "You do not have permissions to add features to this publication!",
+    EDIT_FEATURE: "You do not have permission to edit this feature.",
     DELETE_FEATURE: "You do not have permission to delete this feature.",
     MANAGE: "Only ARTEK editors may use this function.",
     BULK_DELETE: "Only ARTEK editors may delete publications in bulk.",
@@ -123,6 +127,8 @@ def user_may(user, action, obj=None):
         return bool(obj.is_verifiable_by(user))
     if action == ADD_FEATURE:
         return user.has_perm('publications.add_feature') and obj.is_editable_by(user)
+    if action == EDIT_FEATURE:
+        return obj.is_editable_by(user)
     # DELETE_FEATURE
     return obj.is_deletable_by(user)
 
