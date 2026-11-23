@@ -5,7 +5,7 @@ Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `deve
 ## Now
 T2-T8, T7a, T9 done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
-**Next: T10** (Excel "Features" import with preview, implementer in the worktree), then T11. Then T10, T11, one at a time in the worktree (they share views.py/urls.py/templates). Browser check of T6 (add by UTM, confirm step, edit coordinates) T7/T7a (delete one, delete all, refusal for shared features) and T8 (upload/delete a file and an image on a feature) still to do, with T11 or T12.
+**T10 running 2026-11-23** (implementer in the worktree). Then **T8a** (owner 2026-11-23: any file type on features except a block-list of active content such as html/svg/js, blocked types named on the upload page with the hint to put them in a zip; download headers attachment/octet-stream/nosniff; deployment impact: nginx must pass the headers), then T11; one at a time in the worktree (they share views.py/urls.py/templates). Browser check of T6 (add by UTM, confirm step, edit coordinates) T7/T7a (delete one, delete all, refusal for shared features) and T8 (upload/delete a file and an image on a feature) still to do, with T11 or T12.
 
 Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-features` (owner's checkout stopped with `down`, no `-v`); built at T3, before the T4 merge, rebuilt after the T4/T9 merge; **migration 0006 applied to the dev DB 2026-11-23 with the owner's permission** (reversible with `migrate publications 0005`). To give the owner the stack back: `down` in the worktree, `up -d --build` in `find_artek_DEVELOP`.
 
@@ -28,7 +28,7 @@ Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-featu
 ## Open questions
 
 ## Notes for the next session
-- T8 open points (roadmap at the end): existing feature images have no thumbnails (backfill writes to the production share, owner decision, with FA-R86); extra feature file types csv/kml/kmz/gpx/geojson/json and TIFF images chosen by the agent; rejected upload answers 400 with the page (appendix upload redirects); one description/caption per upload, no editing afterwards.
+- T8 open points (roadmap at the end): existing feature images have no thumbnails (backfill writes to the production share, owner decision, with FA-R86); feature file types replaced by a block-list in T8a; rejected upload answers 400 with the page (appendix upload redirects); one description/caption per upload, no editing afterwards.
 - `tests/run.sh` not rerun after T7 hidden-count removal and T7a (small view/template changes, full suite green in the dev stack); rerun at T12 on the branch.
 - T6 open points: UTM plausibility check uses a fixed easting range (no per-zone check); unchanged coordinates on edit keep `transform_note` unrefreshed; no 'Edit coordinates' link in the report page's feature table (feature page only).
 - Browser findings T5 (for T11 or a small fix): the mouse wheel over the map zooms the map instead of scrolling the page on the long add/edit form (consider `scrollWheelZoom` only after a click/focus); the add page and the feature page opened with the Arctic SDI base layer although a token is set (stored choice in localStorage, or default?) - check which base layer is the default with a token.

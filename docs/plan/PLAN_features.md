@@ -150,6 +150,20 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 - Agent: implementer.
 - Deployment impact: none if files stay under `MEDIA_ROOT` (checked in the task).
 
+### T8a. Any file type on features, safe download (owner 2026-11-23)
+- Why: features hold data in many instrument formats; a fixed allow-list (T8: appendix types + csv/kml/kmz/gpx/geojson/json) cannot cover them. The real risk of arbitrary uploads is stored XSS: media is served from the app's origin with a content type guessed from the extension and inline, so an uploaded `.html`/`.svg`/`.js` would run as our site in an editor's session.
+- Files: `forms/feature.py` (`FEATURE_FILE_EXTENSIONS` -> block-list), `views_media.py` (headers), `feature_upload.html`, tests.
+- Acceptance:
+  - Feature **files**: any extension except a block-list of types browsers run as active content: html, htm, xhtml, shtml, svg, svgz, xml, xsl, xslt, js, mjs, (check the list: also e.g. `.hta`, `.swf`, files without extension?). `.zip` always allowed.
+  - The upload page **states which file types are blocked**, and that blocked files (e.g. SVG figures) can be stored **inside a zip archive** (owner 2026-11-23). The rejection message says the same.
+  - Feature **images** keep a raster list Pillow can thumbnail (jpg, jpeg, png, gif, tif, tiff; add webp if Pillow supports it in the image); other formats go in as files.
+  - Serving: feature files (at least those not on a small safe-inline list: pdf, png, jpg/jpeg, gif, txt) get `Content-Disposition: attachment`, `Content-Type: application/octet-stream`, and every media response gets `X-Content-Type-Options: nosniff`. Decide whether appendices get the same rule now (say so; no change in who may see what).
+  - Upload limit unchanged (`MAX_UPLOAD_SIZE_MB`).
+- Tests: blocked extensions refused (case-insensitive, double extensions like `x.svg.zip` allowed, `x.zip.svg` refused); an unusual extension (e.g. `.dat`, `.las`) accepted; page text lists the blocked types and the zip hint; headers on feature file responses (attachment, octet-stream, nosniff) with and without `MEDIA_ACCEL_REDIRECT_PREFIX`; inline types still inline; access unchanged.
+- Validation: skill validate, `publications` tests, full suite.
+- Agent: implementer.
+- Deployment impact: file serving headers. With `X-Accel-Redirect`, nginx in dtu_sus_web_server must pass `Content-Disposition`, `Content-Type` and `X-Content-Type-Options` from the app response through to the client: check in web_server (functional check for the release: download a feature file with an unusual extension, response headers). No route, port or path change.
+
 ### T9. Delete report appendices (FA-R104)
 - Files: `views.py`, `report.html`, `urls.py`.
 - Acceptance: delete button per appendix for users who may edit the report; confirmation; file removed from the share (FA-R86 has not decided "move aside", so remove, as the feature delete does).
