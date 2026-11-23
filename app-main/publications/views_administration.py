@@ -8,7 +8,8 @@ in the classic order without the "Backup" tile (backups are done by dtu_sus_web_
 2. Add feature             -> greyed: features are added from a report's page
 3. Add person              -> greyed: not available yet (FA-R58)
 4. Import reports from Excel -> ``publications:add_reports_from_file_upload`` (action ``manage``)
-5. Import features from Excel -> greyed: not available yet (FA-R63)
+5. Import features from Excel -> ``publications:import_features`` (Django permission
+   ``publications.add_feature``; each report of the sheet is checked by the import, T10)
 6. Django admin            -> ``admin:index``, only shown to ``user.is_staff``
 
 A tile the user may not use, or that isn't built yet, is greyed out with the reason and is not
@@ -26,6 +27,7 @@ from django.utils.translation import gettext as _
 
 from publications.permissions import ADD, MANAGE, access_denied_response, user_may
 from publications.views import BaseView
+from publications.views_feature_import import may_import_features
 
 DENIED_MESSAGE = "Only users who may add reports or ARTEK editors may open the administration page."
 
@@ -52,6 +54,7 @@ def administration_tiles(user):
     """The tiles for ``user`` in display order."""
     may_add = user_may(user, ADD)
     may_manage = user_may(user, MANAGE)
+    may_import = may_import_features(user)
     tiles = [
         Tile('add-report', _('Add report'), 'publications/img/reports_3_190x150.jpg',
              url=reverse('publications:add_report') if may_add else None,
@@ -66,7 +69,8 @@ def administration_tiles(user):
              reason=None if may_manage else _('Needs the editor role')),
         Tile('import-features', _('Import features from Excel'),
              'publications/img/add_feature_file_190x150.png',
-             reason=_('Not available yet')),
+             url=reverse('publications:import_features') if may_import else None,
+             reason=None if may_import else _('Needs permission to add features')),
     ]
     if user.is_staff:
         tiles.append(Tile('django-admin', _('Django admin'), None, url=reverse('admin:index')))

@@ -192,7 +192,8 @@ class TileTests(AdministrationTestBase):
         self.assertLink(tiles['import-reports'], self.import_url)
         self.assertGreyed(tiles['add-feature'], 'Open a report to add features')
         self.assertGreyed(tiles['add-person'], 'Not available yet')
-        self.assertGreyed(tiles['import-features'], 'Not available yet')
+        # Features T10: the feature import is a link for users with add_feature.
+        self.assertLink(tiles['import-features'], reverse('publications:import_features'))
 
     def test_user_with_only_add_publication(self):
         for user in (self.only_add, self.staff):
@@ -202,7 +203,12 @@ class TileTests(AdministrationTestBase):
                 self.assertGreyed(tiles['import-reports'], 'Needs the editor role')
                 self.assertGreyed(tiles['add-feature'], 'Open a report to add features')
                 self.assertGreyed(tiles['add-person'], 'Not available yet')
-                self.assertGreyed(tiles['import-features'], 'Not available yet')
+        # Features T10: artek_staff is also in dtu_user (add_feature): the import is a link;
+        # a user with only add_publication may not add features.
+        tiles, _ = self._tiles(self.staff)
+        self.assertLink(tiles['import-features'], reverse('publications:import_features'))
+        tiles, _ = self._tiles(self.only_add)
+        self.assertGreyed(tiles['import-features'], 'Needs permission to add features')
 
     def test_user_with_only_change_publication(self):
         user = User.objects.create_user('onlychange')

@@ -226,6 +226,9 @@
             <a href="{% url 'publications:add_feature_coordinates' report_pk=publication.pk %}" class="btn btn-primary px-3">
               <i class="fas fa-ruler-combined"></i> Enter coordinates
             </a>
+            <a href="{% url 'publications:import_report_features' pk=publication.pk %}" class="btn btn-primary px-3 ml-2" id="import-features-link">
+              <i class="fas fa-file-excel"></i> Import from Excel
+            </a>
             {% if associated_features %}
             <a href="{% url 'publications:delete_report_features' pk=publication.pk %}" class="btn btn-danger px-3 ml-2" id="delete-all-features-link">
               <i class="fas fa-trash"></i> Delete all features

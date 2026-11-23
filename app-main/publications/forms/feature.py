@@ -12,6 +12,7 @@ from publications.forms.publication import (
     APPENDIX_EXTENSIONS, MultipleFileField, MultipleFileInput, max_upload_size_bytes,
     max_upload_size_mb,
 )
+from publications import feature_import
 from publications.models import Feature
 from django.core.exceptions import ValidationError
 
@@ -398,3 +399,24 @@ class FeatureImageUploadForm(_FeatureUploadForm):
         required=False, max_length=1000,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
         help_text='Optional; the same caption is stored for every image of this upload.')
+
+
+# --- Excel import of features (plan "features" T10, roadmap FA-R63) -------------------------
+
+class FeatureImportFileForm(forms.Form):
+    """Step 1 of the Excel import: the .xlsx file with the sheet "Features". The file is
+    read in memory (publications.feature_import) and not stored."""
+    file = forms.FileField(
+        label='Excel file (.xlsx)',
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx'}),
+        help_text=f'An .xlsx file with a sheet "{feature_import.SHEET_NAME}", at most '
+                  f'{feature_import.MAX_FILE_MB} MB and {feature_import.MAX_VERTICES} vertex '
+                  f'rows.')
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data['file']
+        if os.path.splitext(uploaded_file.name)[1].lower() != '.xlsx':
+            raise ValidationError('Only Excel files (.xlsx) can be imported.')
+        if uploaded_file.size > feature_import.MAX_FILE_MB * 1024 * 1024:
+            raise ValidationError(f'The file is larger than {feature_import.MAX_FILE_MB} MB.')
+        return uploaded_file

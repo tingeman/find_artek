@@ -1,6 +1,9 @@
 from django.urls import include, path
 from . import views
 from .views_administration import AdministrationView
+from .views_feature_import import (
+    FeatureImportConfirmView, FeatureImportPreviewView, FeatureImportView, ReportFeatureImportView,
+)
 from .views_persons import (
     PersonConfirmView, PersonMergeConfirmView, PersonMergeDoView, PersonMergeView,
 )
@@ -68,6 +71,16 @@ urlpatterns = [
     # add_feature on the report: delete its features, unlink shared ones (features T7)
     path('report/<int:pk>/features/delete/', views.DeleteReportFeaturesView.as_view(),
          name='delete_report_features'),
+    # Excel import of features with a preview (features T10, FA-R63): from a report page
+    # (add_feature on it) or the Administration page (add_feature on every report of the
+    # sheet); the preview (GET) saves nothing, confirm (POST only) imports or cancels.
+    path('report/<int:pk>/features/import/', ReportFeatureImportView.as_view(),
+         name='import_report_features'),
+    path('features/import/', FeatureImportView.as_view(), name='import_features'),
+    path('features/import/<slug:import_id>/', FeatureImportPreviewView.as_view(),
+         name='import_features_preview'),
+    path('features/import/<slug:import_id>/confirm/', FeatureImportConfirmView.as_view(),
+         name='import_features_confirm'),
     path('report/<int:report_pk>/add-feature-by-coordinates/', views.AddFeatureCoordinatesView.as_view(), name='add_feature_coordinates'),
     path('report/<int:report_pk>/add-feature-by-map/', views.AddFeatureByMapView.as_view(), name='add_feature_by_map'),
     path('report/<int:pub_id>/verify/', views.VerifyReportView.as_view(), name='verify_report'),

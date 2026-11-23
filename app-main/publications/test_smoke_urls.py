@@ -151,6 +151,17 @@ SMOKE = {
     # Delete all features of a report (features T7): add_feature on the report; GET is the
     # confirmation page (test_feature_delete).
     'publications:delete_report_features': entry(pub, LOGIN, 403, 200),
+    # Excel import of features (features T10, test_feature_import): from the report page
+    # (add_feature on it) and the Administration page (publications.add_feature). Without the
+    # import in the session, preview and confirm (POST only) go to the import page.
+    'publications:import_report_features': entry(pub, LOGIN, 403, 200),
+    'publications:import_features': entry(None, LOGIN, 200, 200),
+    'publications:import_features_preview': entry(
+        lambda t: {'import_id': 'smoke'}, LOGIN, Redirect('publications:import_features'),
+        Redirect('publications:import_features')),
+    'publications:import_features_confirm': entry(
+        lambda t: {'import_id': 'smoke'}, LOGIN, Redirect('publications:import_features'),
+        Redirect('publications:import_features'), method='post'),
     # Files and images of a feature (features T8): edit_feature; GET is the upload page and
     # the delete confirmation pages (test_feature_media).
     'publications:upload_feature_media': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),

@@ -1,0 +1,110 @@
+{% extends base_template %}
+{% load static static_version %}
+{# Excel import of features, step 2: preview (plan "features" T10). Nothing is saved here; #}
+{# "Import" posts to the confirm step, which saves every feature in one transaction.      #}
+
+{% block title %}Import features: preview{% endblock %}
+
+{% block headline %}Import features: preview{% endblock %}
+
+{% block dynamic_head_content %}
+<link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
+<style>
+#feature-import-map {
+    width: 100%;
+    height: 480px;
+}
+</style>
+{% endblock %}
+
+{% block main-content %}
+
+<p>
+  File <strong>{{ data.file_name }}</strong>{% if publication %}, report <a href="{% url 'publications:report' pk=publication.pk %}">{{ publication.number }}</a>: {{ publication.title }}{% endif %}.
+  {{ features|length }} feature{{ features|length|pluralize }}, {{ error_count }} error{{ error_count|pluralize }}, {{ warning_count }} warning{{ warning_count|pluralize }}.
+</p>
+
+{% if messages %}
+<div id="feature-import-messages">
+  {% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" role="alert">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if importable %}
+<div class="alert alert-success" id="feature-import-status"><strong>Nothing is saved yet.</strong> Check the features below, then press "Import" to save all of them.{% if warning_count %} The warnings do not stop the import.{% endif %}</div>
+{% else %}
+<div class="alert alert-danger" id="feature-import-status"><strong>Nothing can be imported.</strong> {% if blocking %}{% for text in blocking %}{{ text }} {% endfor %}{% elif not features and not has_errors %}The sheet has no features.{% else %}Correct the errors in the file and upload it again.{% endif %}</div>
+{% endif %}
+
+{% if problems %}
+<div class="card mb-4" id="feature-import-problems">
+  <div class="card-header"><h5 class="mb-0">Problems by row (sheet "Features")</h5></div>
+  <ul class="list-group list-group-flush">
+    {% for row, level, text in problems %}
+    <li class="list-group-item {% if level == 'error' %}list-group-item-danger{% else %}list-group-item-warning{% endif %}">
+      <strong>{% if level == 'error' %}Error{% else %}Warning{% endif %}</strong>,
+      {% if row > 1 %}row {{ row }}{% elif row == 1 %}header row{% else %}sheet{% endif %}: {{ text }}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card mb-4">
+  <div class="card-header"><h5 class="mb-0">Map</h5></div>
+  <div class="card-body">
+    <div id="feature-import-map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-map-mode="preview" data-geojson-source="feature-import-geojson"></div>
+    <p class="mt-2 mb-0 text-muted">Features with errors have no geometry and are not on the map.</p>
+  </div>
+</div>
+{{ preview_geojson|json_script:"feature-import-geojson" }}
+
+<div class="card mb-4">
+  <div class="card-header"><h5 class="mb-0">Features</h5></div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0" id="feature-import-table">
+      <thead>
+        <tr><th>Rows</th><th>Feature#</th><th>Report</th><th>Name</th><th>Type</th><th>Geometry</th><th>SRID</th><th>Date</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for feature in features %}
+        <tr class="{% if feature.errors %}table-danger{% elif feature.warnings %}table-warning{% endif %}">
+          <td>{{ feature.rows|first }}{% if feature.rows|length > 1 %}&ndash;{{ feature.rows|last }}{% endif %}</td>
+          <td>{{ feature.feature_no }}</td>
+          <td>{{ feature.report_number }}</td>
+          <td>{{ feature.attrs.name }}</td>
+          <td>{{ feature.attrs.type|default:"" }}</td>
+          <td>{{ feature.kind }} ({{ feature.vertex_count }} vert{{ feature.vertex_count|pluralize:"ex,ices" }})</td>
+          <td>{{ feature.srid|default:"" }}</td>
+          <td>{{ feature.attrs.date|default:"" }}</td>
+          <td>{% if feature.errors %}Error{% elif feature.warnings %}Warning{% else %}OK{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<form method="post" action="{% url 'publications:import_features_confirm' import_id=import_id %}" id="feature-import-confirm">
+  {% csrf_token %}
+  {% if importable %}
+  <button type="submit" name="action" value="import" class="btn btn-primary" id="feature-import-submit">
+    <i class="fa fa-save"></i> Import {{ features|length }} feature{{ features|length|pluralize }}
+  </button>
+  {% endif %}
+  <button type="submit" name="action" value="cancel" class="btn btn-outline-secondary" id="feature-import-cancel">
+    <i class="fa fa-times"></i> Cancel{% if not importable %} and upload again{% endif %}
+  </button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}"></script>
+<script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}"></script>
+<script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}"></script>
+<script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}"></script>
+<script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}"></script>
+<script src="{% versioned_static 'publications/js/feature-import-preview.js' %}"></script>
+{% endblock %}

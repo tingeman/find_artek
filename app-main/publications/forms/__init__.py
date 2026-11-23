@@ -19,6 +19,7 @@ from .feature import (
     AddFeatureByMap,
     FeatureFileUploadForm,
     FeatureImageUploadForm,
+    FeatureImportFileForm,
 )
 from .mixins import (
     PersonWorkflowMixin, 

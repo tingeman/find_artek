@@ -1,0 +1,58 @@
+{% extends base_template %}
+{% load static %}
+{# Excel import of features, step 1: upload (plan "features" T10). Nothing is saved here. #}
+
+{% block title %}Import features from Excel{% endblock %}
+
+{% block headline %}Import features from Excel{% endblock %}
+
+{% block main-content %}
+
+{% if publication %}
+<p>Report <a href="{% url 'publications:report' pk=publication.pk %}">{{ publication.number }}</a>: {{ publication.title }}</p>
+{% endif %}
+
+{% if messages %}
+<div class="mt-3" id="feature-import-messages">
+  {% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" role="alert">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="alert alert-info" id="feature-import-help">
+  <ul class="mb-0">
+    <li>Upload an Excel file (.xlsx) with a sheet <strong>Features</strong>: one row per vertex;
+      rows with the same <strong>Feature#</strong> form one feature (point, line or polygon), and
+      the first row of a feature gives its name, type, date and other attributes.</li>
+    <li>Required columns: Feature#, Feature_type, Name, Geometry_type, SRID, UTMX/LON, UTMY/LAT,
+      Date{% if not publication %}, and <strong>Report</strong> (the report number on every row;
+      you must be allowed to add features to each report){% endif %}.
+      {% if publication %}The Report column is not needed here; if given, it must be
+      <strong>{{ publication.number }}</strong>.{% endif %}</li>
+    <li>SRID: any EPSG code (e.g. 4326 for WGS84 longitude/latitude, 32622 for WGS84 / UTM zone
+      22N). Dates: a date cell or YYYY-MM-DD.</li>
+    <li><strong>Nothing is saved yet:</strong> the next page shows the features on a map with a
+      list of problems. Only "Import" there saves them, all at once; if any row has an error,
+      nothing can be imported. At most {{ max_vertices }} vertex rows per file.</li>
+  </ul>
+</div>
+
+<p>The template explains every column on its Help sheet:
+  <a href="{% static template_path %}" class="btn btn-outline-info btn-sm" id="feature-import-template">Feature Excel template (ARTEK_feature_list.xlsx)</a>
+</p>
+
+<form method="post" enctype="multipart/form-data" id="feature-import-form" novalidate>
+  {% csrf_token %}
+  {% for field in form %}
+  <div class="form-group">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+    {% for error in field.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Check the file</button>
+  <a href="{{ cancel_url }}" class="btn btn-outline-secondary" id="feature-import-cancel"><i class="fa fa-times"></i> Cancel</a>
+</form>
+{% endblock %}
