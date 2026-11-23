@@ -1,4 +1,4 @@
-"""Map readability fixes from the owner's browser checks (plan "features" T16, T19).
+"""Map readability fixes from the owner's browser checks (plan "features" T16, T19, T22).
 
 - Feature type colours (publications/map_styles.py): the colours from before T16 (T19, owner
   decision; white OTHER, yellow BOREHOLE, pink LAB MEASUREMENT included), #rrggbb, clearly
@@ -11,9 +11,11 @@
   T21: the casing lies in its own map pane below Leaflet's overlay pane. T19 relied on the order
   inside L.featureGroup([casing, line]), but Leaflet adds a group's members in the order of their
   internal ids, and the line got the lower one, so the casing was drawn on top (all black).
-- Topographic map (find-artek-map-layers.js, css/find-artek-map.css, T19): blended with
-  `mix-blend-mode: multiply`, so its opaque white areas show the Arctic SDI underlay; the other
-  base layers are not blended.
+- Topographic map (find-artek-map-layers.js): T19 blended it with `mix-blend-mode: multiply`
+  so its opaque white border showed the Arctic SDI underlay, but the underlay then also showed
+  through inside Greenland. T22 (deliberate change): no blend; the layer is clipped to the
+  coverage outline (test_map_coverage.py has the details); the other base layers are not
+  clipped.
 - The Arctic SDI basemap lies under every other base layer (find-artek-map-layers.js): its own
   layer object, not in the layer control, below the base layers, removed when Arctic SDI is
   itself chosen. The Dataforsyningen WMS layers are requested transparent, so the underlay
@@ -43,7 +45,6 @@ COMPONENT = 'publications/js/map/find-artek-map.js'
 LAYERS = 'publications/js/map/find-artek-map-layers.js'
 MAP_CSS = 'publications/css/find-artek-map.css'
 LEAFLET_CSS = 'publications/vendor/leaflet-1.9.4/leaflet.css'
-LEAFLET_JS = 'publications/vendor/leaflet-1.9.4/leaflet.js'
 PREVIEW = 'publications/js/feature-import-preview.js'
 EDIT = 'publications/js/map/find-artek-map-edit.js'
 LEGEND_CSS = 'publications/css/map-legend.css'
@@ -357,8 +358,7 @@ class UnderlayTests(SimpleTestCase):
         self.assertIn("format: 'image/png',", self.code)
 
     def test_base_layers_are_marked_as_base_layers(self):
-        for call in ("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, "
-                     "BLEND_UNDERLAY_CLASS)",
+        for call in ("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, true)",
                      "dataforsyningenWms(SATELLITE_WMS, 'ortofoto', false)",
                      "dataforsyningenWms(SATELLITE_WMS, 'sentinel2_10m_2022', false)",
                      "dataforsyningenWms(SATELLITE_WMS, 'stednavne', true)",
@@ -368,49 +368,28 @@ class UnderlayTests(SimpleTestCase):
                 self.assertIn(call, self.code)
 
 
-class TopographicBlendTests(SimpleTestCase):
+class NoBlendTests(SimpleTestCase):
+    """T22 (deliberate change of T19's TopographicBlendTests): the multiply blend let the
+    underlay show through inside Greenland; it is replaced by the clip (test_map_coverage.py)."""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.code = code_only(read_static(LAYERS))
-        cls.css = read_static(MAP_CSS)
+    def test_blend_class_and_rule_are_gone(self):
+        layers = read_static(LAYERS)
+        css = read_static(MAP_CSS)
+        for needle in ('BLEND_UNDERLAY_CLASS', 'fa-blend-underlay'):
+            with self.subTest(needle=needle):
+                self.assertNotIn(needle, layers)
+                self.assertNotIn(needle, css)
+        self.assertNotIn('mix-blend-mode', css)
+        self.assertNotIn('mix-blend-mode', code_only(layers))
 
-    def test_only_the_topographic_layer_has_the_class(self):
-        self.assertIn("var BLEND_UNDERLAY_CLASS = 'fa-blend-underlay';", self.code)
-        self.assertIn("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, "
-                      "BLEND_UNDERLAY_CLASS)", self.code)
-        # var, topographic layer, export (name and value).
-        self.assertEqual(self.code.count('BLEND_UNDERLAY_CLASS'), 4)
-        for layer in ('ortofoto', 'sentinel2_10m_2022'):
-            with self.subTest(layer=layer):
-                self.assertIn(f"dataforsyningenWms(SATELLITE_WMS, '{layer}', false)}},",
-                              self.code)
+    def test_no_class_option_on_the_wms_layers(self):
+        code = code_only(read_static(LAYERS))
+        self.assertIn('function dataforsyningenWms(url, layerName, overlay, clip) {', code)
+        self.assertNotIn('className', code)
 
-    def test_class_goes_to_the_layer_not_the_wms_request(self):
-        # className is a GridLayer option (default ''), so Leaflet puts it on the layer's
-        # container and doesn't send it as a WMS parameter.
-        self.assertIn('function dataforsyningenWms(url, layerName, overlay, className) {',
-                      self.code)
-        self.assertIn("className: className || '',", self.code)
-        leaflet = read_static(LEAFLET_JS)
-        self.assertIn('pane:"tilePane",className:""', leaflet)
-        self.assertIn('"leaflet-layer "+(this.options.className||"")', leaflet)
-
-    def test_css_multiplies_the_topographic_layer(self):
-        self.assertEqual(css_rule(self.css, '.leaflet-layer.fa-blend-underlay').strip(),
-                         'mix-blend-mode: multiply;')
-        self.assertEqual(self.css.count('mix-blend-mode:'), 1)
-
-    def test_blend_stays_inside_the_tile_pane(self):
-        # Every tile layer stays in Leaflet's tile pane (no `pane` option), and the tile pane is
-        # positioned with a z-index, i.e. a stacking context and an isolated blending group:
-        # the topographic layer blends only with the underlay below it, not with the map
-        # background or the page.
-        self.assertNotRegex(self.code, r'\bpane:')
-        leaflet_css = read_static(LEAFLET_CSS)
-        self.assertRegex(leaflet_css, r'\.leaflet-tile-pane\s*\{\s*z-index: 200;')
-        self.assertRegex(leaflet_css, r'\.leaflet-pane,[^{]*\{\s*position: absolute;')
+    def test_tile_layers_stay_in_the_tile_pane(self):
+        # Every tile layer stays in Leaflet's tile pane (no `pane` option), below the features.
+        self.assertNotRegex(code_only(read_static(LAYERS)), r'\bpane:')
 
 
 class MapCssTests(MapPagesTestBase):

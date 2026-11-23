@@ -91,6 +91,35 @@ component `publications/js/map/`), add feature by map (Leaflet, Leaflet.draw). S
 (`*.map`) are not copied. The map tiles (Dataforsyningen WMS, Arctic SDI basemap) stay
 external.
 
+### Map data
+
+`app-main/publications/static/publications/data/greenland_topo_coverage.geojson` (about 10 kB,
+530 vertices): the approximate coverage of the Dataforsyningen topographic map, used to clip
+that layer so its opaque white border doesn't hide the Arctic SDI basemap (plan "features"
+T22). Made from **Natural Earth 10m land** (version 5.1.1,
+<https://www.naturalearthdata.com/>, **public domain**): Greenland and its islands, buffered
+12 km seaward, simplified with 2.5 km tolerance. The Natural Earth files are not in the
+repository. To make it again (e.g. with another buffer), in Git Bash from the repo root with
+the dev stack running:
+
+```bash
+# Download ne_10m_land.zip (Natural Earth, "Land", 1:10m physical) and unzip it into an
+# empty folder, e.g. /c/temp/ne. Then:
+DC="docker compose -f docker-compose.yml -f docker-compose.develop.yml"
+$DC exec -T webapp-find-artek mkdir -p /tmp/ne
+for f in shp shx dbf prj cpg; do docker cp /c/temp/ne/ne_10m_land.$f webapp-find-artek-dev:/tmp/ne/; done
+$DC exec -T webapp-find-artek python manage.py make_greenland_coverage /tmp/ne/ne_10m_land.shp \
+    --buffer-km 12 --tolerance-km 2.5 --output /tmp/ne/coverage.geojson \
+    --settings find_artek.development_settings
+docker cp webapp-find-artek-dev:/tmp/ne/coverage.geojson \
+    app-main/publications/static/publications/data/greenland_topo_coverage.geojson
+$DC exec -T webapp-find-artek rm -rf /tmp/ne
+```
+
+Keep buffer + tolerance below the narrowest white-free sea band of the topographic map (about
+15 km). Raise `STATIC_ASSET_VERSION` afterwards, and adjust the `buffer_km` / `tolerance_km`
+check in `publications/test_map_coverage.py` if you change them.
+
 ### Map projection
 
 **Decision (owner, 2026-11-23): EPSG:3574** (North Pole LAEA Atlantic,

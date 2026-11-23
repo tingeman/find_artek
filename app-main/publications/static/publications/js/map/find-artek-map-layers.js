@@ -17,16 +17,28 @@
  * background colour (white by default), which would hide the underlay. When the Arctic SDI
  * basemap itself is chosen, the underlay is removed, so it is never on the map twice.
  *
- * Topographic map over the underlay (T19): the topographic WMS (gl_aabent_land) returns opaque
- * white around Greenland despite TRANSPARENT=TRUE, which hid the underlay there. Its layer gets
- * the class BLEND_UNDERLAY_CLASS, and css/find-artek-map.css gives that layer
- * `mix-blend-mode: multiply`: white x underlay = underlay, so the white areas show the Arctic
- * basemap. This works because all tile layers are in Leaflet's tile pane, which is positioned
- * with a z-index and therefore its own stacking context, i.e. an isolated blending group: the
- * topographic layer blends only with what the tile pane has drawn below it (the underlay),
- * never with the map background or the page. Overlays (above) and the features (other panes)
- * are not blended. Satellite and Sentinel-2 have no class and are drawn normally; with the
- * Arctic SDI basemap chosen there is no underlay and no topographic layer, so nothing changes.
+ * Topographic map clipped to its coverage (T22): the topographic WMS (gl_aabent_land) returns
+ * opaque white outside its coverage (Greenland's land and a sea band of roughly 15-40 km along
+ * the coast) despite TRANSPARENT=TRUE, which hid the underlay there. T19 multiplied the layer
+ * with the underlay (mix-blend-mode), but that also let the underlay show through inside
+ * Greenland (double coastlines, ghost place names). Since T22 the layer is cut to an outline
+ * instead: Greenland from Natural Earth 10m land (public domain) buffered 12 km seaward
+ * (data/greenland_topo_coverage.geojson, made by `manage.py make_greenland_coverage`, about
+ * 10 kB). Inside the outline the topographic map is drawn as it is; outside, the underlay shows.
+ *
+ * How (clipToCoverage): Leaflet draws a tile layer's tiles in one container per zoom level
+ * ("level"). A level's coordinates never change while it exists: map pixels at the level's zoom
+ * minus level.origin; Leaflet moves it on pan and scales it during the zoom animation with a CSS
+ * transform. GridLayer calls _onCreateLevel(level) for every new level, and there the level gets
+ * a CSS `clip-path: path(evenodd, "...")` with the outline in those coordinates. The clip moves
+ * and scales together with the tiles, so it stays aligned on pan and during zoom animations,
+ * and nothing runs on pan or zoom except one projection of the outline (about 530 points) when
+ * a new level is made. The outline is fetched once per page (the versioned static URL next to
+ * this script, so it is cached like the script), and only when the topographic layer is first
+ * shown. Until it has arrived the levels are fully clipped (the underlay shows); if it can't be
+ * loaded the layer is drawn unclipped (white border, as before T19) and an error is logged.
+ * No extra tile requests. Satellite and Sentinel-2 are not clipped: their areas without data
+ * are transparent (owner's check after T16), so the underlay already shows there.
  *
  * To add another provider, add an entry to BASE_LAYERS or OVERLAYS:
  * {id, name, needsToken, create(options) -> L.Layer}. Entries with needsToken are left out
@@ -65,9 +77,15 @@
     var OVERLAY_Z_INDEX = 10;
     var ARCTIC_SDI_ID = 'arctic-sdi';
 
-    // Class of a base layer whose white areas let the underlay show through (T19, see above;
-    // the rule is in css/find-artek-map.css). Only the topographic map has it.
-    var BLEND_UNDERLAY_CLASS = 'fa-blend-underlay';
+    // Coverage outline of the topographic map (T22, see above): a static file next to this
+    // script; the URL is taken from this script's own URL, so it has the same prefix and the same
+    // ?v= version. null when the script URL is unknown (the layer is then not clipped).
+    var SCRIPT_PATH = 'js/map/find-artek-map-layers.js';
+    var COVERAGE_PATH = 'data/greenland_topo_coverage.geojson';
+    var COVERAGE_URL = coverageUrl(document.currentScript);
+    // Clip of a level while the outline is loading: nothing visible (an empty path).
+    var CLIP_NOTHING = 'path("M0 0Z")';
+    var coverage = null;    // promise of the outline rings ([[L.LatLng]]), fetched once
 
     var SATELLITE_WMS = 'https://api.dataforsyningen.dk/wms/gl_satellitfoto';
     var TOPO_WMS = 'https://api.dataforsyningen.dk/wms/gl_aabent_land';
@@ -78,12 +96,113 @@
         'https://basemap.arctic-sdi.org/mapcache/wmts/1.0.0/arctic_cascading/default/3574/{z}/{y}/{x}.png';
     var ARCTIC_SDI_MAX_NATIVE_ZOOM = 10;
 
+    function coverageUrl(script) {
+        var src = script && script.src;
+        if (!src || src.indexOf(SCRIPT_PATH) === -1) {
+            return null;
+        }
+        return src.replace(SCRIPT_PATH, COVERAGE_PATH);
+    }
+
+    // Every ring (outer rings and holes) of the Polygons and MultiPolygons in a GeoJSON object,
+    // as arrays of L.LatLng.
+    function coverageRings(data) {
+        var rings = [];
+        function addPolygon(polygon) {
+            polygon.forEach(function (ring) {
+                rings.push(ring.map(function (position) {
+                    return L.latLng(position[1], position[0]);
+                }));
+            });
+        }
+        function add(object) {
+            if (!object) {
+                return;
+            }
+            if (object.type === 'FeatureCollection') {
+                (object.features || []).forEach(add);
+            } else if (object.type === 'Feature') {
+                add(object.geometry);
+            } else if (object.type === 'Polygon') {
+                addPolygon(object.coordinates);
+            } else if (object.type === 'MultiPolygon') {
+                object.coordinates.forEach(addPolygon);
+            }
+        }
+        add(data);
+        return rings;
+    }
+
+    function loadCoverage() {
+        if (!coverage) {
+            coverage = !COVERAGE_URL
+                ? Promise.reject(new Error('URL of the coverage outline unknown'))
+                : fetch(COVERAGE_URL, {credentials: 'same-origin'}).then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ' for ' + COVERAGE_URL);
+                    }
+                    return response.json();
+                }).then(coverageRings);
+        }
+        return coverage;
+    }
+
+    // The CSS clip-path of a level: the outline in the level's coordinates (map pixels at
+    // level.zoom minus level.origin), even-odd so holes stay holes.
+    function levelClipPath(crs, rings, level) {
+        var path = rings.map(function (ring) {
+            return ring.map(function (latlng, index) {
+                var point = crs.latLngToPoint(latlng, level.zoom).subtract(level.origin);
+                return (index ? 'L' : 'M') + point.x.toFixed(1) + ' ' + point.y.toFixed(1);
+            }).join('') + 'Z';
+        }).join('');
+        return path ? 'path(evenodd, "' + path + '")' : CLIP_NOTHING;
+    }
+
+    // Cut a tile layer to the coverage outline (T22, see the top of this file).
+    function clipToCoverage(layer) {
+        var state = {rings: null, failed: false};
+        function clipLevel(level) {
+            if (!layer._map || !level || !level.el) {
+                return;
+            }
+            if (state.failed) {
+                level.el.style.clipPath = '';
+            } else if (!state.rings) {
+                level.el.style.clipPath = CLIP_NOTHING;
+            } else {
+                level.el.style.clipPath = levelClipPath(layer._map.options.crs, state.rings,
+                                                        level);
+            }
+        }
+        function clipAllLevels() {
+            Object.keys(layer._levels || {}).forEach(function (zoom) {
+                clipLevel(layer._levels[zoom]);
+            });
+        }
+        // GridLayer's hook, called with every new level (a no-op in Leaflet 1.9.4).
+        layer._onCreateLevel = clipLevel;
+        layer.on('add', function () {
+            loadCoverage().then(function (rings) {
+                state.rings = rings;
+                clipAllLevels();
+            }, function (error) {
+                if (!state.failed) {
+                    console.error('find-artek-map-layers: coverage outline not loaded, ' +
+                                  'topographic map not clipped', error);
+                }
+                state.failed = true;
+                clipAllLevels();
+            });
+        });
+        return layer;
+    }
+
     // `overlay`: false for a base layer, true for an overlay (drawn above the base layer).
-    // `className`: CSS class of the layer's container (Leaflet's GridLayer option, not sent to
-    // the WMS server); '' or left out for none.
-    function dataforsyningenWms(url, layerName, overlay, className) {
+    // `clip`: true cuts the layer to the coverage outline (clipToCoverage).
+    function dataforsyningenWms(url, layerName, overlay, clip) {
         return function (options) {
-            return L.tileLayer.wms(url, {
+            var layer = L.tileLayer.wms(url, {
                 layers: layerName,
                 styles: '',
                 format: 'image/png',
@@ -96,10 +215,10 @@
                 maxZoom: options.maxZoom,
                 attribution: DATAFORSYNINGEN_ATTRIBUTION,
                 zIndex: overlay ? OVERLAY_Z_INDEX : BASE_Z_INDEX,
-                className: className || '',
                 // Unknown options become WMS query parameters: `token=<value>`.
                 token: options.token,
             });
+            return clip ? clipToCoverage(layer) : layer;
         };
     }
 
@@ -119,7 +238,7 @@
     // Base layers; the first available one is the default.
     var BASE_LAYERS = [
         {id: 'topographic', name: 'Topographic map (Dataforsyningen)', needsToken: true,
-         create: dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, BLEND_UNDERLAY_CLASS)},
+         create: dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, true)},
         {id: 'satellite', name: 'Satellite (Dataforsyningen)', needsToken: true,
          create: dataforsyningenWms(SATELLITE_WMS, 'ortofoto', false)},
         {id: 'sentinel2-2022', name: 'Sentinel-2 2022 (Dataforsyningen)', needsToken: true,
@@ -225,7 +344,10 @@
     window.FindArtekMapLayers = {
         STORAGE_KEY: STORAGE_KEY,
         ARCTIC_SDI_ID: ARCTIC_SDI_ID,
-        BLEND_UNDERLAY_CLASS: BLEND_UNDERLAY_CLASS,
+        COVERAGE_PATH: COVERAGE_PATH,
+        coverageUrl: function () { return COVERAGE_URL; },
+        coverageRings: coverageRings,
+        levelClipPath: levelClipPath,
         NO_TOKEN_NOTE: NO_TOKEN_NOTE,
         BASE_LAYERS: BASE_LAYERS,
         OVERLAYS: OVERLAYS,

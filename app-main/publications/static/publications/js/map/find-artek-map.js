@@ -30,11 +30,15 @@
  *                  pointer leaves it or it loses focus; before that the wheel scrolls the
  *                  page. Default 'always' for 'overview' (a full-page map), 'focus' otherwise
  *                  (maps embedded in long pages; T11)
+ *   boxZoomButton  show the box-zoom button under +/- (T22); default true for the modes in
+ *                  BOX_ZOOM_MODES ('overview', 'report', 'feature') unless editable (dragging
+ *                  draws there), false otherwise (import preview)
  *
  * Public members and methods:
  *   map                   the L.Map
  *   featureLayer          L.FeatureGroup with every feature drawn by addFeatures()
  *   layers                {baseLayers, overlays, control, active} from FindArtekMapLayers
+ *   boxZoomControl        the box-zoom button (BoxZoomControl), null when there is none (T22)
  *   loadFeatures()        fetch the features for the mode and draw them; resolves to the
  *                         feature records (an array; empty when nothing is visible)
  *   addFeatures(records, {fit})  draw API feature records; fit = fit the map to them
@@ -63,6 +67,7 @@
  *                         whatever order the layers are added in (T21)
  *   FindArtekMap.CASED_TYPE  the feature type whose lines and polygons get the casing ('OTHER')
  *   FindArtekMap.reportUrl(id)  the report page URL of a report id
+ *   FindArtekMap.BOX_ZOOM_MODES, FindArtekMap.BOX_ZOOM_LABEL  the box-zoom button (T22)
  *   FindArtekMap.addInitHook(fn)  fn(instance) runs for every new map, after the map and its
  *                         layers exist and before any feature is loaded
  *
@@ -115,6 +120,20 @@
     var TYPE_COLORS_ID = 'find-artek-type-colors';
     var UNKNOWN_TYPE_COLOR = '#808080';   // gray, as in map_styles.py
     var typeColors = null;
+
+    // Box zoom without Shift (T22): a button under the +/- buttons; after a click the next
+    // left-button drag on the map draws a box and the map zooms to it (Leaflet's own box zoom
+    // needs Shift, which few users know; Shift+drag keeps working). Not on edit maps, where a
+    // drag draws or moves geometry.
+    var BOX_ZOOM_MODES = ['overview', 'report', 'feature'];
+    var BOX_ZOOM_LABEL = 'Zoom to a rectangle: drag a box';
+    var BOX_ZOOM_ICON =
+        '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">' +
+        '<rect x="1.5" y="1.5" width="9" height="7" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.5" stroke-dasharray="2.5 1.5"/>' +
+        '<path d="M8.5 7.5 L14.5 13.5 M14.5 9.5 V13.5 H10.5" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.5"/></svg>';
+    var ESCAPE_KEY = 27;
 
     var initHooks = [];
     var crs = null;
@@ -332,6 +351,117 @@
         element.addEventListener('blur', disable);
     }
 
+    // Leaflet's box zoom (L.Map.BoxZoom: box drawing, Escape, fitBounds, 'boxzoomend'), but it
+    // starts on a left-button drag without Shift, and only while `armed` (BoxZoomControl).
+    // _onMouseDown is Leaflet 1.9.4's without the Shift check; _finish (end of the drag,
+    // Escape, or a click without a drag) also disarms the button.
+    var ArmedBoxZoom = L.Map.BoxZoom.extend({
+        _onMouseDown: function (e) {
+            if (!this.armed || ((e.which !== 1) && (e.button !== 1))) {
+                return false;
+            }
+            this._clearDeferredResetState();
+            this._resetState();
+            L.DomUtil.disableTextSelection();
+            L.DomUtil.disableImageDrag();
+            this._startPoint = this._map.mouseEventToContainerPoint(e);
+            L.DomEvent.on(document, {
+                contextmenu: L.DomEvent.stop,
+                mousemove: this._onMouseMove,
+                mouseup: this._onMouseUp,
+                keydown: this._onKeyDown,
+            }, this);
+        },
+        _finish: function () {
+            L.Map.BoxZoom.prototype._finish.call(this);
+            if (this.onFinish) {
+                this.onFinish();
+            }
+        },
+    });
+
+    // The button under +/- (topleft, added after the zoom control). Click (or Enter on the
+    // focused button) arms it: map dragging and Leaflet's Shift box zoom are paused, the cursor
+    // is a crosshair, and the next drag draws the box. A second click or Escape cancels; the
+    // end of the drag disarms it. Only mousedown/mousemove/mouseup listeners while armed;
+    // nothing runs on pan or zoom.
+    var BoxZoomControl = L.Control.extend({
+        options: {position: 'topleft'},
+
+        onAdd: function (map) {
+            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            var button = L.DomUtil.create('a', 'fa-box-zoom-button', container);
+            button.href = '#';
+            button.title = BOX_ZOOM_LABEL;
+            button.setAttribute('role', 'button');
+            button.setAttribute('aria-label', BOX_ZOOM_LABEL);
+            button.setAttribute('aria-pressed', 'false');
+            button.innerHTML = BOX_ZOOM_ICON;
+            L.DomEvent.disableClickPropagation(container);
+            L.DomEvent.on(button, 'click', function (e) {
+                L.DomEvent.preventDefault(e);
+                if (this.isArmed()) {
+                    this.disarm();
+                } else {
+                    this.arm();
+                }
+            }, this);
+            this._button = button;
+            this._handler = new ArmedBoxZoom(map);
+            this._handler.onFinish = L.Util.bind(this.disarm, this);
+            this._handler.enable();
+            return container;
+        },
+
+        onRemove: function () {
+            this.disarm();
+            this._handler.disable();
+        },
+
+        isArmed: function () {
+            return !!(this._handler && this._handler.armed);
+        },
+
+        arm: function () {
+            var map = this._map;
+            if (!map || this.isArmed()) {
+                return;
+            }
+            this._handler.armed = true;
+            this._paused = {dragging: map.dragging.enabled(), boxZoom: map.boxZoom.enabled()};
+            map.dragging.disable();
+            map.boxZoom.disable();
+            L.DomUtil.addClass(map.getContainer(), 'leaflet-crosshair');
+            this._button.setAttribute('aria-pressed', 'true');
+            L.DomEvent.on(document, 'keydown', this._onKeyDown, this);
+        },
+
+        disarm: function () {
+            var map = this._map;
+            if (!map || !this.isArmed()) {
+                return;
+            }
+            this._handler.armed = false;
+            if (this._paused.dragging) {
+                map.dragging.enable();
+            }
+            if (this._paused.boxZoom) {
+                map.boxZoom.enable();
+            }
+            L.DomUtil.removeClass(map.getContainer(), 'leaflet-crosshair');
+            this._button.setAttribute('aria-pressed', 'false');
+            L.DomEvent.off(document, 'keydown', this._onKeyDown, this);
+        },
+
+        _onKeyDown: function (e) {
+            // Leaflet's Escape handling: ends a box being drawn (or a pressed button that has
+            // not moved yet), and its _finish disarms the button.
+            if (e.keyCode === ESCAPE_KEY) {
+                this._handler._onKeyDown(e);
+            }
+        },
+    });
+
     function FindArtekMap(options) {
         options = options || {};
         var element = typeof options.element === 'string'
@@ -352,6 +482,8 @@
         this.fitMaxZoom = options.fitMaxZoom || DEFAULT_FIT_MAX_ZOOM;
         this.editable = !!options.editable;
         this.wheelZoom = options.wheelZoom || (this.mode === 'overview' ? 'always' : 'focus');
+        this.boxZoomButton = options.boxZoomButton != null ? !!options.boxZoomButton
+            : BOX_ZOOM_MODES.indexOf(this.mode) !== -1 && !this.editable;
         this.typeFilter = null;     // null: every type shown
         this.entries = [];          // {record, layers, box, shown} per drawn record
 
@@ -361,6 +493,8 @@
         if (this.wheelZoom === 'focus') {
             wheelZoomOnFocus(this.map, element);
         }
+        // Added right after the map's zoom control, so it sits under the +/- buttons.
+        this.boxZoomControl = this.boxZoomButton ? new BoxZoomControl().addTo(this.map) : null;
 
         // Without any base layer the background colour of css/find-artek-map.css shows.
         L.DomUtil.addClass(element, MAP_CLASS);
@@ -391,6 +525,8 @@
     FindArtekMap.casingLayer = casingLayer;
     FindArtekMap.CASED_TYPE = CASED_TYPE;
     FindArtekMap.CASING_PANE = CASING_PANE;
+    FindArtekMap.BOX_ZOOM_MODES = BOX_ZOOM_MODES;
+    FindArtekMap.BOX_ZOOM_LABEL = BOX_ZOOM_LABEL;
 
     FindArtekMap.addInitHook = function (hook) {
         initHooks.push(hook);

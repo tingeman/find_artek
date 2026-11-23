@@ -15,13 +15,17 @@
 }
 
 /*
- * T19: the topographic base layer (find-artek-map-layers.js, class fa-blend-underlay) is
- * multiplied with the Arctic SDI underlay below it, so its opaque white areas around Greenland
- * show the underlay (white x colour = colour). The tile pane is a stacking context (positioned,
- * z-index in leaflet.css), so the blend only sees the tile layers below it in that pane, never
- * the map's background colour or the page. Satellite, Sentinel-2 and the overlays are drawn
- * normally.
+ * Box-zoom button (T22, find-artek-map.js): under the +/- buttons, same size; a dashed
+ * rectangle icon; highlighted while it waits for the box to be dragged.
  */
-.leaflet-layer.fa-blend-underlay {
-    mix-blend-mode: multiply;
+.leaflet-bar a.fa-box-zoom-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+}
+
+.leaflet-bar a.fa-box-zoom-button[aria-pressed="true"] {
+    background-color: #cfe2f3;
+    color: #000;
 }
