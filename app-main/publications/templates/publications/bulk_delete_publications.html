@@ -79,7 +79,7 @@
       </div>
 
       <div class="d-flex gap-2">
-        {% if count %}<button type="submit" class="btn btn-danger">Confirm delete</button>{% endif %}
+        {% if count %}<button type="submit" class="btn btn-danger" id="bulk-delete-confirm" onclick="return confirm('Delete {{ count }} report{{ count|pluralize }}? This cannot be undone.');">Confirm delete</button>{% endif %}
         <button type="submit" name="cancel" value="1" class="btn btn-secondary">Cancel</button>
       </div>
     </form>

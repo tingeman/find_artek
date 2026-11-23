@@ -15,6 +15,22 @@
             border-radius: 4px;
             margin: 20px 0;
         }
+        /* T20: base.css resets every padding to 0 and removes ul bullets, so the list markers
+           sat outside the box. Indent the lists so the numbers/bullets stay inside. */
+        .delete-warning ol,
+        .delete-warning ul {
+            padding-left: 2em;
+            margin: 0.5em 0;
+        }
+        .delete-warning ol {
+            list-style: decimal outside;
+        }
+        .delete-warning ul {
+            list-style: disc outside;
+        }
+        .delete-warning li + li {
+            margin-top: 0.25em;
+        }
         .report-preview {
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -164,7 +180,7 @@
     
     <div class="button-group">
         {% if not report_features %}
-        <button type="submit" name="action" value="delete" class="btn-delete" onclick="return confirm('Are you absolutely sure you want to delete this publication? This cannot be undone!');">
+        <button type="submit" name="action" value="delete" class="btn-delete" onclick="return confirm('Delete this report? This cannot be undone.');">
             🗑️ Delete Publication
         </button>
         {% endif %}

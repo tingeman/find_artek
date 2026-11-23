@@ -69,8 +69,8 @@
     <form method="post" action="{% url 'publications:delete_feature' pk=feature.pk %}">
         {% csrf_token %}
         {% if return_report %}<input type="hidden" name="report" value="{{ return_report.pk }}">{% endif %}
-        {% if not shared %}<button type="submit" class="btn btn-danger">Yes, delete feature</button>
-        {% elif unlink_report %}<button type="submit" name="action" value="unlink" class="btn btn-warning" id="unlink-feature">Remove from report {{ unlink_report.number|default:unlink_report.pk }}</button>{% endif %}
+        {% if not shared %}<button type="submit" class="btn btn-danger" id="delete-feature" onclick="return confirm('Delete this feature? This cannot be undone.');">Yes, delete feature</button>
+        {% elif unlink_report %}<button type="submit" name="action" value="unlink" class="btn btn-warning" id="unlink-feature" onclick="return confirm('Remove this feature from report {{ unlink_report.number|default:unlink_report.pk|escapejs }}?');">Remove from report {{ unlink_report.number|default:unlink_report.pk }}</button>{% endif %}
         <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>

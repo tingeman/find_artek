@@ -20,7 +20,7 @@
     <form method="post">
         {% csrf_token %}
         {% if return_report %}<input type="hidden" name="report" value="{{ return_report.pk }}">{% endif %}
-        <button type="submit" class="btn btn-danger">Yes, delete</button>
+        <button type="submit" class="btn btn-danger" id="delete-feature-media" onclick="return confirm('{% if kept %}Remove this {% if kind == 'image' %}image{% else %}file{% endif %} from the feature?{% else %}Delete this {% if kind == 'image' %}image{% else %}file{% endif %}? This cannot be undone.{% endif %}');">Yes, delete</button>
         <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>

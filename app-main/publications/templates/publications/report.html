@@ -160,8 +160,7 @@
                   <a href="{% url 'publications:edit_report' pk=publication.pk %}" class="btn btn-sm btn-outline-primary me-2" title="Edit this publication">✏️ Edit</a>
                 {% endif %}
                 {% if user.is_superuser or can_delete_publication %}
-                  <a href="{% url 'publications:delete_report' pk=publication.pk %}" class="btn btn-sm btn-outline-danger me-2" title="Delete this publication"
-                     onclick="return confirm('Are you sure you want to delete this publication? This action cannot be undone.');">🗑️ Delete</a>
+                  <a href="{% url 'publications:delete_report' pk=publication.pk %}" class="btn btn-sm btn-outline-danger me-2" title="Delete this publication" id="delete-report-link">🗑️ Delete</a>{# T20: opens the delete page, which asks; no dialog here #}
                 {% endif %}
                 {% if user.is_superuser or can_verify_publication %}
                   {% if publication.verified %}

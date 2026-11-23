@@ -10,7 +10,9 @@ in the classic order without the "Backup" tile (backups are done by dtu_sus_web_
 4. Import reports from Excel -> ``publications:add_reports_from_file_upload`` (action ``manage``)
 5. Import features from Excel -> ``publications:import_features`` (Django permission
    ``publications.add_feature``; each report of the sheet is checked by the import, T10)
-6. Django admin            -> ``admin:index``, only shown to ``user.is_staff``
+6. Bulk delete reports     -> ``publications:bulk_delete_publications``, only shown to
+   ``user.is_superuser`` (plan "features" T20; the view keeps its own permission check)
+7. Django admin            -> ``admin:index``, only shown to ``user.is_staff``
 
 A tile the user may not use, or that isn't built yet, is greyed out with the reason and is not
 a link. The page itself has the same guard as the old menu: anonymous users are redirected to
@@ -72,6 +74,9 @@ def administration_tiles(user):
              url=reverse('publications:import_features') if may_import else None,
              reason=None if may_import else _('Needs permission to add features')),
     ]
+    if user.is_superuser:
+        tiles.append(Tile('bulk-delete-reports', _('Bulk delete reports'), None,
+                          url=reverse('publications:bulk_delete_publications')))
     if user.is_staff:
         tiles.append(Tile('django-admin', _('Django admin'), None, url=reverse('admin:index')))
     return tiles

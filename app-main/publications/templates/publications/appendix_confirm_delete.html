@@ -13,7 +13,7 @@
     <p>The file is removed from the report and from the server. This cannot be undone.</p>
     <form method="post" action="{% url 'publications:delete_appendix' pk=publication.pk file_pk=appendix.pk %}">
         {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Yes, delete appendix</button>
+        <button type="submit" class="btn btn-danger" id="delete-appendix" onclick="return confirm('Delete this appendix? This cannot be undone.');">Yes, delete appendix</button>
         <a href="{% url 'publications:report' pk=publication.pk %}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>

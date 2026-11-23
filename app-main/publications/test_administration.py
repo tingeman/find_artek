@@ -220,10 +220,31 @@ class TileTests(AdministrationTestBase):
 
     def test_superuser_tiles(self):
         tiles, order = self._tiles(self.superuser)
-        self.assertEqual(order, TILE_ORDER + ['django-admin'])
+        # Features T20: superusers also get "Bulk delete reports", before "Django admin".
+        self.assertEqual(order, TILE_ORDER + ['bulk-delete-reports', 'django-admin'])
         self.assertLink(tiles['add-report'], self.add_report_url)
         self.assertLink(tiles['import-reports'], self.import_url)
         self.assertLink(tiles['django-admin'], reverse('admin:index'))
+
+    def test_bulk_delete_tile_only_for_superusers(self):
+        # Features T20: shown to superusers only (not to editors, even when they are Django
+        # staff); the bulk delete view keeps its own permission check.
+        bulk_url = reverse('publications:bulk_delete_publications')
+        for user, shown in ((self.staff, False), (self.editor, False), (self.only_add, False),
+                            (self.staff_editor, False), (self.superuser, True)):
+            with self.subTest(user=user.username):
+                tiles, _ = self._tiles(user)
+                self.assertEqual('bulk-delete-reports' in tiles, shown)
+                html = ''.join(tiles.values())
+                self.assertEqual(f'href="{bulk_url}"' in html, shown)
+                if shown:
+                    self.assertLink(tiles['bulk-delete-reports'], bulk_url)
+                    self.assertIn('Bulk delete reports', tiles['bulk-delete-reports'])
+
+    def test_no_bulk_delete_link_for_anonymous(self):
+        response = self.get_as(None, self.admin_path)
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn('bulk-delete', response.content.decode())
 
     def test_django_admin_tile_only_for_staff(self):
         for user, shown in ((self.staff, False), (self.editor, False), (self.only_add, False),

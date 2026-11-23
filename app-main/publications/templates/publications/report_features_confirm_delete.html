@@ -48,7 +48,7 @@
         {% for feature in to_unlink %}<input type="hidden" name="unlink" value="{{ feature.pk }}">{% endfor %}
         {% if to_delete or to_unlink %}
         <p>This cannot be undone.</p>
-        <button type="submit" class="btn btn-danger">Yes, delete and remove the features listed</button>
+        <button type="submit" class="btn btn-danger" id="delete-report-features" onclick="return confirm('Delete and remove the features listed? This cannot be undone.');">Yes, delete and remove the features listed</button>
         {% endif %}
         <a href="{% url 'publications:report' pk=publication.pk %}" class="btn btn-secondary">Cancel</a>
     </form>

@@ -58,7 +58,7 @@
         {% csrf_token %}
         {% for item in merged %}<input type="hidden" name="merge" value="{{ item.person.pk }}">{% endfor %}
         <input type="hidden" name="fingerprint" value="{{ plan.fingerprint }}">
-        <button type="submit" class="btn btn-danger">{% trans "Merge" %}</button>
+        <button type="submit" class="btn btn-danger" id="person-merge-do" onclick="return confirm('{% trans "Merge these persons? The others are deleted. This cannot be undone." as merge_question %}{{ merge_question|escapejs }}');">{% trans "Merge" %}</button>
     </form>
     {% endif %}
     <a class="btn btn-outline-secondary" href="{% url 'publications:person_merge' pk=person.pk %}">{% trans "Back" %}</a>
