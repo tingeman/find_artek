@@ -22,13 +22,17 @@ from publications.test_write_access import WriteAccessTestBase
 
 PAGE_CLASSES = (
     'publications/js/class/my-reports-class.js',
-    'publications/js/class/my-map-class.js',
+    # The shared map component (plan "features" T3) replaced my-map-class.js. Its layer file
+    # find-artek-map-layers.js keeps only the chosen base layer in localStorage
+    # (test_map_component), no API data.
+    'publications/js/map/find-artek-map.js',
 )
 # The page scripts that call the classes; they must not add a cache of their own.
 PAGE_SCRIPTS = (
     'publications/js/reports.js',
     'publications/js/map.js',
     'publications/js/report.js',
+    'publications/js/feature.js',
 )
 
 
@@ -57,8 +61,8 @@ class NoBrowserCacheTests(SimpleTestCase):
             self.assertIn(f'queryParams.append({param}', reports)
         features = read_static(PAGE_CLASSES[1])
         self.assertIn("'/api/feature/'", features)
-        self.assertIn('await fetch(fullUrl)', features)
-        self.assertIn("queryParams.append('publication_id'", features)
+        self.assertIn('await fetch(url', features)
+        self.assertIn('publication_id: filters.publicationId', features)
         for source in (reports, features):
             self.assertIn('if (!response.ok)', source)
 

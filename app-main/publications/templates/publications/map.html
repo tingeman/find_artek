@@ -13,12 +13,9 @@
     <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}" defer></script>
-    
-    <script src="{% static 'publications/vendor/leaflet-rotate-0.2.8/leaflet-rotate-src.js' %}" defer></script>
-    
-    <script src="{% versioned_static 'publications/js/class/my-reports-class.js' %}" defer></script>
-    <script src="{% versioned_static 'publications/js/class/my-map-class.js' %}" defer></script>
-    <script src="{% static 'publications/js/map.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/map.js' %}" defer></script>
 {% endblock %}
 
 <!-- headline for the page -->
@@ -27,7 +24,7 @@
 {% block main-content %}
 
 <div class="map-container">
-    <div class="map" id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %}></div>
+    <div class="map" id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-map-mode="overview"></div>
     
     <div id="loading-overlay">
         <div id="loading-icon"></div>

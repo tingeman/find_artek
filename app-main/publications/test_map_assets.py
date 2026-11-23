@@ -39,12 +39,13 @@ STATIC_TAG = re.compile(r"""{%\s*static\s+['"](?P<path>[^'"]+)['"]\s*%}""")
 
 # Per map page template: the vendored files it must load.
 MAP_TEMPLATES = {
+    # features T3: EPSG:3574 without rotation, leaflet-rotate is no longer served.
     'map.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js', 'proj4-2.22.0/proj4.js',
-                 'proj4leaflet-1.0.2/proj4leaflet.js', 'leaflet-rotate-0.2.8/leaflet-rotate-src.js'],
+                 'proj4leaflet-1.0.2/proj4leaflet.js'],
     'report.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js',
-                    'proj4-2.22.0/proj4.js', 'proj4leaflet-1.0.2/proj4leaflet.js',
-                    'leaflet-rotate-0.2.8/leaflet-rotate-src.js'],
-    'feature.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js'],
+                    'proj4-2.22.0/proj4.js', 'proj4leaflet-1.0.2/proj4leaflet.js'],
+    'feature.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js',
+                     'proj4-2.22.0/proj4.js', 'proj4leaflet-1.0.2/proj4leaflet.js'],
     'add_feature_by_map.html': ['leaflet-1.9.4/leaflet.css', 'leaflet-1.9.4/leaflet.js',
                                 'leaflet-draw-1.0.4/leaflet.draw.css',
                                 'leaflet-draw-1.0.4/leaflet.draw.js'],
@@ -114,7 +115,7 @@ class VendoredFilesTests(SimpleTestCase):
 
     def test_every_referenced_vendor_file_exists(self):
         referenced = self.referenced_vendor_files()
-        self.assertGreaterEqual(len(referenced), 7)
+        self.assertGreaterEqual(len(referenced), 6)   # 7 before features T3 (leaflet-rotate)
         for path in sorted(referenced):
             with self.subTest(path=path):
                 self.assertIsNotNone(finders.find(path), f'{path} is not a static file')
@@ -122,7 +123,7 @@ class VendoredFilesTests(SimpleTestCase):
     def test_every_vendored_library_has_a_licence_file(self):
         libraries = {path[len(VENDOR):].split('/')[0] for path in self.referenced_vendor_files()}
         self.assertEqual(libraries, {'leaflet-1.9.4', 'proj4-2.22.0', 'proj4leaflet-1.0.2',
-                                     'leaflet-rotate-0.2.8', 'leaflet-draw-1.0.4'})
+                                     'leaflet-draw-1.0.4'})
         for library in sorted(libraries):
             with self.subTest(library=library):
                 self.assertTrue(

@@ -15,12 +15,9 @@
     <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}" defer></script>
-    
-    <script src="{% static 'publications/vendor/leaflet-rotate-0.2.8/leaflet-rotate-src.js' %}" defer></script>
-    
-    <script src="{% versioned_static 'publications/js/class/my-reports-class.js' %}" defer></script>
-    <script src="{% versioned_static 'publications/js/class/my-map-class.js' %}" defer></script>
-    <script src="{% static 'publications/js/report.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}" defer></script>
+    <script src="{% versioned_static 'publications/js/report.js' %}" defer></script>
 {% endblock %}
 
 
@@ -230,7 +227,7 @@
         <div class="card-body">
           <div style="display: flex; align-items: flex-start; width: 100%; flex-wrap: wrap;">
             <div style="flex: 1 1 300px; min-width: 0;">
-              <div id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} style="height: 400px;"></div>
+              <div id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-map-mode="report" data-publication-id="{{ publication.pk }}" style="height: 400px;"></div>
             </div>
             <div style="flex: 0 1 auto;">
               <div class="color-guide-box" style="display: inline-block;">

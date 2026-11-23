@@ -30,7 +30,7 @@ RED_SIGN = '<span style="color:red; font-weight:bold;">{}</span>'
 VERSIONED_SCRIPTS = (
     'publications/js/file-upload.js',
     'publications/js/class/my-reports-class.js',
-    'publications/js/class/my-map-class.js',
+    'publications/js/map/find-artek-map.js',   # replaced my-map-class.js (features T3)
 )
 
 
@@ -159,10 +159,11 @@ class VersionedScriptTests(FixFixture):
         return {
             'add_report': (page_path('add_report'), [upload]),
             'edit_report': (page_path('edit_report', pk=self.pub.pk), [upload]),
-            'frontpage': (page_path('frontpage'), [reports, maps]),
-            'map': (page_path('map'), [reports, maps]),
+            # features T3: the front page no longer prefetches (no browser cache since
+            # FA-R89), and the map pages don't load the report-list class.
+            'map': (page_path('map'), [maps]),
             'reports': (page_path('reports'), [reports]),
-            'report': (page_path('report', pk=self.pub.pk), [reports, maps]),
+            'report': (page_path('report', pk=self.pub.pk), [maps]),
             'person': (page_path('person', pk=self.marked.pk), [reports]),
             'feature': (page_path('feature', pk=self.feature.pk), [maps]),
         }
@@ -172,7 +173,7 @@ class VersionedScriptTests(FixFixture):
         self.assertTrue(version)
         for name, (path, scripts) in self.pages().items():
             html = self.get(path, self.superuser).content.decode()
-            # base.html keeps an old, commented-out include of the two classes.
+            # Comments are ignored (base.html used to keep a commented-out include).
             html = re.sub(r'<!--.*?-->', '', html, flags=re.S)
             for script in scripts:
                 with self.subTest(page=name, script=script):

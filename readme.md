@@ -84,12 +84,35 @@ not from a CDN:
 | Leaflet | 1.9.4 | `leaflet.js`, `leaflet.css`, `images/` | `leaflet` | BSD-2-Clause |
 | proj4js | 2.22.0 | `proj4.js` (dist build) | `proj4` | MIT |
 | Proj4Leaflet | 1.0.2 | `proj4leaflet.js` (`src/`) | `proj4leaflet` | BSD-2-Clause |
-| leaflet-rotate | 0.2.8 | `leaflet-rotate-src.js` | `leaflet-rotate` | GPL-3.0 |
 | Leaflet.draw | 1.0.4 | `leaflet.draw.js`, `leaflet.draw.css`, `images/` | `leaflet-draw` | MIT (the tarball has no licence file; `LICENSE` written from `package.json` and the file header) |
 
-Pages: overview map, report page, feature page (Leaflet, proj4, Proj4Leaflet, leaflet-rotate),
-add feature by map (Leaflet, Leaflet.draw). Source maps (`*.map`) are not copied. The map
-tiles (GBIF, later Dataforsyningen) stay external.
+Pages: overview map, report page, feature page (Leaflet, proj4, Proj4Leaflet and our map
+component `publications/js/map/`), add feature by map (Leaflet, Leaflet.draw). Source maps
+(`*.map`) are not copied. The map tiles (Dataforsyningen WMS, Arctic SDI basemap) stay
+external.
+
+### Map projection
+
+**Decision (owner, 2026-11-23): EPSG:3574** (North Pole LAEA Atlantic,
+`+proj=laea +lat_0=90 +lon_0=-40`) **without rotation**, on the tile grid of the Arctic SDI
+basemap (origin ±4889334.802955 m, 256 px tiles, resolution `2 × 4889334.802955 / 256 / 2^z`).
+
+- Greenland is upright without rotating the map.
+- No GPL-3.0 library (leaflet-rotate) is served with our client code, so there is no licence
+  question for our own JavaScript.
+- No risk of Leaflet.draw misbehaving on a rotated map (digitizing, plan "features" T5).
+- One dependency less.
+- Dataforsyningen serves EPSG:3574 (also 3571-3576, 3182-3184, 3187, 32624, 3857, 4326, 4747).
+- The Arctic SDI basemap (WMTS tile matrix set `3574`, no token) provides the background
+  outside Greenland and when no `FA_DATAFORSYNINGEN_TOKEN` is set (coarse: native levels 0-10,
+  about 37 m/px at the finest, scaled up beyond).
+
+Costs: the GBIF OSM-light tiles (EPSG:3575 only) are gone; the detailed background depends on
+Dataforsyningen and needs the token; Dataforsyningen's maps cover Greenland only (reduced by
+the Arctic SDI fallback outside Greenland and without a token).
+
+The previous solution (EPSG:3575 with GBIF tiles, rotated by -54° with leaflet-rotate 0.2.8)
+is kept, not served, in `docs/archive/map_epsg3575_rotate/` with revert notes.
 
 **Why local** (owner decision 2026-11-23): no third-party code without an integrity check runs
 in editors' logged-in sessions (several of the CDN scripts were loaded without SRI); releases
