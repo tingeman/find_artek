@@ -345,6 +345,29 @@ http://localhost:8098/publications/map/
 
 - See above, my comments are all enclosed in three asterix `***<comment>***`
 
+
+---
+
+## U. Fourth recheck: T23 (about 10 minutes)
+
+The dev stack already runs this code. Reload each page once with `Ctrl+F5`.
+
+### U1. Overview map, signed out (Window B)
+
+http://localhost:8098/publications/map/
+
+- [ ] Choose **Topographic**. Town names that run into the sea and small islands off the coast are **no longer cut off**; outside the topographic map's white border the **Arctic basemap** shows (blended).
+- [ ] Zoom 8-10 near Nuuk, Ilulissat and Tasiilaq: on land and in the fjords **no double coastlines, no ghost names or airport icons** from the Arctic basemap.
+- [ ] **Scoresby Sund**, **Disko Bay** and **Vaigat**: topographic water, no Arctic basemap coastlines.
+- [ ] Look along the whole coast at zoom 5-7 for **white patches** (sea inside the outline beyond the topographic map's blue band, e.g. in wide bays such as Melville Bugt). Note where: ***...***
+- [ ] Off the coast, between the outline and the white edge, the sea is a little darker blue (blend). Acceptable? ***...***
+- [ ] Choose **Satellite**: unchanged from before (Arctic basemap outside Greenland).
+- [ ] **Box zoom:** click the button and drag several boxes one after another: it **stays on**. It turns off with a second click, with `Esc`, and with the mouse wheel over the map.
+
+### U2. Findings
+
+- Comments in `***<comment>***` as before.
+
 ---
 
 When everything is ticked, tell the session ("browser checks done"). It will then:
