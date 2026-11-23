@@ -1,0 +1,20 @@
+{% extends base_template %}
+{% load i18n static %}
+
+{% block title %}Delete Appendix{% endblock %}
+
+{% block headline %}Delete Appendix{% endblock %}
+
+{% block main-content %}
+<div class="info-box">
+    <h2>Confirm Appendix Deletion</h2>
+    <p>Delete the appendix <strong>{{ appendix.filename }}</strong> from report
+       <strong>{{ publication.number|default:publication.pk }}</strong>{% if publication.title %}, <em>{{ publication.title }}</em>{% endif %}?</p>
+    <p>The file is removed from the report and from the server. This cannot be undone.</p>
+    <form method="post" action="{% url 'publications:delete_appendix' pk=publication.pk file_pk=appendix.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, delete appendix</button>
+        <a href="{% url 'publications:report' pk=publication.pk %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

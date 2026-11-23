@@ -23,6 +23,9 @@ urlpatterns = [
 
     path('report/<int:pk>/', views.ReportView.as_view(), name='report'),
     path('report/<int:pk>/appendix/upload/', views.UploadAppendixView.as_view(), name='upload_appendix'),
+    # edit (may edit the report): GET confirmation page, POST deletes one appendix (FA-R104)
+    path('report/<int:pk>/appendix/<int:file_pk>/delete/', views.DeleteAppendixView.as_view(),
+         name='delete_appendix'),
     path('person/<int:pk>/', views.PersonView.as_view(), name='person'),
     # POST only, merge_person (editors): clear the person's duplicate markers (FA-R66)
     path('person/<int:pk>/confirm/', PersonConfirmView.as_view(), name='person_confirm'),
