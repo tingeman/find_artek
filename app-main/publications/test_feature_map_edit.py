@@ -447,7 +447,8 @@ class FeatureLinksTests(FeatureMapTestBase):
                 self.assertIs(response.context['can_edit_feature'], allowed)
                 self.assertIs(response.context['can_delete_feature'], allowed)
                 if allowed:
-                    self.assertContains(response, f'href="{edit}"')
+                    # From the feature page, the edit returns there (T15).
+                    self.assertContains(response, f'href="{edit}?next=feature"')
                     self.assertContains(response, f'href="{delete}"')
                     self.assertContains(response, 'Edit on map')
                 else:

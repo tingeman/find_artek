@@ -19,7 +19,7 @@
     <h3 class="h5">Deleted, with their files and images</h3>
     <ul id="features-to-delete">
         {% for feature in to_delete %}
-        <li>{{ feature.name|default:feature.pk }} (ID {{ feature.pk }})</li>
+        {% include 'publications/shared_snippets/report_feature_item.html' %}
         {% endfor %}
     </ul>
     {% endif %}
@@ -28,7 +28,7 @@
     <h3 class="h5">Removed from this report only (they belong to other reports too and stay there)</h3>
     <ul id="features-to-unlink">
         {% for feature in to_unlink %}
-        <li>{{ feature.name|default:feature.pk }} (ID {{ feature.pk }})</li>
+        {% include 'publications/shared_snippets/report_feature_item.html' %}
         {% endfor %}
     </ul>
     {% endif %}
@@ -37,7 +37,7 @@
     <h3 class="h5">Kept: you may not delete these features</h3>
     <ul id="features-kept">
         {% for feature in kept %}
-        <li>{{ feature.name|default:feature.pk }} (ID {{ feature.pk }})</li>
+        {% include 'publications/shared_snippets/report_feature_item.html' %}
         {% endfor %}
     </ul>
     {% endif %}

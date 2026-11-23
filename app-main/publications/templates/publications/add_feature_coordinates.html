@@ -16,6 +16,10 @@
 .coordinate-help li {
     margin-bottom: 0.25rem;
 }
+.srid-help-box summary {
+    cursor: pointer;
+    font-weight: 600;
+}
 .srid-help-table td, .srid-help-table th {
     padding: 0.1rem 0.75rem 0.1rem 0;
 }
@@ -63,8 +67,11 @@
 
 <form method="post" id="feature-coordinates-form" novalidate>
   {% csrf_token %}
-  {% if editing and return_report %}
-  <input type="hidden" name="report" value="{{ return_report.pk }}">
+  {% if editing and hidden_report %}
+  <input type="hidden" name="report" value="{{ hidden_report.pk }}">
+  {% endif %}
+  {% if editing and return_to_feature %}
+  <input type="hidden" name="next" value="feature">
   {% endif %}
 
   <div class="card mb-4">
@@ -84,7 +91,8 @@
         {% for code, name in srid_help_list %}<option value="{{ code }}">EPSG:{{ code }} {{ name }}</option>
         {% endfor %}
       </datalist>
-      <details class="mt-2">
+      {# Same light blue box as the help text above, so the list is not overlooked (T15). #}
+      <details class="mt-2 mb-0 alert alert-info srid-help-box" id="srid-help">
         <summary>Reference systems for Greenland (EPSG codes)</summary>
         <table class="srid-help-table mt-2">
           <tbody>

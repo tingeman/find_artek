@@ -1,0 +1,3 @@
+{# One feature on the "Delete all features" confirm page (plan "features" T15): link to its #}
+{# page (opened for this report) and its number of files and images (annotated in the view). #}
+<li class="report-feature-item"><a href="{% url 'publications:feature' pk=feature.pk %}?report={{ publication.pk }}">{{ feature.name|default:feature.pk }}</a> (ID {{ feature.pk }}; <span class="feature-media-count">{{ feature.file_count }} file{{ feature.file_count|pluralize }}, {{ feature.image_count }} image{{ feature.image_count|pluralize }}</span>)</li>

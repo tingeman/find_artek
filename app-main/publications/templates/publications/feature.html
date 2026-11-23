@@ -30,9 +30,9 @@
     {% if can_edit_feature or can_delete_feature %}
     <div class="feature-actions">
         {% if can_edit_feature %}
-        <a href="{% url 'publications:edit_feature_by_map' pk=feature.pk %}" class="btn btn-primary btn-sm" id="feature-edit-link"><i class="fas fa-map"></i> Edit on map</a>
+        <a href="{% url 'publications:edit_feature_by_map' pk=feature.pk %}{{ edit_query }}" class="btn btn-primary btn-sm" id="feature-edit-link"><i class="fas fa-map"></i> Edit on map</a>
         {% if single_point %}
-        <a href="{% url 'publications:edit_feature_coordinates' pk=feature.pk %}" class="btn btn-primary btn-sm" id="feature-edit-coordinates-link"><i class="fas fa-crosshairs"></i> Edit coordinates</a>
+        <a href="{% url 'publications:edit_feature_coordinates' pk=feature.pk %}{{ edit_query }}" class="btn btn-primary btn-sm" id="feature-edit-coordinates-link"><i class="fas fa-crosshairs"></i> Edit coordinates</a>
         {% endif %}
         {% endif %}
         {% if can_delete_feature %}
@@ -58,15 +58,20 @@
                 <span class="value">{{ feature.date|date:"Y-m-d" }}</span>
             </div>
 
-            <div class="feature-row">
-                <span class="property">Reports</span>
-                {# Only the reports the user may see (FA-R75); FeatureView passes them. #}
+            {# Only the reports the user may see (FA-R75, T15): hidden reports are neither named #}
+            {# nor counted, and without a visible report the row is left out. #}
+            {% if visible_reports %}
+            <div class="feature-row" id="feature-reports">
+                <span class="property">{% if visible_reports|length == 1 %}Report{% else %}Reports{% endif %}</span>
                 <span class="value">
-                {% for report in visible_reports %}
-                    <a href="{% url 'publications:report' pk=report.pk %}">{{ report.number }} {{ report.title }}</a>{% if not forloop.last %}<br>{% endif %}
-                {% endfor %}
+                    <ul class="feature-report-list">
+                    {% for report in visible_reports %}
+                        <li><a href="{% url 'publications:report' pk=report.pk %}"><span class="feature-report-number">{{ report.number|default:report.pk }}</span> {{ report.title }}</a></li>
+                    {% endfor %}
+                    </ul>
                 </span>
             </div>
+            {% endif %}
 
             <div class="feature-row">
                 <span class="property">Description</span>

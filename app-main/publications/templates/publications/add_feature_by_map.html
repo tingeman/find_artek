@@ -57,8 +57,11 @@
 
 <form method="post" id="feature-form" novalidate>
   {% csrf_token %}
-  {% if editing and return_report %}
-  <input type="hidden" name="report" value="{{ return_report.pk }}">
+  {% if editing and hidden_report %}
+  <input type="hidden" name="report" value="{{ hidden_report.pk }}">
+  {% endif %}
+  {% if editing and return_to_feature %}
+  <input type="hidden" name="next" value="feature">
   {% endif %}
 
   <div class="card mb-4">

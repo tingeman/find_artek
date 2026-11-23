@@ -190,3 +190,18 @@
     border: 1px dashed #bbb;
     overflow-wrap: anywhere;
 }
+
+/* Reports the feature belongs to (plan "features" T15): one per line, number in bold. */
+.details-box-left .feature-report-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.details-box-left .feature-report-list li {
+    margin-bottom: 2px;
+}
+
+.details-box-left .feature-report-number {
+    font-weight: 600;
+}

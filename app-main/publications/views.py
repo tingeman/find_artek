@@ -35,7 +35,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView, DetailView, CreateView, UpdateView, FormView, DeleteView
 
 # Add imports for filtering helpers
-from django.db.models import Q, CharField
+from django.db.models import Count, Q, CharField
 from django.db.models.functions import Cast
 
 
@@ -79,7 +79,7 @@ from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number,
     handle_session_appendix_uploads, rename_publication_files, get_or_create_keywords,
     FEATURE_FILE, FEATURE_IMAGE, FeatureUploadError, feature_media_dir, handle_feature_uploads,
-    image_thumbnail_path, image_thumbnail_url,
+    image_thumbnail_path, image_thumbnail_url, remove_empty_dirs_below, remove_empty_feature_dirs,
 )
 from publications.workflows.person import (
     DirectoryPersonError, disambiguate_person_step, complete_person_workflow,
@@ -1354,6 +1354,9 @@ class FeatureView(FeaturePermissionMixin, BaseDetailView):
             'images': [(image, image_thumbnail_url(image))
                        for image in feature.images.all().order_by('pk')],
             'report_query': f'?report={request_report.pk}' if request_report else '',
+            # Edit on map / Edit coordinates return here (T15: ``next=feature``).
+            'edit_query': '?next=feature' + (f'&report={request_report.pk}'
+                                             if request_report else ''),
             'geometries': geometries,
             # Where the geometry came from (plan "features" T5, design note 8): 'map',
             # 'entered' or 'unknown' (registered before the source fields existed).
@@ -1814,11 +1817,27 @@ def _media_name_shared(record):
     return files.exists() or images.exists()
 
 
-def _delete_media_record(record, kind):
+def _remove_empty_feature_dirs(paths, feature_pk):
+    """After the commit, once the files are removed: remove the folders that are now empty
+    in the feature's folder (utils_models.remove_empty_feature_dirs; T15). The deepest path
+    (the thumbnail) first, so its folder is gone before the image's folder is tried."""
+    for path in paths:
+        if path:
+            try:
+                remove_empty_feature_dirs(path, feature_pk)
+            except OSError:
+                logger.exception("Could not remove empty folders of %s", path)
+
+
+def _delete_media_record(record, kind, feature_pk=None):
     """Delete ``record`` (a FileObject or ImageObject nothing uses any more; the caller
     checks) inside the current transaction, and remove its file after the commit unless
     another record names the same file. ``kind`` names the record in the log. An image's
-    thumbnail (features T8, utils_models.make_image_thumbnail) goes with its file."""
+    thumbnail (features T8, utils_models.make_image_thumbnail) goes with its file.
+
+    With ``feature_pk`` (a file or image of that feature), the folders left empty in the
+    feature's folder ``reports/<year>/<number>/features/<id>/`` are removed after the files
+    (T15); never folders above it or folders that still hold anything."""
     pk = record.pk
     field = _media_field(record)
     path = None
@@ -1837,6 +1856,9 @@ def _delete_media_record(record, kind):
         if thumbnail:
             # Most images (all from before T8) have no thumbnail: no warning when missing.
             transaction.on_commit(functools.partial(_remove_file, thumbnail))
+        if feature_pk is not None:
+            transaction.on_commit(functools.partial(
+                _remove_empty_feature_dirs, [thumbnail, path], feature_pk))
 
 
 def _delete_feature(feature):
@@ -1844,16 +1866,29 @@ def _delete_feature(feature):
 
     Call inside transaction.atomic(). Files and images that another feature, a report's PDF
     or an appendix still uses keep their record and file; the others are deleted, and their
-    files are removed after the commit (_delete_media_record)."""
+    files are removed after the commit (_delete_media_record). Then the empty folders in the
+    feature's folders (``reports/<year>/<number>/features/<id>/`` of each of its reports, and
+    those of its removed files) are removed (T15); folders that still hold a file stay."""
+    feature_pk = feature.pk   # None after delete()
     files = list(feature.files.all())
     images = list(feature.images.all())
+    feature_dirs = []
+    for report in feature.publications.all():
+        try:
+            feature_dirs.append(os.path.join(
+                settings.MEDIA_ROOT, *feature_media_dir(feature, report).split('/')))
+        except FeatureUploadError:
+            pass   # no usable year/number: no folder of this report
     feature.delete()   # also its rows in the M2M tables (files, ImageObjectship, reports)
     for file_object in files:
         if not _file_object_is_used(file_object):
-            _delete_media_record(file_object, 'feature FileObject')
+            _delete_media_record(file_object, 'feature FileObject', feature_pk)
     for image_object in images:
         if not _image_object_is_used(image_object):
-            _delete_media_record(image_object, 'feature ImageObject')
+            _delete_media_record(image_object, 'feature ImageObject', feature_pk)
+    for feature_dir in feature_dirs:
+        # Registered last: runs after the files are removed.
+        transaction.on_commit(functools.partial(remove_empty_dirs_below, feature_dir))
 
 
 class DeleteAppendixView(PublicationPermissionMixin, BaseView):
@@ -1960,20 +1995,53 @@ class FeatureReturnReportMixin:
 
     ``report`` (query string on GET, hidden field on POST) names the report to return to; it
     counts only if it is a report of this feature the user may see. Otherwise the feature's
-    first visible report, else the feature page."""
+    first visible report, else the feature page.
 
-    def return_report(self):
-        if not hasattr(self, '_return_report'):
-            reports = visible_publications(
-                self.feature.publications.all(), self.request.user).order_by('number', 'pk')
+    ``next=feature`` (query string on GET, hidden field on POST; plan "features" T15) returns
+    to the feature page instead, with ``?report=`` only if the request named a valid report.
+    The flag is the only accepted value: no URL is ever taken from the request."""
+
+    RETURN_TO_FEATURE = 'feature'
+
+    def _visible_reports(self):
+        return visible_publications(
+            self.feature.publications.all(), self.request.user).order_by('number', 'pk')
+
+    def requested_report(self):
+        """The report named by ``report`` if it is a visible report of the feature, else None
+        (no fallback)."""
+        if not hasattr(self, '_requested_report'):
             wanted = self.request.POST.get('report') or self.request.GET.get('report')
             report = None
             if wanted and str(wanted).isdigit():
-                report = reports.filter(pk=int(wanted)).first()
-            self._return_report = report or reports.first()
+                report = self._visible_reports().filter(pk=int(wanted)).first()
+            self._requested_report = report
+        return self._requested_report
+
+    def return_report(self):
+        if not hasattr(self, '_return_report'):
+            self._return_report = self.requested_report() or self._visible_reports().first()
         return self._return_report
 
+    def returns_to_feature(self):
+        wanted = self.request.POST.get('next') or self.request.GET.get('next')
+        return wanted == self.RETURN_TO_FEATURE
+
+    def feature_page_url(self):
+        """The feature page, with ``?report=`` of the requested report (if any)."""
+        url = reverse('publications:feature', kwargs={'pk': self.feature.pk})
+        report = self.requested_report()
+        return f'{url}?report={report.pk}' if report is not None else url
+
+    def hidden_report(self):
+        """The report the edit form carries on in its hidden ``report`` field: the requested
+        one when returning to the feature page (so no report is added that the page did not
+        have), else the report to return to."""
+        return self.requested_report() if self.returns_to_feature() else self.return_report()
+
     def return_url(self):
+        if self.returns_to_feature():
+            return self.feature_page_url()
         report = self.return_report()
         if report is not None:
             return reverse('publications:report', kwargs={'pk': report.pk})
@@ -2067,9 +2135,14 @@ class EditFeatureCoordinatesView(FeaturePermissionMixin, FeatureReturnReportMixi
 
     def map_edit_redirect(self):
         url = reverse('publications:edit_feature_by_map', kwargs={'pk': self.feature.pk})
-        report = self.return_report()
+        report = self.hidden_report()
+        params = []
         if report is not None:
-            url = f'{url}?report={report.pk}'
+            params.append(f'report={report.pk}')
+        if self.returns_to_feature():
+            params.append(f'next={self.RETURN_TO_FEATURE}')
+        if params:
+            url = f'{url}?{"&".join(params)}'
         return HttpResponseRedirect(url)
 
     def get(self, request, *args, **kwargs):
@@ -2099,7 +2172,9 @@ class EditFeatureCoordinatesView(FeaturePermissionMixin, FeatureReturnReportMixi
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update({'feature': self.feature, 'return_report': self.return_report()})
+        context.update({'feature': self.feature, 'return_report': self.return_report(),
+                        'hidden_report': self.hidden_report(),
+                        'return_to_feature': self.returns_to_feature()})
         return context
 
     def finish(self, feature, form):
@@ -2195,6 +2270,8 @@ class EditFeatureByMapView(FeaturePermissionMixin, FeatureReturnReportMixin,
             'feature': self.feature,
             'editing': True,
             'return_report': report,
+            'hidden_report': self.hidden_report(),
+            'return_to_feature': self.returns_to_feature(),
             'map_publication': report,
             'cancel_url': self.return_url(),
         })
@@ -2581,11 +2658,11 @@ class DeleteFeatureMediaView(FeaturePermissionMixin, FeatureMediaReturnMixin, Ba
             if self.kind == FEATURE_IMAGE:
                 ImageObjectship.objects.filter(feature=feature, imageobject=record).delete()
                 if not _image_object_is_used(record):
-                    _delete_media_record(record, 'feature ImageObject')
+                    _delete_media_record(record, 'feature ImageObject', feature.pk)
             else:
                 feature.files.remove(record)
                 if not _file_object_is_used(record):
-                    _delete_media_record(record, 'feature FileObject')
+                    _delete_media_record(record, 'feature FileObject', feature.pk)
         label = 'Image' if self.kind == FEATURE_IMAGE else 'File'
         messages.success(request, f'{label} "{name}" was removed from feature '
                                   f'"{feature.name or feature.pk}".')
@@ -2613,10 +2690,13 @@ class DeleteReportFeaturesView(PublicationPermissionMixin, BaseView):
     http_method_names = ['get', 'post']
 
     def classify(self):
-        """(to_delete, to_unlink, kept): the report's features, each sorted by name."""
+        """(to_delete, to_unlink, kept): the report's features, each sorted by name, with
+        ``file_count`` and ``image_count`` for the confirmation page (T15)."""
         report = self.publication
         user = self.request.user
         features = (Feature.objects.filter(publications=report).distinct()
+                    .annotate(file_count=Count('files', distinct=True),
+                              image_count=Count('images', distinct=True))
                     .order_by('name', 'pk')
                     .prefetch_related('publications__authors', 'publications__supervisors',
                                       'publications__editors'))

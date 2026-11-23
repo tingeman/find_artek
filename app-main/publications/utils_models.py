@@ -363,11 +363,76 @@ def feature_media_dir(feature, report):
             'Files and images can only be added to a feature that belongs to a report.')
     year = str(report.year or '')
     number = str(report.number or '')
-    if not year.isdigit() or not _SAFE_FOLDER.match(number) or '..' in number:
+    if not _usable_report_folder(year, number):
         raise FeatureUploadError(
             f'Report {report.number or report.pk} has no year or report number usable as a '
             f'folder name; files cannot be stored for it.')
-    return posixpath.join('reports', year, number, 'features', str(feature.pk))
+    return _feature_dir_name(year, number, feature.pk)
+
+
+def _usable_report_folder(year, number):
+    return year.isdigit() and bool(_SAFE_FOLDER.match(number)) and '..' not in number
+
+
+def _feature_dir_name(year, number, feature_pk):
+    return posixpath.join('reports', year, number, 'features', str(feature_pk))
+
+
+def feature_media_root(path, feature_pk):
+    """Absolute path of the folder ``reports/<year>/<number>/features/<feature_pk>`` under
+    MEDIA_ROOT (feature_media_dir) that holds ``path`` (an absolute file path), or None if
+    ``path`` is not inside such a folder of this feature (other storage places, other
+    features, outside MEDIA_ROOT). The folder may belong to any report: files stay where
+    they were uploaded, also when the feature later leaves that report."""
+    media_root = os.path.realpath(settings.MEDIA_ROOT)
+    directory = os.path.realpath(os.path.dirname(path))
+    try:
+        if os.path.commonpath([media_root, directory]) != media_root:
+            return None
+    except ValueError:   # different drives
+        return None
+    parts = os.path.relpath(directory, media_root).split(os.sep)
+    if len(parts) < 5 or parts[0] != 'reports' or parts[3] != 'features':
+        return None
+    year, number = parts[1], parts[2]
+    if not _usable_report_folder(year, number) or parts[4] != str(feature_pk):
+        return None
+    return os.path.join(media_root, *_feature_dir_name(year, number, feature_pk).split('/'))
+
+
+def remove_empty_feature_dirs(path, feature_pk):
+    """After a file of feature ``feature_pk`` was removed: remove the folders that are now
+    empty, from the folder of ``path`` up to and including the feature's folder
+    (feature_media_root), never above it (plan "features" T15). os.rmdir only removes empty
+    folders, so a folder that still holds anything stops the walk. Nothing happens for a
+    path outside a folder of this feature."""
+    feature_dir = feature_media_root(path, feature_pk)
+    if feature_dir is None:
+        return
+    current = os.path.realpath(os.path.dirname(path))
+    while os.path.commonpath([feature_dir, current]) == feature_dir:
+        try:
+            os.rmdir(current)
+        except FileNotFoundError:
+            pass                       # already gone: go on with the parent
+        except OSError:
+            return                     # not empty (or not removable): keep it and above
+        if current == feature_dir:
+            return
+        current = os.path.dirname(current)
+
+
+def remove_empty_dirs_below(feature_dir):
+    """Remove the empty folders inside the absolute folder ``feature_dir`` (bottom up) and
+    the folder itself if it is then empty. Only for a feature folder (feature_media_dir) of
+    a deleted feature. Folders that hold anything are kept (os.rmdir)."""
+    if not os.path.isdir(feature_dir):
+        return
+    for directory, _subdirs, _files in os.walk(feature_dir, topdown=False):
+        try:
+            os.rmdir(directory)
+        except OSError:
+            pass
 
 
 def _save_feature_record(feature, directory, uploaded_file, user, kind, text, saved_paths):

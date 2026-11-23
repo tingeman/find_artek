@@ -538,7 +538,8 @@ class EditFeatureCoordinatesTests(FeatureMapTestBase):
                 self.assertEqual(response.status_code, 200)
                 link = reverse('publications:edit_feature_coordinates', kwargs={'pk': feature.pk})
                 if shown:
-                    self.assertContains(response, f'href="{link}"')
+                    # From the feature page, the edit returns there (T15).
+                    self.assertContains(response, f'href="{link}?next=feature"')
                     self.assertContains(response, 'Edit coordinates')
                 else:
                     self.assertNotContains(response, link)
