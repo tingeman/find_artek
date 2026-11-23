@@ -22,9 +22,13 @@
  *       options.maxZoom    highest zoom level of the map CRS
  *   addTo(map, options) -> {baseLayers, overlays, control, active}
  *       Adds the remembered (or default) base layer and, when there is something to choose,
- *       an L.control.layers switcher. Remembers the chosen base layer in localStorage (only
- *       its id, never the token). Without a token the attribution says that more layers need
- *       the token; without any base layer the map keeps a plain background.
+ *       an L.control.layers switcher. Remembers the base layer the user picks in the switcher
+ *       in sessionStorage (only its id, never the token): it is kept while the user moves
+ *       between map pages in the same browser tab, and a new visit starts with the default
+ *       again (T11). Until T11 the choice was kept in localStorage for good, so a layer once
+ *       picked (e.g. the Arctic SDI basemap) came back on every page and every later visit,
+ *       which looked like a wrong default. Without a token the attribution says that more
+ *       layers need the token; without any base layer the map keeps a plain background.
  */
 (function () {
     'use strict';
@@ -118,7 +122,7 @@
 
     function rememberedBaseLayer() {
         try {
-            return window.localStorage.getItem(STORAGE_KEY);
+            return window.sessionStorage.getItem(STORAGE_KEY);
         } catch (e) {
             return null;    // storage disabled
         }
@@ -126,9 +130,9 @@
 
     function rememberBaseLayer(id) {
         try {
-            window.localStorage.setItem(STORAGE_KEY, id);
+            window.sessionStorage.setItem(STORAGE_KEY, id);
         } catch (e) {
-            // storage disabled or full: the default is used next time
+            // storage disabled or full: the default is used on the next page
         }
     }
 

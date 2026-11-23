@@ -2,14 +2,16 @@
 
 <!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
-{% load i18n static static_version %}
+{% load i18n static static_version map_legend %}
 
 {# title #}
 {% block title %}Front page{% endblock %}
 
 {% block dynamic_head_content %}
     <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/map.css' %}" />
+    <link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/map.css' %}" />
+    <link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/map-legend.css' %}" />
+    {% feature_type_colors_script %}
     <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}" defer></script>
@@ -23,12 +25,25 @@
 
 {% block main-content %}
 
-<div class="map-container">
-    <div class="map" id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-map-mode="overview"></div>
-    
-    <div id="loading-overlay">
-        <div id="loading-icon"></div>
+<div class="map-page">
+    <div class="map-container">
+        <div class="map" id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-map-mode="overview"></div>
+
+        <div id="loading-overlay">
+            <div id="loading-icon"></div>
+        </div>
     </div>
+
+    {# Type filter with legend, and the reports with features in the current view (plan "features" T11, map.js). #}
+    <aside class="map-side" id="map-side">
+        {% feature_type_legend selected=selected_feature_types %}
+
+        <section class="map-reports-in-view" id="reports-in-view" data-max-items="200" aria-live="polite">
+            <h2 class="map-side-heading">Reports in view</h2>
+            <p class="map-reports-summary" id="reports-in-view-summary">Loading features ...</p>
+            <ul class="map-reports-list" id="reports-in-view-list"></ul>
+        </section>
+    </aside>
 </div>
 
 

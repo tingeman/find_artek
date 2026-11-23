@@ -72,6 +72,7 @@ from publications.permissions import (
 )
 from publications.utils_basic import CaseInsensitively
 from publications.geometry import entered_point, single_point, source_origin
+from publications.map_styles import selected_type_slugs
 from publications.visibility import visible_features, visible_publications
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number,
@@ -303,11 +304,13 @@ class FrontPageView(BaseView):
 
 
 
-class MapView(BaseView): 
+class MapView(BaseView):
     template_name = 'publications/map.html'
     def get(self, request, **kwargs):
 
         context = {
+            # The type filter's checked types from ?types= (plan "features" T11).
+            'selected_feature_types': selected_type_slugs(request.GET),
         }
         context.update(self.get_context_data(**kwargs))
 

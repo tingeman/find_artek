@@ -24,6 +24,11 @@
  *   syncUrl        keep lat/lng/zoom in the page URL; default true for 'overview' only
  *   fitMaxZoom     highest zoom when fitting the map to features (default 12)
  *   editable       false; true calls enableEditing() after the map is created (T5)
+ *   wheelZoom      'always' | 'focus': with 'focus' the mouse wheel zooms the map only after
+ *                  the user clicked into it (or focused it with the keyboard), until the
+ *                  pointer leaves it or it loses focus; before that the wheel scrolls the
+ *                  page. Default 'always' for 'overview' (a full-page map), 'focus' otherwise
+ *                  (maps embedded in long pages; T11)
  *
  * Public members and methods:
  *   map                   the L.Map
@@ -33,9 +38,18 @@
  *                         feature records (an array; empty when nothing is visible)
  *   addFeatures(records, {fit})  draw API feature records; fit = fit the map to them
  *   fitToFeatures()       fit the map to featureLayer (no change when it is empty)
+ *   setTypeFilter(types)  show only features whose type is in `types` (an array of
+ *                         Feature.type values); null shows every type (T11)
+ *   recordsInView()       the records drawn by addFeatures() that are shown (type filter)
+ *                         and whose bounding box overlaps the current view (T11)
  *   enableEditing(opts)   edit mode hook, see below
  *   FindArtekMap.fetchFeatures({publicationId, featureId})  the API call alone
- *   FindArtekMap.TYPE_COLORS  colour per feature type (for legends)
+ *   FindArtekMap.typeColors()  colour per feature type, read from the page's JSON block
+ *                         #find-artek-type-colors ({% feature_type_colors_script %}, built
+ *                         from publications/map_styles.py, the single source shared with the
+ *                         legend); every page with this map must include it (T11)
+ *   FindArtekMap.colorForType(type)  the colour of one type ('gray' when unknown)
+ *   FindArtekMap.reportUrl(id)  the report page URL of a report id
  *   FindArtekMap.addInitHook(fn)  fn(instance) runs for every new map, after the map and its
  *                         layers exist and before any feature is loaded
  *
@@ -58,16 +72,11 @@
     var DEFAULT_FIT_MAX_ZOOM = 12;
     var NO_BACKGROUND_COLOR = '#eef2f5';
 
-    var TYPE_COLORS = {
-        'PHOTO': 'red',
-        'SAMPLE': 'green',
-        'BOREHOLE': 'yellow',
-        'GEOPHYSICAL DATA': 'blue',
-        'FIELD MEASUREMENT': 'purple',
-        'LAB MEASUREMENT': 'pink',
-        'RESOURCE': 'brown',
-        'OTHER': 'white',
-    };
+    // Feature type colours: the JSON block rendered by {% feature_type_colors_script %}
+    // (publications/map_styles.py). Not repeated here, so map and legend can't disagree.
+    var TYPE_COLORS_ID = 'find-artek-type-colors';
+    var UNKNOWN_TYPE_COLOR = 'gray';
+    var typeColors = null;
 
     var initHooks = [];
     var crs = null;
@@ -115,11 +124,15 @@
         return {lat: lat, lng: lng, zoom: zoom};
     }
 
+    function reportUrl(id) {
+        return prefix() + '/publications/report/' + encodeURIComponent(id) + '/';
+    }
+
     function popupContent(record) {
         var featureUrl = prefix() + '/publications/feature/' + encodeURIComponent(record.feature_pk) + '/';
         var reports = (record.related_publications || []).map(function (pub) {
-            return '<a style="text-decoration:underline" href="' + prefix() + '/publications/report/' +
-                encodeURIComponent(pub.id) + '/">' + escapeHtml(pub.number) + '</a>';
+            return '<a style="text-decoration:underline" href="' + reportUrl(pub.id) + '">' +
+                escapeHtml(pub.number) + '</a>';
         }).join(', ');
         return '<b>Name:</b> <a style="text-decoration:underline" href="' + featureUrl + '">' +
             escapeHtml(record.name) + '</a><br>' +
@@ -152,6 +165,69 @@
         });
     }
 
+    // Bounding box {minX, minY, maxX, maxY} of a drawn feature in map CRS metres (EPSG:3574),
+    // so the view check below needs no inverse projection. null when it has no coordinates.
+    function projectedBounds(layers) {
+        var box = null;
+        function addLatLngs(latlngs) {
+            if (Array.isArray(latlngs)) {
+                latlngs.forEach(addLatLngs);
+                return;
+            }
+            var point = polarCrs().project(latlngs);
+            if (!isFinite(point.x) || !isFinite(point.y)) {
+                return;
+            }
+            if (!box) {
+                box = {minX: point.x, minY: point.y, maxX: point.x, maxY: point.y};
+            } else {
+                box.minX = Math.min(box.minX, point.x);
+                box.maxX = Math.max(box.maxX, point.x);
+                box.minY = Math.min(box.minY, point.y);
+                box.maxY = Math.max(box.maxY, point.y);
+            }
+        }
+        layers.forEach(function (layer) {
+            layer.eachLayer(function (sublayer) {
+                if (sublayer.getLatLng) {
+                    addLatLngs(sublayer.getLatLng());
+                } else if (sublayer.getLatLngs) {
+                    addLatLngs(sublayer.getLatLngs());
+                }
+            });
+        });
+        return box;
+    }
+
+    // The current view in map CRS metres: pixel bounds -> CRS metres (the map isn't rotated,
+    // so the view is an axis-aligned rectangle there).
+    function viewBounds(map) {
+        var crsObject = map.options.crs;
+        var scale = crsObject.scale(map.getZoom());
+        var pixels = map.getPixelBounds();
+        var a = crsObject.transformation.untransform(pixels.min, scale);
+        var b = crsObject.transformation.untransform(pixels.max, scale);
+        return {minX: Math.min(a.x, b.x), maxX: Math.max(a.x, b.x),
+                minY: Math.min(a.y, b.y), maxY: Math.max(a.y, b.y)};
+    }
+
+    function overlaps(box, view) {
+        return box.minX <= view.maxX && box.maxX >= view.minX &&
+            box.minY <= view.maxY && box.maxY >= view.minY;
+    }
+
+    // The mouse wheel zooms only while the user works with the map (wheelZoom 'focus').
+    // Leaflet focuses the map element on a click, so 'focus' covers mouse and keyboard.
+    function wheelZoomOnFocus(map, element) {
+        map.scrollWheelZoom.disable();
+        function enable() { map.scrollWheelZoom.enable(); }
+        function disable() { map.scrollWheelZoom.disable(); }
+        element.addEventListener('mousedown', enable);
+        element.addEventListener('focus', enable);
+        element.addEventListener('mouseleave', disable);
+        element.addEventListener('blur', disable);
+    }
+
     function FindArtekMap(options) {
         options = options || {};
         var element = typeof options.element === 'string'
@@ -171,10 +247,16 @@
         this.syncUrl = options.syncUrl != null ? !!options.syncUrl : this.mode === 'overview';
         this.fitMaxZoom = options.fitMaxZoom || DEFAULT_FIT_MAX_ZOOM;
         this.editable = !!options.editable;
+        this.wheelZoom = options.wheelZoom || (this.mode === 'overview' ? 'always' : 'focus');
+        this.typeFilter = null;     // null: every type shown
+        this.entries = [];          // {record, layers, box, shown} per drawn record
 
         var view = (this.syncUrl && viewFromUrl()) || DEFAULT_VIEW;
         this.map = L.map(element, {crs: polarCrs(), maxZoom: MAX_ZOOM})
             .setView([view.lat, view.lng], view.zoom);
+        if (this.wheelZoom === 'focus') {
+            wheelZoomOnFocus(this.map, element);
+        }
 
         this.layers = window.FindArtekMapLayers.addTo(this.map, {
             token: this.token, tileSize: TILE_SIZE, maxZoom: MAX_ZOOM,
@@ -197,7 +279,6 @@
         }
     }
 
-    FindArtekMap.TYPE_COLORS = TYPE_COLORS;
     FindArtekMap.TILE_SIZE = TILE_SIZE;
     FindArtekMap.MAX_ZOOM = MAX_ZOOM;
     FindArtekMap.polarCrs = polarCrs;
@@ -206,9 +287,28 @@
         initHooks.push(hook);
     };
 
-    FindArtekMap.colorForType = function (type) {
-        return TYPE_COLORS[type] || 'white';
+    FindArtekMap.typeColors = function () {
+        if (typeColors === null) {
+            typeColors = {};
+            var block = document.getElementById(TYPE_COLORS_ID);
+            if (!block) {
+                console.error('find-artek-map: #' + TYPE_COLORS_ID + ' is missing on this page');
+            } else {
+                try {
+                    typeColors = JSON.parse(block.textContent) || {};
+                } catch (e) {
+                    console.error('find-artek-map: invalid #' + TYPE_COLORS_ID, e);
+                }
+            }
+        }
+        return typeColors;
     };
+
+    FindArtekMap.colorForType = function (type) {
+        return FindArtekMap.typeColors()[type] || UNKNOWN_TYPE_COLOR;
+    };
+
+    FindArtekMap.reportUrl = reportUrl;
 
     // Features from the API, always fresh (no browser cache, FA-R89). `featureId`: that one
     // feature ([] when it is not visible); `publicationId`: the features of that report;
@@ -255,14 +355,19 @@
         (records || []).forEach(function (record) {
             var color = FindArtekMap.colorForType(record.type);
             var popup = popupContent(record);
+            var layers = [];
             ['points', 'lines', 'polys'].forEach(function (kind) {
                 if (record[kind]) {
                     var layer = geoJsonLayer(record[kind], color, popup);
                     if (layer) {
-                        layer.addTo(self.featureLayer);
+                        layers.push(layer);
                     }
                 }
             });
+            var entry = {record: record, layers: layers, box: projectedBounds(layers),
+                         shown: false};
+            self.entries.push(entry);
+            self._showEntry(entry, self._typeShown(record.type));
         });
         if (options && options.fit) {
             this.fitToFeatures();
@@ -274,6 +379,37 @@
         if (bounds.isValid()) {
             this.map.fitBounds(bounds, {maxZoom: this.fitMaxZoom, padding: [20, 20]});
         }
+    };
+
+    FindArtekMap.prototype._typeShown = function (type) {
+        return this.typeFilter === null || this.typeFilter.indexOf(type) !== -1;
+    };
+
+    FindArtekMap.prototype._showEntry = function (entry, show) {
+        var featureLayer = this.featureLayer;
+        if (show && !entry.shown) {
+            entry.layers.forEach(function (layer) { featureLayer.addLayer(layer); });
+        } else if (!show && entry.shown) {
+            entry.layers.forEach(function (layer) { featureLayer.removeLayer(layer); });
+        }
+        entry.shown = show;
+    };
+
+    FindArtekMap.prototype.setTypeFilter = function (types) {
+        var self = this;
+        this.typeFilter = types == null ? null : types.slice();
+        this.entries.forEach(function (entry) {
+            self._showEntry(entry, self._typeShown(entry.record.type));
+        });
+    };
+
+    FindArtekMap.prototype.recordsInView = function () {
+        var view = viewBounds(this.map);
+        return this.entries
+            .filter(function (entry) {
+                return entry.shown && entry.box && overlaps(entry.box, view);
+            })
+            .map(function (entry) { return entry.record; });
     };
 
     // Edit mode hook: replaced by T5's leaflet-draw implementation.

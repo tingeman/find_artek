@@ -2,7 +2,7 @@
 
 <!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
-{% load i18n static pubs_extra_tags static_version %}
+{% load i18n static pubs_extra_tags static_version map_legend %}
 
 {# title #}
 {% block title %}Report{% endblock %}
@@ -11,7 +11,9 @@
 {% block dynamic_head_content %}
     <link rel="stylesheet" type="text/css" media="all" href="{% static 'publications/css/report.css' %}" />
     
+    <link rel="stylesheet" type="text/css" media="all" href="{% versioned_static 'publications/css/map-legend.css' %}" />
     <link rel="stylesheet" href="{% static 'publications/vendor/leaflet-1.9.4/leaflet.css' %}" />
+    {% feature_type_colors_script %}
     <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}" defer></script>
     <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}" defer></script>
@@ -242,41 +244,8 @@
             <div style="flex: 1 1 300px; min-width: 0;">
               <div id="map"{% if FA_DATAFORSYNINGEN_TOKEN %} data-dataforsyningen-token="{{ FA_DATAFORSYNINGEN_TOKEN }}"{% endif %} data-map-mode="report" data-publication-id="{{ publication.pk }}" style="height: 400px;"></div>
             </div>
-            <div style="flex: 0 1 auto;">
-              <div class="color-guide-box" style="display: inline-block;">
-                <div class="color-guide-box-inner" style="margin-bottom: 2px; padding-top: 0; padding-bottom: 0; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:blue; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">GEOPHYSICAL-DATA</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:purple; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">FIELD-MEASUREMENT</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:brown; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">RESOURCE</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:red; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">PHOTO</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:green; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">SAMPLE</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:white; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">OTHER</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:yellow; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">BOREHOLE</span>
-                </div>
-                <div class="color-guide-box-inner" style="margin-bottom: 4px; display: flex; align-items: center;">
-                  <div class="color-guide-box-inner-presentation" style="background-color:pink; width: 20px; height: 20px; min-width: 20px; min-height: 20px; display: inline-block;"></div>
-                  <span style="font-size: 0.85em; margin-left: 8px; display: flex; align-items: center; height: 20px;">LAB MEASUREMENT</span>
-                </div>
-              </div>
+            <div style="flex: 0 1 auto; padding-left: 12px;">
+              {% feature_type_legend %}
             </div>
           </div>
           <div class="feature-table-box mt-4">
@@ -323,4 +292,4 @@
     </div>
   </div>
 
-{% endblock %}
+{% endblock %}

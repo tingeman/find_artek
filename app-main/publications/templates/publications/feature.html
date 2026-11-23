@@ -2,7 +2,7 @@
 
 <!-- i18n and static are Django template tags. They are used to load the i18n and static template tags. The i18n template tag is used to mark strings for translation. -->
 <!-- The static is a template tag that is used to load the static template tag library. This library provides a way to reference static files, such as CSS, JavaScript, or image files, which are not tied to a particular instance of a model in your Django app. -->
-{% load i18n static static_version %}
+{% load i18n static static_version map_legend %}
 
 {# title #}
 {% block title %}Report{% endblock %}
@@ -190,6 +190,7 @@
 <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}" defer></script>
 <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}" defer></script>
 <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}" defer></script>
+{% feature_type_colors_script %}
 <script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}" defer></script>
 <script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}" defer></script>
 <script src="{% versioned_static 'publications/js/feature.js' %}" defer></script>

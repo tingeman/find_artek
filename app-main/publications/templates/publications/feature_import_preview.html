@@ -1,5 +1,5 @@
 {% extends base_template %}
-{% load static static_version %}
+{% load static static_version map_legend %}
 {# Excel import of features, step 2: preview (plan "features" T10). Nothing is saved here; #}
 {# "Import" posts to the confirm step, which saves every feature in one transaction.      #}
 
@@ -104,6 +104,7 @@
 <script src="{% static 'publications/vendor/leaflet-1.9.4/leaflet.js' %}"></script>
 <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}"></script>
 <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}"></script>
+{% feature_type_colors_script %}
 <script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}"></script>
 <script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}"></script>
 <script src="{% versioned_static 'publications/js/feature-import-preview.js' %}"></script>

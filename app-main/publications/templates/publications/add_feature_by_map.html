@@ -1,5 +1,5 @@
 {% extends 'publications/base.html' %}
-{% load static static_version %}
+{% load static static_version map_legend %}
 {# Add a feature by drawing it on the map, or edit a feature (plan "features" T5). #}
 
 {% block title %}{% if editing %}Edit feature{% else %}Add feature{% endif %}{% endblock %}
@@ -110,6 +110,7 @@
 <script src="{% static 'publications/vendor/leaflet-draw-1.0.4/leaflet.draw.js' %}"></script>
 <script src="{% static 'publications/vendor/proj4-2.22.0/proj4.js' %}"></script>
 <script src="{% static 'publications/vendor/proj4leaflet-1.0.2/proj4leaflet.js' %}"></script>
+{% feature_type_colors_script %}
 <script src="{% versioned_static 'publications/js/map/find-artek-map-layers.js' %}"></script>
 <script src="{% versioned_static 'publications/js/map/find-artek-map.js' %}"></script>
 <script src="{% versioned_static 'publications/js/map/find-artek-map-edit.js' %}"></script>

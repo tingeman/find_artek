@@ -224,15 +224,19 @@ class ComponentSourceTests(SimpleTestCase):
                       self.layers)
 
     def test_only_the_base_layer_id_is_stored(self):
-        self.assertEqual(self.layers.count('localStorage.setItem('), 1)
-        self.assertIn('localStorage.setItem(STORAGE_KEY, id)', self.layers)
+        # T11 (deliberate change): the chosen base layer is kept in sessionStorage for the
+        # browser tab, no longer in localStorage for good (a layer once picked came back on
+        # every later visit and looked like a wrong default).
+        self.assertEqual(self.layers.count('sessionStorage.setItem('), 1)
+        self.assertIn('sessionStorage.setItem(STORAGE_KEY, id)', self.layers)
+        self.assertIn('sessionStorage.getItem(STORAGE_KEY)', self.layers)
         for path in MAP_JS_FILES:
             with self.subTest(path=path):
                 source = read_static(path)
-                self.assertNotIn('sessionStorage', source)
+                self.assertNotIn('localStorage.', source)
                 self.assertNotIn('indexedDB', source)
                 if path != LAYERS:
-                    self.assertNotIn('localStorage', source)
+                    self.assertNotIn('sessionStorage', source)
 
     def test_no_debug_output_or_dialogs(self):
         for path in MAP_JS_FILES:

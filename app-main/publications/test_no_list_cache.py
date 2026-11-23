@@ -23,7 +23,7 @@ from publications.test_write_access import WriteAccessTestBase
 PAGE_CLASSES = (
     'publications/js/class/my-reports-class.js',
     # The shared map component (plan "features" T3) replaced my-map-class.js. Its layer file
-    # find-artek-map-layers.js keeps only the chosen base layer in localStorage
+    # find-artek-map-layers.js keeps only the chosen base layer in sessionStorage (T11)
     # (test_map_component), no API data.
     'publications/js/map/find-artek-map.js',
 )

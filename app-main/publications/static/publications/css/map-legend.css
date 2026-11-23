@@ -1,0 +1,39 @@
+/* Feature type legend and type filter (plan "features" T11): shared_snippets/feature_type_legend.html */
+.fa-map-legend {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85em;
+}
+
+.fa-map-legend legend {
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.fa-map-legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 0 4px 0;
+    font-weight: normal;
+    cursor: default;
+}
+
+.fa-map-legend--filter .fa-map-legend-item {
+    cursor: pointer;
+}
+
+.fa-map-legend--filter input[type="checkbox"] {
+    margin: 0 6px 0 0;
+}
+
+.fa-map-legend-swatch {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    border: 1px solid #000;
+    border-radius: 50%;
+    margin-right: 8px;
+}

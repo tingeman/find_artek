@@ -1,0 +1,26 @@
+{# Feature type legend (plan "features" T11), rendered by {% feature_type_legend %} (templatetags/map_legend.py). Colours from publications.map_styles. With checkboxes: the overview map's type filter (map.js). #}
+{% if checkboxes %}
+<fieldset class="fa-map-legend fa-map-legend--filter" id="feature-type-filter" data-param="{{ param }}">
+  <legend>Feature types</legend>
+  {% for type in types %}
+  <label class="fa-map-legend-item">
+    <input type="checkbox" autocomplete="off" name="{{ param }}" value="{{ type.slug }}" data-type="{{ type.value }}"{% if type.checked %} checked{% endif %}>
+    <span class="fa-map-legend-swatch" style="background-color: {{ type.color }};" data-color="{{ type.color }}"></span>
+    <span class="fa-map-legend-label">{{ type.label }}</span>
+  </label>
+  {% endfor %}
+  <div class="fa-map-legend-actions">
+    <button type="button" class="btn btn-link btn-sm p-0" data-select="all">All</button>
+    <button type="button" class="btn btn-link btn-sm p-0 ml-2" data-select="none">None</button>
+  </div>
+</fieldset>
+{% else %}
+<ul class="fa-map-legend" id="feature-type-legend">
+  {% for type in types %}
+  <li class="fa-map-legend-item">
+    <span class="fa-map-legend-swatch" style="background-color: {{ type.color }};" data-color="{{ type.color }}"></span>
+    <span class="fa-map-legend-label">{{ type.label }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}

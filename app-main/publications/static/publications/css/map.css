@@ -1,10 +1,80 @@
+/* Overview map page: the map with a side panel (type filter, legend, reports in view; T11). */
+.map-page {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+}
+
 .map-container {
     position: relative;
-
+    flex: 1 1 500px;
+    min-width: 0;
 }
 
 .map {
     position: relative;
     width: 100%;
     height: 85vh;
+}
+
+.map-side {
+    flex: 0 1 300px;
+    min-width: 220px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.map-side .fa-map-legend--filter {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+}
+
+.map-side .fa-map-legend--filter legend {
+    width: auto;
+    padding: 0 4px;
+}
+
+.map-reports-in-view {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.map-side-heading {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+}
+
+.map-reports-summary {
+    font-size: 0.85em;
+    color: #555;
+    margin: 0 0 4px 0;
+}
+
+.map-reports-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    font-size: 0.85em;
+}
+
+.map-reports-list li {
+    padding: 3px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.map-reports-list .map-report-title {
+    display: block;
+    color: #333;
+}
+
+.map-reports-list .map-report-count {
+    color: #777;
 }
