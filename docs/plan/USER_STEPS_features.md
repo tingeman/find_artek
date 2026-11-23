@@ -283,6 +283,37 @@ docker compose -f docker-compose.yml -f docker-compose.develop.yml exec -T webap
 
 ---
 
+## S. Second recheck: T19 and T20 (about 10 minutes)
+
+The dev stack already runs this code. Reload each page once with `Ctrl+F5`.
+
+### S1. Signed out (Window B): overview map (T19)
+
+http://localhost:8098/publications/map/
+
+- [ ] Point markers are **smaller**, and every marker has a **black ring**. Other is **white**, Borehole **yellow**, Lab measurement **pink**.
+- [ ] The legend shows small circles with black rings; the white "Other" swatch is visible.
+- [ ] Find a feature of type Other with a line or polygon: the white line has a thin **black edge**. Untick "Other": line and edge both disappear.
+- [ ] Choose **Topographic** and zoom out: the white border around Greenland now shows the **Arctic basemap**.
+- [ ] Zoom into a town with Topographic: does the map look **darker** than before, or show doubled coastlines or labels? ______ (If yes, the fix is a one-word CSS change to `darken`.)
+- [ ] Satellite and Sentinel-2 look as before.
+
+### S2. Signed in (Window A): delete dialogs and Administration (T20)
+
+Create one report **`ZZ recheck C (delete me)`** and draw one point on it, name `S point`.
+
+- [ ] On report C, click **Delete** (the report's delete action): **no dialog**; the delete page opens. The numbers **1** and **2** and the feature bullets sit **inside** the pink box. Click Cancel: no dialog.
+- [ ] Click **Delete** next to `S point`: no dialog. On its page, **Yes, delete feature** asks "Delete this feature? This cannot be undone." Click OK. Cancel on that page never asks.
+- [ ] Report C's delete page now has the button. **Delete Publication** asks "Delete this report? This cannot be undone." Click OK.
+- [ ] As **superuser**: http://localhost:8098/publications/administration/ shows a **Bulk delete reports** tile before "Django admin". Open it; select nothing and go back (don't delete real reports).
+- [ ] Optional: as a non-superuser editor, the tile is not shown.
+
+### S3. Findings
+
+-
+
+---
+
 When everything is ticked, tell the session ("browser checks done"). It will then:
 
 1. merge `develop/main` into `agent-features`;
