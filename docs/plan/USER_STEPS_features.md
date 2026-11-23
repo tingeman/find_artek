@@ -327,22 +327,47 @@ The dev stack already runs this code. Reload each page once with `Ctrl+F5`.
 
 http://localhost:8098/publications/map/
 
-- [ ] **T21:** find a feature of type **Other** with a line or polygon: the line is **white with a thin black edge** (not all black). Untick and tick "Other": still white.
-- [ ] **T22:** choose **Topographic**. The white border around Greenland is gone; about 12 km off the coast the **Arctic basemap** takes over.
-- [ ] **T22:** zoom to level 8–10 near Nuuk, Ilulissat and Tasiilaq: **no double coastlines, no ghost place names or airport icons** inside Greenland.
-- [ ] **T22:** pan and zoom (wheel and +/-): the edge stays aligned, no white flash.
-- [ ] **T22:** look at **Scoresby Sund** (east coast): the wide fjord shows the Arctic basemap instead of the topographic map's water (known: the 12 km band can't fill fjords wider than ~24 km). Acceptable? ______
-- [ ] **T22:** **Box zoom:** under + and − there is a new button. Click it, drag a box: the map zooms to it and the button returns to normal. Click it and press `Esc`: cancelled. Shift+drag still works without the button.
-- [ ] Satellite, then Arctic SDI, then Topographic, reload: the last choice is kept.
+- [x] **T21:** find a feature of type **Other** with a line or polygon: the line is **white with a thin black edge** (not all black). Untick and tick "Other": still white.
+- [x] **T22:** choose **Topographic**. The white border around Greenland is gone; about 12 km off the coast the **Arctic basemap** takes over.
+- [x] **T22:** zoom to level 8–10 near Nuuk, Ilulissat and Tasiilaq: **no double coastlines, no ghost place names or airport icons** inside Greenland.
+- [x] **T22:** pan and zoom (wheel and +/-): the edge stays aligned, no white flash.
+- [ ] **T22:** look at **Scoresby Sund** (east coast): the wide fjord shows the Arctic basemap instead of the topographic map's water (known: the 12 km band can't fill fjords wider than ~24 km). Acceptable? ***No***
+- [x] **T22:** **Box zoom:** under + and − there is a new button. Click it, drag a box: the map zooms to it and the button returns to normal. Click it and press `Esc`: cancelled. Shift+drag still works without the button.
+    - ***Works as described. But it should not turn off when one zoom has been completed. It should stay on, until the user clicks the button again, or presses escape, or maybe (if possible) scrolls outside window or inside the window (which zooms by standard amounts).***
+- [x] Satellite, then Arctic SDI, then Topographic, reload: the last choice is kept.
 
 ### T2. Signed in (Window A)
 
-- [ ] **T22:** open any report with features and a feature page: the box-zoom button is there. On **Draw on map** (add or edit) there is **no** box-zoom button.
-- [ ] **T21:** Administration: the **Bulk delete reports** tile shows the report picture with a **red trash can**. Don't delete anything.
+- [x] **T22:** open any report with features and a feature page: the box-zoom button is there. On **Draw on map** (add or edit) there is **no** box-zoom button.
+- [x] **T21:** Administration: the **Bulk delete reports** tile shows the report picture with a **red trash can**. Don't delete anything.
 
 ### T3. Findings
 
--
+- See above, my comments are all enclosed in three asterix `***<comment>***`
+
+
+---
+
+## U. Fourth recheck: T23 (about 10 minutes)
+
+The dev stack already runs this code. Reload each page once with `Ctrl+F5`.
+
+### U1. Overview map, signed out (Window B)
+
+http://localhost:8098/publications/map/
+
+- [x] Choose **Topographic**. Town names that run into the sea and small islands off the coast are **no longer cut off**; outside the topographic map's white border the **Arctic basemap** shows (blended).
+    - ***Place names are all ok. There is still some minor coastline cutting, and by Hans Ø, the white is visible. But I think we will accept this current solution as good enough.***
+- [x] Zoom 8-10 near Nuuk, Ilulissat and Tasiilaq: on land and in the fjords **no double coastlines, no ghost names or airport icons** from the Arctic basemap.
+- [x] **Scoresby Sund**, **Disko Bay** and **Vaigat**: topographic water, no Arctic basemap coastlines.
+- [x] Look along the whole coast at zoom 5-7 for **white patches** (sea inside the outline beyond the topographic map's blue band, e.g. in wide bays such as Melville Bugt). Note where: ***White band only shows up north-west of Hans Ø***
+- [x] Off the coast, between the outline and the white edge, the sea is a little darker blue (blend). Acceptable? ***Yes***
+- [x] Choose **Satellite**: unchanged from before (Arctic basemap outside Greenland).
+- [x] **Box zoom:** click the button and drag several boxes one after another: it **stays on**. It turns off with a second click, with `Esc`, and with the mouse wheel over the map.
+
+### U2. Findings
+
+- Comments in `***<comment>***` as before.
 
 ---
 

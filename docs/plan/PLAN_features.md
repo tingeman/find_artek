@@ -251,6 +251,13 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 - Named map views: roadmap FA-R110.
 - Agent: implementer. Deployment impact: none (new static file).
 
+### T23. Clip the underlay instead of the topographic map; box zoom stays on (owner third recheck 2026-11-24)
+- Findings: clipping the topographic map cuts off town names that run into the sea and some islands and coastlines (Natural Earth doesn't match Dataforsyningen's coastline); Scoresby Sund not acceptable; the box zoom should stay on after one zoom.
+- Owner's design: the topographic map is drawn whole again with `mix-blend-mode: multiply` over the Arctic SDI underlay (T19), so its white border shows the underlay; the **underlay** is clipped to the outside of the coverage outline (`clip-path` even-odd: a large rectangle minus the outline), so inside the outline nothing of the Arctic basemap (coastlines, names, airport icons) shows through. The underlay is clipped only while the topographic map is the base layer (satellite unchanged).
+- Outline: fill fjords and bays (morphological closing of Greenland's land, new option `--fill-km`, default 40: fills openings up to ~80 km, e.g. Scoresby Sund, Disko Bay, Vaigat), then the 12 km seaward buffer, holes filled, simplified; other large landmasses (Ellesmere, Baffin, Iceland) plus a small margin cut out. Inside the outline the topographic map has no backdrop, so the outline must stay inside its blue sea band (white otherwise): that is why the buffer stays ~12 km.
+- Box zoom: stays armed after a zoom; off on a second button click, Esc, or a mouse wheel zoom over the map.
+- Agent: implementer. Deployment impact: none.
+
 ## Out of scope
 
 - PostgreSQL/PostGIS (FA-R4 long-term goal).
