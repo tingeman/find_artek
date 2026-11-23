@@ -42,9 +42,12 @@
  *   setTypeFilter(types)  show only features whose type is in `types` (an array of
  *                         Feature.type values); null shows every type (T11)
  *   recordsInView()       the records drawn by addFeatures() that are shown (type filter)
- *                         and whose bounding box overlaps the current view (T11)
+ *                         and whose bounding box (of all their points, lines and polygons,
+ *                         from the GeoJSON; T18) overlaps the current view (T11)
  *   enableEditing(opts)   edit mode hook, see below
  *   FindArtekMap.fetchFeatures({publicationId, featureId})  the API call alone
+ *   FindArtekMap.geometryBox(geojsons, project)  bounding box of GeoJSON objects in the
+ *                         coordinates of project(lat, lng) -> {x, y} (pure; T18)
  *   FindArtekMap.typeColors()  colour per feature type, read from the page's JSON block
  *                         #find-artek-type-colors ({% feature_type_colors_script %}, built
  *                         from publications/map_styles.py, the single source shared with the
@@ -144,14 +147,17 @@
             '<b>Reports:</b> ' + reports + '<br>';
     }
 
-    function geoJsonLayer(geometry, color, popup) {
-        var data;
+    // The parsed GeoJSON of a geometry field of an API record, null when it is invalid.
+    function parseGeometry(geometry) {
         try {
-            data = JSON.parse(geometry);
+            return JSON.parse(geometry);
         } catch (e) {
             console.error('find-artek-map: invalid GeoJSON geometry', e);
             return null;
         }
+    }
+
+    function geoJsonLayer(data, color, popup) {
         return L.geoJSON(data, {
             pointToLayer: function (feature, latlng) {
                 return L.circleMarker(latlng, {
@@ -168,17 +174,18 @@
         });
     }
 
-    // Bounding box {minX, minY, maxX, maxY} of a drawn feature in map CRS metres (EPSG:3574),
-    // so the view check below needs no inverse projection. null when it has no coordinates.
-    function projectedBounds(layers) {
+    // Bounding box {minX, minY, maxX, maxY} of GeoJSON objects in projected coordinates, so
+    // the view check below needs no inverse projection. `project(lat, lng)` returns {x, y}.
+    // Read from the GeoJSON coordinates, not from the Leaflet layers: L.geoJSON draws a
+    // MultiPoint (every Feature.points) as an L.FeatureGroup of markers, which has neither
+    // getLatLng() nor getLatLngs(), so a box built from the layers missed every point (T18).
+    // Handles every geometry type, GeometryCollection, Feature and FeatureCollection. Pure (no
+    // Leaflet, no DOM). null when there is no finite coordinate.
+    function geometryBox(objects, project) {
         var box = null;
-        function addLatLngs(latlngs) {
-            if (Array.isArray(latlngs)) {
-                latlngs.forEach(addLatLngs);
-                return;
-            }
-            var point = polarCrs().project(latlngs);
-            if (!isFinite(point.x) || !isFinite(point.y)) {
+        function addPosition(position) {
+            var point = project(position[1], position[0]);
+            if (!point || !isFinite(point.x) || !isFinite(point.y)) {
                 return;
             }
             if (!box) {
@@ -190,16 +197,36 @@
                 box.maxY = Math.max(box.maxY, point.y);
             }
         }
-        layers.forEach(function (layer) {
-            layer.eachLayer(function (sublayer) {
-                if (sublayer.getLatLng) {
-                    addLatLngs(sublayer.getLatLng());
-                } else if (sublayer.getLatLngs) {
-                    addLatLngs(sublayer.getLatLngs());
-                }
-            });
-        });
+        function addCoordinates(coordinates) {
+            if (!Array.isArray(coordinates)) {
+                return;
+            }
+            if (typeof coordinates[0] === 'number') {
+                addPosition(coordinates);
+            } else {
+                coordinates.forEach(addCoordinates);
+            }
+        }
+        function addObject(object) {
+            if (!object || typeof object !== 'object') {
+                return;
+            }
+            if (object.type === 'FeatureCollection') {
+                (object.features || []).forEach(addObject);
+            } else if (object.type === 'Feature') {
+                addObject(object.geometry);
+            } else if (object.type === 'GeometryCollection') {
+                (object.geometries || []).forEach(addObject);
+            } else {
+                addCoordinates(object.coordinates);
+            }
+        }
+        (objects || []).forEach(addObject);
         return box;
+    }
+
+    function projectLatLng(lat, lng) {
+        return polarCrs().project(L.latLng(lat, lng));
     }
 
     // The current view in map CRS metres: pixel bounds -> CRS metres (the map isn't rotated,
@@ -283,6 +310,7 @@
     FindArtekMap.TILE_SIZE = TILE_SIZE;
     FindArtekMap.MAX_ZOOM = MAX_ZOOM;
     FindArtekMap.polarCrs = polarCrs;
+    FindArtekMap.geometryBox = geometryBox;
 
     FindArtekMap.addInitHook = function (hook) {
         initHooks.push(hook);
@@ -357,16 +385,16 @@
             var color = FindArtekMap.colorForType(record.type);
             var popup = popupContent(record);
             var layers = [];
+            var geometries = [];
             ['points', 'lines', 'polys'].forEach(function (kind) {
-                if (record[kind]) {
-                    var layer = geoJsonLayer(record[kind], color, popup);
-                    if (layer) {
-                        layers.push(layer);
-                    }
+                var data = record[kind] ? parseGeometry(record[kind]) : null;
+                if (data) {
+                    geometries.push(data);
+                    layers.push(geoJsonLayer(data, color, popup));
                 }
             });
-            var entry = {record: record, layers: layers, box: projectedBounds(layers),
-                         shown: false};
+            var entry = {record: record, layers: layers,
+                         box: geometryBox(geometries, projectLatLng), shown: false};
             self.entries.push(entry);
             self._showEntry(entry, self._typeShown(record.type));
         });

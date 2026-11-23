@@ -13,6 +13,10 @@
   API snapshot tests cover that).
 - JS sources (no JS test runner, FA-R40): no colour table in the component, filter and view
   helpers, wheel zoom only after a click on embedded maps, the base layer choice kept per tab.
+- T18: the box of a record (for "reports in view") is read from its GeoJSON coordinates by
+  the pure helper FindArtekMap.geometryBox, not from the Leaflet layers: L.geoJSON draws a
+  MultiPoint as a group without getLatLng(s), so every point-only feature (most of them)
+  had no box and its reports were never listed.
 
 Everything is made up factory data.
 """
@@ -221,6 +225,21 @@ class MapScriptSourceTests(SimpleTestCase):
                        'FindArtekMap.reportUrl = reportUrl'):
             with self.subTest(needle=needle):
                 self.assertIn(needle, self.component)
+
+    def test_record_box_from_the_geojson_coordinates(self):
+        # T18: one pure helper, used for every drawn record, exposed for checks.
+        self.assertIn('function geometryBox(objects, project)', self.component)
+        self.assertIn('FindArtekMap.geometryBox = geometryBox;', self.component)
+        self.assertIn('box: geometryBox(geometries, projectLatLng)', self.component)
+        self.assertIn('polarCrs().project(L.latLng(lat, lng))', self.component)
+        # Every GeoJSON container is walked down to its coordinates ([lng, lat] positions).
+        for needle in ("'FeatureCollection'", "'Feature'", "'GeometryCollection'",
+                       'addCoordinates(object.coordinates)', 'project(position[1], position[0])'):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, self.component)
+        # Not from the Leaflet layers (a MultiPoint layer is a group without getLatLng(s)).
+        self.assertNotIn('projectedBounds', self.component)
+        self.assertNotRegex(self.component, r'\.getLatLngs?\(')
 
     def test_overview_script(self):
         for needle in ("getElementById('feature-type-filter')", 'findArtekMap.recordsInView()',
