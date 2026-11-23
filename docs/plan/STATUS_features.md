@@ -5,7 +5,7 @@ Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `deve
 ## Now
 T2, T3, T4, T9 done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
-**Next: T6** (coordinate entry: any EPSG code with Greenland help list, warnings on a confirm step, source fields, edit for one-point features; use `geometry.from_vertices`; T4 note: swapped easting/northing only warns). Then T6, T7, T8, T10, T11 one at a time in `..\find_artek_agent-features` (they share views.py/urls.py/templates).
+**T6 running** (implementer in `..ind_artek_agent-features`, started 2026-11-23): coordinate entry with any EPSG code and Greenland help list, warnings on a confirm step, source fields, edit for one-point features. Then T7, T8, T10, T11 one at a time in the worktree (they share views.py/urls.py/templates).
 
 Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-features` (owner's checkout stopped with `down`, no `-v`); built at T3, before the T4 merge, rebuilt after the T4/T9 merge; **migration 0006 applied to the dev DB 2026-11-23 with the owner's permission** (reversible with `migrate publications 0005`). To give the owner the stack back: `down` in the worktree, `up -d --build` in `find_artek_DEVELOP`.
 
