@@ -35,27 +35,35 @@ Prepare three small files on your desktop. Any content will do:
 
 ### 1.1 Overview map: http://localhost:8098/publications/map/
 
-- [ ] The map opens on the **topographic** base layer, not Arctic SDI. A new private window has no stored choice.
-- [ ] Next to the map there is a **type filter** with one checkbox and coloured swatch per type, plus **All / None** buttons.
-- [ ] Untick two types. Those features disappear, and the URL gets `types=...`.
-- [ ] Reload the page (`F5`). The same boxes are still unticked, and the map shows the same view.
-- [ ] Copy the URL into a new private tab. You see the same filter and view.
-- [ ] Look at **Reports in view**. Zoom into one area: the list gets shorter. Pan: it changes. Untick a type: reports that only have that type drop out.
-- [ ] Click a report in the list. Its report page opens.
-- [ ] The mouse wheel zooms this full-page map directly. That is intended here.
-- [ ] Optional: make the window narrow. The side panel should move below the map.
+- [x] The map opens on the **topographic** base layer, not Arctic SDI. A new private window has no stored choice.
+    - ***All OK; Report list shows only 24 reports within all Greenland domain; Are there only 24 reports with features registered?***
+- [x] Next to the map there is a **type filter** with one checkbox and coloured swatch per type, plus **All / None** buttons.
+- [x] Untick two types. Those features disappear, and the URL gets `types=...`.
+- [x] Reload the page (`F5`). The same boxes are still unticked, and the map shows the same view.
+- [x] Copy the URL into a new private tab. You see the same filter and view.
+- [x] Look at **Reports in view**. Zoom into one area: the list gets shorter. Pan: it changes. Untick a type: reports that only have that type drop out.
+- [x] Click a report in the list. Its report page opens.
+- [x] The mouse wheel zooms this full-page map directly. That is intended here.
+- [x] Optional: make the window narrow. The side panel should move below the map.
+  
+***General comment: The report list should look like the regular reports list, and show both title and authors. We probably have to look at a different layout, maybe with the full-width reports list below the map. ***
+
+***General comment: The Map view has a white background, and no border. Doesn't look nice on the grey background. Could we use maybe the Arctic Basemap below the other layers, to provide map coverage outside Geenland, also when other map products are loaded? ***
+
 
 ### 1.2 Public report page: http://localhost:8098/publications/report/511/ (report 15-29)
 
-- [ ] The **legend** below or next to the map has the same colours as the overview map's filter.
-- [ ] Put the mouse over the map and turn the wheel. The **page scrolls**; the map does not zoom.
-- [ ] Click once into the map, then turn the wheel. The **map zooms**. Move the mouse out of the map and turn the wheel. The page scrolls again.
-- [ ] There are **no** buttons for Draw on map, Enter coordinates, Import from Excel or Delete all features (you are signed out).
-- [ ] Open one of its features. The feature page shows **no** Edit on map, Edit coordinates, Delete or "Add files or images" buttons.
+- [x] The **legend** below or next to the map has the same colours as the overview map's filter.
+- [x] Put the mouse over the map and turn the wheel. The **page scrolls**; the map does not zoom.
+- [x] Click once into the map, then turn the wheel. The **map zooms**. Move the mouse out of the map and turn the wheel. The page scrolls again.
+- [x] There are **no** buttons for Draw on map, Enter coordinates, Import from Excel or Delete all features (you are signed out).
+- [x] Open one of its features. The feature page shows **no** Edit on map, Edit coordinates, Delete or "Add files or images" buttons.
+    - ***General comment: The Feature page layout is not good; It is like the map view takes up the entire column, So text fields are compressed. Consider different layouts***
+  
 
 ### 1.3 Delete page while signed out: http://localhost:8098/publications/feature/489/delete/
 
-- [ ] You are sent to the **login** page; nothing is deleted. Don't log in here; close the tab.
+- [x] You are sent to the **login** page; nothing is deleted. Don't log in here; close the tab.
 
 Leave Window B open; you need it again in step 2.6.
 
@@ -67,91 +75,108 @@ Sign in with CAS in Window A at http://localhost:8098/.
 
 ### 2.1 Create a test report
 
-- [ ] Create a report through the normal "Add report" form (http://localhost:8098/publications/report/add/). Use the title **`ZZ test features (delete me)`**. Use a small PDF of your own if the form asks for one, and leave the report unvalidated.
-- [ ] Write down its **page number (pk)** from the URL `/publications/report/<pk>/` and its **report number** (e.g. `26-xx`): pk ______, number ______
+- [x] Create a report through the normal "Add report" form (http://localhost:8098/publications/report/add/). Use the title **`ZZ test features (delete me)`**. Use a small PDF of your own if the form asks for one, and leave the report unvalidated.
+- [x] Write down its **page number (pk)** from the URL `/publications/report/<pk>/` and its **report number** (e.g. `26-xx`): pk ***568***, number ***26-06***
 
 All steps below use this report. "The test report" means http://localhost:8098/publications/report/<pk>/.
 
 ### 2.2 Test report page: buttons
 
-- [ ] The report page shows **Draw on map**, **Enter coordinates** and **Import from Excel**.
-- [ ] **Delete all features** is not shown yet, because the report has no features.
-
+- [x] The report page shows **Draw on map**, **Enter coordinates** and **Import from Excel**.
+- [x] **Delete all features** is not shown yet, because the report has no features.
+  
 ### 2.3 Enter coordinates (T6)
 
 Click **Enter coordinates** on the test report.
 
-- [ ] The page has a help box: x is always easting/longitude, the UTM zone by longitude, GR96 vs WGS84. The EPSG field offers a list (4326, 4747, GR96/UTM 3178–3189, WGS84/UTM 32618–32629, 3857).
-- [ ] **Unknown code:** EPSG `999999`, x `1`, y `1`, Save. You get an **error**, nothing is saved, and there is no confirm page.
-- [ ] **Swapped UTM:** EPSG `32622`, x `7120000`, y `465000`, fill name, type, date and quality, Save. A **confirm page** with a warning appears. Click **Back to the form**. Your values are still there.
-- [ ] **Good UTM point near Nuuk:** EPSG `32622`, x `465000`, y `7120000`, name `T6 UTM`, a date, **GNSS observation date** e.g. `2026-07-01`, Save. You get **no** confirm page and land on the test report with the new feature.
-- [ ] **Outside Greenland:** Enter coordinates again, EPSG `4326`, x `12.5`, y `55.7` (Copenhagen), name `T6 outside`, Save. The **confirm page** shows the warning and the WGS84 point. Click **Save anyway**. You are back on the report with a "Saved with a warning" message.
+- [x] The page has a help box: x is always easting/longitude, the UTM zone by longitude, GR96 vs WGS84. The EPSG field offers a list (4326, 4747, GR96/UTM 3178–3189, WGS84/UTM 32618–32629, 3857).
+    - ***The collapsed list of SRIDs for relevant reference systems easy to overlook. Could we give it the same light blue background as the help-text?***
+- [x] **Unknown code:** EPSG `999999`, x `1`, y `1`, Save. You get an **error**, nothing is saved, and there is no confirm page.
+- [x] **Swapped UTM:** EPSG `32622`, x `7120000`, y `465000`, fill name, type, date and quality, Save. A **confirm page** with a warning appears. Click **Back to the form**. Your values are still there.
+- [x] **Good UTM point near Nuuk:** EPSG `32622`, x `465000`, y `7120000`, name `T6 UTM`, a date, **GNSS observation date** e.g. `2026-07-01`, Save. You get **no** confirm page and land on the test report with the new feature.
+- [x] **Outside Greenland:** Enter coordinates again, EPSG `4326`, x `12.5`, y `55.7` (Copenhagen), name `T6 outside`, Save. The **confirm page** shows the warning and the WGS84 point. Click **Save anyway**. You are back on the report with a "Saved with a warning" message.
+    - ***The background outside Greenland is white, features of type Other do not show, as they are also white! The feature does show, when I select the Arctic Basemap.***
+
 
 ### 2.4 Feature page of `T6 UTM`: edit, files, images (T6, T8, T8a)
 
 Open the feature `T6 UTM` from the test report.
 
-- [ ] The feature page shows the **original coordinates** (EPSG:32622, 465000 / 7120000), the **observation date** and a **transformation note**. The map shows the point near Nuuk.
-- [ ] **Edit coordinates** is shown. Click it. The form is prefilled with EPSG 32622 and your x/y.
-  - [ ] Change x to `466000` and save. The message says "saved with the new coordinates", and the point has moved a little.
-  - [ ] Open Edit coordinates again, change **only the name** to `T6 UTM edited` and save. The message says "coordinates unchanged".
-- [ ] Click **Add files or images**.
-  - [ ] The page **lists the blocked file types** (html, svg, js, …) and says to put them in a **zip archive**. The image part names JPEG, PNG, GIF, TIFF and WebP.
-  - [ ] Upload `test.svg` as a file. It is **refused**, and the message names the zip workaround.
-  - [ ] Upload `test.dat`, `test.xml` and `test_svg.zip` as files. They are accepted.
-  - [ ] Upload `test.jpg` (and `.webp` if you have one) as images. They are accepted.
-- [ ] Back on the feature page, the files are listed and the images show a **thumbnail**.
-- [ ] Click `test.xml`. The browser **downloads** it and does not show it.
-- [ ] Click the image. It **opens in the browser**.
-- [ ] Optional, DevTools (`F12`, Network tab, click `test.xml` again): the response headers have `Content-Disposition: attachment`, `Content-Type: application/octet-stream` and `X-Content-Type-Options: nosniff`.
-- [ ] Right-click `test.xml`, choose **Copy link** and paste it here for step 2.6: ______
-- [ ] Delete `test.dat` with its Delete button. The confirm page says it will be deleted. Confirm, and you are back on the feature page without it.
+- [x] The feature page shows the **original coordinates** (EPSG:32622, 465000 / 7120000), the **observation date** and a **transformation note**. The map shows the point near Nuuk.
+- [x] **Edit coordinates** is shown. Click it. The form is prefilled with EPSG 32622 and your x/y.
+  - [x] Change x to `466000` and save. The message says "saved with the new coordinates", and the point has moved a little.
+      - ***The return page is the report page, I would expect the Feature page, because that is where I came from***
+  - [x] Open Edit coordinates again, change **only the name** to `T6 UTM edited` and save. The message says "coordinates unchanged".
+- [x] Click **Add files or images**.
+  - [x] The page **lists the blocked file types** (html, svg, js, …) and says to put them in a **zip archive**. The image part names JPEG, PNG, GIF, TIFF and WebP.
+  - [x] Upload `test.svg` as a file. It is **refused**, and the message names the zip workaround.
+  - [x] Upload `test.dat`, `test.xml` and `test_svg.zip` as files. They are accepted.
+  - [x] Upload `test.jpg` (and `.webp` if you have one) as images. They are accepted.
+  - ***Why are file and image uploads separate? Couldn't the code itself distinguish by type?***
+  - ***Input accepts multiple files for upload, but only one description. That description is applied to all the files... We should consider a better way, or a way to edit once files are uploaded.***
+  - ***The file input UI element doesn't look nice. It has a button in the input field, visual expression is not nice. Could we support drag&drop?***
+- [x] Back on the feature page, the files are listed and the images show a **thumbnail**.
+- [x] Click `test.xml`. The browser **downloads** it and does not show it.
+- [x] Click the image. It **opens in the browser**.
+- [x] Optional, DevTools (`F12`, Network tab, click `test.xml` again): the response headers have `Content-Disposition: attachment`, `Content-Type: application/octet-stream` and `X-Content-Type-Options: nosniff`.
+- [x] Right-click `test.xml`, choose **Copy link** and paste it here for step 2.6: ***http://localhost:8098/find/media/reports/2026/26-06/features/1833/test.xml***
+- [x] Delete `test.dat` with its Delete button. The confirm page says it will be deleted. Confirm, and you are back on the feature page without it.
 
 ### 2.5 Draw on the map (T5 leftovers, T11 wheel)
 
 From the test report, click **Draw on map**.
 
-- [ ] The base layer is **topographic**. Over the map the wheel **scrolls the page** until you click into the map.
-- [ ] Draw a **line** with 3 points and a **polygon**, name `T5 drawn`, Save. You are back on the test report.
-- [ ] Open `T5 drawn` and click **Edit on map**:
-  - [ ] **drag one vertex** of the line and save;
+- ***General comment: The feature information page should list the reports that a feature is related to.***
+
+- [x] The base layer is **topographic**. Over the map the wheel **scrolls the page** until you click into the map.
+- [x] Draw a **line** with 3 points and a **polygon**, name `T5 drawn`, Save. You are back on the test report.
+- [x] Open `T5 drawn` and click **Edit on map**:
+  - [x] **drag one vertex** of the line and save;
   - [ ] edit again, **delete the polygon** (trash tool) and save. The feature now holds only the line.
-- [ ] On the feature page of `T5 drawn`, **Edit coordinates is not shown** (it is not a one-point feature). It isn't sent back to coordinates.
-- [ ] **Base layer per tab:** switch the base layer to **Satellite** on this map, then open the test report's map. It is still Satellite in this tab. Open http://localhost:8098/publications/map/ in a **new tab**. It starts on **topographic**.
+  - ***I find no way to mark only the polygon for deletion. I can only delete both features at the same time!***
+- [x] On the feature page of `T5 drawn`, **Edit coordinates is not shown** (it is not a one-point feature). It isn't sent back to coordinates.
+- [x] **Base layer per tab:** switch the base layer to **Satellite** on this map, then open the test report's map. It is still Satellite in this tab. Open http://localhost:8098/publications/map/ in a **new tab**. It starts on **topographic**.
 
 ### 2.6 Back in Window B (signed out), 1 minute
 
-- [ ] Open the test report URL. It is **not visible** to anonymous users (not found or not listed), because it is unvalidated.
-- [ ] Open the `test.xml` link from 2.4. You get **not found**.
+- [x] Open the test report URL. It is **not visible** to anonymous users (not found or not listed), because it is unvalidated.
+- [x] Open the `test.xml` link from 2.4. You get **not found**.
+    - ***I see Djangos "Page not found (404)" page***
 
 ### 2.7 Excel import from the report page (T10)
 
 On the test report, click **Import from Excel**.
 
-- [ ] Click **Feature Excel template (ARTEK_feature_list.xlsx)** and save it. Open it in Excel: there are sheets **Features** (example point, line and polygon) and **Help**.
-- [ ] In the Features sheet, **clear the Report column** (or replace `25-07` with your test report number) and save it as `test_import.xlsx`.
-- [ ] Upload it. The **preview** shows a map with the 3 features, a status table, and an **Import** button. Nothing is saved yet: check the test report in another tab.
-- [ ] Click **Import**. You are back on the test report with 3 new features.
-- [ ] **Re-import:** Import from Excel again with the same file. The preview shows a **duplicate warning** for each feature. Click **Cancel**: nothing is added.
-- [ ] **A bad sheet:** in `test_import.xlsx`, empty the **Date** cell of the first row and save as `test_bad.xlsx`. Upload it. The preview lists the **error with the row number**, and there is **no Import button**. Cancel.
+- [x] Click **Feature Excel template (ARTEK_feature_list.xlsx)** and save it. Open it in Excel: there are sheets **Features** (example point, line and polygon) and **Help**.
+- [x] In the Features sheet, **clear the Report column** (or replace `25-07` with your test report number) and save it as `test_import.xlsx`.
+- [x] Upload it. The **preview** shows a map with the 3 features, a status table, and an **Import** button. Nothing is saved yet: check the test report in another tab.
+- [x] Click **Import**. You are back on the test report with 3 new features.
+- [x] **Re-import:** Import from Excel again with the same file. The preview shows a **duplicate warning** for each feature. Click **Cancel**: nothing is added.
+- [x] **A bad sheet:** in `test_import.xlsx`, empty the **Date** cell of the first row and save as `test_bad.xlsx`. Upload it. The preview lists the **error with the row number**, and there is **no Import button**. Cancel.
+
+***General comment: The tables across the site have quite different visual expression. I like this feature table.***
 
 ### 2.8 Excel import from Administration (T10)
 
 Go to http://localhost:8098/publications/administration/.
 
-- [ ] The tile **Import features from Excel** is active (not greyed). Click it.
-- [ ] Upload `test_import.xlsx` with the **Report column filled** with your test report number on every row. The preview shows the features and the duplicate warnings.
-- [ ] Upload the same file with the Report column **empty** on one row. That row gets an **error** (the Report column is required here). Cancel.
+- [x] The tile **Import features from Excel** is active (not greyed). Click it.
+- [x] Upload `test_import.xlsx` with the **Report column filled** with your test report number on every row. The preview shows the features and the duplicate warnings.
+- [x] Upload the same file with the Report column **empty** on one row. That row gets an **error** (the Report column is required here). Cancel.
 
 ### 2.9 Delete (T7, T7a)
 
-- [ ] **Single delete:** on the test report, click Delete next to `T6 outside`. The confirm page lists the feature and its report. Confirm. You are **back on the test report**, and the feature is gone.
-- [ ] **Feature on two reports (refused):** open http://localhost:8098/publications/feature/489/delete/ (feature "Oversigtsbillede", on reports 06-07 and 06-09; real data, read only). The page says it **belongs to more than one report and cannot be deleted** and has **no delete button**. Click Cancel. Don't change anything on this feature.
-- [ ] **Delete all features:** on the test report, the **Delete all features** button is now shown. Click it. The confirm page lists every test feature under "to delete" (none under "unlink" or "kept"). Confirm. The test report has **no features** left, and the button is gone.
+- [x] **Single delete:** on the test report, click Delete next to `T6 outside`. The confirm page lists the feature and its report. Confirm. You are **back on the test report**, and the feature is gone.
+- [x] **Feature on two reports (refused):** open http://localhost:8098/publications/feature/489/delete/ (feature "Oversigtsbillede", on reports 06-07 and 06-09; real data, read only). The page says it **belongs to more than one report and cannot be deleted** and has **no delete button**. Click Cancel. Don't change anything on this feature.
+  - ***The info box states that to delete the feature from a report, user has to delete "all features" from that report. That is not good, we may want to delete only that one feature from the report. So there should be a way to remove a feature from a report, even if it still belongs to another report. It just can't be fully deleted from the database.***
+- [x] **Delete all features:** on the test report, the **Delete all features** button is now shown. Click it. The confirm page lists every test feature under "to delete" (none under "unlink" or "kept"). Confirm. The test report has **no features** left, and the button is gone.
+  - ***The page should link to the feature pages, so that they can be inspected before deletion.***
+  - ***Each feature should be listed with the number of files and images.***
 
 ### 2.10 Clean up
 
-- [ ] Delete the test report `ZZ test features (delete me)` with its delete function.
+- [x] Delete the test report `ZZ test features (delete me)` with its delete function.
+    - ***The test features are still present in the database, after deleting the report. I can see them when zooming on Nuuk. The delete confirmation page did not list them as something to be deleted. This needs handling. I suggest a report cannot be deleted, as long as features are associated with it. Features would have to be deleted first. If they belong to other reports too, they would have to be removed from the report to be delted, not necessarily deleted from the database.***
 - [ ] Optional: delete the files from your desktop.
 
 ---
@@ -160,7 +185,41 @@ Go to http://localhost:8098/publications/administration/.
 
 Write one line per problem: step number, what you saw, and what you expected.
 
--
+- ***See comments with findings in the text above. They are all enclosed in three aterix.***
+
+### Summary (2026-11-23)
+
+Checks run 2026-11-23 on test report pk 568 / 26-06. Everything ticked passed except 2.5 "delete the polygon". The proposed tasks (T13–T18) and the roadmap split are **waiting for the owner's confirmation**.
+
+**Bugs: proposed fixes before the merge**
+
+| Step | Finding | Checked in the dev DB | Proposed |
+|---|---|---|---|
+| 2.10 | Deleting the test report left its features in the database, without a report but visible on the map near Nuuk. The confirm page did not list them. | Orphans 1839 "Sample S1", 1840 "Profile P1", 1841 "Survey area A" (from the second Excel import). `DeleteReportView` only removes the links (old behaviour). 17 older orphans come from the production copy (e.g. 788, 850, 1125–1141). | T13: a report cannot be deleted while it has features; delete them or remove them from the report first. |
+| 2.9 | On a feature that is on two reports, the info box points to "Delete all features". You may want to remove only that one feature from one report. | | T14: a "Remove from this report" action for shared features. The feature is still never fully deleted while another report uses it. |
+| 2.5 | In Edit on map, you cannot delete only the polygon: the trash tool removes both geometries. | | T17: delete one geometry of a feature and keep the rest. |
+| 1.1 | Reports in view lists only 24 reports at the all-Greenland view. | The API returns 1749 features on 161 public reports to signed-out users, so the list should be much longer. | T18: fix the reports-in-view calculation. |
+| 2.3 | Outside Greenland the map background is white, so features of type Other (white) don't show. With the Arctic basemap they do. | | T16: give Other a visible colour; always lay the Arctic basemap underneath other layers; give the map a border (also 1.1: white map with no border on the grey page). |
+| 2.4 | Edit coordinates returns to the report page, not to the feature page you came from. | | T15 |
+| 2.4 | The feature page should list the reports the feature belongs to. | | T15: only the reports the user may see. |
+| 2.9 | The "Delete all features" confirm page should link to each feature page and show its number of files and images. | | T15 |
+| 2.3 | The collapsed EPSG list is easy to overlook. | | T15: same light blue background as the help text. |
+| 2.4 | | Deleting files leaves empty folders (`reports/2026/26-06/features/1833/img/thumbs`); the files themselves were deleted. | T15: remove the empty folders. |
+
+**Design and layout: proposed for the roadmap**
+
+- **1.1, overview map:** the reports list should look like the regular reports list, with title and authors. It may need to sit full width below the map.
+- **1.2, feature page:** the map takes up the whole column and squeezes the text fields. Consider another layout.
+- **2.4, uploads:**
+  - Why are file and image uploads separate? The code could tell them apart by type.
+  - One description is applied to every file in a multi-file upload. Give each file its own description, or let descriptions be edited after the upload.
+  - The file input looks poor; support drag & drop.
+- **Tables:** tables across the site look very different. The feature table is the style to follow.
+- **Data:** decide on the orphan features that already exist in production (see 2.10).
+
+**No action needed**
+
+- **2.6:** the xml link gives Django's "Page not found (404)" page. That is the dev debug page (`DEBUG=True`); production shows the normal 404 page. The file stays hidden either way, as intended.
 
 ---
 
