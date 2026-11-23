@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Delete overlay for the "Bulk delete reports" tile on the Administration page
+       (plan "features" T21): a red trash can on a white disc. -->
+  <circle cx="24" cy="24" r="22" fill="#ffffff" stroke="#c82333" stroke-width="2.5"/>
+  <g fill="#c82333">
+    <rect x="13" y="13" width="22" height="3.5" rx="1"/>
+    <rect x="20" y="9.5" width="8" height="4.5" rx="1"/>
+    <path d="M15.5 18.5h17l-1.6 19.2a2 2 0 0 1-2 1.8h-9.8a2 2 0 0 1-2-1.8z"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+    <line x1="20" y1="22.5" x2="20.5" y2="35.5"/>
+    <line x1="24" y1="22.5" x2="24" y2="35.5"/>
+    <line x1="28" y1="22.5" x2="27.5" y2="35.5"/>
+  </g>
+</svg>

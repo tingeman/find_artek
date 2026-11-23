@@ -29,6 +29,20 @@
     object-position: bottom;
 }
 
+.fmitem .fmtile .fmimage {
+    position: relative;
+}
+
+/* A small icon in the top right corner of the picture (tile.overlay; bulk delete, T21). */
+.fmitem .fmtile .fmimage img.fmimage-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
 .fmitem .fmtile .fmimage-placeholder {
     display: flex;
     align-items: center;

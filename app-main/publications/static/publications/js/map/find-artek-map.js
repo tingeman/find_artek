@@ -58,7 +58,9 @@
  *                         polygons in the type colour; colorOf(feature) -> colour (T19)
  *   FindArtekMap.casingLayer(data, wanted)  thin black outline under the lines and polygon
  *                         outlines of `data` (no points, no fill, not clickable); wanted(feature)
- *                         picks the features of a FeatureCollection (T19)
+ *                         picks the features of a FeatureCollection (T19); drawn in its own
+ *                         pane CASING_PANE below the overlay pane, so it is under every line
+ *                         whatever order the layers are added in (T21)
  *   FindArtekMap.CASED_TYPE  the feature type whose lines and polygons get the casing ('OTHER')
  *   FindArtekMap.reportUrl(id)  the report page URL of a report id
  *   FindArtekMap.addInitHook(fn)  fn(instance) runs for every new map, after the map and its
@@ -98,6 +100,15 @@
     // the other types are drawn without it.
     var CASED_TYPE = 'OTHER';
     var CASING_STYLE = {color: '#000000', weight: PATH_WEIGHT + 2, opacity: 1, fill: false};
+    // T21: the casing has its own map pane, just below Leaflet's overlay pane (z-index 400),
+    // so it is drawn under the white line no matter in which order the layers reach the map.
+    // T19 relied on the order inside L.featureGroup([casing, line]), but Leaflet adds the
+    // members of a group in the order of their internal ids (LayerGroup.onAdd walks
+    // `_layers` by id), and the line's L.geoJSON got the lower id (stamped by addEventParent
+    // when it was built, before the casing): the black casing ended up on top and the OTHER
+    // lines looked completely black.
+    var CASING_PANE = 'faCasingPane';
+    var CASING_PANE_Z_INDEX = 390;
 
     // Feature type colours: the JSON block rendered by {% feature_type_colors_script %}
     // (publications/map_styles.py). Not repeated here, so map and legend can't disagree.
@@ -224,6 +235,7 @@
                 return !(isFeature && wanted) || wanted(object);
             },
             style: function () { return CASING_STYLE; },
+            pane: CASING_PANE,
             interactive: false,
         });
     }
@@ -355,6 +367,8 @@
         this.layers = window.FindArtekMapLayers.addTo(this.map, {
             token: this.token, tileSize: TILE_SIZE, maxZoom: MAX_ZOOM,
         });
+        // Pane of the OTHER casings (T21), created before any feature is drawn.
+        this.map.createPane(CASING_PANE).style.zIndex = CASING_PANE_Z_INDEX;
         this.featureLayer = L.featureGroup().addTo(this.map);
 
         if (this.syncUrl) {
@@ -376,6 +390,7 @@
     FindArtekMap.geoJsonStyle = geoJsonStyle;
     FindArtekMap.casingLayer = casingLayer;
     FindArtekMap.CASED_TYPE = CASED_TYPE;
+    FindArtekMap.CASING_PANE = CASING_PANE;
 
     FindArtekMap.addInitHook = function (hook) {
         initHooks.push(hook);
@@ -457,8 +472,9 @@
                     geometries.push(data);
                     var layer = geoJsonLayer(data, color, popup);
                     if (kind !== 'points' && record.type === CASED_TYPE) {
-                        // One layer per geometry field, casing first (underneath): the
-                        // type filter, recordsInView and fitting handle it like any other.
+                        // One layer per geometry field: the type filter, recordsInView and
+                        // fitting handle it like any other. The casing lies underneath
+                        // because of its pane (CASING_PANE), not because it comes first.
                         layer = L.featureGroup([casingLayer(data), layer]);
                     }
                     layers.push(layer);

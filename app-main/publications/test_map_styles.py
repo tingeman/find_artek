@@ -8,6 +8,9 @@
   white and other light colours show on white; the import preview uses the same style; the
   legend swatches are circles of about the same size with the same black border.
 - Lines and polygon outlines of type OTHER (white) have a thin black casing underneath (T19).
+  T21: the casing lies in its own map pane below Leaflet's overlay pane. T19 relied on the order
+  inside L.featureGroup([casing, line]), but Leaflet adds a group's members in the order of their
+  internal ids, and the line got the lower one, so the casing was drawn on top (all black).
 - Topographic map (find-artek-map-layers.js, css/find-artek-map.css, T19): blended with
   `mix-blend-mode: multiply`, so its opaque white areas show the Arctic SDI underlay; the other
   base layers are not blended.
@@ -213,11 +216,46 @@ class OtherCasingTests(SimpleTestCase):
 
     def test_casing_is_under_the_line_in_the_same_entry(self):
         # One layer per geometry field: the type filter, recordsInView, fitting and the popup
-        # treat it like before; the casing comes first, so it is drawn underneath.
+        # treat it like before. (T21: the order inside the group does not decide what is drawn
+        # on top; the casing's pane does, see test_casing_has_its_own_pane_below_the_lines.)
         self.assertIn("if (kind !== 'points' && record.type === CASED_TYPE) {", self.code)
         self.assertIn('layer = L.featureGroup([casingLayer(data), layer]);', self.code)
         self.assertIn('layers.push(layer);', self.code)
         self.assertEqual(self.code.count('casingLayer('), 2)   # definition, the one use
+
+    def test_casing_has_its_own_pane_below_the_lines(self):
+        # T21: the black casing was drawn above the white line (OTHER lines all black) because
+        # Leaflet adds the members of L.featureGroup([casing, line]) in the order of their
+        # internal ids, not in the array's order. A pane between the tile pane and the overlay
+        # pane (where the lines are) keeps it underneath whatever the order.
+        self.assertIn("var CASING_PANE = 'faCasingPane';", self.code)
+        z_index = js_number(self.code, 'CASING_PANE_Z_INDEX')
+        leaflet_css = read_static(LEAFLET_CSS)
+        tile_pane = int(re.search(r'\.leaflet-tile-pane\s*\{\s*z-index:\s*(\d+)', leaflet_css)[1])
+        overlay_pane = int(re.search(r'\.leaflet-overlay-pane\s*\{\s*z-index:\s*(\d+)',
+                                     leaflet_css)[1])
+        self.assertLess(tile_pane, z_index)
+        self.assertLess(z_index, overlay_pane)
+        casing = self.code[self.code.index('function casingLayer(data, wanted) {'):]
+        casing = casing[:casing.index('\n    }\n')]
+        self.assertIn('pane: CASING_PANE,', casing)
+        # The pane exists on every map before any feature (or the preview's casing) is drawn.
+        create = self.code.index(
+            'this.map.createPane(CASING_PANE).style.zIndex = CASING_PANE_Z_INDEX;')
+        self.assertLess(create,
+                        self.code.index('this.featureLayer = L.featureGroup().addTo(this.map);'))
+        self.assertLess(create, self.code.index('initHooks.forEach('))
+        # The coloured lines stay in the default overlay pane: only the casing names a pane.
+        self.assertEqual(self.code.count('pane: '), 1)
+
+    def test_other_lines_are_drawn_in_the_type_colour_not_the_casing_colour(self):
+        # The line of an OTHER record is a geoJsonLayer in the record's type colour (white);
+        # black appears only in the casing and the point marker border.
+        self.assertIn('var color = FindArtekMap.colorForType(record.type);', self.code)
+        self.assertIn('var layer = geoJsonLayer(data, color, popup);', self.code)
+        self.assertEqual(self.code.count("'#000000'"), 2)
+        self.assertIn("var POINT_BORDER_COLOR = '#000000';", self.code)
+        self.assertEqual(self.code.count('CASING_STYLE'), 2)   # definition, casingLayer's style
 
     def test_casing_is_not_in_the_edit_layer(self):
         # Edit mode draws only into editLayer from the form field; the casing lives in

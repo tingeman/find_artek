@@ -11,7 +11,8 @@ in the classic order without the "Backup" tile (backups are done by dtu_sus_web_
 5. Import features from Excel -> ``publications:import_features`` (Django permission
    ``publications.add_feature``; each report of the sheet is checked by the import, T10)
 6. Bulk delete reports     -> ``publications:bulk_delete_publications``, only shown to
-   ``user.is_superuser`` (plan "features" T20; the view keeps its own permission check)
+   ``user.is_superuser`` (plan "features" T20; the view keeps its own permission check);
+   the "Add report" picture with a red trash can in the corner (T21)
 7. Django admin            -> ``admin:index``, only shown to ``user.is_staff``
 
 A tile the user may not use, or that isn't built yet, is greyed out with the reason and is not
@@ -31,6 +32,10 @@ from publications.permissions import ADD, MANAGE, access_denied_response, user_m
 from publications.views import BaseView
 from publications.views_feature_import import may_import_features
 
+# The "Add report" picture, also under the "Bulk delete reports" tile with DELETE_OVERLAY (T21).
+REPORTS_IMAGE = 'publications/img/reports_3_190x150.jpg'
+DELETE_OVERLAY = 'publications/img/delete_overlay.svg'
+
 DENIED_MESSAGE = "Only users who may add reports or ARTEK editors may open the administration page."
 
 
@@ -41,6 +46,7 @@ class Tile:
     image: Optional[str]          # static path, or None for a plain styled tile
     url: Optional[str] = None     # None: greyed out, not a link
     reason: Optional[str] = None  # shown on a greyed tile
+    overlay: Optional[str] = None  # static path of a small icon drawn in a corner of the image
 
     @property
     def enabled(self):
@@ -58,7 +64,7 @@ def administration_tiles(user):
     may_manage = user_may(user, MANAGE)
     may_import = may_import_features(user)
     tiles = [
-        Tile('add-report', _('Add report'), 'publications/img/reports_3_190x150.jpg',
+        Tile('add-report', _('Add report'), REPORTS_IMAGE,
              url=reverse('publications:add_report') if may_add else None,
              reason=None if may_add else _('Needs permission to add reports')),
         Tile('add-feature', _('Add feature'), 'publications/img/add_feature_190x150.png',
@@ -75,8 +81,9 @@ def administration_tiles(user):
              reason=None if may_import else _('Needs permission to add features')),
     ]
     if user.is_superuser:
-        tiles.append(Tile('bulk-delete-reports', _('Bulk delete reports'), None,
-                          url=reverse('publications:bulk_delete_publications')))
+        tiles.append(Tile('bulk-delete-reports', _('Bulk delete reports'), REPORTS_IMAGE,
+                          url=reverse('publications:bulk_delete_publications'),
+                          overlay=DELETE_OVERLAY))
     if user.is_staff:
         tiles.append(Tile('django-admin', _('Django admin'), None, url=reverse('admin:index')))
     return tiles

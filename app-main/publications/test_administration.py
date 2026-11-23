@@ -12,7 +12,9 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
+from django.contrib.staticfiles import finders
 from django.shortcuts import resolve_url
+from django.templatetags.static import static
 from django.test import TestCase
 from django.urls import reverse
 
@@ -240,6 +242,36 @@ class TileTests(AdministrationTestBase):
                 if shown:
                     self.assertLink(tiles['bulk-delete-reports'], bulk_url)
                     self.assertIn('Bulk delete reports', tiles['bulk-delete-reports'])
+
+    def test_bulk_delete_tile_has_the_report_picture_with_a_delete_icon(self):
+        # Features T21: the "Add report" picture with a red trash can in the top right corner,
+        # instead of the plain text placeholder of T20.
+        tiles, _ = self._tiles(self.superuser)
+        tile = tiles['bulk-delete-reports']
+        self.assertNotIn('fmimage-placeholder', tile)
+        self.assertIn(f'<img src="{static("publications/img/reports_3_190x150.jpg")}" alt="">',
+                      tile)
+        overlay = static('publications/img/delete_overlay.svg')
+        self.assertIn(f'<img class="fmimage-overlay" src="{overlay}" alt="">', tile)
+        # Only this tile has the overlay; the icon is a static file we serve ourselves.
+        others = ''.join(html for key, html in tiles.items() if key != 'bulk-delete-reports')
+        self.assertNotIn('fmimage-overlay', others)
+        svg_path = finders.find('publications/img/delete_overlay.svg')
+        self.assertIsNotNone(svg_path)
+        with open(svg_path, encoding='utf-8') as handle:
+            svg = handle.read()
+        self.assertTrue(svg.lstrip().startswith('<svg xmlns="http://www.w3.org/2000/svg"'))
+        self.assertNotIn('<script', svg)
+        self.assertNotIn('href', svg)       # no external or embedded references
+        # The icon sits on top of the picture, in a corner, smaller than it.
+        with open(finders.find('publications/css/administration.css'), encoding='utf-8') as h:
+            css = h.read()
+        rule = css[css.index('.fmitem .fmtile .fmimage img.fmimage-overlay {'):]
+        rule = rule[:rule.index('}')]
+        for declaration in ('position: absolute;', 'top: 8px;', 'right: 8px;',
+                            'width: 44px;', 'height: 44px;'):
+            self.assertIn(declaration, rule)
+        self.assertIn('.fmitem .fmtile .fmimage {\n    position: relative;\n}', css)
 
     def test_no_bulk_delete_link_for_anonymous(self):
         response = self.get_as(None, self.admin_path)
