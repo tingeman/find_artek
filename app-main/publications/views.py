@@ -2348,8 +2348,14 @@ class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseVi
 
     A feature linked to more than one report cannot be deleted (owner 2026-11-23, plan
     "features" T7a; long term roadmap FA-R109): GET explains it and offers no delete, POST
-    changes nothing and returns with an error. "Delete all features" of a report
-    (DeleteReportFeaturesView) only removes such a feature from that report.
+    changes nothing and returns with an error.
+
+    Such a feature can be removed from one report instead (plan "features" T14): POST with
+    ``action=unlink`` removes only the link to the report named by ``report`` (unlink_report:
+    a report of the feature the user may see and has ``add_feature`` on, the rule of
+    DeleteReportFeaturesView). The feature, its other links, files and images stay. Refused
+    (nothing changes, error message) without such a report or when the feature is on one
+    report only. Hidden reports are never named or counted.
     """
     template_name = 'publications/feature_confirm_delete.html'
     permission = DELETE_FEATURE
@@ -2377,6 +2383,7 @@ class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseVi
                        for i in feature.images.all().order_by('pk')],
             'reports': visible,
             'shared': self.is_shared(),
+            'unlink_report': self.unlink_report(),
             'return_report': self.return_report(),
             'cancel_url': self.return_url(),
         })
@@ -2386,19 +2393,62 @@ class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseVi
         """True if the feature is linked to more than one report (hidden ones count too)."""
         return self.feature.publications.count() > 1
 
+    def unlink_report(self):
+        """The report the feature may be removed from (T14), or None.
+
+        Only the report named by ``report`` itself (no fallback as in return_report): one of
+        the feature's reports the user may see, with ``add_feature`` on it."""
+        wanted = self.request.POST.get('report') or self.request.GET.get('report')
+        if not (wanted and str(wanted).isdigit()):
+            return None
+        report = visible_publications(
+            self.feature.publications.filter(pk=int(wanted)), self.request.user).first()
+        if report is None or not user_may(self.request.user, ADD_FEATURE, report):
+            return None
+        return report
+
     def post(self, request, *args, **kwargs):
+        if request.POST.get('action') == 'unlink':
+            return self.unlink(request)
         feature = self.feature
         name = feature.name or f'feature {feature.pk}'
         if self.is_shared():
             messages.error(request, f'Feature "{name}" belongs to more than one report and '
-                                    'cannot be deleted. "Delete all features" on a report '
-                                    'removes it from that report only.')
+                                    'cannot be deleted. To remove it from one report, open '
+                                    'its delete page from that report.')
             return HttpResponseRedirect(self.return_url())
         success_url = self.success_url()   # before the links to the reports are gone
         with transaction.atomic():
             _delete_feature(feature)
         messages.success(request, f'Feature "{name}" was deleted.')
         return HttpResponseRedirect(success_url)
+
+    def unlink(self, request):
+        """Remove the feature from unlink_report() only (T14). Messages name no other report."""
+        feature = self.feature
+        name = feature.name or f'feature {feature.pk}'
+        report = self.unlink_report()
+        if report is None:
+            messages.error(request, f'Feature "{name}" was not removed from any report: open '
+                                    'its delete page from the report it should be removed '
+                                    'from (you need to be allowed to add features to that '
+                                    'report).')
+            return HttpResponseRedirect(self.return_url())
+        with transaction.atomic():
+            # Lock the feature so two removals cannot leave it without a report.
+            Feature.objects.select_for_update().filter(pk=feature.pk).first()
+            shared = self.is_shared()
+            if shared:
+                feature.publications.remove(report)
+        if not shared:
+            messages.error(request, f'Feature "{name}" belongs to one report only and was not '
+                                    'removed from it: it would be left without a report. '
+                                    'Delete the feature instead.')
+            return HttpResponseRedirect(self.return_url())
+        number = report.number or report.pk
+        messages.success(request, f'Feature "{name}" was removed from report {number}; it '
+                                  'stays on the other report(s) it belongs to.')
+        return redirect('publications:report', pk=report.pk)
 
 
 class FeatureMediaReturnMixin(FeatureReturnReportMixin):

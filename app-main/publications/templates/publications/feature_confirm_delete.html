@@ -8,15 +8,28 @@
 {% block main-content %}
 <div class="info-box">
     <h2>Confirm Feature Deletion</h2>
-    <p>Delete the feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }}{% if feature.type %}, {{ feature.get_type_display }}{% endif %})?
-       This cannot be undone.</p>
-
     {% if shared %}
+    <p>Feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }}{% if feature.type %}, {{ feature.get_type_display }}{% endif %}).</p>
+
+    {# T7a/T14: hidden reports are never named or counted here (only `reports`, the visible ones). #}
     <div class="alert alert-warning" id="delete-feature-shared" role="alert">
         This feature belongs to more than one report and cannot be deleted.
-        To remove it from one report, use "Delete all features" on that report: it only removes
-        features that belong to other reports too from that report.
+        {% if unlink_report %}
+        You can remove it from report <strong>{{ unlink_report.number|default:unlink_report.pk }}</strong>
+        only; it then stays on the other reports.
+        {% else %}
+        To remove it from one report, open this page from the report it should be removed from
+        (the delete link of the feature on that report's page); you need to be allowed to add
+        features to that report.
+        {% if reports %}
+        <span id="delete-feature-shared-reports">Reports of this feature:
+        {% for report in reports %}<a href="{% url 'publications:report' pk=report.pk %}">{{ report.number|default:report.pk }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+        {% endif %}
+        {% endif %}
     </div>
+    {% else %}
+    <p>Delete the feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }}{% if feature.type %}, {{ feature.get_type_display }}{% endif %})?
+       This cannot be undone.</p>
     {% endif %}
 
     <h3 class="h5">Reports</h3>
@@ -56,7 +69,8 @@
     <form method="post" action="{% url 'publications:delete_feature' pk=feature.pk %}">
         {% csrf_token %}
         {% if return_report %}<input type="hidden" name="report" value="{{ return_report.pk }}">{% endif %}
-        {% if not shared %}<button type="submit" class="btn btn-danger">Yes, delete feature</button>{% endif %}
+        {% if not shared %}<button type="submit" class="btn btn-danger">Yes, delete feature</button>
+        {% elif unlink_report %}<button type="submit" name="action" value="unlink" class="btn btn-warning" id="unlink-feature">Remove from report {{ unlink_report.number|default:unlink_report.pk }}</button>{% endif %}
         <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
