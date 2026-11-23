@@ -241,6 +241,16 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 - Administration page: a link to the bulk delete of reports (`reports/bulk-delete/`), shown to superusers only.
 - Agent: implementer. Deployment impact: none.
 
+### T21. Other line casing, bulk delete tile image (owner second recheck 2026-11-23)
+- Other lines/polygons were drawn all black (casing on top): fix so they are white with a thin black edge; the Bulk delete tile gets the Add report picture with a delete overlay icon.
+- Agent: implementer. Deployment impact: none.
+
+### T22. Topographic layer clipped to its coverage, box-zoom button (owner second recheck 2026-11-23)
+- The multiply blend (T19) lets the Arctic SDI underlay show through inside Greenland (double coastlines at zoom ~8, ghost place names/airport icons). Instead: remove the blend and clip the topographic layer to a Greenland coverage outline (coastline buffered ~10-15 km to sea, simplified, small static GeoJSON; slightly inside the white border so no white strips); the underlay shows only outside. Source of the coastline: Natural Earth 10m land (public domain), download needs the owner's OK.
+- A box-zoom button under +/- (Leaflet box zoom without Shift); Shift+drag stays. Not in Edit on map.
+- Named map views: roadmap FA-R110.
+- Agent: implementer. Deployment impact: none (new static file).
+
 ## Out of scope
 
 - PostgreSQL/PostGIS (FA-R4 long-term goal).

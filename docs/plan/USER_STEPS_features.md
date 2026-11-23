@@ -279,7 +279,7 @@ docker compose -f docker-compose.yml -f docker-compose.develop.yml exec -T webap
 
 ### R6. Findings of the recheck
 
--  See above, my comments are all enclosed in ***<comment>***
+-  See above, my comments are all enclosed in three asterix `***<comment>***`
 
 ---
 
@@ -291,26 +291,30 @@ The dev stack already runs this code. Reload each page once with `Ctrl+F5`.
 
 http://localhost:8098/publications/map/
 
-- [ ] Point markers are **smaller**, and every marker has a **black ring**. Other is **white**, Borehole **yellow**, Lab measurement **pink**.
-- [ ] The legend shows small circles with black rings; the white "Other" swatch is visible.
+- [x] Point markers are **smaller**, and every marker has a **black ring**. Other is **white**, Borehole **yellow**, Lab measurement **pink**.
+- [x] The legend shows small circles with black rings; the white "Other" swatch is visible.
 - [ ] Find a feature of type Other with a line or polygon: the white line has a thin **black edge**. Untick "Other": line and edge both disappear.
-- [ ] Choose **Topographic** and zoom out: the white border around Greenland now shows the **Arctic basemap**.
+    - ***The lines are completely black, not just a black outline. But they do disappear when Other is unticked.***
+- [x] Choose **Topographic** and zoom out: the white border around Greenland now shows the **Arctic basemap**.
 - [ ] Zoom into a town with Topographic: does the map look **darker** than before, or show doubled coastlines or labels? ______ (If yes, the fix is a one-word CSS change to `darken`.)
-- [ ] Satellite and Sentinel-2 look as before.
+    - ***At zoom levels where the arctic base map is visible in part of the map view (e.g. zoom=8), two coast lines are visible. When I zoom in further, the second (Arctic basemap) coastlines are no longer visible, but some place names and e.g. Airport markers (airplane pictogram) are visible in a fuzzy maner. They do originate from the Arctic Basemap, because they stay in the same place when I switch to that basemap as the chosen layer.***
+- [x] Satellite and Sentinel-2 look as before.
 
 ### S2. Signed in (Window A): delete dialogs and Administration (T20)
 
 Create one report **`ZZ recheck C (delete me)`** and draw one point on it, name `S point`.
 
-- [ ] On report C, click **Delete** (the report's delete action): **no dialog**; the delete page opens. The numbers **1** and **2** and the feature bullets sit **inside** the pink box. Click Cancel: no dialog.
-- [ ] Click **Delete** next to `S point`: no dialog. On its page, **Yes, delete feature** asks "Delete this feature? This cannot be undone." Click OK. Cancel on that page never asks.
-- [ ] Report C's delete page now has the button. **Delete Publication** asks "Delete this report? This cannot be undone." Click OK.
-- [ ] As **superuser**: http://localhost:8098/publications/administration/ shows a **Bulk delete reports** tile before "Django admin". Open it; select nothing and go back (don't delete real reports).
+- [x] On report C, click **Delete** (the report's delete action): **no dialog**; the delete page opens. The numbers **1** and **2** and the feature bullets sit **inside** the pink box. Click Cancel: no dialog.
+- [x] Click **Delete** next to `S point`: no dialog. On its page, **Yes, delete feature** asks "Delete this feature? This cannot be undone." Click OK. Cancel on that page never asks.
+- [x] Report C's delete page now has the button. **Delete Publication** asks "Delete this report? This cannot be undone." Click OK.
+- [x] As **superuser**: http://localhost:8098/publications/administration/ shows a **Bulk delete reports** tile before "Django admin". Open it; select nothing and go back (don't delete real reports).
+    - ***The tile should have an image. Use the same report background as in "Add report" but add a small overlay icon, which indicates deleting. Maybe a trash can? Or a red cross?***
 - [ ] Optional: as a non-superuser editor, the tile is not shown.
+    - I don't know, I don't have a non-superuser editor. How do I make one?
 
 ### S3. Findings
 
--
+- See above, my comments are all enclosed in three asterix `***<comment>***`
 
 ---
 
