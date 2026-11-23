@@ -128,8 +128,13 @@ class MergePersonPermissionTests(TestCase):
         self.assertTrue(user_may(make_user('super990', superuser=True), MERGE_PERSON))
 
     def test_migration_reverses_and_reapplies(self):
+        # Only 0005 itself, with an explicit plan: migrating to 0004 would also reverse the
+        # later schema migrations (0006+), and MariaDB can't run DDL inside the test's
+        # transaction (plan "features" T4).
+        key = ('publications', '0005_person_merge_person_permission')
         executor = MigrationExecutor(connection)
-        executor.migrate([('publications', '0004_publication_confidential')])
+        executor.migrate([('publications', '0004_publication_confidential')],
+                         plan=[(executor.loader.graph.nodes[key], True)])
         self.assertFalse(Permission.objects.filter(
             content_type__app_label='publications', codename='merge_person').exists())
         self.assertNotIn('merge_person', self.codenames(ARTEK_EDITOR))
@@ -137,7 +142,7 @@ class MergePersonPermissionTests(TestCase):
         self.assertIn('change_publication', self.codenames(ARTEK_EDITOR))
 
         executor = MigrationExecutor(connection)
-        executor.migrate([('publications', '0005_person_merge_person_permission')])
+        executor.migrate([key], plan=[(executor.loader.graph.nodes[key], False)])
         self.assertIn('merge_person', self.codenames(ARTEK_EDITOR))
         self.assertNotIn('merge_person', self.codenames('dtu_user'))
 

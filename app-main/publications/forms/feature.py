@@ -2,10 +2,11 @@
 
 from django import forms
 from django.forms import ModelForm
+from publications.geometry import GeometryError, from_geojson
 from publications.models import Feature
 from django.core.exceptions import ValidationError
 from django.contrib.gis.gdal import SpatialReference
-from django.contrib.gis.geos import Point, MultiPoint
+
 from django.utils.translation import gettext_lazy as _
 import json
 
@@ -301,7 +302,13 @@ class AddFeatureByMap(ModelForm):
                     raise ValidationError(_('Longitude value out of range (-180 to 180)'))
                 if not (-90 <= lat <= 90):
                     raise ValidationError(_('Latitude value out of range (-90 to 90)'))
-            
+
+            # The geometry save() builds (publications.geometry; e.g. non-numeric values).
+            try:
+                from_geojson(data)
+            except GeometryError as error:
+                raise ValidationError(str(error))
+
             return geojson_data
             
         except json.JSONDecodeError:
@@ -331,47 +338,18 @@ class AddFeatureByMap(ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        """
-        Override the save method to create a MultiPoint geometry from the GeoJSON data
-        before saving the model instance.
-        """
+        """The feature with the points of the map in ``points`` (EPSG:4326).
+
+        publications.geometry builds the geometry and sets ``source_srid``,
+        ``source_geometry`` and ``transform_note``; the form sets model fields only (plan
+        "features" T4, FA-R107: the former code set an attribute ``geometry`` that the model
+        doesn't have, so ``form.save()`` lost the points)."""
         instance = super().save(commit=False)
-        
-        # Get GeoJSON data
         geojson_data = self.cleaned_data.get('geojson_data')
         if geojson_data:
-            try:
-                data = json.loads(geojson_data)
-                points = []
-                
-                # Extract point coordinates from GeoJSON
-                for feature in data['features']:
-                    if feature['geometry']['type'] == 'Point':
-                        coords = feature['geometry']['coordinates']
-                        # Create Point objects (x=lon, y=lat for WGS84)
-                        points.append(Point(coords[0], coords[1]))
-                
-                # Create MultiPoint geometry from the points
-                if points:
-                    multipoint = MultiPoint(points)
-                    
-                    # Set the geometry field - the exact field name depends on your model
-                    # Assuming your Feature model has a 'geometry' field
-                    instance.geometry = multipoint
-                    
-                    # Get SRID from the form (default is 4326 for WGS84)
-                    srid = self.cleaned_data.get('map_srid', '4326')
-                    try:
-                        instance.geometry.srid = int(srid)
-                    except ValueError:
-                        # Default to WGS84 if there's an issue
-                        instance.geometry.srid = 4326
-            
-            except (json.JSONDecodeError, KeyError, IndexError):
-                # If there's an error processing the GeoJSON, we'll let the form validation handle it
-                pass
-        
+            # clean_geojson_data has accepted it, so it builds without GeometryError.
+            from_geojson(geojson_data).apply_to(instance)
         if commit:
             instance.save()
-        
+            self.save_m2m()
         return instance

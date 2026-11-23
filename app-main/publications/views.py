@@ -1963,6 +1963,7 @@ class AddFeatureByMapView(PublicationPermissionMixin, FormView):
             # Create feature object but don't save yet
             feature = form.save(commit=False)
             feature.created_by = self.request.user
+            feature.modified_by = self.request.user
 
             # Process geometry from the correct hidden field
             geojson_data = self.request.POST.get('geojson_data', '')
