@@ -14,7 +14,15 @@
  * The drawing lives in its own L.FeatureGroup, `editLayer`, above `featureLayer` (other
  * features shown for orientation, not editable). The field's value at start (the stored
  * geometry, a FeatureCollection of MultiPoint / MultiLineString / MultiPolygon) is split into
- * single markers, lines and polygons, so each part can be moved, reshaped or deleted.
+ * single markers, lines and polygons (FindArtekMap.singleGeometries), one layer each, so each
+ * part can be moved, reshaped or deleted on its own. They are added polygons first, then lines
+ * (FindArtekMap.inDrawOrder; T17), so a line on a polygon is above its fill and clickable;
+ * raiseEditLayer() puts the drawing above the report's other features after they are loaded.
+ *
+ * Joining back: Leaflet's toGeoJSON gives a FeatureCollection with one Feature per layer
+ * (Point, LineString, Polygon); the server (publications.geometry.from_geojson) collects them
+ * into the MultiPoint / MultiLineString / MultiPolygon columns. The drawing order keeps the
+ * order within each kind, so an unchanged drawing compares equal (same_geometry).
  *
  * The field gets the drawing as a GeoJSON FeatureCollection in WGS84 (lon/lat, coordinates
  * not rounded) after each created / edited / deleted event, and from syncEditInput() (the
@@ -26,6 +34,8 @@
  *   editLayer             L.FeatureGroup with the drawn layers
  *   drawControl           the L.Control.Draw (marker, polyline, polygon; edit, delete)
  *   syncEditInput()       write the drawing to the field if anything was touched
+ *   raiseEditLayer()      bring the drawing above the other features (T17)
+ *   FindArtekMap.singleGeometries(geojson), FindArtekMap.inDrawOrder(geometries)  pure helpers
  *   editCounts()          {points, lines, polygons} in the drawing
  * The map fires 'findartek:editchange' with {counts} after the field was written.
  */
@@ -47,42 +57,75 @@
         return L.GeoJSON.coordsToLatLngs(rings, 1);
     }
 
-    // Single editable layers (marker, polyline, polygon) of one GeoJSON geometry.
-    function layersOfGeometry(geometry) {
-        var coords = geometry && geometry.coordinates;
-        switch (geometry && geometry.type) {
+    var SINGLE_TYPE = {MultiPoint: 'Point', MultiLineString: 'LineString', MultiPolygon: 'Polygon'};
+    // Bottom to top (plan "features" T17): polygons first, so a line or point on a polygon
+    // is drawn above its fill and can still be clicked (delete mode, edit mode).
+    var DRAW_RANK = {Polygon: 0, LineString: 1, Point: 2};
+
+    // GeoJSON (FeatureCollection, Feature, geometry, GeometryCollection) -> array of single
+    // GeoJSON geometries (Point, LineString, Polygon), multi-geometries split, in input order.
+    // Pure (no Leaflet): FindArtekMap.singleGeometries. Unknown types are logged and skipped.
+    function singleGeometries(data) {
+        if (!data) {
+            return [];
+        }
+        switch (data.type) {
+        case 'FeatureCollection':
+            return (data.features || []).reduce(function (all, feature) {
+                return all.concat(singleGeometries(feature));
+            }, []);
+        case 'Feature':
+            return singleGeometries(data.geometry);
+        case 'GeometryCollection':
+            return (data.geometries || []).reduce(function (all, geometry) {
+                return all.concat(singleGeometries(geometry));
+            }, []);
         case 'Point':
-            return [L.marker(L.GeoJSON.coordsToLatLng(coords))];
-        case 'MultiPoint':
-            return coords.map(function (c) { return L.marker(L.GeoJSON.coordsToLatLng(c)); });
         case 'LineString':
-            return [L.polyline(lineLatLngs(coords), EDIT_STYLE)];
-        case 'MultiLineString':
-            return coords.map(function (c) { return L.polyline(lineLatLngs(c), EDIT_STYLE); });
         case 'Polygon':
-            return [L.polygon(polygonLatLngs(coords), EDIT_STYLE)];
+            return [{type: data.type, coordinates: data.coordinates}];
+        case 'MultiPoint':
+        case 'MultiLineString':
         case 'MultiPolygon':
-            return coords.map(function (c) { return L.polygon(polygonLatLngs(c), EDIT_STYLE); });
+            return (data.coordinates || []).map(function (coordinates) {
+                return {type: SINGLE_TYPE[data.type], coordinates: coordinates};
+            });
         default:
-            console.error('find-artek-map-edit: geometry type not editable', geometry);
+            console.error('find-artek-map-edit: geometry type not editable', data);
             return [];
         }
     }
 
-    function layersOfGeoJSON(data) {
-        if (!data) {
-            return [];
-        }
-        if (data.type === 'FeatureCollection') {
-            return (data.features || []).reduce(function (all, feature) {
-                return all.concat(layersOfGeoJSON(feature));
-            }, []);
-        }
-        if (data.type === 'Feature') {
-            return data.geometry ? layersOfGeometry(data.geometry) : [];
-        }
-        return layersOfGeometry(data);
+    // The single geometries in drawing order (DRAW_RANK). Stable: each kind keeps its order,
+    // so an untouched MultiLineString etc. is saved with its parts in the same order.
+    function inDrawOrder(geometries) {
+        return geometries
+            .map(function (geometry, index) { return {geometry: geometry, index: index}; })
+            .sort(function (a, b) {
+                return (DRAW_RANK[a.geometry.type] - DRAW_RANK[b.geometry.type]) ||
+                    (a.index - b.index);
+            })
+            .map(function (item) { return item.geometry; });
     }
+
+    // One editable layer (marker, polyline, polygon) per single geometry.
+    function layerOfGeometry(geometry) {
+        switch (geometry.type) {
+        case 'Point':
+            return L.marker(L.GeoJSON.coordsToLatLng(geometry.coordinates));
+        case 'LineString':
+            return L.polyline(lineLatLngs(geometry.coordinates), EDIT_STYLE);
+        default:   // Polygon
+            return L.polygon(polygonLatLngs(geometry.coordinates), EDIT_STYLE);
+        }
+    }
+
+    function layersOfGeoJSON(data) {
+        return inDrawOrder(singleGeometries(data)).map(layerOfGeometry);
+    }
+
+    FindArtekMap.singleGeometries = singleGeometries;
+    FindArtekMap.inDrawOrder = inDrawOrder;
 
     function element(value) {
         return typeof value === 'string' ? document.getElementById(value) : (value || null);
@@ -168,6 +211,25 @@
         // false: no rounding (Leaflet rounds to 6 decimals by default).
         this.editInput.value = empty ? '' : JSON.stringify(this.editLayer.toGeoJSON(false));
         this.map.fire('findartek:editchange', {counts: this.editCounts()});
+    };
+
+    // Put the drawing above the other features of the report (loaded later, they would
+    // otherwise cover it and take its clicks); polygons first, so lines stay above polygon
+    // fills. Markers have their own pane above all paths.
+    FindArtekMap.prototype.raiseEditLayer = function () {
+        if (!this.editLayer) {
+            return;
+        }
+        var layers = this.editLayer.getLayers();
+        var polygons = layers.filter(function (layer) { return layer instanceof L.Polygon; });
+        var lines = layers.filter(function (layer) {
+            return layer instanceof L.Polyline && !(layer instanceof L.Polygon);
+        });
+        polygons.concat(lines).forEach(function (layer) {
+            if (layer._map) {
+                layer.bringToFront();
+            }
+        });
     };
 
     FindArtekMap.prototype.editCounts = function () {

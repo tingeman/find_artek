@@ -127,7 +127,7 @@ MAX_UPLOAD_SIZE_MB = 300
 # ({% versioned_static %}, publications/templatetags/static_version.py), so browsers load the
 # new file after a release instead of a cached old one. A constant, not an env variable: raise
 # it with each release that changes one of these scripts.
-STATIC_ASSET_VERSION = '2026.8-t16'
+STATIC_ASSET_VERSION = '2026.8-t17'
 
 # Token for the Danish map services (Dataforsyningen: satellite and topographic layers of
 # Greenland). Free from dataforsyningen.dk; meant for web maps, so it is visible in the page:

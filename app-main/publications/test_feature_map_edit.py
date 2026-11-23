@@ -42,6 +42,7 @@ APP_MAIN = Path(settings.BASE_DIR)
 POINT = {'type': 'Point', 'coordinates': [-50.5, 67.0]}
 POINT_2 = {'type': 'Point', 'coordinates': [-51.25, 66.75]}
 LINE = {'type': 'LineString', 'coordinates': [[-51.0, 67.0], [-52.0, 68.0], [-52.5, 68.2]]}
+LINE_2 = {'type': 'LineString', 'coordinates': [[-49.0, 66.0], [-48.0, 66.5]]}
 POLYGON = {'type': 'Polygon', 'coordinates': [[[-51.0, 67.0], [-50.0, 67.0], [-50.0, 68.0],
                                                [-51.0, 67.0]]]}
 # Edges cross (a bow tie).
@@ -300,6 +301,85 @@ class EditFeatureByMapTests(FeatureMapTestBase):
         self.assertColumns(after, polys='MULTIPOLYGON')
         self.assertIsNone(after.lines)
         self.assertEqual(after.modified_by, self.editor)
+
+    # --- T17: the editor splits the stored multi-geometries into single layers and the form
+    # sends what is left as single geometries; the server joins them again.
+
+    def two_lines_and_polygon(self):
+        """A feature with a MultiLineString of 2 lines and a polygon, entered (not drawn on
+        the map), so a geometry change is visible in the source fields."""
+        feature = from_geojson(collection(LINE, LINE_2, POLYGON)).apply_to(
+            Feature(name='Two lines and a polygon', date=DAY, created_by=self.editor))
+        feature.save()
+        feature.publications.add(self.pub)
+        self.assertEqual(source_origin(feature), 'entered')
+        return Feature.objects.get(pk=feature.pk)
+
+    def test_one_line_removed_keeps_the_other_line_and_the_polygon(self):
+        feature = self.two_lines_and_polygon()
+        # As the editor writes it: polygons first, then lines (T17 drawing order).
+        response = self.post(feature, self.editor, collection(POLYGON, LINE_2))
+        self.assertEqual(response.status_code, 302)
+        after = Feature.objects.get(pk=feature.pk)
+        self.assertColumns(after, lines='MULTILINESTRING', polys='MULTIPOLYGON')
+        self.assertEqual(after.lines.coords, (tuple(map(tuple, LINE_2['coordinates'])),))
+        self.assertTrue(after.polys.equals_exact(feature.polys, 1e-9))
+        self.assertDrawnOnMap(after)   # geometry_changed: the source fields describe the map
+        self.assertNotEqual(after.source_geometry, feature.source_geometry)
+
+    def test_polygon_removed_keeps_both_lines(self):
+        feature = self.two_lines_and_polygon()
+        self.post(feature, self.editor, collection(LINE, LINE_2))
+        after = Feature.objects.get(pk=feature.pk)
+        self.assertColumns(after, lines='MULTILINESTRING')
+        self.assertIsNone(after.polys)
+        self.assertTrue(after.lines.equals_exact(feature.lines, 1e-9))
+        self.assertDrawnOnMap(after)
+
+    def test_split_geometries_joined_again_equal_the_original(self):
+        feature = self.two_lines_and_polygon()
+        cases = {
+            # Opened in the editor, a mode entered and left without changes: single
+            # geometries in the drawing order (polygons first), or in the stored order.
+            'drawing order': collection(POLYGON, LINE, LINE_2),
+            'stored order': collection(LINE, LINE_2, POLYGON),
+            # Float noise below the 1e-9 degree tolerance (T5 rule).
+            'within tolerance': collection(
+                {'type': 'LineString', 'coordinates': [[x + 1e-12, y] for x, y in
+                                                       LINE['coordinates']]},
+                LINE_2, POLYGON),
+        }
+        for name, geojson in cases.items():
+            with self.subTest(case=name):
+                form_response = self.post(feature, self.editor, geojson, name=name)
+                self.assertEqual(form_response.status_code, 302)
+                after = Feature.objects.get(pk=feature.pk)
+                self.assertEqual(after.name, name)
+                self.assertEqual(after.source_geometry, feature.source_geometry)
+                self.assertEqual(after.transform_note, feature.transform_note)
+                self.assertEqual(after.source_srid, feature.source_srid)
+                self.assertEqual(source_origin(after), 'entered')
+                self.assertEqual(after.lines.coords, feature.lines.coords)
+                self.assertEqual(after.polys.coords, feature.polys.coords)
+
+    def test_lines_in_another_order_count_as_changed(self):
+        # The order of the parts is part of the stored geometry; the editor keeps it.
+        feature = self.two_lines_and_polygon()
+        self.post(feature, self.editor, collection(LINE_2, LINE, POLYGON))
+        self.assertDrawnOnMap(Feature.objects.get(pk=feature.pk))
+
+    def test_everything_deleted_is_the_nothing_drawn_error(self):
+        # The editor empties the field when the last shape is deleted ("Clear all" too).
+        feature = self.two_lines_and_polygon()
+        response = self.post(feature, self.editor, '', name='Renamed')
+        self.assertEqual(response.status_code, 200)
+        errors = response.context['form'].errors['geojson_data']
+        self.assertTrue(any('Nothing drawn on the map' in error for error in errors), errors)
+        after = Feature.objects.get(pk=feature.pk)
+        self.assertEqual(after.name, feature.name)
+        self.assertEqual(after.source_geometry, feature.source_geometry)
+        self.assertTrue(after.lines.equals_exact(feature.lines, 0))
+        self.assertTrue(after.polys.equals_exact(feature.polys, 0))
 
     def test_bad_geometry_changes_nothing(self):
         before = Feature.objects.get(pk=self.gnss.pk)
@@ -600,6 +680,16 @@ class FeatureMapStaticTests(FeatureMapTestBase):
             self.assertIn(needle, source)
         for needle in ('marker:', 'polyline:', 'polygon:'):
             self.assertIn(needle, source)
+        # T17: one layer per single geometry, polygons below lines below points, and the
+        # drawing raised above the report's other features once they are loaded.
+        for needle in ('FindArtekMap.singleGeometries = singleGeometries',
+                       "case 'MultiLineString':", "case 'GeometryCollection':",
+                       'DRAW_RANK = {Polygon: 0, LineString: 1, Point: 2}',
+                       'FindArtekMap.prototype.raiseEditLayer = function'):
+            self.assertIn(needle, source)
+        form_script = Path(finders.find('publications/js/feature-map-form.js')).read_text(
+            encoding='utf-8')
+        self.assertIn('findArtekMap.raiseEditLayer()', form_script)
 
     def test_feature_map_selector_is_gone(self):
         self.assertIsNone(finders.find('publications/js/feature-map-selector.js'))

@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const nothingDrawn = findArtekMap.editLayer &&
                     findArtekMap.editLayer.getLayers().length === 0;
                 findArtekMap.addFeatures(others, {fit: nothingDrawn});
+                // Keep the feature being edited clickable above the others (T17).
+                findArtekMap.raiseEditLayer();
             })
             .catch(function (error) {
                 console.error('Could not load the features of the report:', error);
