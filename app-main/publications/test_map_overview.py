@@ -69,13 +69,14 @@ class MapStylesTests(SimpleTestCase):
                 self.assertEqual(style['color'], FEATURE_TYPE_COLORS[style['value']])
 
     def test_colours(self):
-        # The colours my-map-class.js and the report legend used before T11, as hex; T16
-        # (deliberate change) replaced the three that were hard to see on white: BOREHOLE
-        # yellow, LAB MEASUREMENT pink and OTHER white (test_map_styles.py checks contrast).
+        # The colours my-map-class.js and the report legend used before T11, as hex. T16
+        # replaced BOREHOLE yellow, LAB MEASUREMENT pink and OTHER white; T19 (deliberate
+        # change, owner decision) brought them back: point markers have a black border instead
+        # (test_map_styles.py).
         self.assertEqual(FEATURE_TYPE_COLORS, {
-            'PHOTO': '#ff0000', 'SAMPLE': '#008000', 'BOREHOLE': '#b8860b',
+            'PHOTO': '#ff0000', 'SAMPLE': '#008000', 'BOREHOLE': '#ffff00',
             'GEOPHYSICAL DATA': '#0000ff', 'FIELD MEASUREMENT': '#800080',
-            'LAB MEASUREMENT': '#d6337f', 'RESOURCE': '#a52a2a', 'OTHER': '#00838f'})
+            'LAB MEASUREMENT': '#ffc0cb', 'RESOURCE': '#a52a2a', 'OTHER': '#ffffff'})
 
     def test_slugs(self):
         self.assertEqual(feature_type_slug('GEOPHYSICAL DATA'), 'geophysical-data')

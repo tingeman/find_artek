@@ -28,12 +28,15 @@
     margin: 0 6px 0 0;
 }
 
+/* Like a point marker on the map (find-artek-map.js, T19): a small circle in the type colour
+   with a black border, so the white OTHER swatch shows too. */
 .fa-map-legend-swatch {
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    border: 1px solid #000;
+    box-sizing: border-box;
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    border: 1.5px solid #000000;
     border-radius: 50%;
     margin-right: 8px;
 }

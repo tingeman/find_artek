@@ -12,22 +12,21 @@ lat/lng/zoom. No ``types`` parameter = every type shown; ``types=`` (empty) = no
 from publications.models import Feature
 
 # Colour per Feature.type value. Every type in Feature.feature_types needs an entry
-# (test_map_overview.py checks it). Hex values (#rrggbb), so the tests can check them: every
-# colour must stand out on white and on the light map layers (contrast ratio against white at
-# least 3:1, test_map_styles.py) and differ clearly from the others. Points get a black outline
-# on the map, lines are drawn in the colour itself.
-# T16 (owner's browser check): 'white' (OTHER) was invisible on white, 'yellow' (BOREHOLE) and
-# 'pink' (LAB MEASUREMENT) nearly so; they became teal, dark goldenrod and deep pink. The other
-# colours are the old CSS names written as hex.
+# (test_map_overview.py checks it). Hex values (#rrggbb), so the tests can compare them.
+# T19 (owner decision after the T16 recheck): the colours from before T16 again, OTHER white,
+# BOREHOLE yellow and LAB MEASUREMENT pink included. Light colours stay visible because every
+# point marker has a black border (find-artek-map.js, the legend swatches in
+# css/map-legend.css). Lines and polygons are drawn in the colour itself; the white OTHER
+# lines and polygon outlines get a thin black casing underneath (find-artek-map.js).
 FEATURE_TYPE_COLORS = {
     Feature.PHOTO: '#ff0000',               # red
     Feature.SAMPLE: '#008000',              # green
-    Feature.BOREHOLE: '#b8860b',            # dark goldenrod (was yellow)
+    Feature.BOREHOLE: '#ffff00',            # yellow
     Feature.GEOPHYSICAL_DATA: '#0000ff',    # blue
     Feature.FIELD_MEASUREMENT: '#800080',   # purple
-    Feature.LAB_MEASUREMENT: '#d6337f',     # deep pink (was pink)
+    Feature.LAB_MEASUREMENT: '#ffc0cb',     # pink
     Feature.RESOURCE: '#a52a2a',            # brown
-    Feature.OTHER: '#00838f',               # teal (was white)
+    Feature.OTHER: '#ffffff',               # white
 }
 
 # Colour of a type that has no entry (shouldn't happen; the same value is in the JS).

@@ -17,6 +17,17 @@
  * background colour (white by default), which would hide the underlay. When the Arctic SDI
  * basemap itself is chosen, the underlay is removed, so it is never on the map twice.
  *
+ * Topographic map over the underlay (T19): the topographic WMS (gl_aabent_land) returns opaque
+ * white around Greenland despite TRANSPARENT=TRUE, which hid the underlay there. Its layer gets
+ * the class BLEND_UNDERLAY_CLASS, and css/find-artek-map.css gives that layer
+ * `mix-blend-mode: multiply`: white x underlay = underlay, so the white areas show the Arctic
+ * basemap. This works because all tile layers are in Leaflet's tile pane, which is positioned
+ * with a z-index and therefore its own stacking context, i.e. an isolated blending group: the
+ * topographic layer blends only with what the tile pane has drawn below it (the underlay),
+ * never with the map background or the page. Overlays (above) and the features (other panes)
+ * are not blended. Satellite and Sentinel-2 have no class and are drawn normally; with the
+ * Arctic SDI basemap chosen there is no underlay and no topographic layer, so nothing changes.
+ *
  * To add another provider, add an entry to BASE_LAYERS or OVERLAYS:
  * {id, name, needsToken, create(options) -> L.Layer}. Entries with needsToken are left out
  * (and nothing is requested from them) when the page has no token. The first available base
@@ -54,6 +65,10 @@
     var OVERLAY_Z_INDEX = 10;
     var ARCTIC_SDI_ID = 'arctic-sdi';
 
+    // Class of a base layer whose white areas let the underlay show through (T19, see above;
+    // the rule is in css/find-artek-map.css). Only the topographic map has it.
+    var BLEND_UNDERLAY_CLASS = 'fa-blend-underlay';
+
     var SATELLITE_WMS = 'https://api.dataforsyningen.dk/wms/gl_satellitfoto';
     var TOPO_WMS = 'https://api.dataforsyningen.dk/wms/gl_aabent_land';
     var DATAFORSYNINGEN_ATTRIBUTION =
@@ -64,7 +79,9 @@
     var ARCTIC_SDI_MAX_NATIVE_ZOOM = 10;
 
     // `overlay`: false for a base layer, true for an overlay (drawn above the base layer).
-    function dataforsyningenWms(url, layerName, overlay) {
+    // `className`: CSS class of the layer's container (Leaflet's GridLayer option, not sent to
+    // the WMS server); '' or left out for none.
+    function dataforsyningenWms(url, layerName, overlay, className) {
         return function (options) {
             return L.tileLayer.wms(url, {
                 layers: layerName,
@@ -79,6 +96,7 @@
                 maxZoom: options.maxZoom,
                 attribution: DATAFORSYNINGEN_ATTRIBUTION,
                 zIndex: overlay ? OVERLAY_Z_INDEX : BASE_Z_INDEX,
+                className: className || '',
                 // Unknown options become WMS query parameters: `token=<value>`.
                 token: options.token,
             });
@@ -101,7 +119,7 @@
     // Base layers; the first available one is the default.
     var BASE_LAYERS = [
         {id: 'topographic', name: 'Topographic map (Dataforsyningen)', needsToken: true,
-         create: dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false)},
+         create: dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, BLEND_UNDERLAY_CLASS)},
         {id: 'satellite', name: 'Satellite (Dataforsyningen)', needsToken: true,
          create: dataforsyningenWms(SATELLITE_WMS, 'ortofoto', false)},
         {id: 'sentinel2-2022', name: 'Sentinel-2 2022 (Dataforsyningen)', needsToken: true,
@@ -207,6 +225,7 @@
     window.FindArtekMapLayers = {
         STORAGE_KEY: STORAGE_KEY,
         ARCTIC_SDI_ID: ARCTIC_SDI_ID,
+        BLEND_UNDERLAY_CLASS: BLEND_UNDERLAY_CLASS,
         NO_TOKEN_NOTE: NO_TOKEN_NOTE,
         BASE_LAYERS: BASE_LAYERS,
         OVERLAYS: OVERLAYS,

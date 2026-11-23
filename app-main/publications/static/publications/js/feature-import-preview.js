@@ -25,26 +25,23 @@ document.addEventListener('DOMContentLoaded', function () {
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    L.geoJSON(data, {
-        pointToLayer: function (feature, latlng) {
-            return L.circleMarker(latlng, {
-                radius: 7, fillColor: FindArtekMap.colorForType(feature.properties.type),
-                color: '#000', weight: 1, opacity: 1, fillOpacity: 0.8,
-            });
-        },
-        style: function (feature) {
-            return {color: FindArtekMap.colorForType(feature.properties.type), weight: 2,
-                    opacity: 1};
-        },
-        onEachFeature: function (feature, layer) {
-            const p = feature.properties || {};
-            layer.bindPopup(
-                '<b>Feature#:</b> ' + escapeHtml(p.feature_no) + '<br>' +
-                '<b>Name:</b> ' + escapeHtml(p.name) + '<br>' +
-                '<b>Type:</b> ' + escapeHtml(p.type) + '<br>' +
-                '<b>Report:</b> ' + escapeHtml(p.report) +
-                (p.warning ? '<br><i>Has a warning (see the list)</i>' : ''));
-        },
+    // The same marker and line style as the other maps (T19: small points, black border).
+    const options = FindArtekMap.geoJsonStyle(function (feature) {
+        return FindArtekMap.colorForType((feature.properties || {}).type);
+    });
+    options.onEachFeature = function (feature, layer) {
+        const p = feature.properties || {};
+        layer.bindPopup(
+            '<b>Feature#:</b> ' + escapeHtml(p.feature_no) + '<br>' +
+            '<b>Name:</b> ' + escapeHtml(p.name) + '<br>' +
+            '<b>Type:</b> ' + escapeHtml(p.type) + '<br>' +
+            '<b>Report:</b> ' + escapeHtml(p.report) +
+            (p.warning ? '<br><i>Has a warning (see the list)</i>' : ''));
+    };
+    // White OTHER lines and polygons get the black casing underneath, as on the other maps.
+    FindArtekMap.casingLayer(data, function (feature) {
+        return (feature.properties || {}).type === FindArtekMap.CASED_TYPE;
     }).addTo(findArtekMap.featureLayer);
+    L.geoJSON(data, options).addTo(findArtekMap.featureLayer);
     findArtekMap.fitToFeatures();
 });

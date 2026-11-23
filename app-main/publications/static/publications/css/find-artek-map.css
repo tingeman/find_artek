@@ -13,3 +13,15 @@
     border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 0.25rem;
 }
+
+/*
+ * T19: the topographic base layer (find-artek-map-layers.js, class fa-blend-underlay) is
+ * multiplied with the Arctic SDI underlay below it, so its opaque white areas around Greenland
+ * show the underlay (white x colour = colour). The tile pane is a stacking context (positioned,
+ * z-index in leaflet.css), so the blend only sees the tile layers below it in that pane, never
+ * the map's background colour or the page. Satellite, Sentinel-2 and the overlays are drawn
+ * normally.
+ */
+.leaflet-layer.fa-blend-underlay {
+    mix-blend-mode: multiply;
+}

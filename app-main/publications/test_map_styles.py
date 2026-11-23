@@ -1,9 +1,16 @@
-"""Map readability fixes from the owner's browser check (plan "features" T16).
+"""Map readability fixes from the owner's browser checks (plan "features" T16, T19).
 
-- Feature type colours (publications/map_styles.py): every type has a #rrggbb colour that
-  stands out on white (contrast ratio against white at least 3:1, WCAG 2.x formula) and the
-  colours differ clearly from each other (CIE76 distance in Lab). The legend shows them as they
-  are; the JS fallback colour for unknown types is the Python one.
+- Feature type colours (publications/map_styles.py): the colours from before T16 (T19, owner
+  decision; white OTHER, yellow BOREHOLE, pink LAB MEASUREMENT included), #rrggbb, clearly
+  different from each other (CIE76 distance in Lab). The JS fallback colour for unknown types
+  is the Python one.
+- Point markers (find-artek-map.js, T19): small circles with a black border for every type, so
+  white and other light colours show on white; the import preview uses the same style; the
+  legend swatches are circles of about the same size with the same black border.
+- Lines and polygon outlines of type OTHER (white) have a thin black casing underneath (T19).
+- Topographic map (find-artek-map-layers.js, css/find-artek-map.css, T19): blended with
+  `mix-blend-mode: multiply`, so its opaque white areas show the Arctic SDI underlay; the other
+  base layers are not blended.
 - The Arctic SDI basemap lies under every other base layer (find-artek-map-layers.js): its own
   layer object, not in the layer control, below the base layers, removed when Arctic SDI is
   itself chosen. The Dataforsyningen WMS layers are requested transparent, so the underlay
@@ -16,6 +23,7 @@ the browser is checked by hand. Everything is made up factory data.
 """
 import itertools
 import re
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
@@ -32,10 +40,15 @@ COMPONENT = 'publications/js/map/find-artek-map.js'
 LAYERS = 'publications/js/map/find-artek-map-layers.js'
 MAP_CSS = 'publications/css/find-artek-map.css'
 LEAFLET_CSS = 'publications/vendor/leaflet-1.9.4/leaflet.css'
+LEAFLET_JS = 'publications/vendor/leaflet-1.9.4/leaflet.js'
+PREVIEW = 'publications/js/feature-import-preview.js'
+EDIT = 'publications/js/map/find-artek-map-edit.js'
+LEGEND_CSS = 'publications/css/map-legend.css'
+JS_DIR = 'publications/js'
 
 HEX_COLOR = re.compile(r'^#[0-9a-f]{6}$')
-MIN_CONTRAST_ON_WHITE = 3.0     # WCAG 2.x minimum for graphical objects
 MIN_DISTANCE = 25.0             # CIE76; about 2.3 is "just noticeable"
+OLD_POINT_RADIUS = 8            # before T19 (owner: "quite big")
 SWATCH = re.compile(r'class="fa-map-legend-swatch" style="background-color: ([^;"]+);"')
 
 
@@ -63,10 +76,6 @@ def relative_luminance(color):
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def contrast_on_white(color):
-    return 1.05 / (relative_luminance(color) + 0.05)
-
-
 def lab(color):
     """CIE L*a*b* (D65) of an sRGB colour."""
     r, g, b = linear_rgb(color)
@@ -84,12 +93,21 @@ def distance(first, second):
     return sum((a - b) ** 2 for a, b in zip(lab(first), lab(second))) ** 0.5
 
 
+def css_rule(css, selector):
+    """The declarations of the first rule for `selector` in `css`."""
+    rule = css[css.index(selector + ' {') + len(selector) + 2:]
+    return rule[:rule.index('}')]
+
+
+def js_number(code, name):
+    return float(re.search(rf'var {name} = ([\d.]+);', code)[1])
+
+
 class PaletteTests(SimpleTestCase):
 
     def test_helpers(self):
-        self.assertAlmostEqual(contrast_on_white('#ffffff'), 1.0)
-        self.assertAlmostEqual(contrast_on_white('#000000'), 21.0)
-        self.assertAlmostEqual(contrast_on_white('#767676'), 4.54, places=2)
+        self.assertAlmostEqual(relative_luminance('#ffffff'), 1.0)
+        self.assertAlmostEqual(relative_luminance('#000000'), 0.0)
         self.assertAlmostEqual(distance('#000000', '#ffffff'), 100.0, places=1)
 
     def test_every_type_has_a_hex_colour(self):
@@ -99,19 +117,12 @@ class PaletteTests(SimpleTestCase):
                 self.assertRegex(color, HEX_COLOR)
         self.assertRegex(UNKNOWN_TYPE_COLOR, HEX_COLOR)
 
-    def test_every_colour_stands_out_on_white(self):
-        for value, color in FEATURE_TYPE_COLORS.items():
-            with self.subTest(type=value, color=color):
-                self.assertGreaterEqual(contrast_on_white(color), MIN_CONTRAST_ON_WHITE)
-
-    def test_the_old_colours_would_fail(self):
-        # The check catches what the owner saw: white, yellow and pink on a white map.
-        for color in ('#ffffff', '#ffff00', '#ffc0cb'):
-            with self.subTest(color=color):
-                self.assertLess(contrast_on_white(color), MIN_CONTRAST_ON_WHITE)
-
-    def test_other_is_not_white(self):
-        self.assertNotIn(FEATURE_TYPE_COLORS[Feature.OTHER], ('#ffffff', 'white'))
+    def test_the_light_colours_from_before_t16(self):
+        # T19 (deliberate change of the T16 tests, owner decision): white, yellow and pink are
+        # back; the black marker border keeps them visible (PointMarkerTests).
+        self.assertEqual(FEATURE_TYPE_COLORS[Feature.OTHER], '#ffffff')
+        self.assertEqual(FEATURE_TYPE_COLORS[Feature.BOREHOLE], '#ffff00')
+        self.assertEqual(FEATURE_TYPE_COLORS[Feature.LAB_MEASUREMENT], '#ffc0cb')
 
     def test_colours_are_distinct(self):
         colors = list(FEATURE_TYPE_COLORS.items()) + [('unknown', UNKNOWN_TYPE_COLOR)]
@@ -123,23 +134,136 @@ class PaletteTests(SimpleTestCase):
         self.assertIn(f"var UNKNOWN_TYPE_COLOR = '{UNKNOWN_TYPE_COLOR}';",
                       read_static(COMPONENT))
 
-    def test_points_keep_a_dark_outline(self):
-        # A light fill would still show its outline; the outline must not be white.
-        component = read_static(COMPONENT)
-        self.assertIn("radius: 8, fillColor: color, color: '#000', weight: 1,", component)
-        self.assertNotRegex(code_only(component).lower(), r"color: '(#fff|#ffffff|white)'")
+
+class PointMarkerTests(SimpleTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.code = code_only(read_static(COMPONENT))
+
+    def test_markers_are_smaller(self):
+        radius = js_number(self.code, 'POINT_RADIUS')
+        self.assertEqual(radius, 5)
+        self.assertLessEqual(radius, OLD_POINT_RADIUS * 2 / 3)
+        self.assertNotIn('radius: 8', self.code)
+
+    def test_every_marker_has_a_black_border(self):
+        self.assertIn("var POINT_BORDER_COLOR = '#000000';", self.code)
+        self.assertGreaterEqual(js_number(self.code, 'POINT_BORDER_WEIGHT'), 1)
+        self.assertIn('return {radius: POINT_RADIUS, fillColor: color, color: POINT_BORDER_COLOR,\n'
+                      '                weight: POINT_BORDER_WEIGHT, opacity: 1, '
+                      'fillOpacity: POINT_FILL_OPACITY};', self.code)
+        # No marker border in a light colour anywhere in the component.
+        self.assertNotRegex(self.code.lower(), r"color: '(#fff|#ffffff|white)'")
+
+    def test_style_keeps_the_point_style_for_points(self):
+        # L.geoJSON applies `style` to the circle markers too (after pointToLayer); before T19
+        # it returned the line style for everything, so the border took the type colour.
+        self.assertIn("return !!geometry && (geometry.type === 'Point' || "
+                      "geometry.type === 'MultiPoint');", self.code)
+        self.assertIn('return isPointGeometry(feature && feature.geometry)\n'
+                      '                    ? pointStyle(color) : pathStyle(color);', self.code)
+        self.assertIn('return L.circleMarker(latlng, pointStyle(colorOf(feature)));', self.code)
+        self.assertIn('var options = geoJsonStyle(function () { return color; });', self.code)
+        self.assertIn('FindArtekMap.geoJsonStyle = geoJsonStyle;', self.code)
+
+    def test_lines_and_polygons_keep_the_type_colour(self):
+        self.assertIn('return {color: color, weight: PATH_WEIGHT, opacity: 1};', self.code)
+
+    def test_import_preview_uses_the_shared_style(self):
+        preview = code_only(read_static(PREVIEW))
+        self.assertIn('const options = FindArtekMap.geoJsonStyle(function (feature) {', preview)
+        self.assertIn('L.geoJSON(data, options)', preview)
+        self.assertNotIn('circleMarker', preview)
+        self.assertNotIn('radius:', preview)
+
+    def test_only_the_component_makes_circle_markers(self):
+        found = []
+        for path in sorted(Path(finders.find(JS_DIR)).rglob('*.js')):
+            count = code_only(path.read_text(encoding='utf-8')).count('L.circleMarker(')
+            if count:
+                found.append((path.name, count))
+        self.assertEqual(found, [('find-artek-map.js', 1)])
+
+
+class OtherCasingTests(SimpleTestCase):
+    """White OTHER lines and polygon outlines have a thin black casing underneath (T19)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.code = code_only(read_static(COMPONENT))
+
+    def test_cased_type_is_the_white_one(self):
+        self.assertIn(f"var CASED_TYPE = '{Feature.OTHER}';", self.code)
+        self.assertEqual(FEATURE_TYPE_COLORS[Feature.OTHER], '#ffffff')
+
+    def test_casing_is_black_wider_unfilled_and_not_clickable(self):
+        self.assertIn("var CASING_STYLE = {color: '#000000', weight: PATH_WEIGHT + 2, opacity: 1, "
+                      "fill: false};", self.code)
+        casing = self.code[self.code.index('function casingLayer(data, wanted) {'):]
+        casing = casing[:casing.index('\n    }\n')]
+        self.assertIn('interactive: false,', casing)
+        self.assertIn('style: function () { return CASING_STYLE; },', casing)
+        # No points; a bare geometry (API fields) or the wanted Features of a collection.
+        self.assertIn('if (isPointGeometry(geometry)) {', casing)
+        self.assertIn("var geometry = isFeature ? object.geometry : object;", casing)
+        self.assertIn('return !(isFeature && wanted) || wanted(object);', casing)
+
+    def test_casing_is_under_the_line_in_the_same_entry(self):
+        # One layer per geometry field: the type filter, recordsInView, fitting and the popup
+        # treat it like before; the casing comes first, so it is drawn underneath.
+        self.assertIn("if (kind !== 'points' && record.type === CASED_TYPE) {", self.code)
+        self.assertIn('layer = L.featureGroup([casingLayer(data), layer]);', self.code)
+        self.assertIn('layers.push(layer);', self.code)
+        self.assertEqual(self.code.count('casingLayer('), 2)   # definition, the one use
+
+    def test_casing_is_not_in_the_edit_layer(self):
+        # Edit mode draws only into editLayer from the form field; the casing lives in
+        # featureLayer with the other features, so it can't be edited or deleted.
+        edit = code_only(read_static(EDIT))
+        self.assertNotIn('casing', edit.lower())
+        self.assertNotIn('featureLayer', edit)
+
+    def test_import_preview_cases_only_other(self):
+        preview = code_only(read_static(PREVIEW))
+        self.assertIn('FindArtekMap.casingLayer(data, function (feature) {', preview)
+        self.assertIn('return (feature.properties || {}).type === FindArtekMap.CASED_TYPE;',
+                      preview)
+        self.assertLess(preview.index('FindArtekMap.casingLayer('),
+                        preview.index('L.geoJSON(data, options)'))
 
 
 class LegendTests(MapPagesTestBase):
 
-    def test_legend_swatches_have_the_new_colours(self):
+    def test_legend_swatches_have_the_type_colours(self):
         html = self.get(page_path('map'))
         legend = html[html.index('id="feature-type-filter"'):]
         legend = legend[:legend.index('</fieldset>')]
         swatches = SWATCH.findall(legend)
         self.assertEqual(swatches, [style['color'] for style in feature_type_styles()])
-        self.assertIn(FEATURE_TYPE_COLORS[Feature.OTHER], swatches)
-        self.assertNotIn('white', swatches)
+        self.assertIn('#ffffff', swatches)
+
+    def test_swatch_is_a_small_circle_with_a_black_border(self):
+        rule = css_rule(read_static(LEGEND_CSS), '.fa-map-legend-swatch')
+        self.assertIn('border-radius: 50%;', rule)
+        self.assertIn('box-sizing: border-box;', rule)
+        size = float(re.search(r'\bwidth: (\d+)px;', rule)[1])
+        self.assertIn(f'height: {size:g}px;', rule)
+        self.assertLess(size, 16)   # before T19
+        # About the size of a marker on the map (diameter plus border).
+        component = code_only(read_static(COMPONENT))
+        marker = (2 * js_number(component, 'POINT_RADIUS')
+                  + js_number(component, 'POINT_BORDER_WEIGHT'))
+        self.assertLessEqual(abs(size - marker), 1)
+
+    def test_swatch_border_is_the_marker_border(self):
+        rule = css_rule(read_static(LEGEND_CSS), '.fa-map-legend-swatch')
+        component = code_only(read_static(COMPONENT))
+        weight = js_number(component, 'POINT_BORDER_WEIGHT')
+        color = re.search(r"var POINT_BORDER_COLOR = '(#[0-9a-f]{6})';", component)[1]
+        self.assertIn(f'border: {weight:g}px solid {color};', rule)
 
 
 class UnderlayTests(SimpleTestCase):
@@ -195,7 +319,8 @@ class UnderlayTests(SimpleTestCase):
         self.assertIn("format: 'image/png',", self.code)
 
     def test_base_layers_are_marked_as_base_layers(self):
-        for call in ("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false)",
+        for call in ("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, "
+                     "BLEND_UNDERLAY_CLASS)",
                      "dataforsyningenWms(SATELLITE_WMS, 'ortofoto', false)",
                      "dataforsyningenWms(SATELLITE_WMS, 'sentinel2_10m_2022', false)",
                      "dataforsyningenWms(SATELLITE_WMS, 'stednavne', true)",
@@ -203,6 +328,51 @@ class UnderlayTests(SimpleTestCase):
                      "dataforsyningenWms(SATELLITE_WMS, 'utm_net', true)"):
             with self.subTest(call=call):
                 self.assertIn(call, self.code)
+
+
+class TopographicBlendTests(SimpleTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.code = code_only(read_static(LAYERS))
+        cls.css = read_static(MAP_CSS)
+
+    def test_only_the_topographic_layer_has_the_class(self):
+        self.assertIn("var BLEND_UNDERLAY_CLASS = 'fa-blend-underlay';", self.code)
+        self.assertIn("dataforsyningenWms(TOPO_WMS, 'gl_aabent_land', false, "
+                      "BLEND_UNDERLAY_CLASS)", self.code)
+        # var, topographic layer, export (name and value).
+        self.assertEqual(self.code.count('BLEND_UNDERLAY_CLASS'), 4)
+        for layer in ('ortofoto', 'sentinel2_10m_2022'):
+            with self.subTest(layer=layer):
+                self.assertIn(f"dataforsyningenWms(SATELLITE_WMS, '{layer}', false)}},",
+                              self.code)
+
+    def test_class_goes_to_the_layer_not_the_wms_request(self):
+        # className is a GridLayer option (default ''), so Leaflet puts it on the layer's
+        # container and doesn't send it as a WMS parameter.
+        self.assertIn('function dataforsyningenWms(url, layerName, overlay, className) {',
+                      self.code)
+        self.assertIn("className: className || '',", self.code)
+        leaflet = read_static(LEAFLET_JS)
+        self.assertIn('pane:"tilePane",className:""', leaflet)
+        self.assertIn('"leaflet-layer "+(this.options.className||"")', leaflet)
+
+    def test_css_multiplies_the_topographic_layer(self):
+        self.assertEqual(css_rule(self.css, '.leaflet-layer.fa-blend-underlay').strip(),
+                         'mix-blend-mode: multiply;')
+        self.assertEqual(self.css.count('mix-blend-mode:'), 1)
+
+    def test_blend_stays_inside_the_tile_pane(self):
+        # Every tile layer stays in Leaflet's tile pane (no `pane` option), and the tile pane is
+        # positioned with a z-index, i.e. a stacking context and an isolated blending group:
+        # the topographic layer blends only with the underlay below it, not with the map
+        # background or the page.
+        self.assertNotRegex(self.code, r'\bpane:')
+        leaflet_css = read_static(LEAFLET_CSS)
+        self.assertRegex(leaflet_css, r'\.leaflet-tile-pane\s*\{\s*z-index: 200;')
+        self.assertRegex(leaflet_css, r'\.leaflet-pane,[^{]*\{\s*position: absolute;')
 
 
 class MapCssTests(MapPagesTestBase):

@@ -53,6 +53,13 @@
  *                         from publications/map_styles.py, the single source shared with the
  *                         legend); every page with this map must include it (T11)
  *   FindArtekMap.colorForType(type)  the colour of one type (gray '#808080' when unknown)
+ *   FindArtekMap.geoJsonStyle(colorOf)  {pointToLayer, style} options for L.geoJSON: points
+ *                         as small circles in the type colour with a black border, lines and
+ *                         polygons in the type colour; colorOf(feature) -> colour (T19)
+ *   FindArtekMap.casingLayer(data, wanted)  thin black outline under the lines and polygon
+ *                         outlines of `data` (no points, no fill, not clickable); wanted(feature)
+ *                         picks the features of a FeatureCollection (T19)
+ *   FindArtekMap.CASED_TYPE  the feature type whose lines and polygons get the casing ('OTHER')
  *   FindArtekMap.reportUrl(id)  the report page URL of a report id
  *   FindArtekMap.addInitHook(fn)  fn(instance) runs for every new map, after the map and its
  *                         layers exist and before any feature is loaded
@@ -77,6 +84,20 @@
     // Class of the map element: border and background colour where no tile is drawn
     // (css/find-artek-map.css, loaded by every map page; T16).
     var MAP_CLASS = 'fa-map';
+
+    // Point markers (T19): circles in the type colour with a black border, for every type, so
+    // the white OTHER points show on white. Radius was 8 (owner: "quite big"). Lines and
+    // polygons are drawn in the type colour, without a border.
+    var POINT_RADIUS = 5;
+    var POINT_BORDER_COLOR = '#000000';
+    var POINT_BORDER_WEIGHT = 1.5;
+    var POINT_FILL_OPACITY = 0.8;
+    var PATH_WEIGHT = 2;
+    // Lines and polygon outlines of type OTHER are white (map_styles.py, T19): a black casing,
+    // 1 px wider on each side, lies under them so they show on white map areas. Only OTHER;
+    // the other types are drawn without it.
+    var CASED_TYPE = 'OTHER';
+    var CASING_STYLE = {color: '#000000', weight: PATH_WEIGHT + 2, opacity: 1, fill: false};
 
     // Feature type colours: the JSON block rendered by {% feature_type_colors_script %}
     // (publications/map_styles.py). Not repeated here, so map and legend can't disagree.
@@ -157,21 +178,62 @@
         }
     }
 
-    function geoJsonLayer(data, color, popup) {
-        return L.geoJSON(data, {
+    function pointStyle(color) {
+        return {radius: POINT_RADIUS, fillColor: color, color: POINT_BORDER_COLOR,
+                weight: POINT_BORDER_WEIGHT, opacity: 1, fillOpacity: POINT_FILL_OPACITY};
+    }
+
+    function pathStyle(color) {
+        return {color: color, weight: PATH_WEIGHT, opacity: 1};
+    }
+
+    function isPointGeometry(geometry) {
+        return !!geometry && (geometry.type === 'Point' || geometry.type === 'MultiPoint');
+    }
+
+    // Options for L.geoJSON; colorOf(feature) gives the colour. L.geoJSON applies `style` to
+    // every layer it makes, circle markers included, after pointToLayer (resetStyle), so the
+    // style must return the point style for points: before T19 it returned the line style for
+    // everything and the markers' black border was replaced by the type colour.
+    function geoJsonStyle(colorOf) {
+        return {
             pointToLayer: function (feature, latlng) {
-                return L.circleMarker(latlng, {
-                    radius: 8, fillColor: color, color: '#000', weight: 1,
-                    opacity: 1, fillOpacity: 0.8,
-                });
+                return L.circleMarker(latlng, pointStyle(colorOf(feature)));
             },
-            style: function () {
-                return {color: color, weight: 2, opacity: 1};
+            style: function (feature) {
+                var color = colorOf(feature);
+                return isPointGeometry(feature && feature.geometry)
+                    ? pointStyle(color) : pathStyle(color);
             },
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup(popup);
+        };
+    }
+
+    // The casing of the lines and polygons in `data` (T19): its own L.geoJSON, drawn before
+    // (under) the coloured layer. Not interactive, so clicks reach the line above it; points are
+    // left out. L.geoJSON calls `filter` with each Feature, or with the bare geometry when the
+    // data is a geometry (the API's points/lines/polys fields). wanted(feature): optional, for
+    // a FeatureCollection with mixed types (import preview).
+    function casingLayer(data, wanted) {
+        return L.geoJSON(data, {
+            filter: function (object) {
+                var isFeature = object.type === 'Feature';
+                var geometry = isFeature ? object.geometry : object;
+                if (isPointGeometry(geometry)) {
+                    return false;
+                }
+                return !(isFeature && wanted) || wanted(object);
             },
+            style: function () { return CASING_STYLE; },
+            interactive: false,
         });
+    }
+
+    function geoJsonLayer(data, color, popup) {
+        var options = geoJsonStyle(function () { return color; });
+        options.onEachFeature = function (feature, layer) {
+            layer.bindPopup(popup);
+        };
+        return L.geoJSON(data, options);
     }
 
     // Bounding box {minX, minY, maxX, maxY} of GeoJSON objects in projected coordinates, so
@@ -311,6 +373,9 @@
     FindArtekMap.MAX_ZOOM = MAX_ZOOM;
     FindArtekMap.polarCrs = polarCrs;
     FindArtekMap.geometryBox = geometryBox;
+    FindArtekMap.geoJsonStyle = geoJsonStyle;
+    FindArtekMap.casingLayer = casingLayer;
+    FindArtekMap.CASED_TYPE = CASED_TYPE;
 
     FindArtekMap.addInitHook = function (hook) {
         initHooks.push(hook);
@@ -390,7 +455,13 @@
                 var data = record[kind] ? parseGeometry(record[kind]) : null;
                 if (data) {
                     geometries.push(data);
-                    layers.push(geoJsonLayer(data, color, popup));
+                    var layer = geoJsonLayer(data, color, popup);
+                    if (kind !== 'points' && record.type === CASED_TYPE) {
+                        // One layer per geometry field, casing first (underneath): the
+                        // type filter, recordsInView and fitting handle it like any other.
+                        layer = L.featureGroup([casingLayer(data), layer]);
+                    }
+                    layers.push(layer);
                 }
             });
             var entry = {record: record, layers: layers,
