@@ -113,7 +113,7 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 - Deployment impact: none beyond T2.
 
 ### T4. Geometry module, edit permission and FA-R107
-- Files: `publications/geometry.py` (new), `permissions.py` (`EDIT_FEATURE`), `forms/feature.py` (remove dead path), views using it, `models.py` (`Feature.source_srid`, `source_geometry`, `transform_note`, `observation_date`, `epoch_date`), migration (adds nullable columns only, design note 8), `feature.html` (show the original coordinates).
+- Files: `publications/geometry.py` (new), `permissions.py` (`EDIT_FEATURE`), `forms/feature.py` (remove dead path), views using it, `models.py` (`Feature.source_srid`, `source_geometry`, `transform_note`, `observation_date`, `epoch_date`), migration (adds nullable columns only, design note 8), (showing the original coordinates on `feature.html` moved to T5, 2026-11-23).
 - Acceptance: new fields and migration as design note 8 (existing rows untouched, `makemigrations --check` clean afterwards); GeoJSON → geometries per kind; vertex lists → point/line/polygon; transform to 4326; validation messages; `EDIT_FEATURE` mixin action.
 - Tests: `epoch_date` with and without `observation_date`; existing features keep their geometry and get NULL in the new fields; unit tests for every geometry kind, closed/unclosed rings, too few vertices, SRIDs 4326/32622/3182, out-of-range; `EDIT_FEATURE` matrix (anonymous, dtu_user listed / not listed, artek_editor, superuser).
 - Validation: skill validate, `publications` tests.
@@ -121,7 +121,7 @@ From the exploration 2026-11-22 (code on `agent-fixes`, = `develop/main` + FA-R1
 
 ### T5. Digitize on the map: add and edit
 - Files: `views.py` (`AddFeatureByMapView` → add/edit view pair or one view with optional pk), `forms/feature.py`, `add_feature_by_map.html` (→ `feature_map_form.html`), `feature.html` (edit/delete links), `report.html` (three add buttons).
-- Acceptance: a geometry edit on the map clears `source_srid`/`source_geometry`/`transform_note`, an attribute-only edit keeps them; points, lines and polygons can be drawn, edited and deleted on the polar map; an existing feature loads its geometry for editing; `created_by` on add, `modified_by` always; Cancel returns to the report; only users with `ADD_FEATURE`/`EDIT_FEATURE` reach the views.
+- Acceptance: the feature page shows the original coordinates, SRID, observation date and transformation note (moved from T4); a geometry edit on the map clears `source_srid`/`source_geometry`/`transform_note`, an attribute-only edit keeps them; points, lines and polygons can be drawn, edited and deleted on the polar map; an existing feature loads its geometry for editing; `created_by` on add, `modified_by` always; Cancel returns to the report; only users with `ADD_FEATURE`/`EDIT_FEATURE` reach the views.
 - Tests: add with each geometry kind and a mix, read back via raw `ST_AsText` (as `test_feature_geometry.py`); edit replaces geometry and attributes; access matrix for add and edit (anonymous → login, other DTU user → 403, listed user, editor); `modified_by` set.
 - Validation: skill validate, `publications` tests; browser check (draw a line and a polygon in the dev stack, then delete the test feature).
 - Agent: implementer.
