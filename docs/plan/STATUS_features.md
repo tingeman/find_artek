@@ -5,7 +5,7 @@ Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `deve
 ## Now
 T2, T3, T4, T9 done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 
-**Paused 2026-11-23 before T6.** The T6 implementer run was stopped right after it started, at the owner's request ("I need to change plans"); it changed nothing (worktree `..ind_artek_agent-features` clean, `agent-features` at `82dce02` = T5). The owner has not yet said what changes. **Next session: ask the owner for the plan change first, update PLAN/STATUS, then continue** (the T6 brief from the plan is still valid if T6 stays). Remaining tasks: T6, T7, T8, T10, T11, one at a time in the worktree (they share views.py/urls.py/templates).
+**T6 running 2026-11-23** (implementer in the worktree; owner confirmed: no plan change, the pause was only an account switch). Then T7, T8, T10, T11, one at a time in the worktree (they share views.py/urls.py/templates).
 
 Dev stack: since 2026-11-23 it runs from the worktree `..\find_artek_agent-features` (owner's checkout stopped with `down`, no `-v`); built at T3, before the T4 merge, rebuilt after the T4/T9 merge; **migration 0006 applied to the dev DB 2026-11-23 with the owner's permission** (reversible with `migrate publications 0005`). To give the owner the stack back: `down` in the worktree, `up -d --build` in `find_artek_DEVELOP`.
 
