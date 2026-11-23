@@ -37,6 +37,7 @@ urlpatterns = [
     path('person/<int:pk>/merge/do/', PersonMergeDoView.as_view(), name='person_merge_do'),
     path('feature/<int:pk>/', views.FeatureView.as_view(), name='feature'),
     path('feature/<int:pk>/edit/', views.EditFeatureByMapView.as_view(), name='edit_feature_by_map'),
+    path('feature/<int:pk>/edit-coordinates/', views.EditFeatureCoordinatesView.as_view(), name='edit_feature_coordinates'),
     path('feature/<int:pk>/delete/', views.DeleteFeatureView.as_view(), name='delete_feature'),
     # path('login/', views.LoginView.as_view(), name='login'),
 

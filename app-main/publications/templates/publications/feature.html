@@ -23,6 +23,9 @@
     <div class="feature-actions">
         {% if can_edit_feature %}
         <a href="{% url 'publications:edit_feature_by_map' pk=feature.pk %}" class="btn btn-primary btn-sm" id="feature-edit-link"><i class="fas fa-map"></i> Edit on map</a>
+        {% if single_point %}
+        <a href="{% url 'publications:edit_feature_coordinates' pk=feature.pk %}" class="btn btn-primary btn-sm" id="feature-edit-coordinates-link"><i class="fas fa-crosshairs"></i> Edit coordinates</a>
+        {% endif %}
         {% endif %}
         {% if can_delete_feature %}
         <a href="{% url 'publications:delete_feature' pk=feature.pk %}" class="btn btn-danger btn-sm" id="feature-delete-link">Delete</a>

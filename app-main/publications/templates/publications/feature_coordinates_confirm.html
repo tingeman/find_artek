@@ -1,0 +1,56 @@
+{% extends base_template %}
+{% load i18n static %}
+{# Confirm step of the coordinate entry (plan "features" T6): warnings, nothing saved yet. #}
+{# All values are carried in hidden fields; "Save anyway" posts them with confirm_warnings=1. #}
+
+{% block title %}Check the coordinates{% endblock %}
+
+{% block headline %}Check the coordinates{% endblock %}
+
+{% block main-content %}
+
+<p>
+  {% if editing %}
+    Feature <a href="{% url 'publications:feature' pk=feature.pk %}">{{ feature.name|default:feature.pk }}</a>{% if return_report %}, report <a href="{% url 'publications:report' pk=return_report.pk %}">{{ return_report.number }}</a>{% endif %}
+  {% else %}
+    Report <a href="{% url 'publications:report' pk=publication.pk %}">{{ publication.number }}</a>: {{ publication.title }}
+  {% endif %}
+</p>
+
+<div class="alert alert-warning" id="coordinate-warnings">
+  <strong>The feature is not saved yet.</strong> Please check:
+  <ul class="mb-0">
+    {% for warning in form.coordinate_warnings %}<li>{{ warning }}</li>{% endfor %}
+  </ul>
+</div>
+
+<table class="table table-sm w-auto">
+  <tbody>
+    <tr><th>Name</th><td>{{ form.cleaned_data.name }}</td></tr>
+    <tr><th>Reference system</th><td>EPSG:{{ form.cleaned_data.spatial_reference_system }}</td></tr>
+    <tr><th>Easting / Longitude (x)</th><td>{{ form.cleaned_data.x_coordinate }}</td></tr>
+    <tr><th>Northing / Latitude (y)</th><td>{{ form.cleaned_data.y_coordinate }}</td></tr>
+    {% if form.wgs84_point %}
+    <tr><th>WGS84 (longitude, latitude)</th><td>{{ form.wgs84_point.x|floatformat:6 }}, {{ form.wgs84_point.y|floatformat:6 }}</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<form method="post" id="feature-coordinates-confirm">
+  {% csrf_token %}
+  {% if editing and return_report %}
+  <input type="hidden" name="report" value="{{ return_report.pk }}">
+  {% endif %}
+  {% for field in form %}{{ field.as_hidden }}
+  {% endfor %}
+  <button type="submit" name="confirm_warnings" value="1" class="btn btn-warning">
+    <i class="fa fa-save"></i> Save anyway
+  </button>
+  <button type="submit" name="back" value="1" class="btn btn-primary">
+    <i class="fa fa-edit"></i> Back to the form
+  </button>
+  <a href="{{ cancel_url }}" class="btn btn-outline-secondary" id="feature-cancel">
+    <i class="fa fa-times"></i> Cancel
+  </a>
+</form>
+{% endblock %}

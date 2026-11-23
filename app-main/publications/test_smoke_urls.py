@@ -139,6 +139,12 @@ SMOKE = {
                                              LOGIN, 403, 200),
     # Edit a feature on the map (features T5): edit_feature (Feature.is_editable_by).
     'publications:edit_feature_by_map': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),
+    # Edit by coordinates (features T6): edit_feature; the smoke feature has no point, so
+    # the editor is sent to the map edit.
+    'publications:edit_feature_coordinates': entry(
+        lambda t: {'pk': t.feature.pk}, LOGIN, 403,
+        Redirect(lambda t: reverse('publications:edit_feature_by_map',
+                                   kwargs={'pk': t.feature.pk}))),
     'publications:delete_feature': entry(lambda t: {'pk': t.feature.pk}, LOGIN, 403, 200),
     # POST only (GET is 405 for everyone, test_report_access).
     'publications:verify_report': entry(lambda t: {'pub_id': t.pub.pk}, LOGIN, 403,

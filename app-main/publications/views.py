@@ -26,6 +26,7 @@ from django.http import Http404, HttpResponse, JsonResponse, HttpResponseRedirec
 from django.shortcuts import get_object_or_404, render, redirect
 from django.template import RequestContext
 from django.template.loader import render_to_string
+from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -70,7 +71,7 @@ from publications.permissions import (
     ReportFormPermissionMixin, permission_required, user_may,
 )
 from publications.utils_basic import CaseInsensitively
-from publications.geometry import source_origin
+from publications.geometry import entered_point, single_point, source_origin
 from publications.visibility import visible_features, visible_publications
 from publications.utils_models import (
     handle_publication_file_upload, create_ordered_queryset, generate_next_report_number, 
@@ -1344,6 +1345,8 @@ class FeatureView(FeaturePermissionMixin, BaseDetailView):
             # Same rules as the edit and delete views (permissions.py).
             'can_edit_feature': user_may(user, EDIT_FEATURE, feature),
             'can_delete_feature': user_may(user, DELETE_FEATURE, feature),
+            # Coordinate edit only for one-point features (T6); others are edited on the map.
+            'single_point': single_point(feature) is not None,
         })
         return context
 
@@ -1868,85 +1871,162 @@ class ChangeReportNumberView(PublicationPermissionMixin, BaseFormView):
             return self.form_invalid(form)
 
 
-class AddFeatureCoordinatesView(PublicationPermissionMixin, BaseFormView):
-    """View for adding a point feature with known coordinates.
+class FeatureReturnReportMixin:
+    """The report an edit of ``self.feature`` returns to (plan "features" T5, T6).
 
-    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py)."""
+    ``report`` (query string on GET, hidden field on POST) names the report to return to; it
+    counts only if it is a report of this feature the user may see. Otherwise the feature's
+    first visible report, else the feature page."""
+
+    def return_report(self):
+        if not hasattr(self, '_return_report'):
+            reports = visible_publications(
+                self.feature.publications.all(), self.request.user).order_by('number', 'pk')
+            wanted = self.request.POST.get('report') or self.request.GET.get('report')
+            report = None
+            if wanted and str(wanted).isdigit():
+                report = reports.filter(pk=int(wanted)).first()
+            self._return_report = report or reports.first()
+        return self._return_report
+
+    def return_url(self):
+        report = self.return_report()
+        if report is not None:
+            return reverse('publications:report', kwargs={'pk': report.pk})
+        return reverse('publications:feature', kwargs={'pk': self.feature.pk})
+
+
+class FeatureCoordinatesFormMixin:
+    """Add or edit a one-point feature by its coordinates (plan "features" T6).
+
+    The form (``AddFeatureByCoordinatesForm``) builds and checks the point with
+    publications.geometry. Hard errors re-render the form. Warnings (outside Greenland,
+    values that look swapped, ...) lead to a confirm page that carries all values in hidden
+    fields: "Save anyway" posts them again with ``confirm_warnings=1`` and saves; "Back to the
+    form" (``back=1``) shows the form with the values. Nothing is saved before the
+    confirmation. The subclass gives ``created`` and ``finish(feature)``."""
     template_name = 'publications/add_feature_coordinates.html'
+    confirm_template_name = 'publications/feature_coordinates_confirm.html'
     form_class = AddFeatureByCoordinatesForm
-    permission = ADD_FEATURE
-    publication_url_kwarg = 'report_pk'
-
-    def get_publication(self):
-        """Get the publication this feature will be associated with"""
-        report_pk = self.kwargs.get('report_pk')
-        return get_object_or_404(Publication, pk=report_pk)
+    created = True
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['publication'] = self.get_publication()
+        context.update({
+            'editing': not self.created,
+            'srid_help_list': AddFeatureByCoordinatesForm.srid_help_list,
+            'cancel_url': self.cancel_url(),
+        })
         return context
 
     def form_valid(self, form):
-        """Process valid form and create the feature"""
-        try:
-            publication = self.get_publication()
-
-            # Create the feature instance
-            feature = form.save(commit=False)
+        if self.request.POST.get('back'):
+            return self.render_to_response(self.get_context_data(form=form))
+        if form.coordinate_warnings and self.request.POST.get('confirm_warnings') != '1':
+            return TemplateResponse(self.request, self.confirm_template_name,
+                                    self.get_context_data(form=form))
+        feature = form.save(commit=False)
+        if self.created:
             feature.created_by = self.request.user
-            feature.modified_by = self.request.user
+        feature.modified_by = self.request.user
+        feature.save()
+        form.save_m2m()
+        return self.finish(feature, form)
 
-            # Get coordinate data
-            x_coord = form.cleaned_data['x_coordinate']
-            y_coord = form.cleaned_data['y_coordinate']
-            srid = int(form.cleaned_data['spatial_reference_system'])
+    def warning_messages(self, form):
+        for warning in form.coordinate_warnings:
+            messages.warning(self.request, f'Saved with a warning: {warning}')
 
-            # Create the geometry and convert it to MultiPoint for storage (following the
-            # old system pattern)
-            point = Point(float(x_coord), float(y_coord), srid=srid)
-            # The field is WGS84. Transform here (GDAL): MariaDB has no ST_Transform, so
-            # Django's transform in SQL fails for any other SRID (FA-R101).
-            if srid != 4326:
-                point.transform(4326)
-            feature.points = MultiPoint(point, srid=4326)
 
-            feature.save()
-            feature.publications.add(publication)
+class AddFeatureCoordinatesView(PublicationPermissionMixin, FeatureCoordinatesFormMixin,
+                                BaseFormView):
+    """Add a point feature to a report by its coordinates.
 
-            messages.success(
-                self.request,
-                f'Feature "{feature.name}" has been successfully created and associated with '
-                f'publication {publication.number}.'
-            )
+    Needs ``add_feature`` on the report (add_feature and may edit it; permissions.py). The
+    mixin sets ``self.publication``. Back to the report after saving or cancelling."""
+    permission = ADD_FEATURE
+    publication_url_kwarg = 'report_pk'
+    created = True
 
-            # Check if coordinates seem reasonable and add informational message
-            if hasattr(form, 'coordinate_warnings') and form.coordinate_warnings:
-                messages.warning(
-                    self.request,
-                    'Please verify the feature location is correct. Some coordinate values '
-                    'generated warnings during validation.'
-                )
-            else:
-                messages.info(
-                    self.request,
-                    'Please verify that the geographical location of the feature is correct.'
-                )
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault('spatial_reference_system', '4326')
+        return initial
 
-            return redirect('publications:report', pk=publication.pk)
+    def cancel_url(self):
+        return reverse('publications:report', kwargs={'pk': self.publication.pk})
 
-        except Exception as e:
-            logger.exception("Adding a feature by coordinates to publication %s failed",
-                             self.kwargs.get('report_pk'))
-            messages.error(
-                self.request,
-                f'Error creating feature geometry: {str(e)}. Please check your coordinates and SRID.'
-            )
-            return self.form_invalid(form)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['publication'] = self.publication
+        return context
 
-    def get_success_url(self):
-        """Redirect to the publication detail page"""
-        return reverse('publications:report', kwargs={'pk': self.kwargs['report_pk']})
+    def finish(self, feature, form):
+        feature.publications.add(self.publication)
+        messages.success(self.request, f'Feature "{feature.name}" added to report '
+                                       f'{self.publication.number}.')
+        self.warning_messages(form)
+        return redirect('publications:report', pk=self.publication.pk)
+
+
+class EditFeatureCoordinatesView(FeaturePermissionMixin, FeatureReturnReportMixin,
+                                 FeatureCoordinatesFormMixin, BaseFormView):
+    """Edit a one-point feature by its coordinates (and its attributes).
+
+    Needs ``edit_feature`` (Feature.is_editable_by; permissions.py). Only for features that
+    hold exactly one point and no line or polygon (``geometry.single_point``); others are
+    redirected to the map edit. The form starts with the coordinates as entered
+    (``source_srid``/``source_geometry``), else EPSG:4326 from ``points``. Back to the report
+    named by ``report`` (FeatureReturnReportMixin)."""
+    permission = EDIT_FEATURE
+    created = False
+
+    def map_edit_redirect(self):
+        url = reverse('publications:edit_feature_by_map', kwargs={'pk': self.feature.pk})
+        report = self.return_report()
+        if report is not None:
+            url = f'{url}?report={report.pk}'
+        return HttpResponseRedirect(url)
+
+    def get(self, request, *args, **kwargs):
+        if single_point(self.feature) is None:
+            return self.map_edit_redirect()
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if single_point(self.feature) is None:
+            return self.map_edit_redirect()
+        return super().post(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        srid, x, y = entered_point(self.feature)
+        initial.update({'spatial_reference_system': str(srid), 'x_coordinate': x,
+                        'y_coordinate': y})
+        return initial
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.feature
+        return kwargs
+
+    def cancel_url(self):
+        return self.return_url()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'feature': self.feature, 'return_report': self.return_report()})
+        return context
+
+    def finish(self, feature, form):
+        if form.geometry_changed:
+            messages.success(self.request, f'Feature "{feature.name}" saved with the new '
+                                           'coordinates.')
+        else:
+            messages.success(self.request, f'Feature "{feature.name}" saved (coordinates '
+                                           'unchanged).')
+        self.warning_messages(form)
+        return HttpResponseRedirect(self.return_url())
 
 
 class FeatureMapFormMixin:
@@ -2011,31 +2091,13 @@ class AddFeatureByMapView(PublicationPermissionMixin, FeatureMapFormMixin, FormV
         return redirect('publications:report', pk=self.publication.pk)
 
 
-class EditFeatureByMapView(FeaturePermissionMixin, FeatureMapFormMixin, FormView):
+class EditFeatureByMapView(FeaturePermissionMixin, FeatureReturnReportMixin,
+                           FeatureMapFormMixin, FormView):
     """Edit a feature's attributes and geometry on the map.
 
-    Needs ``edit_feature`` (Feature.is_editable_by; permissions.py). ``report`` (query string
-    on GET, hidden field on POST) names the report to return to; it counts only if it is a
-    report of this feature the user may see. Otherwise the feature's first visible report,
-    else the feature page."""
+    Needs ``edit_feature`` (Feature.is_editable_by; permissions.py). The report to return to
+    comes from ``report`` (FeatureReturnReportMixin)."""
     permission = EDIT_FEATURE
-
-    def return_report(self):
-        if not hasattr(self, '_return_report'):
-            reports = visible_publications(
-                self.feature.publications.all(), self.request.user).order_by('number', 'pk')
-            wanted = self.request.POST.get('report') or self.request.GET.get('report')
-            report = None
-            if wanted and str(wanted).isdigit():
-                report = reports.filter(pk=int(wanted)).first()
-            self._return_report = report or reports.first()
-        return self._return_report
-
-    def return_url(self):
-        report = self.return_report()
-        if report is not None:
-            return reverse('publications:report', kwargs={'pk': report.pk})
-        return reverse('publications:feature', kwargs={'pk': self.feature.pk})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

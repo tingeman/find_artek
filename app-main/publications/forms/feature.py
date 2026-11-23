@@ -3,56 +3,95 @@
 from django import forms
 from django.forms import ModelForm
 from publications.geometry import (
-    GeometryError, feature_geojson, from_geojson, map_transform_note, same_geometry,
+    GeometryError, feature_geojson, from_geojson, from_vertices, map_transform_note,
+    parse_srid, plausibility_warnings, same_geometry,
 )
 from publications.models import Feature
 from django.core.exceptions import ValidationError
-from django.contrib.gis.gdal import SpatialReference
 
 from django.utils.translation import gettext_lazy as _
 import json
 
 
+# Help list of reference systems for Greenland (plan "features" T6). Any EPSG code PROJ
+# knows is accepted; these are offered in the field's datalist. EPSG numbers checked against
+# PROJ in the container (GDAL SpatialReference names) on 2026-11-23.
+GREENLAND_SRIDS = (
+    (4326, 'WGS84, longitude / latitude (degrees)'),
+    (4747, 'GR96, longitude / latitude (degrees)'),
+    *((3178 + i, f'GR96 / UTM zone {18 + i}N') for i in range(12)),       # EPSG:3178-3189
+    *((32618 + i, f'WGS84 / UTM zone {18 + i}N') for i in range(12)),     # EPSG:32618-32629
+    (3857, 'WGS84 / Web Mercator (pseudo-Mercator, metres)'),
+)
+
+DATE_INPUT_FORMATS = ['%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d']
+
+
+def _date_widget():
+    return forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'})
+
+
 class AddFeatureByCoordinatesForm(ModelForm):
-    """Form for adding a point feature with known coordinates"""
-    
-    # Coordinate fields
-    x_coordinate = forms.DecimalField(
-        max_digits=15, 
-        decimal_places=6,
-        help_text="X coordinate (Easting/Longitude)",
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'})
+    """Add or edit a one-point feature by its coordinates (plan "features" T6).
+
+    ``x_coordinate`` / ``y_coordinate`` in the CRS ``spatial_reference_system`` (any EPSG code
+    PROJ knows; ``GREENLAND_SRIDS`` is the help list). Axis order is always x = easting /
+    longitude, y = northing / latitude (publications.geometry). The point is built and
+    transformed to WGS84 with ``geometry.from_vertices``; its GeometryError (unknown EPSG,
+    coordinates that can't be transformed, latitude beyond 90 after the transform) is a form
+    error and blocks the save.
+
+    Problems that may be right (outside Greenland, values that look swapped, a UTM easting
+    outside the zone) are not errors: after ``is_valid()`` they are in
+    ``coordinate_warnings``, and the view asks for a confirmation before saving.
+
+    With an instance (edit), the view passes the coordinates as entered as ``initial``. If
+    x, y and the EPSG code are unchanged, the stored geometry and its source fields are kept
+    (attribute-only edit; ``geometry_changed`` False, no warnings). Otherwise ``save()``
+    replaces the geometry and ``source_srid``, ``source_geometry``, ``transform_note``
+    (``GeometryResult.apply_to``); ``lines``/``polys`` stay empty. The view sets
+    ``created_by`` / ``modified_by``.
+    """
+
+    x_coordinate = forms.FloatField(
+        label=_('Easting / Longitude (x)'),
+        help_text=_('UTM easting in metres, or longitude in decimal degrees (west is '
+                    'negative, e.g. -51.7).'),
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
     )
-    y_coordinate = forms.DecimalField(
-        max_digits=15, 
-        decimal_places=6,
-        help_text="Y coordinate (Northing/Latitude)",
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'})
+    y_coordinate = forms.FloatField(
+        label=_('Northing / Latitude (y)'),
+        help_text=_('UTM northing in metres, or latitude in decimal degrees (e.g. 64.2).'),
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
     )
-    
-    # SRID field with simple help text
     spatial_reference_system = forms.CharField(
-        max_length=10,
-        label="Spatial Reference System (SRID)",
-        help_text="Enter EPSG code (e.g., 4326, 32622).",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 4326'})
+        max_length=20,
+        label=_('Coordinate reference system (EPSG code)'),
+        help_text=_('Any EPSG code, e.g. 4326 (WGS84 lon/lat) or 32622 (WGS84 / UTM 22N); '
+                    'pick one from the list or type the code.'),
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 4326',
+                                      'list': 'srid-help-list', 'autocomplete': 'off'}),
     )
-    
-    # Date field with proper widget
     date = forms.DateField(
-        widget=forms.DateInput(
-            format='%Y-%m-%d',
-            attrs={'type': 'date', 'class': 'form-control'}
-        ),
-        input_formats=['%Y-%m-%d', '%Y/%m/%d', '%Y.%m.%d'],
-        required=True,
-        help_text="Date when the feature was observed/measured"
+        widget=_date_widget(), input_formats=DATE_INPUT_FORMATS, required=True,
+        help_text=_('Date when the feature was observed/measured'),
     )
+    observation_date = forms.DateField(
+        widget=_date_widget(), input_formats=DATE_INPUT_FORMATS, required=False,
+        label=_('GNSS observation date'),
+        help_text=_('GNSS observation date, basis for epoch calculations; empty = the feature '
+                    'date is used.'),
+    )
+
+    # The coordinate block of the template, in this order; the rest is "Feature details".
+    location_fields = ('x_coordinate', 'y_coordinate', 'spatial_reference_system',
+                       'pos_quality', 'observation_date')
+    srid_help_list = GREENLAND_SRIDS
 
     class Meta:
         model = Feature
-        fields = ['name', 'type', 'area', 'date', 'direction', 'description', 
-                 'comment', 'pos_quality']
+        fields = ['name', 'type', 'area', 'date', 'observation_date', 'direction',
+                  'description', 'comment', 'pos_quality']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Feature name'}),
             'type': forms.Select(attrs={'class': 'form-control'}),
@@ -63,141 +102,84 @@ class AddFeatureByCoordinatesForm(ModelForm):
             'pos_quality': forms.Select(attrs={'class': 'form-control'}),
         }
         help_texts = {
-            'name': 'Unique identifier or name for this feature',
-            'type': 'Type of feature being registered',
-            'area': 'General area or location description',
-            'direction': 'Direction or orientation if applicable',
-            'description': 'Detailed description of the feature',
-            'comment': 'Additional comments or notes',
-            'pos_quality': 'Quality/accuracy of the position measurement',
+            'name': _('Unique identifier or name for this feature'),
+            'type': _('Type of feature being registered'),
+            'area': _('General area or location description'),
+            'direction': _('Direction or orientation if applicable'),
+            'description': _('Detailed description of the feature'),
+            'comment': _('Additional comments or notes'),
+            'pos_quality': _('Quality/accuracy of the position measurement'),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Make required fields obvious
-        self.fields['name'].required = True
-        self.fields['type'].required = True
-        self.fields['pos_quality'].required = True
-        self.fields['date'].required = True
-        self.fields['x_coordinate'].required = True
-        self.fields['y_coordinate'].required = True
-        self.fields['spatial_reference_system'].required = True
-        
-        # Set better labels for coordinate fields
-        self.fields['x_coordinate'].label = "X Coordinate"
-        self.fields['y_coordinate'].label = "Y Coordinate"
+        for name in ('name', 'type', 'pos_quality', 'date'):
+            self.fields[name].required = True
+        self.geometry_result = None
+        self.geometry_changed = False
+        self.coordinate_warnings = ()
+
+    @property
+    def location_boundfields(self):
+        return [self[name] for name in self.location_fields]
+
+    @property
+    def detail_boundfields(self):
+        return [field for field in self.visible_fields()
+                if field.name not in self.location_fields]
 
     def clean_spatial_reference_system(self):
-        """Validate SRID"""
-        srid = self.cleaned_data.get('spatial_reference_system')
-        if not srid:
-            raise ValidationError('Spatial Reference System is required')
-        
         try:
-            srid_int = int(srid)
-            if srid_int <= 0:
-                raise ValidationError('SRID must be a positive integer')
-        except ValueError:
-            raise ValidationError('SRID must be a valid integer')
-            
-        # Check if SRID exists in spatial reference database
+            return parse_srid(self.cleaned_data.get('spatial_reference_system'))
+        except GeometryError as error:
+            raise ValidationError(str(error))
+
+    def _initial_coordinates(self):
+        """(srid, x, y) the edit form started with, or None (add, or not parseable)."""
+        if self.instance.pk is None:
+            return None
         try:
-            sr = SpatialReference(srid_int)
-            # If we get here, the SRID is valid
-        except Exception:
-            # Issue a warning but don't reject
-            self.add_error('spatial_reference_system', 
-                          f'Warning: SRID {srid_int} may not be recognized by the system. '
-                          f'Please verify this is correct.')
-        
-        return srid
-    
+            return (parse_srid(self.initial.get('spatial_reference_system')),
+                    float(self.initial.get('x_coordinate')),
+                    float(self.initial.get('y_coordinate')))
+        except (GeometryError, TypeError, ValueError):
+            return None
+
     def clean(self):
-        """Cross-field validation for coordinates"""
         cleaned_data = super().clean()
-        x_coord = cleaned_data.get('x_coordinate')
-        y_coord = cleaned_data.get('y_coordinate')
+        x = cleaned_data.get('x_coordinate')
+        y = cleaned_data.get('y_coordinate')
         srid = cleaned_data.get('spatial_reference_system')
-        date = cleaned_data.get('date')
-        name = cleaned_data.get('name')
-        pos_quality = cleaned_data.get('pos_quality')
-        
-        # Check that all required fields are provided
-        if not name:
-            self.add_error('name', 'Feature name is required')
-        
-        if not pos_quality:
-            self.add_error('pos_quality', 'Position quality is required')
-        
-        # Check that all coordinate fields are provided together
-        coordinate_fields = [x_coord, y_coord, srid]
-        has_any_coords = any(field is not None for field in coordinate_fields)
-        has_all_coords = all(field is not None for field in coordinate_fields)
-        
-        if has_any_coords and not has_all_coords:
-            if x_coord is None:
-                self.add_error('x_coordinate', 'X coordinate is required when providing coordinate information')
-            if y_coord is None:
-                self.add_error('y_coordinate', 'Y coordinate is required when providing coordinate information')
-            if srid is None:
-                self.add_error('spatial_reference_system', 'Spatial Reference System is required when providing coordinates')
-        
-        # All coordinate fields are required for this form
-        if not has_all_coords:
-            if x_coord is None:
-                self.add_error('x_coordinate', 'X coordinate is required')
-            if y_coord is None:
-                self.add_error('y_coordinate', 'Y coordinate is required')
-            if srid is None:
-                self.add_error('spatial_reference_system', 'Spatial Reference System is required')
-        
-        # Date field is required
-        if not date:
-            self.add_error('date', 'Date is required')
-        
-        # If we have all coordinate data, validate ranges
-        if x_coord is not None and y_coord is not None and srid:
-            try:
-                srid_int = int(srid)
-                
-                # Coordinate range validation based on coordinate system type
-                if srid_int == 4326:  # WGS84 Geographic
-                    if not (-180 <= x_coord <= 180):
-                        self.add_error('x_coordinate', 
-                                     f'Warning: Longitude {x_coord} is outside normal range (-180 to 180)')
-                    if not (-90 <= y_coord <= 90):
-                        self.add_error('y_coordinate', 
-                                     f'Warning: Latitude {y_coord} is outside normal range (-90 to 90)')
-                
-                elif 32600 <= srid_int <= 32700:  # UTM zones
-                    if not (0 <= x_coord <= 1000000):
-                        self.add_error('x_coordinate', 
-                                     f'Warning: UTM Easting {x_coord} seems outside normal range (0-1,000,000m)')
-                    if not (0 <= y_coord <= 10000000):
-                        self.add_error('y_coordinate', 
-                                     f'Warning: UTM Northing {y_coord} seems outside normal range (0-10,000,000m)')
-                
-                elif 25800 <= srid_int <= 25900:  # ETRS89 UTM zones
-                    if not (0 <= x_coord <= 1000000):
-                        self.add_error('x_coordinate', 
-                                     f'Warning: UTM Easting {x_coord} seems outside normal range (0-1,000,000m)')
-                    if not (0 <= y_coord <= 10000000):
-                        self.add_error('y_coordinate', 
-                                     f'Warning: UTM Northing {y_coord} seems outside normal range (0-10,000,000m)')
-                
-                # General validation for projected coordinates (should be positive)
-                elif srid_int != 4326 and (x_coord < 0 or y_coord < 0):
-                    if x_coord < 0:
-                        self.add_error('x_coordinate', 
-                                     'Warning: Negative coordinates are unusual for projected coordinate systems')
-                    if y_coord < 0:
-                        self.add_error('y_coordinate', 
-                                     'Warning: Negative coordinates are unusual for projected coordinate systems')
-                
-            except ValueError:
-                pass  # SRID validation already handled above
-                
+        if x is None or y is None or srid is None:
+            return cleaned_data   # the field errors say what is missing
+        if self._initial_coordinates() == (srid, x, y):
+            self.geometry_changed = False   # attribute-only edit: keep the stored geometry
+            return cleaned_data
+        try:
+            result = from_vertices('point', [(x, y)], srid)
+        except GeometryError as error:
+            self.add_error(None, str(error))
+            return cleaned_data
+        self.geometry_result = result
+        self.geometry_changed = True
+        self.coordinate_warnings = tuple(plausibility_warnings(srid, x, y)) + result.warnings
         return cleaned_data
+
+    @property
+    def wgs84_point(self):
+        """The new point in WGS84 (for the confirm page), or None."""
+        if self.geometry_result is None or self.geometry_result.points is None:
+            return None
+        return self.geometry_result.points[0]
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.geometry_changed and self.geometry_result is not None:
+            self.geometry_result.apply_to(instance)
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class AddFeatureByMap(ModelForm):

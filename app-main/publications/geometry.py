@@ -45,6 +45,13 @@ API
   loads it.
 - ``same_geometry(result, feature, tolerance=1e-9) -> bool``: the result has the same
   geometry as the feature's stored columns (a kind missing on one side counts as different).
+- ``single_point(feature) -> Point | None`` (T6): the one point of a feature that holds
+  exactly one point and no line or polygon (the features coordinate entry can edit).
+- ``entered_point(feature) -> (srid, x, y)`` (T6): the coordinates of such a feature as they
+  were entered (``source_srid`` / ``source_geometry``), else EPSG:4326 lon/lat of ``points``.
+- ``plausibility_warnings(srid, x, y) -> list of str`` (T6): warnings for one entered
+  coordinate pair that is valid but looks wrong for its CRS (lon/lat swapped; UTM easting
+  outside a zone, easting and northing swapped). Warnings only, never errors.
 
 Rules
 -----
@@ -71,8 +78,8 @@ from dataclasses import dataclass, field
 from django.contrib.gis import gdal
 from django.contrib.gis.gdal import CoordTransform, GDALException, SpatialReference
 from django.contrib.gis.geos import (
-    GeometryCollection, LinearRing, LineString, MultiLineString, MultiPoint, MultiPolygon,
-    Point, Polygon,
+    GeometryCollection, GEOSException, GEOSGeometry, LinearRing, LineString, MultiLineString,
+    MultiPoint, MultiPolygon, Point, Polygon,
 )
 
 WGS84 = 4326
@@ -424,3 +431,68 @@ def from_geojson(data, srid=WGS84):
         else:   # MultiPolygon
             polys.extend(_polygon(polygon) for polygon in coords)
     return _build(points, lines, polys, srid)
+
+
+# --- Coordinate entry (plan "features" T6) ---------------------------------------------------
+
+UTM_EASTING_RANGE = (100000.0, 900000.0)   # metres; wider than any zone's width in Greenland
+
+
+def single_point(feature):
+    """The only Point of ``feature`` if it holds exactly one point and no line or polygon,
+    else None."""
+    for column in ('lines', 'polys'):
+        geom = getattr(feature, column)
+        if geom is not None and not geom.empty:
+            return None
+    points = feature.points
+    if points is None or points.empty or len(points) != 1:
+        return None
+    return points[0]
+
+
+def entered_point(feature):
+    """(srid, x, y) of a one-point feature as entered: from ``source_srid`` and
+    ``source_geometry`` when they hold one point, else EPSG:4326 lon/lat of ``points``.
+    ValueError if the feature does not hold exactly one point."""
+    point = single_point(feature)
+    if point is None:
+        raise ValueError('The feature does not hold exactly one point.')
+    if feature.source_srid and feature.source_geometry:
+        try:
+            source = GEOSGeometry(feature.source_geometry)
+        except (GEOSException, GDALException, ValueError, TypeError):
+            source = None
+        if isinstance(source, MultiPoint) and len(source) == 1:
+            source = source[0]
+        if isinstance(source, Point) and not source.empty:
+            return feature.source_srid, source.x, source.y
+    return WGS84, point.x, point.y
+
+
+def plausibility_warnings(srid, x, y):
+    """Warnings for one coordinate pair (x, y) in EPSG ``srid`` that transforms fine but
+    looks wrong for that CRS. Never raises for a known ``srid``."""
+    srs = spatial_reference(srid)
+    warnings = []
+    lon_min, lat_min, lon_max, lat_max = GREENLAND_BOX
+    if srs.geographic:
+        in_box = lon_min <= x <= lon_max and lat_min <= y <= lat_max
+        swapped_in_box = lon_min <= y <= lon_max and lat_min <= x <= lat_max
+        if swapped_in_box and not in_box:
+            warnings.append(
+                f'The values look swapped: x is the longitude (west is negative, e.g. -51), '
+                f'y the latitude (e.g. 67); you entered x = {x}, y = {y}.')
+    elif srs.projected and 'UTM' in (srs.name or ''):
+        e_min, e_max = UTM_EASTING_RANGE
+        if not e_min <= x <= e_max:
+            if e_min <= y <= e_max and x > e_max:
+                warnings.append(
+                    f'Easting and northing look swapped: x is the easting (100 000 to '
+                    f'900 000 m), y the northing; you entered x = {x}, y = {y}.')
+            else:
+                warnings.append(
+                    f'The easting {x} m is outside the usual range of a UTM zone '
+                    f'(100 000 to 900 000 m). Check the UTM zone ({srs.name}) and that x is '
+                    'the easting.')
+    return warnings
