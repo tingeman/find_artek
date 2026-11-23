@@ -3,7 +3,9 @@
 Plan: [PLAN_features.md](PLAN_features.md). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`.
 
 ## Now
-Plan approved 2026-11-23. T2 (implementer): vendor map scripts, token setting, readme section.
+Plan approved 2026-11-23. **T2 running** (implementer, started 2026-11-23) in the worktree `..\find_artek_agent-features`, uncommitted: vendor map scripts into `publications/static/publications/vendor/`, setting `FA_DATAFORSYNINGEN_TOKEN` + context processor, readme section "Third-party JavaScript", tests `publications/test_map_assets.py`, validation `tests/run.sh find_artek:features-t2`. **If a new session finds T2 uncommitted:** review `git -C ../find_artek_agent-features status` and `git diff`, rerun `docker build -t find_artek:features-t2 . && bash tests/run.sh find_artek:features-t2` in the worktree, commit as `T2: ...` if green, else hand the remaining work to a new implementer with the T2 brief from the plan.
+
+Next: T3 needs the open question below answered first. T4 and T9 could then follow; run agents one at a time in the worktree (they share `views.py`, `urls.py`, `report.html`; owner allows parallel agents only without shared files).
 
 ## Done
 - T0 2026-11-23: `agent-features` created from `develop/main` with worktree; `agent-fixes` (FA-R101, 348219a) merged into it instead of a fast-forward of `develop/main` (FA-R101 reaches `develop/main` with the feature merge). Owner put the token into `.dev.env`.
@@ -12,8 +14,10 @@ Plan approved 2026-11-23. T2 (implementer): vendor map scripts, token setting, r
 - 2026-11-22: exploration (new and classic feature code), owner decisions (Leaflet polar, preview before save, scope incl. FA-R64, FA-R65 part, feature-page map, FA-R104; token in the page).
 
 ## Open questions
+- Browser checks of the branch (T3, T5, T11): the dev stack runs the owner's checkout. Options put to the owner 2026-11-23: (a) owner copies `.dev.env` into `..\find_artek_agent-features`, main session runs the dev stack from the worktree (same DB volume); (b) owner checks out `agent-features` in their own checkout. Waiting for the answer.
 
 ## Notes for the next session
+- Owner is near the weekly usage cap and may switch accounts: keep this file current after every step; resume with skill `plan-work` (Resume).
 - Add-by-map page in dev: OSM tiles blocked with 403 (tile usage policy), checked 2026-11-22. The overview map (EPSG:3575, GBIF) works.
 - Old branches `develop/add_feature_by_map` and `origin/bug/add-feature-map/main` are fully merged into `develop/main` (no lost work).
 - FA-R101 fix is on `agent-fixes` (348219a) and merged into `agent-features`; not yet on `develop/main`.
