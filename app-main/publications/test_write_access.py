@@ -240,11 +240,14 @@ class DeleteFeatureAccessTests(WriteAccessTestBase):
         self.client.post(self.path(self.editor_feature))
         self.assertFalse(Feature.objects.filter(pk=self.editor_feature.pk).exists())
 
-    def test_listed_on_one_of_two_reports_may_delete(self):
+    def test_listed_on_one_of_two_reports_may_open_but_not_delete(self):
+        # Changed in plan "features" T7a (owner 2026-11-23): the permission still holds (the
+        # page opens), but a feature linked to more than one report cannot be deleted.
         self.login(self.dtu_own)
         self.assertEqual(self.client.get(self.path(self.both_feature)).status_code, 200)
         self.client.post(self.path(self.both_feature))
-        self.assertFalse(Feature.objects.filter(pk=self.both_feature.pk).exists())
+        self.assertTrue(Feature.objects.filter(pk=self.both_feature.pk).exists())
+        self.assertEqual(self.both_feature.publications.count(), 2)
 
     def test_editor_deletes_any_feature(self):
         self.login(self.editor)

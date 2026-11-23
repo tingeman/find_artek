@@ -2309,6 +2309,11 @@ class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseVi
     nothing; POST deletes in one transaction (_delete_feature; files are removed after the
     commit). Returns to the report named by ``report`` (FeatureReturnReportMixin), else the
     feature's first visible report, else the report list.
+
+    A feature linked to more than one report cannot be deleted (owner 2026-11-23, plan
+    "features" T7a; long term roadmap FA-R109): GET explains it and offers no delete, POST
+    changes nothing and returns with an error. "Delete all features" of a report
+    (DeleteReportFeaturesView) only removes such a feature from that report.
     """
     template_name = 'publications/feature_confirm_delete.html'
     permission = DELETE_FEATURE
@@ -2335,14 +2340,24 @@ class DeleteFeatureView(FeaturePermissionMixin, FeatureReturnReportMixin, BaseVi
             'images': [(i, _image_object_is_used(i, exclude_feature=feature))
                        for i in feature.images.all().order_by('pk')],
             'reports': visible,
+            'shared': self.is_shared(),
             'return_report': self.return_report(),
             'cancel_url': self.return_url(),
         })
         return render(request, self.template_name, context)
 
+    def is_shared(self):
+        """True if the feature is linked to more than one report (hidden ones count too)."""
+        return self.feature.publications.count() > 1
+
     def post(self, request, *args, **kwargs):
         feature = self.feature
         name = feature.name or f'feature {feature.pk}'
+        if self.is_shared():
+            messages.error(request, f'Feature "{name}" belongs to more than one report and '
+                                    'cannot be deleted. "Delete all features" on a report '
+                                    'removes it from that report only.')
+            return HttpResponseRedirect(self.return_url())
         success_url = self.success_url()   # before the links to the reports are gone
         with transaction.atomic():
             _delete_feature(feature)

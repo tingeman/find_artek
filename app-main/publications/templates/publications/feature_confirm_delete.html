@@ -11,9 +11,17 @@
     <p>Delete the feature <strong>{{ feature.name|default:feature.pk }}</strong> (ID: {{ feature.pk }}{% if feature.type %}, {{ feature.get_type_display }}{% endif %})?
        This cannot be undone.</p>
 
+    {% if shared %}
+    <div class="alert alert-warning" id="delete-feature-shared" role="alert">
+        This feature belongs to more than one report and cannot be deleted.
+        To remove it from one report, use "Delete all features" on that report: it only removes
+        features that belong to other reports too from that report.
+    </div>
+    {% endif %}
+
     <h3 class="h5">Reports</h3>
     {% if reports %}
-    <p>The feature is removed from these reports:</p>
+    <p>{% if shared %}The feature belongs to these reports:{% else %}The feature is removed from these reports:{% endif %}</p>
     <ul id="delete-feature-reports">
         {% for report in reports %}
         <li>{{ report.number|default:report.pk }}{% if report.title %}, <em>{{ report.title }}</em>{% endif %}</li>
@@ -48,7 +56,7 @@
     <form method="post" action="{% url 'publications:delete_feature' pk=feature.pk %}">
         {% csrf_token %}
         {% if return_report %}<input type="hidden" name="report" value="{{ return_report.pk }}">{% endif %}
-        <button type="submit" class="btn btn-danger">Yes, delete feature</button>
+        {% if not shared %}<button type="submit" class="btn btn-danger">Yes, delete feature</button>{% endif %}
         <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>

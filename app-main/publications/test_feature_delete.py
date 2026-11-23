@@ -182,7 +182,8 @@ class DeleteFeatureTests(FeatureDeleteTestBase):
         self.assertIn('already missing', '\n'.join(logs.output))
 
     def test_returns_to_the_report_it_was_started_from(self):
-        feature = self.feature('On both', self.pub, self.other_pub)
+        # T7a: a feature on several reports cannot be deleted, so one report here.
+        feature = self.feature('On other', self.other_pub)
         self.login(self.editor)
         page = self.client.get(self.path(feature, self.other_pub))
         self.assertContains(page, f'name="report" value="{self.other_pub.pk}"')
@@ -194,7 +195,7 @@ class DeleteFeatureTests(FeatureDeleteTestBase):
                              fetch_redirect_response=False)
 
     def test_without_report_returns_to_the_first_report(self):
-        feature = self.feature('On both', self.pub, self.other_pub)
+        feature = self.feature('On pub', self.pub)
         self.login(self.editor)
         response = self.post(feature)
         self.assertRedirects(response, reverse('publications:report', kwargs={'pk': self.pub.pk}),
@@ -215,19 +216,19 @@ class DeleteFeatureTests(FeatureDeleteTestBase):
                              fetch_redirect_response=False)
 
     def test_get_lists_everything_and_changes_nothing(self):
-        feature = self.feature('Listed feature', self.pub, self.other_pub)
+        feature = self.feature('Listed feature', self.pub)
         fileobject = self.add_file(feature, 'listed-data.txt')
         image = self.add_image(feature, 'listed-photo.jpg', caption='Listed caption')
         self.login(self.editor)
         response = self.client.get(self.path(feature, self.pub))
         self.assertEqual(response.status_code, 200)
         for text in ('Listed feature', 'listed-data.txt', 'listed-photo.jpg', 'Listed caption',
-                     'Own report', 'Other report'):
+                     'Own report', 'Yes, delete feature'):
             self.assertContains(response, text)
         self.assertTrue(Feature.objects.filter(pk=feature.pk).exists())
         self.assertRecordAndFileKept(fileobject)
         self.assertRecordAndFileKept(image)
-        self.assertEqual(feature.publications.count(), 2)
+        self.assertEqual(feature.publications.count(), 1)
 
     def test_hidden_reports_are_neither_named_nor_counted(self):
         secret = Publication.objects.create(type=self.pubtype, title='Secret report',
@@ -261,6 +262,48 @@ class DeleteFeatureTests(FeatureDeleteTestBase):
         self.login(self.editor)
         self.assertEqual(self.client.get(page_path('delete_feature', pk=feature.pk)).status_code,
                          404)
+
+    # --- T7a: a feature on more than one report cannot be deleted (owner 2026-11-23)
+
+    def test_shared_feature_page_offers_no_delete(self):
+        feature = self.feature('On both', self.pub, self.other_pub)
+        self.login(self.editor)
+        response = self.client.get(self.path(feature, self.pub))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['shared'])
+        self.assertContains(response, 'cannot be deleted')
+        self.assertNotContains(response, 'Yes, delete feature')
+        for text in ('Own report', 'Other report'):
+            self.assertContains(response, text)
+
+    def test_shared_feature_post_is_refused_for_everyone(self):
+        for user in (self.dtu_own, self.editor):
+            with self.subTest(user=user.username):
+                feature = self.feature('On both', self.pub, self.other_pub)
+                fileobject = self.add_file(feature, 'kept.txt')
+                image = self.add_image(feature, 'kept.jpg')
+                self.login(user)
+                response = self.post(feature, self.other_pub)
+                self.assertRedirects(
+                    response, reverse('publications:report', kwargs={'pk': self.other_pub.pk}),
+                    fetch_redirect_response=False)
+                self.assertTrue(Feature.objects.filter(pk=feature.pk).exists())
+                self.assertEqual(feature.publications.count(), 2)
+                self.assertRecordAndFileKept(fileobject)
+                self.assertRecordAndFileKept(image)
+                self.assertTrue(any('cannot be deleted' in m for m in self.messages(response)))
+
+    def test_feature_shared_with_a_hidden_report_is_refused_without_naming_it(self):
+        secret = Publication.objects.create(type=self.pubtype, title='Secret report',
+                                            number='99-04', year=1999, confidential=True)
+        feature = self.feature('Shared with a secret', self.pub, secret)
+        self.login(self.dtu_own)
+        page = self.client.get(self.path(feature, self.pub))
+        self.assertContains(page, 'cannot be deleted')
+        self.assertNotContains(page, 'Secret report')
+        self.assertNotContains(page, '99-04')
+        self.post(feature, self.pub)
+        self.assertEqual(feature.publications.count(), 2)
 
     def test_report_page_delete_link_names_the_report(self):
         feature = self.feature('Linked', self.pub)
