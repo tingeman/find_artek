@@ -3,7 +3,7 @@
 Plan: [PLAN_features_COMPLETE.md](PLAN_features_COMPLETE.md). Branch: `agent-features` (from `develop/main`), worktree `..\find_artek_agent-features`.
 
 ## Now
-**Finished 2026-11-24:** `develop/main` fast-forwarded to `agent-features` (`d393f17`) with the owner's OK; open points moved to the roadmap (FA-R111 to FA-R118, addition to FA-R109); release in [USER_STEPS_2026.8.md](../plan/USER_STEPS_2026.8.md).
+**Finished 2026-11-24:** `develop/main` fast-forwarded to `agent-features` (`d393f17`) with the owner's OK; open points moved to the roadmap (FA-R111 to FA-R118, addition to FA-R109); release in [USER_STEPS_2026.8](USER_STEPS_2026.8_COMPLETE.md).
 
 T2-T11, T7a, T8a done and on `agent-features` (T9 and T4 merged 2026-11-23, `e626add`, `f51e33e`; gate on the merged branch: 22/22, 857 tests OK). The t4/t9 worktrees and branches are removed.
 

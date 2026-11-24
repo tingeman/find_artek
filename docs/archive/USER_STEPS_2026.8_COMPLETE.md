@@ -1,5 +1,7 @@
 # User steps: release 2026.8 (feature registration)
 
+**Complete 2026-11-24:** deployed to production by the owner (steps 6-10 done; nginx `nosniff` for protected media in web_server `98dec85`). Archived.
+
 Release `2026.8` is `develop/main` after [PLAN_features](../archive/PLAN_features_COMPLETE.md) (fast-forwarded 2026-11-24 with the owner's OK, `d393f17`; plan closed in `f97bdc9`). Checks on `d393f17`: `tests/run.sh` ALL 22 TESTS PASSED, 1239 Django tests OK; the owner's browser checks in the dev stack (USER_STEPS_features, sections 1-2 and rechecks R-U).
 
 What changes for users:
@@ -60,6 +62,8 @@ Get-FileHash -Algorithm SHA256 "$dst\webapp_find_artek-2026.8.tar.gz"   # = tarb
 
 ## 6. Add the token to the secrets (you)
 
+- [x] Done (2026-11-24, owner: web_server vault commit `ee05e60`).
+
 The token goes into the env file of the find_artek containers, which lives in web_server's encrypted secrets archive (`docker/secrets.tar.gz.vault`). Agents never see it.
 
 1. Get a token for production on dataforsyningen.dk (log in, "Mine tokens"). Prefer a new one over the dev token, which was shown once in an agent's output during PLAN_features.
@@ -83,6 +87,8 @@ The find_artek playbook imports `playbook_deploy_files.yml`, which unpacks the s
 
 ## 7. Optional: nginx `nosniff` on protected media (you)
 
+- [x] Done (2026-11-24: owner's edit, checked with `nginx -t` and committed by the main session as web_server `98dec85`; `playbook_install_nginx.yml` run by the owner).
+
 In `C:\thin\02_Code\docker_projects\dtu_sus_web_server\docker\services\nginx\nginx.conf`, in `location /find/_protected_media/` (around line 236), add a line after `alias ...;`:
 
 ```nginx
@@ -100,6 +106,8 @@ ansible-playbook -kK -i hosts playbook_install_nginx.yml -v --ask-vault-pass
 Check: in DevTools, Network tab, the response of a report PDF has `X-Content-Type-Options: nosniff`. Tell the main session if you want it to make the edit instead.
 
 ## 8. Deploy the app (you)
+
+- [x] Done (2026-11-24, owner).
 
 ```bash
 # WSL
@@ -123,6 +131,8 @@ Rollback: put the `2026.7` entry back in `releases.yml`, then `sudo docker exec 
 
 ## 9. Functional checks in production (you)
 
+- [x] Done (2026-11-24, owner; 9.5 thumbnail cron the next morning).
+
 Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 
 1. Logged out: front page, report list and the map load. The map shows the **topographic map** (the token works; without it only the Arctic SDI basemap and "More map layers need FA_DATAFORSYNINGEN_TOKEN" in the corner). Type filter, legend, reports in view and box zoom work.
@@ -133,7 +143,7 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
 
 ## 10. After closing (you)
 
-- [ ] a. Fast-forward `main` to the deployed tag (FA5) and push it:
+- [x] a. Fast-forward `main` to the deployed tag (FA5) and push it:
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_DEVELOP
@@ -141,14 +151,14 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
   git push origin main
   ```
 
-- [ ] b. Push web_server `develop/main` (releases.yml, the vault file, nginx if step 7):
+- [x] b. Push web_server `develop/main` (releases.yml, the vault file, nginx if step 7):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\dtu_sus_web_server
   git push github develop/main
   ```
 
-- [ ] c. Give the dev stack back to your checkout and remove the feature worktree (the stack runs from `..\find_artek_agent-features` since 2026-11-23; the dev database volume is kept):
+- [x] c. Give the dev stack back to your checkout and remove the feature worktree (the stack runs from `..\find_artek_agent-features` since 2026-11-23; the dev database volume is kept):
 
   ```powershell
   # PowerShell, in C:\thin\02_Code\docker_projects\find_artek_agent-features
@@ -159,4 +169,4 @@ Ctrl+F5 first, on `https://arctic.sustain.dtu.dk/find/`:
   git branch -d agent-features                         # merged into develop/main
   ```
 
-Tell the main session when steps 8-10 are done; it archives this file.
+Checked 2026-11-24 by the main session: `main` = `origin/main` = tag `2026.8` (`f97bdc9`); web_server `develop/main` = `github/develop/main` (`98dec85`); worktree and branch `agent-features` removed, dev stack runs from `find_artek_DEVELOP`. Open then: find_artek `develop/main` not yet pushed (`origin/develop/main` still at `c33665b`, 83 commits behind).
